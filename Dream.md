@@ -1,5 +1,5 @@
 The Idea is to create a touch functional user interface like Star Trek LCARS.
-A terminal command promt will be at the bottom of the screen at all the times. 
+A terminal command promt will be at the bottom of a zoomed out screen at all the times. 
 All of the commands will be listed in an overlay and when you touch the comman it will transfer it to the prompt then access options form the help file and place those on the screen allong with directory and file information incase you are trying to open or acess a file. 
 Window functionality will be included and the scail of your screen or area to display windows is unlimited kind of like prezie zooming functionality if you zoom in and out to see differnt things. 
 Say you opend a web browser it would zoom in transitioning from the browser icon till the open browser fills the screen so to see the just opened web browser you would pinch to zoom out and select the browser to zoom in. now lets say you want more then one window to display just select all the windows you want to see together and you will see them. this gives a dynamic foundation for any size or type of display that can use jesturs, void, and many other forms of controle input inclulding standard input.

@@ -1,0 +1,122 @@
+:root {
+    --lcars-orange: #ff9900;
+    --lcars-purple: #cc99cc;
+    --lcars-blue: #9999cc;
+    --lcars-red: #cc6666;
+    --lcars-accent: var(--lcars-purple);
+    --lcars-alert: var(--lcars-red);
+    --lcars-black: #000000;
+    --lcars-bg: #050505;
+
+    --corner-radius: 20px;
+    --bar-width: 150px;
+    --transition-speed: 0.6s;
+}
+
+body {
+    background-color: var(--lcars-bg);
+    color: var(--lcars-orange);
+    font-family: 'Antonio', 'Arial Narrow', sans-serif;
+    margin: 0;
+    padding: 0;
+    overflow: hidden;
+    height: 100vh;
+}
+
+/* SSD Window Frame Morphing */
+.lcars-window-frame {
+    position: absolute;
+    display: flex;
+    flex-direction: column;
+    transition: all var(--transition-speed) cubic-bezier(0.4, 0, 0.2, 1);
+    background: rgba(10, 10, 10, 0.8);
+    border-radius: var(--corner-radius);
+    overflow: hidden;
+    box-shadow: 0 0 20px rgba(0, 0, 0, 0.5);
+}
+
+.lcars-frame-header {
+    height: 30px;
+    background-color: var(--frame-accent);
+    color: black;
+    display: flex;
+    align-items: center;
+    padding: 0 15px;
+    font-weight: bold;
+    text-transform: uppercase;
+    transition: height var(--transition-speed);
+}
+
+.lcars-frame-side {
+    position: absolute;
+    left: 0;
+    width: 10px;
+    height: 100%;
+    background-color: var(--frame-accent);
+    transition: width var(--transition-speed);
+}
+
+/* Morph Phases */
+.morph-entering {
+    animation: zoomInFrame var(--transition-speed) forwards;
+}
+
+.morph-exiting {
+    animation: zoomOutFrame var(--transition-speed) forwards;
+}
+
+@keyframes zoomInFrame {
+    from {
+        transform: scale(0.5);
+        opacity: 0;
+        filter: blur(10px);
+    }
+
+    to {
+        transform: scale(1);
+        opacity: 1;
+        filter: blur(0);
+    }
+}
+
+@keyframes zoomOutFrame {
+    from {
+        transform: scale(1);
+        opacity: 1;
+    }
+
+    to {
+        transform: scale(2);
+        opacity: 0;
+        filter: blur(20px);
+    }
+}
+
+/* Specific Frame Styles */
+.frame-full .lcars-frame-side {
+    width: 60px;
+}
+
+.frame-full .lcars-frame-header {
+    height: 50px;
+    font-size: 1.5rem;
+}
+
+/* Layout Layers */
+.dashboard-layer {
+    z-index: 10;
+}
+
+.surfaces-layer {
+    z-index: 20;
+    position: relative;
+    width: 100%;
+    height: 100%;
+}
+
+.lcars-widget {
+    border-left: 15px solid var(--lcars-blue);
+    padding-left: 15px;
+    margin: 10px;
+    background: rgba(255, 255, 255, 0.05);
+}

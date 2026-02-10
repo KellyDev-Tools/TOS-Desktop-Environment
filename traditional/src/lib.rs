@@ -110,12 +110,36 @@ impl DesktopEnvironment {
             );
             
             html.push_str(&format!(r#"<div class="grid-item" style="{}">"#, grid_style));
-            html.push_str(&DecorationManager::get_html_frame(
+            
+            let mut decoration = DecorationManager::get_html_frame(
                 &layout.surface.title, 
                 DecorationStyle::Default, 
                 self.current_morph_phase,
                 &format!("surface-{}", layout.surface.id)
-            ));
+            );
+
+            // Level 4: Deep detail injection
+            if self.navigator.current_level == ZoomLevel::Level4Detail {
+                let detail_mock = format!(
+                    r#"<div class="lcars-detail-box">
+                        <div class="detail-header">NODE INSPECTOR: {}</div>
+                        <div class="detail-row"><span>STATUS:</span> <span class="active">ACTIVE</span></div>
+                        <div class="detail-row"><span>THREADS:</span> 12</div>
+                        <div class="detail-row"><span>MEMORY:</span> 256MB</div>
+                        <div class="detail-row"><span>UPTIME:</span> {}s</div>
+                        <div class="detail-chart">
+                            <div class="bar" style="height: 60%;"></div>
+                            <div class="bar" style="height: 40%;"></div>
+                            <div class="bar" style="height: 80%;"></div>
+                            <div class="bar" style="height: 20%;"></div>
+                        </div>
+                    </div>"#,
+                    layout.surface.id, self.status.uptime_secs
+                );
+                decoration = decoration.replace("<!-- Surface content injected here -->", &detail_mock);
+            }
+
+            html.push_str(&decoration);
             html.push_str("</div>");
         }
         html.push_str("</div>");

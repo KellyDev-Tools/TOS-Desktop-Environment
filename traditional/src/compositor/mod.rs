@@ -92,7 +92,7 @@ impl SpatialMapper {
                     Vec::new()
                 }
             }
-            ZoomLevel::Level3Focus | ZoomLevel::Level3aPicker => {
+            ZoomLevel::Level3Focus | ZoomLevel::Level3aPicker | ZoomLevel::Level4Detail => {
                 if let Some(id) = primary_id {
                     manager.get_surface(id).into_iter().cloned().collect()
                 } else {
@@ -121,7 +121,7 @@ impl SpatialMapper {
                     let y = (i / cols) as u16;
                     (x, y, 1, 1)
                 }
-                ZoomLevel::Level3Focus => (0, 0, 3, 3),
+                ZoomLevel::Level3Focus | ZoomLevel::Level4Detail => (0, 0, 3, 3), // Full span
                 ZoomLevel::Level3Split => {
                     if i == 0 { (0, 0, 2, 3) } else { (2, 0, 1, 3) }
                 }

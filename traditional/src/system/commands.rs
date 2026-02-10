@@ -79,8 +79,12 @@ impl CommandParser {
                 }
                 format!("Usage: split [secondary_id]")
             }
+            "inspect" | "detail" => {
+                env.navigator.current_level = crate::navigation::zoom::ZoomLevel::Level4Detail;
+                format!("Entering Level 4: Detail Inspection.")
+            }
             "help" => {
-                format!("Commands: zoom [n], spawn [name], alert [msg], kill [id], split [id], help")
+                format!("Commands: zoom [n], spawn [name], alert [msg], kill [id], split [id], inspect, help")
             }
             _ => format!("Unknown command: '{}'. Type 'help' for list.", cmd),
         }

@@ -26,6 +26,7 @@ impl StatusBar {
             ZoomLevel::Level3Focus => "FOCUS",
             ZoomLevel::Level3aPicker => "PICKER",
             ZoomLevel::Level3Split => "SPLIT",
+            ZoomLevel::Level4Detail => "DETAIL",
         };
 
         let sector_str = sector.map_or("---".to_string(), |s| s.to_string());

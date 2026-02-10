@@ -229,6 +229,67 @@ body {
     color: black;
 }
 
+/* Detail View (Level 4) */
+.lcars-detail-box {
+    padding: 20px;
+    height: 100%;
+    color: var(--lcars-blue);
+    font-family: 'Outfit', sans-serif;
+}
+
+.detail-header {
+    font-size: 1.5rem;
+    color: var(--lcars-orange);
+    border-bottom: 2px solid var(--lcars-blue);
+    margin-bottom: 20px;
+    padding-bottom: 5px;
+}
+
+.detail-row {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 10px;
+    font-size: 1.1rem;
+}
+
+.detail-row span:first-child {
+    font-weight: bold;
+    color: var(--lcars-blue-dark);
+}
+
+.detail-row .active {
+    color: #00FF00;
+}
+
+.detail-chart {
+    display: flex;
+    align-items: flex-end;
+    gap: 10px;
+    height: 100px;
+    margin-top: 30px;
+    padding: 10px;
+    background: rgba(0, 0, 0, 0.3);
+    border-radius: 5px;
+}
+
+.detail-chart .bar {
+    width: 25px;
+    background: var(--lcars-blue);
+    border-top-left-radius: 3px;
+    border-top-right-radius: 3px;
+    animation: barPulse 2s infinite alternate ease-in-out;
+}
+
+@keyframes barPulse {
+    from {
+        filter: brightness(1);
+    }
+
+    to {
+        filter: brightness(1.5);
+    }
+}
+
 .lcars-widget {
     border-left: 15px solid var(--lcars-blue);
     padding-left: 15px;

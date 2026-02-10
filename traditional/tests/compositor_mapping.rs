@@ -15,6 +15,7 @@ fn test_surface_mapping_integration() {
         &env.surfaces, 
         env.navigator.current_level, 
         env.navigator.active_sector_index, 
+        None,
         None
     );
     assert_eq!(layouts.len(), 0); // Root overview doesnt show apps directly
@@ -25,6 +26,7 @@ fn test_surface_mapping_integration() {
         &env.surfaces, 
         env.navigator.current_level, 
         env.navigator.active_sector_index, 
+        None,
         None
     );
     assert_eq!(layouts.len(), 1);
@@ -37,7 +39,8 @@ fn test_surface_mapping_integration() {
         &env.surfaces, 
         env.navigator.current_level, 
         env.navigator.active_sector_index, 
-        Some(term)
+        Some(term),
+        None
     );
     assert_eq!(layouts.len(), 1);
     assert_eq!(layouts[0].surface.id, term);
@@ -63,7 +66,35 @@ fn test_picker_mapping() {
         &env.surfaces, 
         env.navigator.current_level, 
         env.navigator.active_sector_index, 
-        Some(w1)
+        Some(w1),
+        None
     );
     assert_eq!(layouts.len(), 1);
+}
+
+#[test]
+fn test_split_view_layout() {
+    let mut env = DesktopEnvironment::new(None);
+    let s1 = env.surfaces.create_surface("S1", SurfaceRole::Toplevel, Some(0));
+    let s2 = env.surfaces.create_surface("S2", SurfaceRole::Toplevel, Some(0));
+
+    env.navigator.zoom_in(0); // Sector
+    env.navigator.zoom_in(0); // Focus s1
+    
+    env.navigator.split_view(s2);
+    assert_eq!(env.navigator.current_level, ZoomLevel::Level3Split);
+
+    let layouts = SpatialMapper::get_layout(
+        &env.surfaces,
+        env.navigator.current_level,
+        env.navigator.active_sector_index,
+        Some(s1),
+        Some(s2)
+    );
+
+    assert_eq!(layouts.len(), 2);
+    // S1 should be span 2
+    assert_eq!(layouts[0].width, 2);
+    // S2 should be span 1
+    assert_eq!(layouts[1].width, 1);
 }

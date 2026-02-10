@@ -86,11 +86,20 @@ impl DesktopEnvironment {
         }
 
         // 3. Surfaces layer (Spatial Grid)
+        let primary_id = if let (Some(sector), Some(app)) = (self.navigator.active_sector_index, self.navigator.active_app_index) {
+            // This is a bit of a hack since navigator uses indices and surfaces uses IDs
+            // In a real impl, those would be unified. For now, let's find the ID.
+            self.surfaces.get_surfaces_in_sector(sector).get(app).map(|s| s.id)
+        } else {
+            None
+        };
+
         let layouts = SpatialMapper::get_layout(
             &self.surfaces, 
             self.navigator.current_level, 
             self.navigator.active_sector_index, 
-            None 
+            primary_id,
+            self.navigator.secondary_app_id
         );
 
         html.push_str("<div class='surfaces-grid'>");

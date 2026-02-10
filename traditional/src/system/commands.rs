@@ -70,8 +70,17 @@ impl CommandParser {
                 }
                 format!("Usage: kill [id]")
             }
+            "split" => {
+                if let Some(id_str) = args.get(0) {
+                    if let Ok(id) = id_str.parse::<u32>() {
+                        env.navigator.split_view(id);
+                        return format!("Splitting view with Surface ID: {}", id);
+                    }
+                }
+                format!("Usage: split [secondary_id]")
+            }
             "help" => {
-                format!("Commands: zoom [n], spawn [name], alert [msg], kill [id], help")
+                format!("Commands: zoom [n], spawn [name], alert [msg], kill [id], split [id], help")
             }
             _ => format!("Unknown command: '{}'. Type 'help' for list.", cmd),
         }

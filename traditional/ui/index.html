@@ -32,6 +32,7 @@
     <!-- Floating Context Menu -->
     <div id="context-menu" class="lcars-context-menu">
         <div class="context-menu-item" onclick="handleContextAction('focus')">Focus</div>
+        <div class="context-menu-item" onclick="handleContextAction('split')">Compare/Split</div>
         <div class="context-menu-item" onclick="handleContextAction('alert')">Alert Status</div>
         <div class="context-menu-item danger" onclick="handleContextAction('kill')">Terminate</div>
     </div>
@@ -82,6 +83,9 @@
             switch (action) {
                 case 'focus':
                     sendCommand(`zoom:3`); // Simplification for now
+                    break;
+                case 'split':
+                    sendCommand(`terminal:split ${contextSurfaceId}`);
                     break;
                 case 'kill':
                     sendCommand(`terminal:kill ${contextSurfaceId}`);

@@ -9,6 +9,7 @@ pub enum ZoomLevel {
     Level2Sector,    // Group of related apps/tasks (e.g. Work, Media)
     Level3Focus,     // Active application window
     Level3aPicker,   // Window picker for an app with multiple windows
+    Level3Split,     // Two windows side-by-side
 }
 
 impl fmt::Display for ZoomLevel {
@@ -18,6 +19,7 @@ impl fmt::Display for ZoomLevel {
             ZoomLevel::Level2Sector => write!(f, "Level 2: Sector (Group)"),
             ZoomLevel::Level3Focus => write!(f, "Level 3: Focus (App)"),
             ZoomLevel::Level3aPicker => write!(f, "Level 3a: Picker (Windows)"),
+            ZoomLevel::Level3Split => write!(f, "Level 3: Split View"),
         }
     }
 }
@@ -27,6 +29,7 @@ pub struct SpatialNavigator {
     pub active_sector_index: Option<usize>,
     pub active_app_index: Option<usize>,
     pub active_window_index: Option<usize>,
+    pub secondary_app_id: Option<u32>, // For Split View
 }
 
 impl SpatialNavigator {
@@ -36,6 +39,7 @@ impl SpatialNavigator {
             active_sector_index: None,
             active_app_index: None,
             active_window_index: None,
+            secondary_app_id: None,
         }
     }
 
@@ -63,7 +67,12 @@ impl SpatialNavigator {
     }
 
     pub fn zoom_out(&mut self) {
+        self.secondary_app_id = None; // Always reset split on zoom out
         match self.current_level {
+            ZoomLevel::Level3Split => {
+                self.current_level = ZoomLevel::Level3Focus;
+                println!("[Split Out] Returning to Single Focus View.");
+            }
             ZoomLevel::Level3Focus => {
                 // Mock condition: even index apps have multiple windows to simulate logic
                 let has_multiple_windows = self.active_app_index.map_or(false, |idx| idx % 2 == 0);
@@ -93,11 +102,11 @@ impl SpatialNavigator {
         }
     }
 
-    pub fn split_view(&self) {
+    pub fn split_view(&mut self, secondary_id: u32) {
         if self.current_level == ZoomLevel::Level3Focus {
-            println!("[Split] Splitting Viewport...");
-            println!("  -> Left Pane: Retains App Focus (Level 3)");
-            println!("  -> Right Pane: Reverts to Level 2 (Sector Selection)");
+            println!("[Split] Entering Split View with Surface {}", secondary_id);
+            self.secondary_app_id = Some(secondary_id);
+            self.current_level = ZoomLevel::Level3Split;
         } else {
             println!("[Split] Can only split from a focused app (Level 3).");
         }

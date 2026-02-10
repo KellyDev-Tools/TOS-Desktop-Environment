@@ -80,7 +80,8 @@ impl SpatialMapper {
         manager: &SurfaceManager,
         level: ZoomLevel,
         active_sector: Option<usize>,
-        active_app_id: Option<u32>,
+        primary_id: Option<u32>,
+        secondary_id: Option<u32>,
     ) -> Vec<SurfaceLayout> {
         let surfaces = match level {
             ZoomLevel::Level1Root => Vec::new(),
@@ -92,11 +93,21 @@ impl SpatialMapper {
                 }
             }
             ZoomLevel::Level3Focus | ZoomLevel::Level3aPicker => {
-                if let Some(id) = active_app_id {
+                if let Some(id) = primary_id {
                     manager.get_surface(id).into_iter().cloned().collect()
                 } else {
                     Vec::new()
                 }
+            }
+            ZoomLevel::Level3Split => {
+                let mut split = Vec::new();
+                if let Some(id) = primary_id {
+                    if let Some(s) = manager.get_surface(id) { split.push(s.clone()); }
+                }
+                if let Some(id) = secondary_id {
+                    if let Some(s) = manager.get_surface(id) { split.push(s.clone()); }
+                }
+                split
             }
         };
 
@@ -111,6 +122,9 @@ impl SpatialMapper {
                     (x, y, 1, 1)
                 }
                 ZoomLevel::Level3Focus => (0, 0, 3, 3),
+                ZoomLevel::Level3Split => {
+                    if i == 0 { (0, 0, 2, 3) } else { (2, 0, 1, 3) }
+                }
                 _ => (0, 0, 1, 1),
             };
 
@@ -159,7 +173,8 @@ mod tests {
             &mgr, 
             ZoomLevel::Level3Focus, 
             Some(0), 
-            Some(term_id)
+            Some(term_id),
+            None
         );
         
         assert_eq!(layouts.len(), 1);

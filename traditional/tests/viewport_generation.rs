@@ -12,7 +12,7 @@ fn test_viewport_generation_logic() {
     let html = env.generate_viewport_html();
     assert!(html.contains("dashboard-layer"));
     assert!(html.contains("CLOCK"));
-    assert!(html.contains("surfaces-layer"));
+    assert!(html.contains("surfaces-grid"));
     assert!(!html.contains("lcars-window-frame")); // No surfaces yet
 
     // Level 2: Zoom into Sector 0

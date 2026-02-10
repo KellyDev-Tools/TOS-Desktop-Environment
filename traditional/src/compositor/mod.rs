@@ -14,7 +14,16 @@ pub struct TosSurface {
     pub id: u32,
     pub title: String,
     pub role: SurfaceRole,
-    pub sector_id: Option<usize>, // Which sector does this app belong to?
+    pub sector_id: Option<usize>,
+}
+
+#[derive(Debug, Clone)]
+pub struct SurfaceLayout {
+    pub surface: TosSurface,
+    pub grid_x: u16,
+    pub grid_y: u16,
+    pub width: u16,
+    pub height: u16,
 }
 
 pub struct SurfaceManager {
@@ -55,28 +64,27 @@ impl SurfaceManager {
             .collect()
     }
 
+    pub fn get_all_surface_titles(&self) -> Vec<String> {
+        self.surfaces.values().map(|s| s.title.clone()).collect()
+    }
+
     pub fn remove_surface(&mut self, id: u32) {
         self.surfaces.remove(&id);
     }
 }
 
-// Logic for mapping surfaces to the spatial hierarchy
 pub struct SpatialMapper;
 
 impl SpatialMapper {
-    pub fn get_visible_surfaces(
+    pub fn get_layout(
         manager: &SurfaceManager,
         level: ZoomLevel,
         active_sector: Option<usize>,
         active_app_id: Option<u32>,
-    ) -> Vec<TosSurface> {
-        match level {
-            ZoomLevel::Level1Root => {
-                // In Root, we show representatives of each sector or nothing specific
-                Vec::new()
-            }
+    ) -> Vec<SurfaceLayout> {
+        let surfaces = match level {
+            ZoomLevel::Level1Root => Vec::new(),
             ZoomLevel::Level2Sector => {
-                // Show all toplevel surfaces in the active sector
                 if let Some(sector_id) = active_sector {
                     manager.get_surfaces_in_sector(sector_id)
                 } else {
@@ -84,14 +92,37 @@ impl SpatialMapper {
                 }
             }
             ZoomLevel::Level3Focus | ZoomLevel::Level3aPicker => {
-                // Show the specific focused surface
                 if let Some(id) = active_app_id {
                     manager.get_surface(id).into_iter().cloned().collect()
                 } else {
                     Vec::new()
                 }
             }
+        };
+
+        let mut layouts = Vec::new();
+        let cols = 3;
+
+        for (i, surface) in surfaces.into_iter().enumerate() {
+            let (gx, gy, w, h) = match level {
+                ZoomLevel::Level2Sector => {
+                    let x = (i % cols) as u16;
+                    let y = (i / cols) as u16;
+                    (x, y, 1, 1)
+                }
+                ZoomLevel::Level3Focus => (0, 0, 3, 3),
+                _ => (0, 0, 1, 1),
+            };
+
+            layouts.push(SurfaceLayout {
+                surface,
+                grid_x: gx,
+                grid_y: gy,
+                width: w,
+                height: h,
+            });
         }
+        layouts
     }
 }
 
@@ -120,19 +151,19 @@ mod tests {
     }
 
     #[test]
-    fn test_spatial_mapper_focus() {
+    fn test_spatial_mapper_layout() {
         let mut mgr = SurfaceManager::new();
         let term_id = mgr.create_surface("Terminal", SurfaceRole::Toplevel, Some(0));
         
-        // At Level 3 with Terminal ID
-        let visible = SpatialMapper::get_visible_surfaces(
+        let layouts = SpatialMapper::get_layout(
             &mgr, 
             ZoomLevel::Level3Focus, 
             Some(0), 
             Some(term_id)
         );
         
-        assert_eq!(visible.len(), 1);
-        assert_eq!(visible[0].title, "Terminal");
+        assert_eq!(layouts.len(), 1);
+        assert_eq!(layouts[0].surface.title, "Terminal");
+        assert_eq!(layouts[0].width, 3);
     }
 }

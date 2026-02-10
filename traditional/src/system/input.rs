@@ -25,4 +25,6 @@ pub enum InputEvent {
     MouseMove { dx: f64, dy: f64 },
     // Mouse click
     MouseClick,
+    // A high-level command from the terminal entry
+    Command(String),
 }

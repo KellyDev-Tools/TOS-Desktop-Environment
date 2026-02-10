@@ -5,139 +5,125 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>TOS - Traditional Dashboard</title>
-    <!-- Note: In Wry, relative paths might need robust handling or base tags -->
-    <style>
-        /* Inline CSS for simplicity in Wry prototype */
-        :root {
-            --lcars-orange: #ff9900;
-            --lcars-purple: #cc99cc;
-            --lcars-blue: #9999cc;
-            --lcars-red: #cc6666;
-            --lcars-black: #000000;
-            --lcars-bg: #050505;
-
-            --corner-radius: 20px;
-            --bar-width: 150px;
-        }
-
-        body {
-            background-color: var(--lcars-bg);
-            color: var(--lcars-orange);
-            font-family: 'Antonio', 'Arial Narrow', sans-serif;
-            margin: 0;
-            padding: 0;
-            overflow: hidden;
-            height: 100vh;
-            display: flex;
-        }
-
-        /* Base LCARS Container API */
-        .lcars-container {
-            display: flex;
-            width: 100%;
-            height: 100%;
-        }
-
-        .lcars-column {
-            display: flex;
-            flex-direction: column;
-        }
-
-        /* The signature "Elbow" bracket */
-        .lcars-elbow {
-            width: var(--bar-width);
-            height: var(--bar-width);
-            background-color: var(--lcars-purple);
-            border-top-left-radius: var(--corner-radius);
-            margin-bottom: 5px;
-        }
-
-        .lcars-bar {
-            width: var(--bar-width);
-            flex-grow: 1;
-            background-color: var(--lcars-blue);
-            margin-right: 10px;
-        }
-
-        /* Interactive elements */
-        .lcars-button {
-            background-color: var(--lcars-red);
-            color: black;
-            padding: 10px 20px;
-            border: none;
-            border-radius: 15px;
-            /* Pill shape */
-            font-size: 1.2rem;
-            text-transform: uppercase;
-            font-weight: bold;
-            cursor: pointer;
-            text-align: right;
-            margin-bottom: 5px;
-            transition: filter 0.2s, transform 0.1s;
-        }
-
-        .lcars-button:hover {
-            filter: brightness(1.2);
-        }
-
-        .lcars-button:active {
-            transform: scale(0.98);
-        }
-
-        /* Spatial Viewport Placeholder */
-        .viewport-content {
-            flex-grow: 1;
-            background-color: var(--lcars-black);
-            border: 2px solid var(--lcars-blue);
-            border-top-right-radius: var(--corner-radius);
-            border-bottom-right-radius: var(--corner-radius);
-            position: relative;
-            overflow: hidden;
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-        }
-    </style>
+    <link rel="stylesheet" href="assets/css/lcars.css">
 </head>
 
-<body>
-
-    <!-- Main Navigation Bar (Left Rail) -->
-    <div class="lcars-container">
+<body class="zoom-level-1">
+    <div id="tos-root" class="lcars-container">
+        <!-- Main Navigation Bar (Left Rail) -->
         <div class="lcars-column">
             <div class="lcars-elbow"></div>
             <div class="lcars-bar"></div>
-            <button class="lcars-button">Work</button>
-            <button class="lcars-button">Media</button>
+            <button class="lcars-button" onclick="zoom(2)">Work</button>
+            <button class="lcars-button" onclick="zoom(1)">Media</button>
             <button class="lcars-button">System</button>
-            <div class="lcars-bar"></div> <!-- Bottom rail -->
+            <div class="lcars-bar"></div>
         </div>
 
-        <!-- Central Viewport (The 'Spatial' Area) -->
+        <!-- Central Viewport -->
         <div class="viewport-content" id="main-viewport">
-            <!-- Dynamic Content -->
-            <h1 style="color: var(--lcars-orange); font-size: 3rem;">LCARS SYSTEM ONLINE</h1>
-
-            <div id="dashboard-grid" style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; width: 80%;">
-                <div class="lcars-panel"
-                    style="border: 1px solid var(--lcars-blue); padding: 20px; border-radius: 15px;">
-                    <h2>SYSTEM STATUS</h2>
-                    <p>CORE ONLINE</p>
-                    <p>WARP DRIVE: IDLE</p>
-                </div>
-                <div class="lcars-panel"
-                    style="border: 1px solid var(--lcars-blue); padding: 20px; border-radius: 15px;">
-                    <h2>SENSOR READINGS</h2>
-                    <p>RUST BACKEND: CONNECTED</p>
-                </div>
+            <!-- This area is entirely driven by the Rust backend via generate_viewport_html() -->
+            <div id="spatial-view">
+                <h1>INITIALIZING TOS...</h1>
             </div>
         </div>
     </div>
 
-    <!-- Script for Rust Bridge -->
+    <!-- Floating Context Menu -->
+    <div id="context-menu" class="lcars-context-menu">
+        <div class="context-menu-item" onclick="handleContextAction('focus')">Focus</div>
+        <div class="context-menu-item" onclick="handleContextAction('alert')">Alert Status</div>
+        <div class="context-menu-item danger" onclick="handleContextAction('kill')">Terminate</div>
+    </div>
+
     <script>
-        console.log("TOS UI Loaded");
+        // Use a unique ID to maintain focus across innerHTML updates
+        let lastCommand = "";
+        let contextSurfaceId = null;
+
+        // Function to send commands back to Rust
+        function sendCommand(cmd) {
+            if (window.ipc) {
+                window.ipc.postMessage(cmd);
+            } else {
+                console.log("Mock Command: " + cmd);
+            }
+        }
+
+        // Handle Right-click Context Menu
+        document.addEventListener('contextmenu', (e) => {
+            const frame = e.target.closest('.lcars-window-frame');
+            if (frame) {
+                e.preventDefault();
+                const contentDiv = frame.querySelector('.lcars-window-content');
+                if (contentDiv) {
+                    contextSurfaceId = contentDiv.id.replace('surface-', '');
+                }
+
+                const menu = document.getElementById('context-menu');
+                menu.style.display = 'block';
+                menu.style.left = e.pageX + 'px';
+                menu.style.top = e.pageY + 'px';
+            } else {
+                hideContextMenu();
+            }
+        });
+
+        document.addEventListener('click', () => hideContextMenu());
+
+        function hideContextMenu() {
+            const menu = document.getElementById('context-menu');
+            menu.style.display = 'none';
+        }
+
+        function handleContextAction(action) {
+            if (!contextSurfaceId) return;
+
+            switch (action) {
+                case 'focus':
+                    sendCommand(`zoom:3`); // Simplification for now
+                    break;
+                case 'kill':
+                    sendCommand(`terminal:kill ${contextSurfaceId}`);
+                    break;
+                case 'alert':
+                    sendCommand(`terminal:alert Surface ${contextSurfaceId} status check necessary.`);
+                    break;
+            }
+            hideContextMenu();
+        }
+
+        // Handle Terminal Input
+        document.addEventListener('keydown', (e) => {
+            const input = document.getElementById('terminal-input');
+            if (input && document.activeElement === input) {
+                if (e.key === 'Enter') {
+                    const val = input.value.trim();
+                    if (val) {
+                        sendCommand("terminal:" + val);
+                        input.value = "";
+                    }
+                }
+            }
+        });
+
+        // Global Zoom helper for buttons
+        function zoom(level) {
+            sendCommand("zoom:" + level);
+        }
+
+        // Mutation Observer to ensure the input field is always accessible and focused if needed
+        const observer = new MutationObserver((mutations) => {
+            const input = document.getElementById('terminal-input');
+            if (input) {
+                // Focus the terminal input whenever it appears if no other element is focused
+                if (document.activeElement === document.body || document.activeElement === null) {
+                    // input.focus(); // Uncomment if you want auto-focus
+                }
+            }
+        });
+
+        observer.observe(document.body, { childList: true, subtree: true });
     </script>
 </body>
 

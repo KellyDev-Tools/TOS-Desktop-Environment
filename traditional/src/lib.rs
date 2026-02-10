@@ -10,6 +10,7 @@ use system::notifications::NotificationManager;
 use system::files::VirtualFileSystem;
 use system::audio::AudioFeedback;
 use system::shell::ShellIntegrator;
+use system::status::StatusBar;
 use compositor::{SurfaceManager, SpatialMapper};
 use std::sync::mpsc::Sender;
 
@@ -32,6 +33,7 @@ pub struct DesktopEnvironment {
     pub audio: AudioFeedback,
     pub shell: ShellIntegrator,
     pub surfaces: SurfaceManager,
+    pub status: StatusBar,
     pub current_morph_phase: MorphPhase,
 }
 
@@ -45,15 +47,22 @@ impl DesktopEnvironment {
             audio: AudioFeedback::new(),
             shell: ShellIntegrator::new(ui_tx),
             surfaces: SurfaceManager::new(),
+            status: StatusBar::new(),
             current_morph_phase: MorphPhase::Static,
         }
     }
 
     pub fn tick(&mut self) {
-        self.dashboard.widgets.iter_mut().for_each(|w| w.update());
+        let titles = self.surfaces.get_all_surface_titles();
+        for widget in &mut self.dashboard.widgets {
+            widget.update();
+            if let Some(pm) = widget.as_any_mut().downcast_mut::<ui::dashboard::ProcessManagerWidget>() {
+                pm.processes = titles.clone();
+            }
+        }
+        self.status.tick();
     }
 
-    // Call this before navigation to trigger an animation
     pub fn start_zoom_morph(&mut self, entering: bool) {
         self.current_morph_phase = if entering { MorphPhase::Entering } else { MorphPhase::Exiting };
     }
@@ -63,15 +72,12 @@ impl DesktopEnvironment {
     }
 
     pub fn generate_viewport_html(&self) -> String {
-        let visible_surfaces = SpatialMapper::get_visible_surfaces(
-            &self.surfaces, 
-            self.navigator.current_level, 
-            self.navigator.active_sector_index, 
-            None 
-        );
-
         let mut html = String::new();
-        
+
+        // 1. Status Bar (Global Top Layer)
+        html.push_str(&self.status.render_html(self.navigator.current_level, self.navigator.active_sector_index));
+
+        // 2. Dashboard if visible
         use navigation::zoom::ZoomLevel;
         if matches!(self.navigator.current_level, ZoomLevel::Level1Root | ZoomLevel::Level2Sector) {
             html.push_str("<div class='dashboard-layer'>");
@@ -79,14 +85,29 @@ impl DesktopEnvironment {
             html.push_str("</div>");
         }
 
-        html.push_str("<div class='surfaces-layer'>");
-        for surface in visible_surfaces {
+        // 3. Surfaces layer (Spatial Grid)
+        let layouts = SpatialMapper::get_layout(
+            &self.surfaces, 
+            self.navigator.current_level, 
+            self.navigator.active_sector_index, 
+            None 
+        );
+
+        html.push_str("<div class='surfaces-grid'>");
+        for layout in layouts {
+            let grid_style = format!(
+                "grid-column: span {}; grid-row: span {};",
+                layout.width, layout.height
+            );
+            
+            html.push_str(&format!(r#"<div class="grid-item" style="{}">"#, grid_style));
             html.push_str(&DecorationManager::get_html_frame(
-                &surface.title, 
+                &layout.surface.title, 
                 DecorationStyle::Default, 
                 self.current_morph_phase,
-                &format!("surface-{}", surface.id)
+                &format!("surface-{}", layout.surface.id)
             ));
+            html.push_str("</div>");
         }
         html.push_str("</div>");
 

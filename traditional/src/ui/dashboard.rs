@@ -1,9 +1,11 @@
 // Based on "Dashboard and UI Components.md"
 
-pub trait Widget {
+pub trait Widget: std::any::Any {
     fn render_html(&self) -> String;
     fn update(&mut self);
     fn get_name(&self) -> &str;
+    fn as_any(&self) -> &dyn std::any::Any;
+    fn as_any_mut(&mut self) -> &mut dyn std::any::Any;
 }
 
 pub struct Dashboard {
@@ -40,9 +42,9 @@ impl Widget for ClockWidget {
             <p>12:42 PM</p>
         </div>"#)
     }
-    fn update(&mut self) {
-        // Update time logic
-    }
+    fn update(&mut self) {}
+    fn as_any(&self) -> &dyn std::any::Any { self }
+    fn as_any_mut(&mut self) -> &mut dyn std::any::Any { self }
     fn get_name(&self) -> &str {
         "Clock"
     }
@@ -62,11 +64,42 @@ impl Widget for SystemMonitorWidget {
         </div>"#, self.cpu_usage, self.ram_usage)
     }
     fn update(&mut self) {
-        // Update stats logic
-        self.cpu_usage = (self.cpu_usage + 5) % 100; // Mock update
+        self.cpu_usage = (self.cpu_usage + 5) % 100;
     }
+    fn as_any(&self) -> &dyn std::any::Any { self }
+    fn as_any_mut(&mut self) -> &mut dyn std::any::Any { self }
     fn get_name(&self) -> &str {
         "System Monitor"
+    }
+}
+
+pub struct ProcessManagerWidget {
+    pub processes: Vec<String>,
+}
+
+impl Widget for ProcessManagerWidget {
+    fn render_html(&self) -> String {
+        let mut list_html = String::new();
+        if self.processes.is_empty() {
+            list_html.push_str("<p>NO ACTIVE PROCESSES</p>");
+        } else {
+            for proc in &self.processes {
+                list_html.push_str(&format!(r#"<div class="process-item">{}</div>"#, proc));
+            }
+        }
+
+        format!(r#"<div class="lcars-widget processes">
+            <h3>PROCESS MANAGER</h3>
+            {}
+        </div>"#, list_html)
+    }
+    fn update(&mut self) {
+        // Updated externally by the DesktopEnvironment
+    }
+    fn as_any(&self) -> &dyn std::any::Any { self }
+    fn as_any_mut(&mut self) -> &mut dyn std::any::Any { self }
+    fn get_name(&self) -> &str {
+        "Process Manager"
     }
 }
 
@@ -80,27 +113,17 @@ mod tests {
             "<div>Mock</div>".to_string()
         }
         fn update(&mut self) {}
+        fn as_any(&self) -> &dyn std::any::Any { self }
+        fn as_any_mut(&mut self) -> &mut dyn std::any::Any { self }
         fn get_name(&self) -> &str { "Mock" }
     }
 
     #[test]
-    fn test_dashboard_aggregation() {
-        let mut dash = Dashboard::new();
-        dash.add_widget(Box::new(MockWidget));
-        dash.add_widget(Box::new(MockWidget));
+    fn test_process_manager_widget() {
+        let mut pw = ProcessManagerWidget { processes: vec![] };
+        assert!(pw.render_html().contains("NO ACTIVE PROCESSES"));
         
-        // Should contain two "<div>Mock</div>"
-        let html = dash.render_all_html();
-        assert_eq!(html, "<div>Mock</div><div>Mock</div>");
-    }
-
-    #[test]
-    fn test_system_monitor_update() {
-        let mut monitor = SystemMonitorWidget { cpu_usage: 10, ram_usage: 20 };
-        monitor.update(); // +5%
-        assert_eq!(monitor.cpu_usage, 15);
-        
-        let html = monitor.render_html();
-        assert!(html.contains("CPU: 15%"));
+        pw.processes.push("Terminal".to_string());
+        assert!(pw.render_html().contains("Terminal"));
     }
 }

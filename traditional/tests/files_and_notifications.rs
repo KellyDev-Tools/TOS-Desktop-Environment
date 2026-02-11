@@ -65,7 +65,7 @@ fn test_notifications_during_session() {
     assert_eq!(env.notifications.queue.len(), 1);
 
     // Navigate does not affect notification queue
-    env.navigator.zoom_out();
+    env.intelligent_zoom_out();
     assert_eq!(env.notifications.queue.len(), 1);
 
     let n = env.notifications.process_next().unwrap();

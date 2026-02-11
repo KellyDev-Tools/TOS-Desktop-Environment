@@ -152,6 +152,23 @@ body {
     white-space: nowrap;
 }
 
+.status-segment.action {
+    background: var(--lcars-orange);
+    color: black;
+    cursor: pointer;
+    font-weight: bold;
+    padding: 0 15px;
+}
+
+.status-segment.action:hover {
+    background: white;
+}
+
+.status-segment.zoom-path {
+    margin-right: 20px;
+    white-space: nowrap;
+}
+
 .zoom-path {
     color: var(--lcars-blue);
 }
@@ -233,6 +250,7 @@ body {
 .lcars-detail-box {
     padding: 20px;
     height: 100%;
+    flex: 1;
     color: var(--lcars-blue);
     font-family: 'Outfit', sans-serif;
 }
@@ -288,6 +306,166 @@ body {
     to {
         filter: brightness(1.5);
     }
+}
+
+/* File Browser */
+.lcars-file-browser {
+    padding: 15px;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+}
+
+.file-path {
+    background: var(--lcars-blue-dark);
+    padding: 5px 10px;
+    color: var(--lcars-blue);
+    font-family: monospace;
+    border-radius: 5px;
+    margin-bottom: 15px;
+    font-size: 0.9rem;
+}
+
+.file-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+    gap: 15px;
+    flex-grow: 1;
+    overflow-y: auto;
+}
+
+.file-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    cursor: pointer;
+    transition: transform 0.2s;
+}
+
+.file-item:hover {
+    transform: scale(1.1);
+}
+
+.file-icon {
+    width: 48px;
+    height: 48px;
+    background: var(--lcars-blue);
+    border-radius: 5px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 5px;
+}
+
+.file-item.dir .file-icon {
+    background: var(--lcars-orange);
+}
+
+.file-name {
+    font-size: 0.8rem;
+    color: var(--lcars-blue);
+    text-align: center;
+    word-break: break-all;
+}
+
+/* Sector Overview (Level 1) */
+.lcars-sector-card {
+    padding: 20px;
+    height: 100%;
+    cursor: pointer;
+    border-left: 10px solid var(--lcars-blue);
+    background: rgba(0, 0, 0, 0.2);
+    transition: background 0.2s, transform 0.2s;
+    display: flex;
+    flex-direction: column;
+}
+
+.lcars-sector-card:hover {
+    background: rgba(255, 255, 255, 0.1);
+    transform: scale(1.02);
+}
+
+/* Level 4 Detail View Refinement */
+.lcars-detail-wrapper {
+    display: flex;
+    gap: 20px;
+    height: 100%;
+}
+
+.history-list {
+    margin-top: 15px;
+    overflow-y: auto;
+    font-size: 0.85rem;
+    font-family: 'Courier New', Courier, monospace;
+}
+
+.history-item {
+    padding: 5px 0;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    color: var(--lcars-blue-dark);
+}
+
+.history-item::before {
+    content: "> ";
+    color: var(--lcars-orange);
+}
+
+.history-item:last-child {
+    color: var(--lcars-yellow);
+    font-weight: bold;
+}
+
+.sector-title {
+    font-size: 1.8rem;
+    color: var(--lcars-orange);
+    font-weight: bold;
+    margin-bottom: 10px;
+}
+
+.sector-stats {
+    font-size: 0.9rem;
+    color: var(--lcars-blue);
+    margin-bottom: auto;
+}
+
+.sector-mini-grid {
+    display: flex;
+    gap: 5px;
+    margin-top: 15px;
+}
+
+.mini-box {
+    width: 20px;
+    height: 6px;
+    background: var(--lcars-blue-dark);
+}
+
+/* Global Search (Level 1) */
+.lcars-search-result {
+    padding: 15px;
+    height: 100%;
+    cursor: pointer;
+    border-left: 8px solid var(--lcars-blue);
+    background: rgba(255, 255, 255, 0.05);
+    transition: background 0.2s;
+}
+
+.lcars-search-result:hover {
+    background: rgba(255, 255, 255, 0.15);
+}
+
+.result-title {
+    font-size: 1.2rem;
+    color: var(--lcars-yellow);
+    font-weight: bold;
+    margin-bottom: 5px;
+}
+
+.result-sector {
+    font-size: 0.75rem;
+    color: var(--lcars-blue-dark);
+    text-transform: uppercase;
+    font-weight: bold;
 }
 
 .lcars-widget {

@@ -87,11 +87,11 @@ fn test_full_user_session_simulation() {
     let _ = tx.send(UiCommand::UpdateDashboard(env.dashboard.render_all_html()));
 
     // 5. Zoom back out
-    env.navigator.zoom_out(); // Single window -> back to sector
+    env.intelligent_zoom_out(); // Single window -> back to sector
     assert_eq!(env.navigator.current_level, ZoomLevel::Level2Sector);
     let _ = tx.send(UiCommand::ZoomLevel(2));
 
-    env.navigator.zoom_out(); // Back to root
+    env.intelligent_zoom_out(); // Back to root
     assert_eq!(env.navigator.current_level, ZoomLevel::Level1Root);
     let _ = tx.send(UiCommand::ZoomLevel(1));
 

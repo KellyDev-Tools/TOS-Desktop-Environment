@@ -35,17 +35,24 @@ impl StatusBar {
         let minutes = (self.uptime_secs % 3600) / 60;
         let seconds = self.uptime_secs % 60;
 
+        let swap_btn = if level == ZoomLevel::Level3Split {
+            r#"<div class="status-segment action" onclick="sendCommand('terminal:swap')">SWAP SLOTS</div>"#
+        } else {
+            ""
+        };
+
         format!(
             r#"<div class="lcars-status-bar">
                 <div class="status-segment user-host">{0}@{1}</div>
                 <div class="status-segment zoom-path">LOC: {2} / SEC: {3}</div>
+                {7}
                 <div class="status-segment uptime">UPTIME: {4:02}:{5:02}:{6:02}</div>
                 <div class="status-segment terminal-entry">
                     <span class="prompt">></span>
                     <input type="text" id="terminal-input" placeholder="ENTER COMMAND..." autocomplete="off">
                 </div>
             </div>"#,
-            self.user, self.host, level_str, sector_str, hours, minutes, seconds
+            self.user, self.host, level_str, sector_str, hours, minutes, seconds, swap_btn
         )
     }
 }

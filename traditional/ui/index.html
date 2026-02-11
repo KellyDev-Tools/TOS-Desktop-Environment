@@ -31,9 +31,16 @@
 
     <!-- Floating Context Menu -->
     <div id="context-menu" class="lcars-context-menu">
-        <div class="context-menu-item" onclick="handleContextAction('focus')">Focus</div>
-        <div class="context-menu-item" onclick="handleContextAction('inspect')">Inspect Details</div>
-        <div class="context-menu-item" onclick="handleContextAction('split')">Compare/Split</div>
+        <div id="std-actions">
+            <div class="context-menu-item" onclick="handleContextAction('focus')">Focus</div>
+            <div class="context-menu-item" onclick="handleContextAction('clone')">New Window</div>
+            <div class="context-menu-item" onclick="handleContextAction('inspect')">Inspect Details</div>
+            <div class="context-menu-item" onclick="handleContextAction('split')">Compare/Split</div>
+        </div>
+        <div id="file-actions" style="display: none;">
+            <div class="context-menu-item" onclick="handleContextAction('touch')">New File</div>
+            <div class="context-menu-item" onclick="handleContextAction('mkdir')">New Folder</div>
+        </div>
         <div class="context-menu-item" onclick="handleContextAction('alert')">Alert Status</div>
         <div class="context-menu-item danger" onclick="handleContextAction('kill')">Terminate</div>
     </div>
@@ -62,6 +69,20 @@
                     contextSurfaceId = contentDiv.id.replace('surface-', '');
                 }
 
+                const surfaceTitle = frame.querySelector('.title-text')?.innerText || "";
+
+                // Adaptive menu content
+                const stdActions = document.getElementById('std-actions');
+                const fileActions = document.getElementById('file-actions');
+
+                if (surfaceTitle.toLowerCase().includes("file")) {
+                    stdActions.style.display = 'none';
+                    fileActions.style.display = 'block';
+                } else {
+                    stdActions.style.display = 'block';
+                    fileActions.style.display = 'none';
+                }
+
                 const menu = document.getElementById('context-menu');
                 menu.style.display = 'block';
                 menu.style.left = e.pageX + 'px';
@@ -85,11 +106,22 @@
                 case 'focus':
                     sendCommand(`zoom:3`); // Simplification for now
                     break;
+                case 'clone':
+                    sendCommand(`terminal:clone`);
+                    break;
                 case 'inspect':
                     sendCommand(`terminal:inspect`);
                     break;
                 case 'split':
                     sendCommand(`terminal:split ${contextSurfaceId}`);
+                    break;
+                case 'touch':
+                    const fileName = prompt("Enter file name:");
+                    if (fileName) sendCommand(`terminal:touch ${fileName}`);
+                    break;
+                case 'mkdir':
+                    const dirName = prompt("Enter directory name:");
+                    if (dirName) sendCommand(`terminal:mkdir ${dirName}`);
                     break;
                 case 'kill':
                     sendCommand(`terminal:kill ${contextSurfaceId}`);

@@ -16,9 +16,10 @@ fn test_surface_mapping_integration() {
         env.navigator.current_level, 
         env.navigator.active_sector_index, 
         None,
-        None
+        None,
+        4
     );
-    assert_eq!(layouts.len(), 0); // Root overview doesnt show apps directly
+    assert_eq!(layouts.len(), 4); // Root overview shows sectors
 
     // Level 2: Zoom into Work Sector (0)
     env.navigator.zoom_in(0);
@@ -27,7 +28,8 @@ fn test_surface_mapping_integration() {
         env.navigator.current_level, 
         env.navigator.active_sector_index, 
         None,
-        None
+        None,
+        4
     );
     assert_eq!(layouts.len(), 1);
     assert_eq!(layouts[0].surface.title, "Work Terminal");
@@ -40,7 +42,8 @@ fn test_surface_mapping_integration() {
         env.navigator.current_level, 
         env.navigator.active_sector_index, 
         Some(term),
-        None
+        None,
+        4
     );
     assert_eq!(layouts.len(), 1);
     assert_eq!(layouts[0].surface.id, term);
@@ -59,7 +62,7 @@ fn test_picker_mapping() {
     assert_eq!(env.navigator.current_level, ZoomLevel::Level3Focus);
     
     env.navigator.active_app_index = Some(0);
-    env.navigator.zoom_out();
+    env.intelligent_zoom_out();
     assert_eq!(env.navigator.current_level, ZoomLevel::Level3aPicker);
     
     let layouts = SpatialMapper::get_layout(
@@ -67,9 +70,10 @@ fn test_picker_mapping() {
         env.navigator.current_level, 
         env.navigator.active_sector_index, 
         Some(w1),
-        None
+        None,
+        4
     );
-    assert_eq!(layouts.len(), 1);
+    assert_eq!(layouts.len(), 2);
 }
 
 #[test]
@@ -89,7 +93,8 @@ fn test_split_view_layout() {
         env.navigator.current_level,
         env.navigator.active_sector_index,
         Some(s1),
-        Some(s2)
+        Some(s2),
+        4
     );
 
     assert_eq!(layouts.len(), 2);
@@ -97,4 +102,47 @@ fn test_split_view_layout() {
     assert_eq!(layouts[0].width, 2);
     // S2 should be span 1
     assert_eq!(layouts[1].width, 1);
+}
+
+#[test]
+fn test_adaptive_sector_layout() {
+    let mut env = DesktopEnvironment::new(None);
+    
+    // Case 1: Single app
+    env.surfaces.create_surface("Only One", SurfaceRole::Toplevel, Some(0));
+    env.navigator.zoom_in(0);
+    let layouts = SpatialMapper::get_layout(&env.surfaces, ZoomLevel::Level2Sector, Some(0), None, None, 4);
+    assert_eq!(layouts[0].width, 3); // Spans full
+
+    // Case 2: Two apps
+    env.surfaces.create_surface("Secondary", SurfaceRole::Toplevel, Some(0));
+    let layouts = SpatialMapper::get_layout(&env.surfaces, ZoomLevel::Level2Sector, Some(0), None, None, 4);
+    assert_eq!(layouts[0].width, 2);
+    assert_eq!(layouts[1].width, 1);
+}
+
+#[test]
+fn test_swap_split() {
+    let mut env = DesktopEnvironment::new(None);
+    let s1 = env.surfaces.create_surface("S1", SurfaceRole::Toplevel, Some(0));
+    let s2 = env.surfaces.create_surface("S2", SurfaceRole::Toplevel, Some(0));
+
+    env.navigator.zoom_in(0); // Sector
+    env.navigator.zoom_in(0); // Focus s1
+    env.navigator.split_view(s2);
+
+    assert_eq!(env.navigator.current_level, ZoomLevel::Level3Split);
+    assert_eq!(env.navigator.secondary_app_id, Some(s2));
+    
+    // Swap
+    let success = env.swap_split();
+    assert!(success);
+    
+    // Primary should now be S2
+    let primary_id = if let (Some(sector), Some(app)) = (env.navigator.active_sector_index, env.navigator.active_app_index) {
+        env.surfaces.get_surfaces_in_sector(sector).get(app).map(|s| s.id)
+    } else { None };
+    
+    assert_eq!(primary_id, Some(s2));
+    assert_eq!(env.navigator.secondary_app_id, Some(s1));
 }

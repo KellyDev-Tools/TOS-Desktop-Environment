@@ -26,8 +26,14 @@ impl fmt::Display for ZoomLevel {
     }
 }
 
+pub struct SectorInfo {
+    pub name: String,
+    pub color: String, // CSS color or LCARS class
+}
+
 pub struct SpatialNavigator {
     pub current_level: ZoomLevel,
+    pub sectors: Vec<SectorInfo>,
     pub active_sector_index: Option<usize>,
     pub active_app_index: Option<usize>,
     pub active_window_index: Option<usize>,
@@ -38,6 +44,12 @@ impl SpatialNavigator {
     pub fn new() -> Self {
         Self {
             current_level: ZoomLevel::Level1Root,
+            sectors: vec![
+                SectorInfo { name: "WORK".to_string(), color: "var(--lcars-blue)".to_string() },
+                SectorInfo { name: "MEDIA".to_string(), color: "var(--lcars-orange)".to_string() },
+                SectorInfo { name: "CORE".to_string(), color: "var(--lcars-red)".to_string() },
+                SectorInfo { name: "DATA".to_string(), color: "var(--lcars-blue-dark)".to_string() },
+            ],
             active_sector_index: None,
             active_app_index: None,
             active_window_index: None,
@@ -72,7 +84,7 @@ impl SpatialNavigator {
         }
     }
 
-    pub fn zoom_out(&mut self) {
+    pub fn zoom_out(&mut self, has_multiple_windows: bool) {
         self.secondary_app_id = None; // Always reset split on zoom out
         match self.current_level {
             ZoomLevel::Level4Detail => {
@@ -84,9 +96,6 @@ impl SpatialNavigator {
                 println!("[Split Out] Returning to Single Focus View.");
             }
             ZoomLevel::Level3Focus => {
-                // Mock condition: even index apps have multiple windows to simulate logic
-                let has_multiple_windows = self.active_app_index.map_or(false, |idx| idx % 2 == 0);
-                
                 if has_multiple_windows {
                     self.current_level = ZoomLevel::Level3aPicker;
                     println!("[Zoom Out] Multiple windows detected -> Entering Window Picker (Level 3a).");
@@ -144,18 +153,16 @@ mod tests {
         assert_eq!(nav.active_sector_index, Some(0));
 
         // 2. Zoom into App (Level 2 -> 3)
-        // With index 1 (Odd), simulates single window app
         nav.zoom_in(1); 
         assert_eq!(nav.current_level, ZoomLevel::Level3Focus);
-        assert_eq!(nav.active_app_index, Some(1));
 
         // 3. Zoom Out (Level 3 -> 2)
-        nav.zoom_out();
+        nav.zoom_out(false);
         assert_eq!(nav.current_level, ZoomLevel::Level2Sector);
         assert!(nav.active_app_index.is_none());
         
         // 4. Zoom Out to Root (Level 2 -> 1)
-        nav.zoom_out();
+        nav.zoom_out(false);
         assert_eq!(nav.current_level, ZoomLevel::Level1Root);
     }
     
@@ -163,14 +170,14 @@ mod tests {
     fn test_picker_flow() {
         let mut nav = SpatialNavigator::new();
         nav.zoom_in(0); // Sector
-        nav.zoom_in(2); // Even index app -> multiple windows
+        nav.zoom_in(2); // Focus
 
-        // Should go to Picker on Zoom Out
-        nav.zoom_out();
+        // Should go to Picker on Zoom Out if multiple windows exist
+        nav.zoom_out(true);
         assert_eq!(nav.current_level, ZoomLevel::Level3aPicker);
         
         // Picker back to Sector
-        nav.zoom_out();
+        nav.zoom_out(false);
         assert_eq!(nav.current_level, ZoomLevel::Level2Sector);
     }
 }

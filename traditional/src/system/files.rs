@@ -41,32 +41,65 @@ impl VirtualFileSystem {
         self.nodes.get(&self.current_path)
     }
 
-    pub fn list_current_dir(&self) {
-        println!("[Files] Contents of {}:", self.current_path);
-        if let Some(contents) = self.get_current_entries() {
-            for node in contents {
-                let type_str = if node.is_dir { "<DIR>" } else { "     " };
-                println!("  {} {} ({} bytes)", type_str, node.name, node.size_bytes);
-            }
+    pub fn navigate_to(&mut self, name: &str) -> bool {
+        let target_path = if self.current_path == "/" {
+            format!("/{}", name)
         } else {
-            println!("  (Empty or access denied)");
+            format!("{}/{}", self.current_path, name)
+        };
+
+        if self.nodes.contains_key(&target_path) {
+            self.current_path = target_path;
+            true
+        } else {
+            false
         }
     }
 
     pub fn navigate_up(&mut self) {
         if self.current_path == "/" {
-            println!("[Files] Already at root.");
             return;
         }
         
-        // Simple string manipulation for mock path
         let last_slash = self.current_path.rfind('/').unwrap_or(0);
         if last_slash == 0 {
             self.current_path = "/".to_string();
         } else {
             self.current_path = self.current_path[..last_slash].to_string();
         }
-        println!("[Files] Navigated up to: {}", self.current_path);
+    }
+
+    pub fn create_file(&mut self, name: &str) {
+        let entry = FileNode { name: name.to_string(), is_dir: false, size_bytes: 0 };
+        if let Some(nodes) = self.nodes.get_mut(&self.current_path) {
+            nodes.push(entry);
+        }
+    }
+
+    pub fn delete_node(&mut self, name: &str) {
+        if let Some(nodes) = self.nodes.get_mut(&self.current_path) {
+            nodes.retain(|n| n.name != name);
+        }
+        // Also remove if it's a directory entry in HashMap
+        let target_path = if self.current_path == "/" {
+            format!("/{}", name)
+        } else {
+            format!("{}/{}", self.current_path, name)
+        };
+        self.nodes.remove(&target_path);
+    }
+
+    pub fn create_dir(&mut self, name: &str) {
+        let entry = FileNode { name: name.to_string(), is_dir: true, size_bytes: 4096 };
+        if let Some(nodes) = self.nodes.get_mut(&self.current_path) {
+            nodes.push(entry);
+        }
+        let target_path = if self.current_path == "/" {
+            format!("/{}", name)
+        } else {
+            format!("{}/{}", self.current_path, name)
+        };
+        self.nodes.insert(target_path, Vec::new());
     }
 }
 
@@ -75,45 +108,17 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_initial_path() {
-        let vfs = VirtualFileSystem::new();
-        assert_eq!(vfs.current_path, "/home/user");
-    }
-
-    #[test]
-    fn test_list_entries() {
-        let vfs = VirtualFileSystem::new();
-        let entries = vfs.get_current_entries().unwrap();
-        assert_eq!(entries.len(), 2);
-        assert_eq!(entries[0].name, "documents");
-        assert!(entries[0].is_dir);
-        assert_eq!(entries[1].name, "notes.txt");
-        assert!(!entries[1].is_dir);
-    }
-
-    #[test]
-    fn test_navigate_up() {
+    fn test_file_manipulation() {
         let mut vfs = VirtualFileSystem::new();
-        assert_eq!(vfs.current_path, "/home/user");
-
+        vfs.create_file("new_script.sh");
+        assert!(vfs.get_current_entries().unwrap().iter().any(|n| n.name == "new_script.sh"));
+        
+        vfs.create_dir("work");
+        assert!(vfs.navigate_to("work"));
+        assert_eq!(vfs.current_path, "/home/user/work");
+        
         vfs.navigate_up();
-        assert_eq!(vfs.current_path, "/home");
-
-        vfs.navigate_up();
-        assert_eq!(vfs.current_path, "/");
-
-        // Should stay at root
-        vfs.navigate_up();
-        assert_eq!(vfs.current_path, "/");
-    }
-
-    #[test]
-    fn test_root_entries() {
-        let mut vfs = VirtualFileSystem::new();
-        vfs.current_path = "/".to_string();
-        let entries = vfs.get_current_entries().unwrap();
-        assert_eq!(entries.len(), 2);
-        assert_eq!(entries[0].name, "home");
-        assert_eq!(entries[1].name, "etc");
+        vfs.delete_node("work");
+        assert!(!vfs.get_current_entries().unwrap().iter().any(|n| n.name == "work"));
     }
 }

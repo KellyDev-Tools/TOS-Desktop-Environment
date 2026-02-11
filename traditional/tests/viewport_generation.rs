@@ -13,7 +13,8 @@ fn test_viewport_generation_logic() {
     assert!(html.contains("dashboard-layer"));
     assert!(html.contains("CLOCK"));
     assert!(html.contains("surfaces-grid"));
-    assert!(!html.contains("lcars-window-frame")); // No surfaces yet
+    assert!(html.contains("lcars-window-frame")); // Sectors are rendered as frames
+    assert!(html.contains("WORK")); // One of the default sectors
 
     // Level 2: Zoom into Sector 0
     let _term = env.surfaces.create_surface("Terminal", SurfaceRole::Toplevel, Some(0));
@@ -25,7 +26,15 @@ fn test_viewport_generation_logic() {
     assert!(html.contains("lcars-window-frame"));
 
     // Level 3: Focus
-    assert_eq!(env.navigator.current_level, ZoomLevel::Level2Sector);
+    env.navigator.zoom_in(0);
+    assert_eq!(env.navigator.current_level, ZoomLevel::Level3Focus);
+
+    // Level 4: Detail
+    env.navigator.zoom_in(0);
+    assert_eq!(env.navigator.current_level, ZoomLevel::Level4Detail);
+    let html = env.generate_viewport_html();
+    assert!(html.contains("NODE HISTORY"));
+    assert!(html.contains("Surface created: Terminal"));
 }
 
 #[test]

@@ -17,14 +17,15 @@ impl CommandParser {
 
         match cmd.as_str() {
             "zoom" => {
+                env.search_query = None;
                 if let Some(level_str) = args.get(0) {
                     if let Ok(level) = level_str.parse::<u8>() {
                         match level {
                             1 => {
                                 env.start_zoom_morph(false);
-                                env.navigator.zoom_out();
+                                env.intelligent_zoom_out();
                                 if env.navigator.current_level == crate::navigation::zoom::ZoomLevel::Level2Sector {
-                                    env.navigator.zoom_out();
+                                    env.intelligent_zoom_out();
                                 }
                                 return format!("Zooming to Level 1 (ROOT)");
                             }
@@ -73,6 +74,13 @@ impl CommandParser {
             "split" => {
                 if let Some(id_str) = args.get(0) {
                     if let Ok(id) = id_str.parse::<u32>() {
+                        if let (Some(sector), Some(app_idx)) = (env.navigator.active_sector_index, env.navigator.active_app_index) {
+                            if let Some(primary) = env.surfaces.get_surfaces_in_sector(sector).get(app_idx) {
+                                let p_id = primary.id;
+                                env.surfaces.add_event(p_id, &format!("Entered split-view with node ID {}", id));
+                                env.surfaces.add_event(id, &format!("Entered split-view with node ID {}", p_id));
+                            }
+                        }
                         env.navigator.split_view(id);
                         return format!("Splitting view with Surface ID: {}", id);
                     }
@@ -80,11 +88,83 @@ impl CommandParser {
                 format!("Usage: split [secondary_id]")
             }
             "inspect" | "detail" => {
+                if let (Some(sector), Some(app_idx)) = (env.navigator.active_sector_index, env.navigator.active_app_index) {
+                     if let Some(surface) = env.surfaces.get_surfaces_in_sector(sector).get(app_idx) {
+                        let id = surface.id;
+                        env.surfaces.add_event(id, "Deep-scan inspection initiated.");
+                     }
+                }
                 env.navigator.current_level = crate::navigation::zoom::ZoomLevel::Level4Detail;
                 format!("Entering Level 4: Detail Inspection.")
             }
+            "ls" => {
+                let path = &env.files.current_path;
+                format!("Contents of {}: {:?}", path, env.files.get_current_entries())
+            }
+            "cd" => {
+                if let Some(dir) = args.get(0) {
+                    if *dir == ".." {
+                        env.files.navigate_up();
+                        return format!("Moved to {}", env.files.current_path);
+                    } else if env.files.navigate_to(dir) {
+                        return format!("Moved to {}", env.files.current_path);
+                    }
+                }
+                format!("Usage: cd [dir|..]")
+            }
+            "touch" => {
+                if let Some(name) = args.get(0) {
+                    env.files.create_file(name);
+                    return format!("Created file: {}", name);
+                }
+                format!("Usage: touch [name]")
+            }
+            "mkdir" => {
+                if let Some(name) = args.get(0) {
+                    env.files.create_dir(name);
+                    return format!("Created directory: {}", name);
+                }
+                format!("Usage: mkdir [name]")
+            }
+            "rm" => {
+                if let Some(name) = args.get(0) {
+                    env.files.delete_node(name);
+                    return format!("Removed: {}", name);
+                }
+                format!("Usage: rm [name]")
+            }
+            "clone" | "duplicate" => {
+                if let (Some(sector), Some(app_idx)) = (env.navigator.active_sector_index, env.navigator.active_app_index) {
+                     if let Some(surface) = env.surfaces.get_surfaces_in_sector(sector).get(app_idx) {
+                        let new_id = env.surfaces.create_surface(&surface.title, surface.role.clone(), Some(sector));
+                        return format!("Cloned '{}' (ID: {})", surface.title, new_id);
+                     }
+                }
+                format!("Error: Must be focusing an app to clone.")
+            }
+            "swap" => {
+                if env.swap_split() {
+                    format!("Swapped Split View slots.")
+                } else {
+                    format!("Error: Not in Split View or cannot determine swap targets.")
+                }
+            }
+            "find" | "search" => {
+                let query = args.join(" ");
+                if query.is_empty() {
+                    env.search_query = None;
+                    return "Search cleared.".to_string();
+                }
+                env.navigator.current_level = crate::navigation::zoom::ZoomLevel::Level1Root;
+                env.search_query = Some(query.clone());
+                format!("Searching for '{}' across all sectors...", query)
+            }
+            "clear" => {
+                env.search_query = None;
+                format!("System filters cleared.")
+            }
             "help" => {
-                format!("Commands: zoom [n], spawn [name], alert [msg], kill [id], split [id], inspect, help")
+                format!("Commands: zoom [n], spawn [name], alert [msg], kill [id], split [id], swap, find [q], clear, inspect, ls, cd, touch, mkdir, rm, clone, help")
             }
             _ => format!("Unknown command: '{}'. Type 'help' for list.", cmd),
         }

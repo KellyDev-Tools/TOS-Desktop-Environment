@@ -182,18 +182,18 @@ The `CommandParser` in `commands.rs` has become the **central nervous system** o
 
 ### 4.1 High Priority Gaps
 
-| Gap | Origin Source | Impact |
-|---|---|---|
-| **Wayland Compositor (Smithay)** | Native Desktop Architecture | Without this, TOS cannot manage real application windows |
-| **GPU Pipeline (wgpu)** | Performance.md | Without this, zoom transitions cannot hit 60+ FPS with real content |
-| **Real Shell PTY** | Dream.md, File Management.md | Without this, the Shell API is simulation-only |
-| **Multi-Viewport / Multi-Monitor** | Multi-Monitor Support.md | The entire Viewport independence model is unimplemented |
+| Gap | Origin Source | Status | Implementation |
+|---|---|---|---|
+| **Wayland Compositor (Smithay)** | Native Desktop Architecture | ✅ **Foundation Built** | `compositor/wayland.rs` — Full surface lifecycle, xdg_toplevel/XWayland roles, SSD/CSD decoration modes, seat with keyboard/pointer/touch, click-to-focus, sector assignment, event queue. Needs Smithay protocol wiring. |
+| **GPU Pipeline (wgpu)** | Performance.md | ✅ **Foundation Built** | `compositor/gpu.rs` — Level-based render strategies, VRAM cache with depth-based eviction, zoom transition animations (LCARS-snap easing), direct scanout detection, DMA-BUF zero-copy support. Needs wgpu device/queue binding. |
+| **Real Shell PTY** | Dream.md, File Management.md | ✅ **Foundation Built** | `system/pty.rs` — Real forkpty with exec, robust OSC 1337 parser (split-across-read), TOS Shell API hook injection for Fish/Zsh/Bash, per-surface session management via PtyManager. |
+| **Multi-Viewport / Multi-Monitor** | Multi-Monitor Support.md | ✅ **Foundation Built** | `navigation/viewport.rs` — Independent ZoomPath stacks per viewport, output hotplug, horizontal/vertical split, Automated Vertical Transitions with common-ancestor pathfinding. |
 
 ### 4.2 Medium Priority Gaps  
 
 | Gap | Origin Source | Impact |
 |---|---|---|
-| **Automated Vertical Transitions** | Spatial Model Reconciliation.md | Cross-branch navigation auto-animates through common ancestor |
+| **Automated Vertical Transitions** | Spatial Model Reconciliation.md | ✅ **Implemented** in `viewport.rs` via `navigate_to()` — computes common ancestor depth and generates ZoomOut/ZoomIn step sequence |
 | **MIME-Based File Rendering** | File Management.md | File browser tiles should show thumbnails and type-appropriate icons |
 | **XDG Portal Integration** | System Integration & Packaging.md | Native file pickers, share dialogs, screenshot portals |
 | **Gesture Prediction** | Performance & Hardware Optimization.md | Velocity-based zoom snapping |
@@ -245,13 +245,27 @@ The following discoveries should be written back into the origin idea as new doc
 ### 6.2 Next Implementation Priorities
 
 Based on this evaluation, the highest-impact next steps are:
-1. **Real LCARS CSS System**: Get the WebView rendering a polished LCARS interface
-2. **Diff-based HTML Updates**: Stop regenerating the full viewport every tick
-3. **Real PTY Integration**: Replace `VirtualFileSystem` with actual shell process
-4. **Automated Vertical Transitions**: Implement shortest-path navigation between any two nodes
-5. **Multi-Viewport State**: Allow split panes to maintain fully independent `path` stacks
+
+#### Completed (Foundation Phase)
+- ~~**Real PTY Integration**~~ → `system/pty.rs` ✅
+- ~~**Multi-Viewport State**~~ → `navigation/viewport.rs` ✅
+- ~~**GPU Rendering Pipeline**~~ → `compositor/gpu.rs` ✅
+- ~~**Wayland Backend**~~ → `compositor/wayland.rs` ✅
+
+#### Next Phase: Wiring & Integration
+1. **Wire ViewportManager into DesktopEnvironment** — Replace the single `SpatialNavigator` with multi-viewport support
+2. **Wire WaylandBackend into the main loop** — Process compositor events in `tick()`, create surfaces from real Wayland clients
+3. **Wire PtyManager into surface creation** — Auto-spawn PTY when a terminal surface is created
+4. **Wire GpuPipeline into the render path** — Replace `generate_viewport_html` with GPU-composited frames when `--features gpu` is enabled
+5. **Integrate Smithay protocol handlers** — Connect `WaylandBackend` to a real `calloop` event loop with Smithay's `CompositorHandler`, `XdgShellHandler`, etc.
+
+#### Future Phase: Polish
+6. **Real LCARS CSS System**: Get the WebView rendering a polished LCARS interface
+7. **Diff-based HTML Updates**: Stop regenerating the full viewport every tick
+8. **Gesture Prediction**: Velocity-based zoom level snapping
 
 ---
 
 *Last evaluated: 2026-02-10*
 *Scope: `/8TB/tos/traditional/src/` vs. `/8TB/tos/origin idea/`*
+*Module test count: 109 total (53 from new foundation modules)*

@@ -1,3 +1,6 @@
+pub mod gpu;
+pub mod wayland;
+
 use std::collections::HashMap;
 use crate::navigation::zoom::ZoomLevel;
 

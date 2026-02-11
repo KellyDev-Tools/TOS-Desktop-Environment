@@ -49,11 +49,125 @@
         // Use a unique ID to maintain focus across innerHTML updates
         let lastCommand = "";
         let contextSurfaceId = null;
+        let ws = null;
+        let isDevMode = false;
+
+        // Auto-detect dev monitor mode and connect to WebSocket
+        function connectDevMonitor() {
+            // Use current page's host for WebSocket (works with any port)
+            const wsUrl = `ws://${window.location.host}/ws`;
+            console.log('[Dev Monitor] Connecting to ' + wsUrl);
+
+            ws = new WebSocket(wsUrl);
+
+            ws.onopen = () => {
+                console.log('[Dev Monitor] Connected!');
+                isDevMode = true;
+                document.body.classList.add('dev-mode');
+
+                // Show dev monitor UI
+                const devUI = document.createElement('div');
+                devUI.id = 'dev-monitor-ui';
+                devUI.innerHTML = `
+                    <div style="position: fixed; top: 0; right: 0; background: rgba(0,0,0,0.8); 
+                                color: #ff9900; padding: 10px; font-family: monospace; z-index: 10000;
+                                border-bottom-left-radius: 8px;">
+                        <div style="font-weight: bold; margin-bottom: 5px;">🔴 DEV MONITOR ACTIVE</div>
+                        <div id="test-status" style="font-size: 0.9em; max-width: 300px; max-height: 200px; overflow-y: auto;"></div>
+                    </div>
+                `;
+                document.body.appendChild(devUI);
+            };
+
+            ws.onmessage = (event) => {
+                try {
+                    const data = JSON.parse(event.data);
+                    console.log('[Dev Monitor] Message:', data);
+
+                    switch (data.type) {
+                        case 'viewport':
+                            updateViewportFromMonitor(data.html, data.zoom, data.redAlert);
+                            break;
+                        case 'dashboard':
+                            updateDashboardFromMonitor(data.html);
+                            break;
+                        case 'zoom':
+                            document.body.className = 'zoom-level-' + data.level;
+                            break;
+                        case 'test_event':
+                            showTestEvent(data.test, data.event, data.details);
+                            break;
+                    }
+                } catch (e) {
+                    console.error('[Dev Monitor] Parse error:', e);
+                }
+            };
+
+            ws.onclose = () => {
+                console.log('[Dev Monitor] Disconnected');
+                isDevMode = false;
+                document.body.classList.remove('dev-mode');
+                setTimeout(connectDevMonitor, 2000); // Retry
+            };
+
+            ws.onerror = (err) => {
+                console.error('[Dev Monitor] Error:', err);
+            };
+        }
+
+        function updateViewportFromMonitor(html, zoom, redAlert) {
+            const view = document.getElementById('spatial-view');
+            if (view) {
+                view.innerHTML = html;
+                document.body.className = 'zoom-level-' + zoom + (redAlert ? ' red-alert' : '');
+            }
+        }
+
+        function updateDashboardFromMonitor(html) {
+            const view = document.getElementById('spatial-view');
+            if (view) {
+                view.innerHTML = html;
+            }
+        }
+
+        function showTestEvent(testName, eventType, details) {
+            const status = document.getElementById('test-status');
+            if (status) {
+                const time = new Date().toLocaleTimeString();
+                const color = eventType === 'assertion' ?
+                    (details.includes('✓') ? '#00ff00' : '#ff0000') :
+                    '#ff9900';
+
+                const entry = document.createElement('div');
+                entry.style.cssText = `color: ${color}; margin: 2px 0; font-size: 0.85em;`;
+                entry.textContent = `[${time}] ${eventType}: ${details}`;
+                status.appendChild(entry);
+                status.scrollTop = status.scrollHeight;
+
+                // Keep only last 20 entries
+                while (status.children.length > 20) {
+                    status.removeChild(status.firstChild);
+                }
+            }
+        }
+
+        // Try to connect on load
+        window.addEventListener('load', () => {
+            // Attempt connection, will silently fail if server not running
+            try {
+                connectDevMonitor();
+            } catch (e) {
+                console.log('[Dev Monitor] Not available, running in normal mode');
+            }
+        });
 
         // Function to send commands back to Rust
         function sendCommand(cmd) {
             if (window.ipc) {
                 window.ipc.postMessage(cmd);
+            } else if (ws && ws.readyState === WebSocket.OPEN) {
+                ws.send(JSON.stringify({ type: 'command', data: cmd }));
+                console.log("Dev Monitor Command: " + cmd);
             } else {
                 console.log("Mock Command: " + cmd);
             }

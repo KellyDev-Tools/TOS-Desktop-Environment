@@ -3,6 +3,9 @@ pub mod ui;
 pub mod system;
 pub mod compositor;
 
+#[cfg(feature = "dev-monitor")]
+pub mod dev_monitor;
+
 use navigation::zoom::SpatialNavigator;
 use ui::dashboard::Dashboard;
 use ui::decorations::{DecorationManager, DecorationStyle, MorphPhase};
@@ -457,3 +460,292 @@ impl DesktopEnvironment {
         html
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_desktop_environment_initialization() {
+        let env = DesktopEnvironment::new(None);
+        
+        // Verify all components initialized
+        assert_eq!(env.navigator.current_level, navigation::zoom::ZoomLevel::Level1Root);
+        assert_eq!(env.dashboard.widgets.len(), 0);
+        assert_eq!(env.notifications.queue.len(), 0);
+        assert_eq!(env.files.current_path, "/home/user");
+        assert!(env.audio.enabled);
+        assert_eq!(env.surfaces.get_all_surface_titles().len(), 0);
+        assert_eq!(env.current_morph_phase, MorphPhase::Static);
+        assert!(env.search_query.is_none());
+        assert!(env.settings.audio_enabled);
+        assert!(!env.is_red_alert);
+    }
+
+    #[test]
+    fn test_tick_increments_state() {
+        let mut env = DesktopEnvironment::new(None);
+        
+        // Initial uptime should be 0
+        let initial_uptime = env.status.uptime_secs;
+        
+        // Tick once
+        env.tick();
+        
+        // Status should have ticked (uptime incremented)
+        assert_ne!(env.status.uptime_secs, initial_uptime);
+        
+        // Audio should have ticked
+        // (no easy way to verify without exposing ambient_timer, but at least no panic)
+    }
+
+    #[test]
+    fn test_tick_updates_widgets() {
+        let mut env = DesktopEnvironment::new(None);
+        
+        // Add a system monitor widget
+        env.dashboard.add_widget(Box::new(ui::dashboard::SystemMonitorWidget {
+            cpu_usage: 10,
+            ram_usage: 20,
+        }));
+        
+        // Create some surfaces
+        env.surfaces.create_surface("App1", compositor::SurfaceRole::Toplevel, Some(0));
+        env.surfaces.create_surface("App2", compositor::SurfaceRole::Toplevel, Some(1));
+        
+        // Add process manager widget
+        env.dashboard.add_widget(Box::new(ui::dashboard::ProcessManagerWidget {
+            processes: vec![],
+        }));
+        
+        // Tick to update widgets
+        env.tick();
+        
+        // Verify widgets were updated (system monitor CPU should have incremented)
+        // Note: update() increments cpu by 5
+        let widget = &env.dashboard.widgets[0];
+        let monitor = widget.as_any().downcast_ref::<ui::dashboard::SystemMonitorWidget>().unwrap();
+        assert_eq!(monitor.cpu_usage, 15); // 10 + 5
+    }
+
+    #[test]
+    fn test_tick_triggers_red_alert() {
+        let mut env = DesktopEnvironment::new(None);
+        
+        // Initially no red alert
+        assert!(!env.is_red_alert);
+        
+        // Add critical notification
+        env.notifications.push("CRITICAL", "Core breach!", system::notifications::Priority::Critical);
+        
+        // Tick to process
+        env.tick();
+        
+        // Should now be in red alert
+        assert!(env.is_red_alert);
+    }
+
+    #[test]
+    fn test_handle_shell_output_parses_osc_zoom() {
+        let mut env = DesktopEnvironment::new(None);
+        
+        // Initially at Level 1
+        assert_eq!(env.navigator.current_level, navigation::zoom::ZoomLevel::Level1Root);
+        
+        // Send shell OSC command to zoom to level 2
+        env.handle_shell_output("\x1b]1337;ZoomLevel=2\x07");
+        
+        // Navigator should have synced
+        assert_eq!(env.navigator.current_level, navigation::zoom::ZoomLevel::Level2Sector);
+    }
+
+    #[test]
+    fn test_handle_shell_output_syncs_directory() {
+        let mut env = DesktopEnvironment::new(None);
+        
+        // Initial path
+        assert_eq!(env.files.current_path, "/home/user");
+        
+        // Shell sends directory change
+        env.handle_shell_output("\x1b]1337;CurrentDir=/tmp\x07");
+        
+        // VFS should have synced
+        assert_eq!(env.files.current_path, "/tmp");
+    }
+
+    #[test]
+    fn test_handle_shell_output_no_osc() {
+        let mut env = DesktopEnvironment::new(None);
+        
+        let initial_level = env.navigator.current_level;
+        let initial_path = env.files.current_path.clone();
+        
+        // Send plain text (no OSC sequences)
+        env.handle_shell_output("just some normal terminal output");
+        
+        // Nothing should have changed
+        assert_eq!(env.navigator.current_level, initial_level);
+        assert_eq!(env.files.current_path, initial_path);
+    }
+
+    #[test]
+    fn test_intelligent_zoom_out_single_window() {
+        let mut env = DesktopEnvironment::new(None);
+        let _id = env.surfaces.create_surface("OnlyOne", compositor::SurfaceRole::Toplevel, Some(0));
+        
+        // Navigate to focus
+        env.navigator.zoom_in(0); // Sector 0
+        env.navigator.zoom_in(0); // Focus first app
+        env.navigator.active_app_index = Some(0);
+        assert_eq!(env.navigator.current_level, navigation::zoom::ZoomLevel::Level3Focus);
+        
+        // Intelligent zoom out (single window, should go to sector)
+        env.intelligent_zoom_out();
+        assert_eq!(env.navigator.current_level, navigation::zoom::ZoomLevel::Level2Sector);
+    }
+
+    #[test]
+    fn test_intelligent_zoom_out_multiple_windows() {
+        let mut env = DesktopEnvironment::new(None);
+        env.surfaces.create_surface("Terminal", compositor::SurfaceRole::Toplevel, Some(0));
+        env.surfaces.create_surface("Terminal", compositor::SurfaceRole::Toplevel, Some(0));
+        
+        // Navigate to focus
+        env.navigator.zoom_in(0);
+        env.navigator.zoom_in(0);
+        env.navigator.active_app_index = Some(0);
+        assert_eq!(env.navigator.current_level, navigation::zoom::ZoomLevel::Level3Focus);
+        
+        // Intelligent zoom out (multiple windows, should go to picker)
+        env.intelligent_zoom_out();
+        assert_eq!(env.navigator.current_level, navigation::zoom::ZoomLevel::Level3aPicker);
+    }
+
+    #[test]
+    fn test_morph_phase_transitions() {
+        let mut env = DesktopEnvironment::new(None);
+        
+        assert_eq!(env.current_morph_phase, MorphPhase::Static);
+        
+        env.start_zoom_morph(true);
+        assert_eq!(env.current_morph_phase, MorphPhase::Entering);
+        
+        env.finish_morph();
+        assert_eq!(env.current_morph_phase, MorphPhase::Static);
+        
+        env.start_zoom_morph(false);
+        assert_eq!(env.current_morph_phase, MorphPhase::Exiting);
+        
+        env.finish_morph();
+        assert_eq!(env.current_morph_phase, MorphPhase::Static);
+    }
+
+    #[test]
+    fn test_generate_viewport_html_structure() {
+        let mut env = DesktopEnvironment::new(None);
+        
+        let html = env.generate_viewport_html();
+        
+        // Should contain status bar
+        assert!(html.contains("LOC:"));
+        
+        // Should contain surfaces grid
+        assert!(html.contains("surfaces-grid"));
+        
+        // Should be valid HTML structure (closing tags)
+        assert!(html.contains("</div>"));
+    }
+
+    #[test]
+    fn test_generate_viewport_includes_audio_buffer() {
+        let mut env = DesktopEnvironment::new(None);
+        
+        // Queue some audio
+        env.audio.play_sound("test_sound");
+        env.audio.play_sound("another_sound");
+        
+        let html = env.generate_viewport_html();
+        
+        // Audio buffer should be in HTML
+        assert!(html.contains("audio-buffer"));
+        assert!(html.contains("test_sound"));
+        assert!(html.contains("another_sound"));
+        
+        // Audio queue should be consumed now
+        assert_eq!(env.audio.queue.len(), 0);
+    }
+
+    #[test]
+    fn test_generate_viewport_dashboard_at_root() {
+        let mut env = DesktopEnvironment::new(None);
+        env.dashboard.add_widget(Box::new(ui::dashboard::ClockWidget));
+        
+        // At root level, dashboard should be included
+        assert_eq!(env.navigator.current_level, navigation::zoom::ZoomLevel::Level1Root);
+        let html = env.generate_viewport_html();
+        assert!(html.contains("dashboard-layer"));
+        assert!(html.contains("CLOCK"));
+    }
+
+    #[test]
+    fn test_generate_viewport_no_dashboard_at_focus() {
+        let mut env = DesktopEnvironment::new(None);
+        env.dashboard.add_widget(Box::new(ui::dashboard::ClockWidget));
+        env.surfaces.create_surface("App", compositor::SurfaceRole::Toplevel, Some(0));
+        
+        // Navigate to focus
+        env.navigator.zoom_in(0);
+        env.navigator.zoom_in(0);
+        assert_eq!(env.navigator.current_level, navigation::zoom::ZoomLevel::Level3Focus);
+        
+        // Dashboard should not be in HTML at focus level
+        let html = env.generate_viewport_html();
+        assert!(!html.contains("dashboard-layer"));
+    }
+
+    #[test]
+    fn test_swap_split_functionality() {
+        let mut env = DesktopEnvironment::new(None);
+        let s1 = env.surfaces.create_surface("S1", compositor::SurfaceRole::Toplevel, Some(0));
+        let s2 = env.surfaces.create_surface("S2", compositor::SurfaceRole::Toplevel, Some(0));
+        
+        // Navigate to split view
+        env.navigator.zoom_in(0);
+        env.navigator.zoom_in(0);
+        env.navigator.active_app_index = Some(0);
+        env.navigator.split_view(s2);
+        
+        assert_eq!(env.navigator.current_level, navigation::zoom::ZoomLevel::Level3Split);
+        assert_eq!(env.navigator.secondary_app_id, Some(s2));
+        
+        // Swap
+        let success = env.swap_split();
+        assert!(success);
+        
+        // Primary and secondary should have swapped
+        assert_eq!(env.navigator.secondary_app_id, Some(s1));
+    }
+
+    #[test]
+    fn test_swap_split_fails_when_not_in_split() {
+        let mut env = DesktopEnvironment::new(None);
+        
+        // Not in split view
+        assert_eq!(env.navigator.current_level, navigation::zoom::ZoomLevel::Level1Root);
+        
+        let success = env.swap_split();
+        assert!(!success);
+    }
+
+    #[test]
+    fn test_settings_defaults() {
+        let settings = AppSettings::default();
+        
+        assert!(settings.audio_enabled);
+        assert!(settings.chirps_enabled);
+        assert!(settings.ambient_enabled);
+        assert!(!settings.high_contrast);
+        assert!(!settings.debug_mode);
+    }
+}
+

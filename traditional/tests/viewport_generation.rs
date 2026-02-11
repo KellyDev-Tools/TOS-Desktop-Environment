@@ -62,7 +62,7 @@ fn test_viewport_morphing() {
 #[test]
 fn test_viewport_picker_and_split() {
     let mut env = DesktopEnvironment::new(None);
-    let s1 = env.surfaces.create_surface("Term 1", SurfaceRole::Toplevel, Some(0));
+    let _s1 = env.surfaces.create_surface("Term 1", SurfaceRole::Toplevel, Some(0));
     let s2 = env.surfaces.create_surface("Term 2", SurfaceRole::Toplevel, Some(0));
     
     // 1. Split View

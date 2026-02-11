@@ -101,6 +101,19 @@ impl VirtualFileSystem {
         };
         self.nodes.insert(target_path, Vec::new());
     }
+
+    pub fn search(&self, query: &str) -> Vec<(String, FileNode)> {
+        let query = query.to_lowercase();
+        let mut results = Vec::new();
+        for (path, nodes) in &self.nodes {
+            for node in nodes {
+                if node.name.to_lowercase().contains(&query) {
+                    results.push((path.clone(), node.clone()));
+                }
+            }
+        }
+        results
+    }
 }
 
 #[cfg(test)]

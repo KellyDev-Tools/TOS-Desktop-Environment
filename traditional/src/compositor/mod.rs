@@ -9,6 +9,14 @@ pub enum SurfaceRole {
     Background,
 }
 
+fn id_to_noise(id: u32, seed: u32) -> i16 {
+    let mut x = (id + seed) as i64;
+    x ^= x << 13;
+    x ^= x >> 17;
+    x ^= x << 5;
+    (x.abs() % 100) as i16
+}
+
 #[derive(Debug, Clone)]
 pub struct TosSurface {
     pub id: u32,
@@ -17,6 +25,8 @@ pub struct TosSurface {
     pub role: SurfaceRole,
     pub sector_id: Option<usize>,
     pub history: Vec<String>, // Event history for Level 4 Node History view
+    pub cpu_usage: u8,
+    pub mem_usage: u8,
 }
 
 #[derive(Debug, Clone)]
@@ -53,10 +63,22 @@ impl SurfaceManager {
             role,
             sector_id,
             history: vec![format!("Surface created: {}", title)],
+            cpu_usage: 5,
+            mem_usage: 10,
         };
         self.surfaces.insert(id, surface);
         self.next_id += 1;
         id
+    }
+
+    pub fn update_telemetry(&mut self) {
+        // Mock oscillation for demo
+        for surface in self.surfaces.values_mut() {
+            surface.cpu_usage = (surface.cpu_usage as i16 + (id_to_noise(surface.id, 0) % 10 - 5))
+                .clamp(0, 100) as u8;
+            surface.mem_usage = (surface.mem_usage as i16 + (id_to_noise(surface.id, 1) % 4 - 2))
+                .clamp(0, 100) as u8;
+        }
     }
 
     pub fn get_surface(&self, id: u32) -> Option<&TosSurface> {
@@ -136,6 +158,8 @@ impl SpatialMapper {
                         role: SurfaceRole::Toplevel,
                         sector_id: Some(i),
                         history: Vec::new(),
+                        cpu_usage: 0,
+                        mem_usage: 0,
                     },
                     grid_x: x * 1, // Scaling sectors
                     grid_y: y * 1,
@@ -208,8 +232,10 @@ impl SpatialMapper {
                             else if i == 2 { (2, 1, 1, 1) } // Mid Right
                             else {
                                 // Bottom row or overflow
-                                let x = (i - 3) as u16 % 3;
-                                (x, 2, 1, 1)
+                                let over = (i - 3) as u16;
+                                let x = over % 3;
+                                let y = 2 + (over / 3);
+                                (x, y, 1, 1)
                             }
                         }
                     }

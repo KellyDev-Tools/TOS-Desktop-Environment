@@ -7,35 +7,46 @@ use crate::UiCommand;
 // OSC Sequence Structure
 // \x1b]1337;Key=Value\x07
 
+#[derive(Debug, Clone, PartialEq)]
+pub enum ShellCommand {
+    Zoom(u8),
+    ChangeDir(String),
+    SetLayout(String),
+}
+
 pub struct ShellIntegrator {
-    // Channel to send UI updates based on shell events
-    ui_tx: Option<Sender<UiCommand>>,
+    ui_tx: Option<Sender<crate::UiCommand>>,
 }
 
 impl ShellIntegrator {
-    pub fn new(ui_tx: Option<Sender<UiCommand>>) -> Self {
+    pub fn new(ui_tx: Option<Sender<crate::UiCommand>>) -> Self {
         Self { ui_tx }
     }
 
     // Parse a chunk of stdout from the shell PTY
-    pub fn parse_stdout(&self, data: &str) {
-        // Simple state machine for OSC sequences
-        // In reality, we'd use a virtual terminal emulator like 'alacritty_terminal' or 'vte'
-        // This is a naive implementation for the prototype.
+    pub fn parse_stdout(&self, data: &str) -> Vec<ShellCommand> {
+        let mut results = Vec::new();
+        let mut current = data;
 
-        if let Some(start) = data.find("\x1b]1337;") {
-            if let Some(end) = data[start..].find("\x07") {
-                let osc_content = &data[start + 7 .. start + end];
-                self.handle_osc(osc_content);
+        while let Some(start) = current.find("\x1b]1337;") {
+            if let Some(end) = current[start..].find("\x07") {
+                let osc_content = &current[start + 7 .. start + end];
+                if let Some(cmd) = self.handle_osc(osc_content) {
+                    results.push(cmd);
+                }
+                current = &current[start + end + 1..];
+            } else {
+                break;
             }
         }
+        results
     }
 
-    fn handle_osc(&self, content: &str) {
+    fn handle_osc(&self, content: &str) -> Option<ShellCommand> {
         println!("[Shell] Received OSC Command: {}", content);
         
         let parts: Vec<&str> = content.split('=').collect();
-        if parts.len() != 2 { return; }
+        if parts.len() != 2 { return None; }
 
         let key = parts[0];
         let value = parts[1];
@@ -43,7 +54,7 @@ impl ShellIntegrator {
         match key {
             "CurrentDir" => {
                 println!("[Shell] Directory Changed to: {}", value);
-                // Trigger file browser update?
+                Some(ShellCommand::ChangeDir(value.to_string()))
             }
             "ZoomLevel" => {
                 if let Ok(level) = value.parse::<u8>() {
@@ -51,14 +62,18 @@ impl ShellIntegrator {
                     if let Some(tx) = &self.ui_tx {
                         let _ = tx.send(UiCommand::ZoomLevel(level));
                     }
+                    Some(ShellCommand::Zoom(level))
+                } else {
+                    None
                 }
             }
             "SetLayout" => {
                 println!("[Shell] Layout Shift: {}", value);
-                // "Split", "Full", etc.
+                Some(ShellCommand::SetLayout(value.to_string()))
             }
             _ => {
                 println!("[Shell] Unknown Key: {}", key);
+                None
             }
         }
     }

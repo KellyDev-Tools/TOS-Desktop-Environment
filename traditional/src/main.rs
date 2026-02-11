@@ -16,8 +16,8 @@ fn main() {
     println!("==========================================");
 
     // 1. Create Communication Channels
-    let (ui_tx, ui_rx) = channel::<UiCommand>();
-    let (input_tx, input_rx) = channel::<InputEvent>();
+    let (ui_tx, _ui_rx) = channel::<UiCommand>();
+    let (_input_tx, input_rx) = channel::<InputEvent>();
 
     let shell_tx = ui_tx.clone();
 
@@ -39,6 +39,7 @@ fn main() {
         let _ = shell_tx.send(UiCommand::UpdateViewport {
             html_content: env.generate_viewport_html(),
             zoom_level: 1,
+            is_red_alert: false,
         });
 
         // Logic Loop
@@ -89,6 +90,7 @@ fn main() {
                 let _ = shell_tx.send(UiCommand::UpdateViewport {
                     html_content: current_html.clone(),
                     zoom_level: zoom_lvl,
+                    is_red_alert: env.is_red_alert,
                 });
                 last_html = current_html;
             }

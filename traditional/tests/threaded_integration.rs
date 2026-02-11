@@ -90,7 +90,7 @@ fn test_channel_disconnect_is_graceful() {
     drop(rx);
 
     // Brain should not panic when sending to a dropped channel
-    let env = DesktopEnvironment::new(Some(tx.clone()));
+    let _env = DesktopEnvironment::new(Some(tx.clone()));
     let result = tx.send(UiCommand::ZoomLevel(1));
     
     // Should return Err (disconnected), not panic

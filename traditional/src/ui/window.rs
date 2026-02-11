@@ -68,7 +68,7 @@ pub fn run_ui(rx: Receiver<UiCommand>, tx: Sender<InputEvent>) -> wry::Result<()
             Event::MainEventsCleared => {
                 while let Ok(cmd) = rx.try_recv() {
                     match cmd {
-                        UiCommand::UpdateViewport { html_content, zoom_level } => {
+                        UiCommand::UpdateViewport { html_content, zoom_level, is_red_alert } => {
                             // Preserve focus and state if needed by using a smart script
                             // We replace the innerHTML of the spatial-view
                             let safe_html = html_content.replace("`", "\\`").replace("$", "\\$");
@@ -89,10 +89,10 @@ pub fn run_ui(rx: Receiver<UiCommand>, tx: Sender<InputEvent>) -> wry::Result<()
                                         newInput.focus();
                                     }}
                                     
-                                    document.body.className = 'zoom-level-{1}';
+                                    document.body.className = 'zoom-level-{1}' + ({2} ? ' red-alert' : '');
                                 }})();
                                 "#, 
-                                safe_html, zoom_level
+                                safe_html, zoom_level, is_red_alert
                             );
                             let _ = webview.evaluate_script(&script);
                         }

@@ -60,9 +60,13 @@ impl SpatialNavigator {
     pub fn zoom_in(&mut self, target_index: usize) {
         match self.current_level {
             ZoomLevel::Level1Root => {
-                self.active_sector_index = Some(target_index);
-                self.current_level = ZoomLevel::Level2Sector;
-                println!("[Zoom In] Entering Sector {}", target_index);
+                if target_index < self.sectors.len() {
+                    self.active_sector_index = Some(target_index);
+                    self.current_level = ZoomLevel::Level2Sector;
+                    println!("[Zoom In] Entering Sector {}", target_index);
+                } else {
+                    println!("[Navigate] Invalid sector index: {}", target_index);
+                }
             }
             ZoomLevel::Level2Sector => {
                 self.active_app_index = Some(target_index);

@@ -85,7 +85,7 @@ fn test_command_parser_settings_toggles() {
 #[test]
 fn test_command_parser_split_and_inspect() {
     let mut env = DesktopEnvironment::new(None);
-    let s1 = env.surfaces.create_surface("S1", SurfaceRole::Toplevel, Some(0));
+    let _s1 = env.surfaces.create_surface("S1", SurfaceRole::Toplevel, Some(0));
     let s2 = env.surfaces.create_surface("S2", SurfaceRole::Toplevel, Some(0));
     
     env.navigator.zoom_in(0); // Sector 0

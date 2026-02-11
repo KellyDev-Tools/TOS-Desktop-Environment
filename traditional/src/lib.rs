@@ -9,7 +9,7 @@ use ui::decorations::{DecorationManager, DecorationStyle, MorphPhase};
 use system::notifications::NotificationManager;
 use system::files::VirtualFileSystem;
 use system::audio::AudioFeedback;
-use system::shell::ShellIntegrator;
+use system::shell::{ShellIntegrator, ShellCommand};
 use system::status::StatusBar;
 use compositor::{SurfaceManager, SpatialMapper};
 use std::sync::mpsc::Sender;
@@ -22,6 +22,7 @@ pub enum UiCommand {
     UpdateViewport { 
         html_content: String,
         zoom_level: u8,
+        is_red_alert: bool,
     },
 }
 
@@ -56,6 +57,7 @@ pub struct DesktopEnvironment {
     pub current_morph_phase: MorphPhase,
     pub search_query: Option<String>,
     pub settings: AppSettings,
+    pub is_red_alert: bool,
 }
 
 impl DesktopEnvironment {
@@ -72,6 +74,7 @@ impl DesktopEnvironment {
             current_morph_phase: MorphPhase::Static,
             search_query: None,
             settings: AppSettings::default(),
+            is_red_alert: false,
         }
     }
 
@@ -90,7 +93,36 @@ impl DesktopEnvironment {
                 sw.chirps_on = chirps_on;
             }
         }
+        self.surfaces.update_telemetry();
         self.status.tick();
+
+        // Auto-trigger red alert if there are critical notifications
+        self.is_red_alert = self.notifications.queue.iter().any(|n| matches!(n.priority, crate::system::notifications::Priority::Critical));
+    }
+
+    pub fn handle_shell_output(&mut self, data: &str) {
+        let commands = self.shell.parse_stdout(data);
+        for cmd in commands {
+            match cmd {
+                ShellCommand::Zoom(level) => {
+                    // Sync internal navigator
+                    let target = match level {
+                        1 => navigation::zoom::ZoomLevel::Level1Root,
+                        2 => navigation::zoom::ZoomLevel::Level2Sector,
+                        3 => navigation::zoom::ZoomLevel::Level3Focus,
+                        4 => navigation::zoom::ZoomLevel::Level4Detail,
+                        _ => self.navigator.current_level,
+                    };
+                    self.navigator.current_level = target;
+                    println!("[Brain] Shell synced zoom to level {}", level);
+                }
+                ShellCommand::ChangeDir(path) => {
+                    self.files.current_path = path;
+                    println!("[Brain] Shell synced dir to {}", self.files.current_path);
+                }
+                ShellCommand::SetLayout(_) => {}
+            }
+        }
     }
 
     pub fn intelligent_zoom_out(&mut self) {
@@ -178,15 +210,38 @@ impl DesktopEnvironment {
 
         let layouts = if self.navigator.current_level == ZoomLevel::Level1Root && self.search_query.is_some() {
             let query = self.search_query.as_ref().unwrap();
-            let matches = self.surfaces.find_surfaces(query);
             let mut search_layouts = Vec::new();
+            
+            // 1. Surface matches
+            let matches = self.surfaces.find_surfaces(query);
             for (i, surface) in matches.into_iter().enumerate() {
-                let x = (i % 3) as u16;
-                let y = (i / 3) as u16;
                 search_layouts.push(compositor::SurfaceLayout {
                     surface,
-                    grid_x: x,
-                    grid_y: y,
+                    grid_x: (i % 3) as u16,
+                    grid_y: (i / 3) as u16,
+                    width: 1,
+                    height: 1,
+                });
+            }
+
+            // 2. File matches (mocked as surfaces for rendering)
+            let file_matches = self.files.search(query);
+            let offset = search_layouts.len();
+            for (i, (path, node)) in file_matches.into_iter().enumerate() {
+                let idx = offset + i;
+                search_layouts.push(compositor::SurfaceLayout {
+                    surface: compositor::TosSurface {
+                        id: 5000 + idx as u32,
+                        title: format!("FILE: {}", node.name),
+                        app_class: "FileSearch".to_string(),
+                        role: compositor::SurfaceRole::Toplevel,
+                        sector_id: None,
+                        history: vec![format!("Found at: {}", path)],
+                        cpu_usage: 0,
+                        mem_usage: 0,
+                    },
+                    grid_x: (idx % 3) as u16,
+                    grid_y: (idx / 3) as u16,
                     width: 1,
                     height: 1,
                 });
@@ -267,13 +322,20 @@ impl DesktopEnvironment {
                     &format!("surface-{}", layout.surface.id)
                 ).replace("<!-- Surface content injected here -->", &picker_html)
             } else if self.navigator.current_level == ZoomLevel::Level1Root && self.search_query.is_some() {
-                 let sector_info = &self.navigator.sectors[layout.surface.sector_id.unwrap_or(0)];
+                 let is_file = layout.surface.app_class == "FileSearch";
+                 let (color, location) = if is_file {
+                     ("var(--lcars-orange)".to_string(), layout.surface.history[0].clone())
+                 } else {
+                     let sid = layout.surface.sector_id.unwrap_or(0);
+                     (self.navigator.sectors[sid].color.clone(), format!("SECTOR: {}", self.navigator.sectors[sid].name))
+                 };
+
                  let search_item_html = format!(
                     r#"<div class="lcars-search-result" onclick="sendCommand('terminal:zoom 2'); sendCommand('zoom:3:{}')" style="border-left-color: {}">
                         <div class="result-title">{}</div>
-                        <div class="result-sector">SECTOR: {}</div>
+                        <div class="result-sector">{}</div>
                     </div>"#,
-                    layout.surface.id, sector_info.color, layout.surface.title, sector_info.name
+                    layout.surface.id, color, layout.surface.title, location
                 );
                 DecorationManager::get_html_frame(
                     &layout.surface.title, 
@@ -302,27 +364,28 @@ impl DesktopEnvironment {
                         <div class="lcars-detail-box left-panel">
                             <div class="detail-header">NODE INSPECTOR: {0}</div>
                             <div class="detail-row"><span>STATUS:</span> <span class="active">ACTIVE</span></div>
-                            <div class="detail-row"><span>THREADS:</span> 12</div>
-                            <div class="detail-row"><span>MEMORY:</span> 256MB</div>
-                            <div class="detail-row"><span>UPTIME:</span> {1}s</div>
+                            <div class="detail-row"><span>CPU LOAD:</span> {1}%</div>
+                            <div class="detail-row"><span>MEM LOAD:</span> {2}%</div>
+                            <div class="detail-row"><span>UPTIME:</span> {3}s</div>
                             <div class="detail-chart">
-                                <div class="bar" style="height: 60%;"></div>
-                                <div class="bar" style="height: 40%;"></div>
-                                <div class="bar" style="height: 80%;"></div>
-                                <div class="bar" style="height: 20%;"></div>
+                                <div class="bar" style="height: {1}%;"></div>
+                                <div class="bar" style="height: {2}%;"></div>
+                                <div class="bar" style="height: 30%;"></div>
+                                <div class="bar" style="height: 10%;"></div>
                             </div>
                         </div>
                         <div class="lcars-detail-box right-panel">
                             <div class="detail-header">NODE HISTORY</div>
                             <div class="history-list">
-                                {2}
+                                {4}
                             </div>
                         </div>
                     </div>"#,
-                    layout.surface.id, self.status.uptime_secs, history_html
+                    layout.surface.id, layout.surface.cpu_usage, layout.surface.mem_usage, self.status.uptime_secs, history_html
                 );
                 decoration = decoration.replace("<!-- Surface content injected here -->", &detail_mock);
-            } else if layout.surface.title.to_lowercase().contains("file") {
+            }
+ else if layout.surface.title.to_lowercase().contains("file") {
                 // Spatial File System injection
                 let mut files_html = format!(r#"<div class="lcars-file-browser"><div class="file-path">{}</div><div class="file-grid">"#, self.files.current_path);
                 if let Some(entries) = self.files.get_current_entries() {

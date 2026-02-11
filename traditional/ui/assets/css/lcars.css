@@ -468,6 +468,38 @@ body {
     font-weight: bold;
 }
 
+/* Settings Widget */
+.lcars-widget.settings {
+    border-left-color: var(--lcars-orange);
+}
+
+.setting-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin: 10px 0;
+}
+
+.setting-row span {
+    font-size: 0.8rem;
+    color: var(--lcars-blue-dark);
+}
+
+.lcars-btn {
+    background: var(--lcars-orange);
+    border: none;
+    padding: 5px 15px;
+    font-family: inherit;
+    font-weight: bold;
+    cursor: pointer;
+    border-radius: 3px;
+    min-width: 60px;
+}
+
+.lcars-btn:hover {
+    background: white;
+}
+
 .lcars-widget {
     border-left: 15px solid var(--lcars-blue);
     padding-left: 15px;

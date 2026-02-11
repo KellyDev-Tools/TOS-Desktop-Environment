@@ -25,6 +25,25 @@ pub enum UiCommand {
     },
 }
 
+#[derive(Debug, Clone)]
+pub struct AppSettings {
+    pub audio_enabled: bool,
+    pub chirps_enabled: bool,
+    pub high_contrast: bool,
+    pub debug_mode: bool,
+}
+
+impl Default for AppSettings {
+    fn default() -> Self {
+        Self {
+            audio_enabled: true,
+            chirps_enabled: true,
+            high_contrast: false,
+            debug_mode: false,
+        }
+    }
+}
+
 pub struct DesktopEnvironment {
     pub navigator: SpatialNavigator,
     pub dashboard: Dashboard,
@@ -36,6 +55,7 @@ pub struct DesktopEnvironment {
     pub status: StatusBar,
     pub current_morph_phase: MorphPhase,
     pub search_query: Option<String>,
+    pub settings: AppSettings,
 }
 
 impl DesktopEnvironment {
@@ -51,15 +71,23 @@ impl DesktopEnvironment {
             status: StatusBar::new(),
             current_morph_phase: MorphPhase::Static,
             search_query: None,
+            settings: AppSettings::default(),
         }
     }
 
     pub fn tick(&mut self) {
         let titles = self.surfaces.get_all_surface_titles();
+        let audio_on = self.settings.audio_enabled;
+        let chirps_on = self.settings.chirps_enabled;
+
         for widget in &mut self.dashboard.widgets {
             widget.update();
             if let Some(pm) = widget.as_any_mut().downcast_mut::<ui::dashboard::ProcessManagerWidget>() {
                 pm.processes = titles.clone();
+            }
+            if let Some(sw) = widget.as_any_mut().downcast_mut::<ui::dashboard::SettingsWidget>() {
+                sw.audio_on = audio_on;
+                sw.chirps_on = chirps_on;
             }
         }
         self.status.tick();
@@ -117,8 +145,16 @@ impl DesktopEnvironment {
         false
     }
 
-    pub fn generate_viewport_html(&self) -> String {
+    pub fn generate_viewport_html(&mut self) -> String {
         let mut html = String::new();
+
+        // Consume audio queue and inject triggers
+        let audio_events = self.audio.consume_queue();
+        if !audio_events.is_empty() {
+            html.push_str("<div id='audio-buffer' style='display:none' data-sounds='");
+            html.push_str(&audio_events.join(","));
+            html.push_str("'></div>");
+        }
 
         // 1. Status Bar (Global Top Layer)
         html.push_str(&self.status.render_html(self.navigator.current_level, self.navigator.active_sector_index));

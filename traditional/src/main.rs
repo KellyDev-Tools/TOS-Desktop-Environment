@@ -29,6 +29,7 @@ fn main() {
         // Initialize Dashboard
         env.dashboard.add_widget(Box::new(ClockWidget));
         env.dashboard.add_widget(Box::new(SystemMonitorWidget { cpu_usage: 12, ram_usage: 45 }));
+        env.dashboard.add_widget(Box::new(tos_comp::ui::dashboard::SettingsWidget { audio_on: true, chirps_on: true }));
         env.dashboard.add_widget(Box::new(tos_comp::ui::dashboard::ProcessManagerWidget { processes: vec![] }));
         
         // Spawn a default File Browser in Sector 0

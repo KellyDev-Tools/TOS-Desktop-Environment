@@ -103,6 +103,38 @@ impl Widget for ProcessManagerWidget {
     }
 }
 
+pub struct SettingsWidget {
+    pub audio_on: bool,
+    pub chirps_on: bool,
+}
+
+impl Widget for SettingsWidget {
+    fn render_html(&self) -> String {
+        let audio_status = if self.audio_on { "ON" } else { "OFF" };
+        let chirps_status = if self.chirps_on { "ON" } else { "OFF" };
+        let audio_cmd = if self.audio_on { "off" } else { "on" };
+        let chirps_cmd = if self.chirps_on { "off" } else { "on" };
+
+        format!(r#"<div class="lcars-widget settings">
+            <h3>SYSTEM SETTINGS</h3>
+            <div class="setting-row">
+                <span>AUDIO MASTER:</span>
+                <button class="lcars-btn" onclick="sendCommand('terminal:config audio {}')">{}</button>
+            </div>
+            <div class="setting-row">
+                <span>TACTILE CHIRPS:</span>
+                <button class="lcars-btn" onclick="sendCommand('terminal:config chirps {}')">{}</button>
+            </div>
+        </div>"#, audio_cmd, audio_status, chirps_cmd, chirps_status)
+    }
+    fn update(&mut self) {}
+    fn as_any(&self) -> &dyn std::any::Any { self }
+    fn as_any_mut(&mut self) -> &mut dyn std::any::Any { self }
+    fn get_name(&self) -> &str {
+        "Settings"
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

@@ -27,17 +27,20 @@ impl CommandParser {
                                 if env.navigator.current_level == crate::navigation::zoom::ZoomLevel::Level2Sector {
                                     env.intelligent_zoom_out();
                                 }
+                                env.audio.play_sound("zoom_out");
                                 return format!("Zooming to Level 1 (ROOT)");
                             }
                             2 => {
                                 env.start_zoom_morph(true);
                                 env.navigator.zoom_in(0);
+                                env.audio.play_sound("zoom_in");
                                 return format!("Zooming to Level 2 (SECTOR)");
                             }
                             3 => {
                                 env.start_zoom_morph(true);
                                 env.navigator.zoom_in(0);
                                 env.navigator.zoom_in(0);
+                                env.audio.play_sound("zoom_in");
                                 return format!("Zooming to Level 3 (FOCUS)");
                             }
                             _ => return format!("Error: Invalid Zoom Level {}", level),
@@ -163,8 +166,32 @@ impl CommandParser {
                 env.search_query = None;
                 format!("System filters cleared.")
             }
+            "config" | "settings" => {
+                if let Some(key) = args.get(0) {
+                    let val = args.get(1).map(|v| *v == "on" || *v == "true").unwrap_or(false);
+                    match *key {
+                        "audio" => {
+                            env.settings.audio_enabled = val;
+                            env.audio.enabled = val;
+                            return format!("Audio Master: {}", if val { "ON" } else { "OFF" });
+                        }
+                        "chirps" => {
+                            env.settings.chirps_enabled = val;
+                            env.audio.effects_enabled = val;
+                            return format!("Tactile Chirps: {}", if val { "ON" } else { "OFF" });
+                        }
+                        "debug" => {
+                            env.settings.debug_mode = val;
+                            return format!("Debug Mode: {}", if val { "ON" } else { "OFF" });
+                        }
+                        _ => return format!("Unknown setting: {}", key),
+                    }
+                }
+                format!("Current Settings: Audio={:?}, Chirps={:?}, Debug={:?}", 
+                    env.settings.audio_enabled, env.settings.chirps_enabled, env.settings.debug_mode)
+            }
             "help" => {
-                format!("Commands: zoom [n], spawn [name], alert [msg], kill [id], split [id], swap, find [q], clear, inspect, ls, cd, touch, mkdir, rm, clone, help")
+                format!("Commands: zoom [n], spawn [name], alert [msg], kill [id], split [id], swap, find [q], config [key] [on/off], help")
             }
             _ => format!("Unknown command: '{}'. Type 'help' for list.", cmd),
         }

@@ -152,14 +152,59 @@
             sendCommand("zoom:" + level);
         }
 
-        // Mutation Observer to ensure the input field is always accessible and focused if needed
+        // Tactile Audio Synthesis
+        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+
+        function playChirp(type) {
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            osc.connect(gain);
+            gain.connect(audioCtx.destination);
+
+            const now = audioCtx.currentTime;
+
+            if (type === 'zoom_in') {
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(400, now);
+                osc.frequency.exponentialRampToValueAtTime(800, now + 0.1);
+                gain.gain.setValueAtTime(0.1, now);
+                gain.gain.linearRampToValueAtTime(0, now + 0.1);
+                osc.start(now);
+                osc.stop(now + 0.1);
+            } else if (type === 'zoom_out') {
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(800, now);
+                osc.frequency.exponentialRampToValueAtTime(400, now + 0.1);
+                gain.gain.setValueAtTime(0.1, now);
+                gain.gain.linearRampToValueAtTime(0, now + 0.1);
+                osc.start(now);
+                osc.stop(now + 0.1);
+            } else {
+                // Default notification chirp
+                osc.type = 'triangle';
+                osc.frequency.setValueAtTime(660, now);
+                gain.gain.setValueAtTime(0.1, now);
+                gain.gain.linearRampToValueAtTime(0, now + 0.2);
+                osc.start(now);
+                osc.stop(now + 0.2);
+            }
+        }
+
+        function handleAudioBuffer() {
+            const buffer = document.getElementById('audio-buffer');
+            if (buffer) {
+                const sounds = buffer.getAttribute('data-sounds').split(',');
+                sounds.forEach(s => playChirp(s));
+                buffer.remove(); // Clean up so we don't replay
+            }
+        }
+
+        // Mutation Observer to handle UI updates and audio
         const observer = new MutationObserver((mutations) => {
+            handleAudioBuffer();
             const input = document.getElementById('terminal-input');
             if (input) {
-                // Focus the terminal input whenever it appears if no other element is focused
-                if (document.activeElement === document.body || document.activeElement === null) {
-                    // input.focus(); // Uncomment if you want auto-focus
-                }
+                // ...
             }
         });
 

@@ -32,14 +32,20 @@ impl CommandParser {
                             }
                             2 => {
                                 env.start_zoom_morph(true);
-                                env.navigator.zoom_in(0);
+                                if env.navigator.current_level == crate::navigation::zoom::ZoomLevel::Level1Root {
+                                    env.navigator.zoom_in(0);
+                                }
                                 env.audio.play_sound("zoom_in");
                                 return format!("Zooming to Level 2 (SECTOR)");
                             }
                             3 => {
                                 env.start_zoom_morph(true);
-                                env.navigator.zoom_in(0);
-                                env.navigator.zoom_in(0);
+                                if env.navigator.current_level == crate::navigation::zoom::ZoomLevel::Level1Root {
+                                    env.navigator.zoom_in(0);
+                                    env.navigator.zoom_in(0);
+                                } else if env.navigator.current_level == crate::navigation::zoom::ZoomLevel::Level2Sector {
+                                    env.navigator.zoom_in(0);
+                                }
                                 env.audio.play_sound("zoom_in");
                                 return format!("Zooming to Level 3 (FOCUS)");
                             }

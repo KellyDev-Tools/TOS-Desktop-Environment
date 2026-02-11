@@ -205,12 +205,24 @@ impl DesktopEnvironment {
 
         html.push_str("<div class='surfaces-grid'>");
         for layout in layouts {
+            let sector_class = if let Some(sid) = layout.surface.sector_id {
+                format!("sector-{}-slide", sid)
+            } else {
+                "".to_string()
+            };
+
+            let morph_type = match self.current_morph_phase {
+                MorphPhase::Entering => "morph-entering",
+                MorphPhase::Exiting => "morph-exiting",
+                MorphPhase::Static => "",
+            };
+
             let grid_style = format!(
                 "grid-column: span {}; grid-row: span {};",
                 layout.width, layout.height
             );
             
-            html.push_str(&format!(r#"<div class="grid-item" style="{}">"#, grid_style));
+            html.push_str(&format!(r#"<div class="grid-item {} {}" style="{}">"#, sector_class, morph_type, grid_style));
             
             let mut decoration = if self.navigator.current_level == ZoomLevel::Level1Root && self.search_query.is_none() {
                 let sector_idx = layout.surface.sector_id.unwrap_or(0);
@@ -236,6 +248,24 @@ impl DesktopEnvironment {
                     self.current_morph_phase,
                     &format!("sector-{}", sector_idx)
                 ).replace("<!-- Surface content injected here -->", &sector_html)
+            } else if self.navigator.current_level == ZoomLevel::Level3aPicker {
+                 let group = self.surfaces.get_surfaces_in_group(&layout.surface.app_class);
+                 let window_idx = group.iter().position(|s| s.id == layout.surface.id).unwrap_or(0);
+                 
+                 let picker_html = format!(
+                    r#"<div class="lcars-picker-item" onclick="sendCommand('zoom:3:{}')">
+                        <div class="picker-label">SELECT WINDOW</div>
+                        <div class="picker-title">{}</div>
+                    </div>"#,
+                    window_idx, layout.surface.title
+                 );
+                 
+                 DecorationManager::get_html_frame(
+                    &layout.surface.title, 
+                    DecorationStyle::Default, 
+                    self.current_morph_phase,
+                    &format!("surface-{}", layout.surface.id)
+                ).replace("<!-- Surface content injected here -->", &picker_html)
             } else if self.navigator.current_level == ZoomLevel::Level1Root && self.search_query.is_some() {
                  let sector_info = &self.navigator.sectors[layout.surface.sector_id.unwrap_or(0)];
                  let search_item_html = format!(

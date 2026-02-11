@@ -56,7 +56,7 @@ body {
     transition: width var(--transition-speed);
 }
 
-/* Morph Phases */
+/* Morph Phases & Sector Sliding */
 .morph-entering {
     animation: zoomInFrame var(--transition-speed) forwards;
 }
@@ -65,15 +65,32 @@ body {
     animation: zoomOutFrame var(--transition-speed) forwards;
 }
 
+/* Level 2: Sector Sliding (The 4-quadrant slide) */
+.sector-0-slide {
+    transform: translate(-5%, -5%);
+}
+
+.sector-1-slide {
+    transform: translate(5%, -5%);
+}
+
+.sector-2-slide {
+    transform: translate(-5%, 5%);
+}
+
+.sector-3-slide {
+    transform: translate(5%, 5%);
+}
+
 @keyframes zoomInFrame {
     from {
-        transform: scale(0.5);
+        transform: scale(0.95) translateY(10px);
         opacity: 0;
-        filter: blur(10px);
+        filter: blur(5px);
     }
 
     to {
-        transform: scale(1);
+        transform: scale(1) translateY(0);
         opacity: 1;
         filter: blur(0);
     }
@@ -86,9 +103,9 @@ body {
     }
 
     to {
-        transform: scale(2);
+        transform: scale(1.05);
         opacity: 0;
-        filter: blur(20px);
+        filter: blur(10px);
     }
 }
 
@@ -123,14 +140,24 @@ body {
 .grid-item {
     position: relative;
     display: flex;
-    transition: all var(--transition-speed);
+    transition: transform var(--transition-speed) cubic-bezier(0.19, 1, 0.22, 1),
+        opacity var(--transition-speed) ease;
+    will-change: transform, opacity;
+}
+
+.grid-item.morph-entering {
+    filter: brightness(2) contrast(1.2);
+}
+
+.grid-item.morph-exiting {
+    filter: brightness(0.5);
 }
 
 .grid-item .lcars-window-frame {
     position: relative;
-    /* Overriding absolute for grid flow */
     width: 100%;
     height: 100%;
+    transition: inherit;
 }
 
 /* Status Bar & Terminal Entry */

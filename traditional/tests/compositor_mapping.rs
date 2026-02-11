@@ -119,6 +119,23 @@ fn test_adaptive_sector_layout() {
     let layouts = SpatialMapper::get_layout(&env.surfaces, ZoomLevel::Level2Sector, Some(0), None, None, 4);
     assert_eq!(layouts[0].width, 2);
     assert_eq!(layouts[1].width, 1);
+
+    // Case 3: Three apps
+    env.surfaces.create_surface("Tertiary", SurfaceRole::Toplevel, Some(0));
+    let layouts = SpatialMapper::get_layout(&env.surfaces, ZoomLevel::Level2Sector, Some(0), None, None, 4);
+    assert_eq!(layouts.len(), 3);
+    assert_eq!(layouts[0].width, 2); // Featured
+    assert_eq!(layouts[1].width, 1); // Top right
+    assert_eq!(layouts[2].width, 3); // Bottom span
+
+    // Case 4: Four apps (Standard Asymmetric Grid)
+    env.surfaces.create_surface("Quaternary", SurfaceRole::Toplevel, Some(0));
+    let layouts = SpatialMapper::get_layout(&env.surfaces, ZoomLevel::Level2Sector, Some(0), None, None, 4);
+    assert_eq!(layouts.len(), 4);
+    assert_eq!(layouts[0].width, 2);
+    assert_eq!(layouts[1].width, 1);
+    assert_eq!(layouts[2].width, 1);
+    assert_eq!(layouts[3].width, 1);
 }
 
 #[test]

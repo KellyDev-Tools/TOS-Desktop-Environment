@@ -58,3 +58,30 @@ fn test_viewport_morphing() {
     assert!(html.contains("morph-static"));
     assert!(!html.contains("morph-entering"));
 }
+
+#[test]
+fn test_viewport_picker_and_split() {
+    let mut env = DesktopEnvironment::new(None);
+    let s1 = env.surfaces.create_surface("Term 1", SurfaceRole::Toplevel, Some(0));
+    let s2 = env.surfaces.create_surface("Term 2", SurfaceRole::Toplevel, Some(0));
+    
+    // 1. Split View
+    env.navigator.zoom_in(0); // Sector
+    env.navigator.zoom_in(0); // Focus s1
+    env.navigator.split_view(s2);
+    
+    let html_split = env.generate_viewport_html();
+    assert!(html_split.contains("Term 1"));
+    assert!(html_split.contains("Term 2"));
+    assert!(html_split.contains("SWAP SLOTS")); // Special button for split
+    
+    // 2. Picker View
+    env.navigator.zoom_out(true); // Split -> Focus
+    env.navigator.zoom_out(true); // Focus -> Picker (since 2 apps exist)
+    assert_eq!(env.navigator.current_level, ZoomLevel::Level3aPicker);
+    
+    let html_picker = env.generate_viewport_html();
+    assert!(html_picker.contains("Term 1"));
+    assert!(html_picker.contains("Term 2"));
+    assert!(html_picker.contains("zoom:3:0")); // Picker buttons use index
+}

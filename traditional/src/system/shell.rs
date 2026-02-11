@@ -114,6 +114,32 @@ mod tests {
     }
 
     #[test]
+    fn test_parse_embedded_osc() {
+        let (tx, rx) = channel::<UiCommand>();
+        let shell = ShellIntegrator::new(Some(tx));
+
+        shell.parse_stdout("Setting directory...\r\n\x1b]1337;CurrentDir=/tmp\x07Done.");
+        // Should not panic, should acknowledge the dir
+    }
+
+    #[test]
+    fn test_parse_multiple_osc() {
+        let (tx, rx) = channel::<UiCommand>();
+        let shell = ShellIntegrator::new(Some(tx));
+
+        // Current implementation only finds the FIRST one in a chunk.
+        // Let's verify that behavior or improve it.
+        // For now, verify it handles the first one.
+        shell.parse_stdout("\x1b]1337;ZoomLevel=2\x07\x1b]1337;ZoomLevel=3\x07");
+        
+        let cmd = rx.try_recv().unwrap();
+        match cmd {
+            UiCommand::ZoomLevel(lvl) => assert_eq!(lvl, 2),
+            _ => panic!("Expected Level 2"),
+        }
+    }
+
+    #[test]
     fn test_without_channel() {
         let shell = ShellIntegrator::new(None);
         // Should not panic even without a channel

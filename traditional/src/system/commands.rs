@@ -186,6 +186,11 @@ impl CommandParser {
                             env.audio.effects_enabled = val;
                             return format!("Tactile Chirps: {}", if val { "ON" } else { "OFF" });
                         }
+                        "ambient" => {
+                            env.settings.ambient_enabled = val;
+                            env.audio.ambient_enabled = val;
+                            return format!("Ambient Bridge: {}", if val { "ON" } else { "OFF" });
+                        }
                         "debug" => {
                             env.settings.debug_mode = val;
                             return format!("Debug Mode: {}", if val { "ON" } else { "OFF" });
@@ -193,11 +198,23 @@ impl CommandParser {
                         _ => return format!("Unknown setting: {}", key),
                     }
                 }
-                format!("Current Settings: Audio={:?}, Chirps={:?}, Debug={:?}", 
-                    env.settings.audio_enabled, env.settings.chirps_enabled, env.settings.debug_mode)
+                format!("Current Settings: Audio={:?}, Chirps={:?}, Ambient={:?}, Debug={:?}", 
+                    env.settings.audio_enabled, env.settings.chirps_enabled, env.settings.ambient_enabled, env.settings.debug_mode)
             }
             "help" => {
-                format!("Commands: zoom [n], spawn [name], alert [msg], kill [id], split [id], swap, find [q], config [key] [on/off], help")
+                format!("Commands: zoom [n], spawn [name], alert [msg], kill [id], move [id] [sector], split [id], swap, find [q], config [key] [on/off], help")
+            }
+            "move" | "orchestrate" => {
+                if let (Some(id_str), Some(sector_str)) = (args.get(0), args.get(1)) {
+                    if let (Ok(id), Ok(sector)) = (id_str.parse::<u32>(), sector_str.parse::<usize>()) {
+                        if env.surfaces.move_to_sector(id, sector) {
+                            return format!("Orchestrated: Node {} moved to Sector {}", id, sector);
+                        } else {
+                            return format!("Error: Node {} not found.", id);
+                        }
+                    }
+                }
+                format!("Usage: move [id] [sector_index]")
             }
             _ => format!("Unknown command: '{}'. Type 'help' for list.", cmd),
         }

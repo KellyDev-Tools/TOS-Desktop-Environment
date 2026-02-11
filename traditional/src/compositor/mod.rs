@@ -9,12 +9,12 @@ pub enum SurfaceRole {
     Background,
 }
 
-fn id_to_noise(id: u32, seed: u32) -> i16 {
-    let mut x = (id + seed) as i64;
+pub fn id_to_noise(id: u32, offset: u32) -> u32 {
+    let mut x = (id + offset) as i64;
     x ^= x << 13;
     x ^= x >> 17;
     x ^= x << 5;
-    (x.abs() % 100) as i16
+    x.abs() as u32
 }
 
 #[derive(Debug, Clone)]
@@ -74,10 +74,15 @@ impl SurfaceManager {
     pub fn update_telemetry(&mut self) {
         // Mock oscillation for demo
         for surface in self.surfaces.values_mut() {
-            surface.cpu_usage = (surface.cpu_usage as i16 + (id_to_noise(surface.id, 0) % 10 - 5))
+            surface.cpu_usage = (surface.cpu_usage as i16 + (id_to_noise(surface.id, 0) % 10) as i16 - 5)
                 .clamp(0, 100) as u8;
-            surface.mem_usage = (surface.mem_usage as i16 + (id_to_noise(surface.id, 1) % 4 - 2))
+            surface.mem_usage = (surface.mem_usage as i16 + (id_to_noise(surface.id, 1) % 4) as i16 - 2)
                 .clamp(0, 100) as u8;
+            
+            surface.history.push(format!("Tick - CPU: {}% MEM: {}%", surface.cpu_usage, surface.mem_usage));
+            if surface.history.len() > 10 {
+                surface.history.remove(0);
+            }
         }
     }
 
@@ -132,6 +137,16 @@ impl SurfaceManager {
     pub fn remove_surface(&mut self, id: u32) {
         self.surfaces.remove(&id);
     }
+
+    pub fn move_to_sector(&mut self, id: u32, sector_id: usize) -> bool {
+        if let Some(s) = self.surfaces.get_mut(&id) {
+            s.sector_id = Some(sector_id);
+            s.history.push(format!("Orchestration: Moved to Sector {}", sector_id));
+            true
+        } else {
+            false
+        }
+    }
 }
 
 pub struct SpatialMapper;
@@ -179,7 +194,7 @@ impl SpatialMapper {
                     Vec::new()
                 }
             }
-            ZoomLevel::Level3Focus | ZoomLevel::Level4Detail => {
+            ZoomLevel::Level3Focus | ZoomLevel::Level4Detail | ZoomLevel::Level5Buffer => {
                 if let Some(id) = primary_id {
                     manager.get_surface(id).into_iter().cloned().collect()
                 } else {
@@ -240,7 +255,7 @@ impl SpatialMapper {
                         }
                     }
                 }
-                ZoomLevel::Level3Focus | ZoomLevel::Level4Detail => (0, 0, 3, 3), // Full span
+                ZoomLevel::Level3Focus | ZoomLevel::Level4Detail | ZoomLevel::Level5Buffer => (0, 0, 3, 3), // Full span
                 ZoomLevel::Level3aPicker => {
                     // Display grouped windows in a smaller grid
                     let x = (i % 2) as u16 + 1; // Slightly offset/centered

@@ -30,6 +30,7 @@ pub enum UiCommand {
 pub struct AppSettings {
     pub audio_enabled: bool,
     pub chirps_enabled: bool,
+    pub ambient_enabled: bool,
     pub high_contrast: bool,
     pub debug_mode: bool,
 }
@@ -39,6 +40,7 @@ impl Default for AppSettings {
         Self {
             audio_enabled: true,
             chirps_enabled: true,
+            ambient_enabled: true,
             high_contrast: false,
             debug_mode: false,
         }
@@ -95,6 +97,7 @@ impl DesktopEnvironment {
         }
         self.surfaces.update_telemetry();
         self.status.tick();
+        self.audio.tick();
 
         // Auto-trigger red alert if there are critical notifications
         self.is_red_alert = self.notifications.queue.iter().any(|n| matches!(n.priority, crate::system::notifications::Priority::Critical));
@@ -344,12 +347,18 @@ impl DesktopEnvironment {
                     &format!("search-{}", layout.surface.id)
                 ).replace("<!-- Surface content injected here -->", &search_item_html)
             } else {
-                DecorationManager::get_html_frame(
+                let mut frame = DecorationManager::get_html_frame(
                     &layout.surface.title, 
                     DecorationStyle::Default, 
                     self.current_morph_phase,
                     &format!("surface-{}", layout.surface.id)
-                )
+                );
+                
+                if self.navigator.current_level == ZoomLevel::Level2Sector {
+                    let orch_id = format!(r#"<div class="orch-id-label">ID: {}</div>"#, layout.surface.id);
+                    frame = frame.replace("<!-- Surface content injected here -->", &orch_id);
+                }
+                frame
             };
 
             // Level 4: Deep detail injection
@@ -367,6 +376,7 @@ impl DesktopEnvironment {
                             <div class="detail-row"><span>CPU LOAD:</span> {1}%</div>
                             <div class="detail-row"><span>MEM LOAD:</span> {2}%</div>
                             <div class="detail-row"><span>UPTIME:</span> {3}s</div>
+                            <div class="detail-button" onclick="sendCommand('zoom:in')">ACCESS RAW BUFFER</div>
                             <div class="detail-chart">
                                 <div class="bar" style="height: {1}%;"></div>
                                 <div class="bar" style="height: {2}%;"></div>
@@ -384,8 +394,42 @@ impl DesktopEnvironment {
                     layout.surface.id, layout.surface.cpu_usage, layout.surface.mem_usage, self.status.uptime_secs, history_html
                 );
                 decoration = decoration.replace("<!-- Surface content injected here -->", &detail_mock);
-            }
- else if layout.surface.title.to_lowercase().contains("file") {
+            } else if self.navigator.current_level == ZoomLevel::Level5Buffer {
+                let mut hex_lines = String::new();
+                for i in 0..16 {
+                    let addr = i * 16;
+                    let mut hex = String::new();
+                    let mut chars = String::new();
+                    for j in 0..16 {
+                        let val = (compositor::id_to_noise(layout.surface.id, (i * 16 + j) as u32) % 256) as u8;
+                        hex.push_str(&format!("{:02X} ", val));
+                        if val >= 32 && val <= 126 {
+                            chars.push(val as char);
+                        } else {
+                            chars.push('.');
+                        }
+                    }
+                    hex_lines.push_str(&format!(
+                        r#"<div class="hex-line">
+                            <span class="hex-addr">{:08X}</span>
+                            <span class="hex-data">{}</span>
+                            <span class="hex-chars">{}</span>
+                        </div>"#,
+                        addr, hex, chars
+                    ));
+                }
+
+                let buffer_html = format!(
+                    r#"<div class="lcars-memory-buffer">
+                        <div class="buffer-header">RAW MEMORY BUFFER: {0}</div>
+                        <div class="hex-scroll">
+                            {1}
+                        </div>
+                    </div>"#,
+                    layout.surface.title, hex_lines
+                );
+                decoration = decoration.replace("<!-- Surface content injected here -->", &buffer_html);
+            } else if layout.surface.title.to_lowercase().contains("file") {
                 // Spatial File System injection
                 let mut files_html = format!(r#"<div class="lcars-file-browser"><div class="file-path">{}</div><div class="file-grid">"#, self.files.current_path);
                 if let Some(entries) = self.files.get_current_entries() {

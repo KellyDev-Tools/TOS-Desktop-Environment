@@ -11,6 +11,7 @@ pub enum ZoomLevel {
     Level3aPicker,   // Window picker for an app with multiple windows
     Level3Split,     // Two windows side-by-side
     Level4Detail,    // Deep-dive into a specific file or process detail
+    Level5Buffer,    // Hex-dump memory buffer view
 }
 
 impl fmt::Display for ZoomLevel {
@@ -22,6 +23,7 @@ impl fmt::Display for ZoomLevel {
             ZoomLevel::Level3aPicker => write!(f, "Level 3a: Picker (Windows)"),
             ZoomLevel::Level3Split => write!(f, "Level 3: Split View"),
             ZoomLevel::Level4Detail => write!(f, "Level 4: Detail (Inspect)"),
+            ZoomLevel::Level5Buffer => write!(f, "Level 5: Buffer (Hex)"),
         }
     }
 }
@@ -82,8 +84,12 @@ impl SpatialNavigator {
                 self.current_level = ZoomLevel::Level4Detail;
                 println!("[Zoom In] Deep-diving into Details (Level 4).");
             }
+            ZoomLevel::Level4Detail => {
+                self.current_level = ZoomLevel::Level5Buffer;
+                println!("[Zoom In] accessing RAW MEMORY BUFFER (Level 5).");
+            }
             _ => {
-                println!("[Navigate] Already at deepest level (Level 4 Detail).");
+                println!("[Navigate] Already at deepest level (Level 5 Buffer).");
             }
         }
     }
@@ -91,6 +97,10 @@ impl SpatialNavigator {
     pub fn zoom_out(&mut self, has_multiple_windows: bool) {
         self.secondary_app_id = None; // Always reset split on zoom out
         match self.current_level {
+            ZoomLevel::Level5Buffer => {
+                self.current_level = ZoomLevel::Level4Detail;
+                println!("[Zoom Out] Returning to Node Details (Level 4).");
+            }
             ZoomLevel::Level4Detail => {
                 self.current_level = ZoomLevel::Level3Focus;
                 println!("[Zoom Out] Returning to App Focus (Level 3).");

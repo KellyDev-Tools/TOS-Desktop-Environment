@@ -53,6 +53,7 @@ fn test_zoom_level_sent_after_navigation() {
         ZoomLevel::Level3aPicker => 3,
         ZoomLevel::Level3Split => 3,
         ZoomLevel::Level4Detail => 4,
+        ZoomLevel::Level5Buffer => 5,
     };
     let _ = tx.send(UiCommand::ZoomLevel(level));
 

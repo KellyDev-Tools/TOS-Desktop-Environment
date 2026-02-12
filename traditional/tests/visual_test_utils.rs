@@ -49,6 +49,18 @@ impl VisualTestEnv {
         std::thread::sleep(Duration::from_millis(300));
     }
 
+    /// Execute a step with a longer delay (in seconds) for viewability
+    pub fn step_slow(&mut self, description: impl Into<String>, delay_secs: u64) {
+        self.step_count += 1;
+        let desc = description.into();
+        
+        if let Some(monitor) = get_monitor() {
+            monitor.test_event(&self.test_name, "step", &format!("Step {}: {} [{}s pause]", self.step_count, desc, delay_secs));
+        }
+        
+        std::thread::sleep(Duration::from_secs(delay_secs));
+    }
+
     /// Assert something and broadcast to monitor
     pub fn assert(&mut self, condition: bool, message: impl Into<String>) {
         let msg = message.into();
@@ -77,6 +89,11 @@ impl VisualTestEnv {
         
         if let Some(monitor) = get_monitor() {
             monitor.update_viewport(html.clone(), zoom, self.env.is_red_alert);
+            
+            // Also broadcast multi-viewport state
+            let (vp_infos, focused_vp) = tos_comp::dev_monitor::extract_viewport_state(&self.env.viewport_manager);
+            let output_count = self.env.viewport_manager.output_count();
+            monitor.send_viewport_state(vp_infos, focused_vp, output_count);
         }
         
         let _ = self.tx.send(UiCommand::UpdateViewport {

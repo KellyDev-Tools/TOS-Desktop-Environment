@@ -63,6 +63,7 @@ pub struct DesktopEnvironment {
     pub search_query: Option<String>,
     pub settings: AppSettings,
     pub is_red_alert: bool,
+    pub viewport_manager: navigation::viewport::ViewportManager,
 }
 
 impl DesktopEnvironment {
@@ -80,6 +81,7 @@ impl DesktopEnvironment {
             search_query: None,
             settings: AppSettings::default(),
             is_red_alert: false,
+            viewport_manager: navigation::viewport::ViewportManager::new(),
         }
     }
 

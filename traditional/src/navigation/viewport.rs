@@ -311,8 +311,23 @@ impl ViewportManager {
         self.focused_viewport.and_then(|id| self.viewports.get_mut(&id))
     }
 
-    pub fn focused_id(&self) -> Option<ViewportId> {
+    pub fn focused_viewport_id(&self) -> Option<ViewportId> {
         self.focused_viewport
+    }
+
+    /// Get all viewports
+    pub fn all_viewports(&self) -> Vec<&Viewport> {
+        self.viewports.values().collect()
+    }
+
+    /// Total number of viewports
+    pub fn viewport_count(&self) -> usize {
+        self.viewports.len()
+    }
+
+    /// Total number of output devices
+    pub fn output_count(&self) -> usize {
+        self.outputs.len()
     }
 
     /// Set focus to a specific viewport
@@ -584,7 +599,7 @@ mod tests {
         let mgr = ViewportManager::new();
         assert_eq!(mgr.get_all_outputs().len(), 1);
         assert_eq!(mgr.get_all_viewport_ids().len(), 1);
-        assert!(mgr.focused_id().is_some());
+        assert!(mgr.focused_viewport_id().is_some());
     }
 
     #[test]
@@ -605,7 +620,7 @@ mod tests {
     #[test]
     fn test_split_horizontal() {
         let mut mgr = ViewportManager::new();
-        let vp1 = mgr.focused_id().unwrap();
+        let vp1 = mgr.focused_viewport_id().unwrap();
 
         let vp2 = mgr.split_horizontal(vp1).unwrap();
 
@@ -627,7 +642,7 @@ mod tests {
     #[test]
     fn test_independent_navigation() {
         let mut mgr = ViewportManager::new();
-        let vp1 = mgr.focused_id().unwrap();
+        let vp1 = mgr.focused_viewport_id().unwrap();
         let out1 = mgr.get_viewport(vp1).unwrap().output_id;
 
         // Create second viewport
@@ -706,7 +721,7 @@ mod tests {
     #[test]
     fn test_unsplit() {
         let mut mgr = ViewportManager::new();
-        let vp1 = mgr.focused_id().unwrap();
+        let vp1 = mgr.focused_viewport_id().unwrap();
         let vp2 = mgr.split_horizontal(vp1).unwrap();
 
         assert_eq!(mgr.get_all_viewport_ids().len(), 2);
@@ -741,17 +756,17 @@ mod tests {
     #[test]
     fn test_focus_switching() {
         let mut mgr = ViewportManager::new();
-        let vp1 = mgr.focused_id().unwrap();
+        let vp1 = mgr.focused_viewport_id().unwrap();
         let out1 = mgr.get_viewport(vp1).unwrap().output_id;
         let vp2 = mgr.create_viewport(out1, ViewportGeometry::right_half(), "Right");
 
         mgr.set_focus(vp2);
-        assert_eq!(mgr.focused_id(), Some(vp2));
+        assert_eq!(mgr.focused_viewport_id(), Some(vp2));
         assert!(!mgr.get_viewport(vp1).unwrap().has_focus);
         assert!(mgr.get_viewport(vp2).unwrap().has_focus);
 
         mgr.set_focus(vp1);
-        assert_eq!(mgr.focused_id(), Some(vp1));
+        assert_eq!(mgr.focused_viewport_id(), Some(vp1));
         assert!(mgr.get_viewport(vp1).unwrap().has_focus);
         assert!(!mgr.get_viewport(vp2).unwrap().has_focus);
     }

@@ -4,11 +4,559 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>TOS - Traditional Dashboard</title>
+    <title>TOS — Development Monitor</title>
     <link rel="stylesheet" href="assets/css/lcars.css">
+    <style>
+        /* ═══ Dev Monitor Overlay Styles ═══ */
+        @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;700&family=Inter:wght@300;400;500;600;700&display=swap');
+
+        :root {
+            --dm-bg: rgba(5, 5, 15, 0.92);
+            --dm-panel-bg: rgba(10, 10, 30, 0.85);
+            --dm-border: rgba(153, 153, 204, 0.3);
+            --dm-orange: #ff9900;
+            --dm-blue: #9999cc;
+            --dm-purple: #cc99cc;
+            --dm-red: #cc6666;
+            --dm-green: #66cc99;
+            --dm-cyan: #66cccc;
+            --dm-text: #c0c0d0;
+            --dm-text-dim: #606080;
+            --dm-mono: 'JetBrains Mono', 'Courier New', monospace;
+            --dm-sans: 'Inter', 'Arial', sans-serif;
+        }
+
+        /* ─── Dev Monitor Container ─── */
+        #dev-monitor-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            right: 0;
+            width: 380px;
+            height: 100vh;
+            background: var(--dm-bg);
+            border-left: 3px solid var(--dm-orange);
+            z-index: 10000;
+            overflow-y: auto;
+            font-family: var(--dm-mono);
+            font-size: 0.78rem;
+            color: var(--dm-text);
+            backdrop-filter: blur(12px);
+            scrollbar-width: thin;
+            scrollbar-color: var(--dm-blue) transparent;
+        }
+
+        #dev-monitor-overlay.visible {
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* Adjust main content when panel is visible */
+        body.dev-panel-open #tos-root {
+            margin-right: 380px;
+        }
+
+        body.dev-panel-open .viewport-content {
+            width: calc(100% - 380px);
+        }
+
+        /* ─── Header ─── */
+        .dm-header {
+            background: linear-gradient(135deg, rgba(255, 153, 0, 0.15), transparent);
+            border-bottom: 2px solid var(--dm-orange);
+            padding: 12px 16px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-shrink: 0;
+        }
+
+        .dm-header-title {
+            font-family: var(--dm-sans);
+            font-weight: 700;
+            font-size: 0.9rem;
+            color: var(--dm-orange);
+            letter-spacing: 1px;
+            text-transform: uppercase;
+        }
+
+        .dm-header-badge {
+            background: var(--dm-red);
+            color: white;
+            padding: 2px 8px;
+            border-radius: 3px;
+            font-size: 0.65rem;
+            font-weight: 700;
+            animation: dmPulse 2s infinite;
+        }
+
+        @keyframes dmPulse {
+
+            0%,
+            100% {
+                opacity: 1;
+            }
+
+            50% {
+                opacity: 0.6;
+            }
+        }
+
+        /* ─── Tabs ─── */
+        .dm-tabs {
+            display: flex;
+            border-bottom: 1px solid var(--dm-border);
+            flex-shrink: 0;
+        }
+
+        .dm-tab {
+            flex: 1;
+            padding: 8px 4px;
+            text-align: center;
+            cursor: pointer;
+            color: var(--dm-text-dim);
+            font-size: 0.65rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            border-bottom: 2px solid transparent;
+            transition: all 0.2s;
+            font-family: var(--dm-sans);
+        }
+
+        .dm-tab:hover {
+            color: var(--dm-text);
+            background: rgba(255, 255, 255, 0.03);
+        }
+
+        .dm-tab.active {
+            color: var(--dm-orange);
+            border-bottom-color: var(--dm-orange);
+            background: rgba(255, 153, 0, 0.05);
+        }
+
+        /* ─── Panel Content ─── */
+        .dm-panel {
+            display: none;
+            flex: 1;
+            overflow-y: auto;
+            padding: 0;
+        }
+
+        .dm-panel.active {
+            display: block;
+        }
+
+        .dm-section {
+            border-bottom: 1px solid var(--dm-border);
+            padding: 12px 16px;
+        }
+
+        .dm-section-title {
+            font-family: var(--dm-sans);
+            font-weight: 600;
+            font-size: 0.7rem;
+            color: var(--dm-purple);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 8px;
+        }
+
+        /* ─── Viewport Cards ─── */
+        .dm-viewport-card {
+            background: var(--dm-panel-bg);
+            border: 1px solid var(--dm-border);
+            border-radius: 6px;
+            padding: 10px 12px;
+            margin-bottom: 8px;
+            transition: border-color 0.2s;
+        }
+
+        .dm-viewport-card.focused {
+            border-color: var(--dm-orange);
+            box-shadow: 0 0 8px rgba(255, 153, 0, 0.15);
+        }
+
+        .dm-viewport-label {
+            font-family: var(--dm-sans);
+            font-weight: 600;
+            font-size: 0.8rem;
+            color: var(--dm-orange);
+            margin-bottom: 4px;
+        }
+
+        .dm-viewport-meta {
+            color: var(--dm-text-dim);
+            font-size: 0.7rem;
+        }
+
+        .dm-viewport-path {
+            color: var(--dm-cyan);
+            font-size: 0.75rem;
+            margin-top: 4px;
+            padding: 3px 6px;
+            background: rgba(102, 204, 204, 0.08);
+            border-radius: 3px;
+            display: inline-block;
+        }
+
+        /* ─── Surface List ─── */
+        .dm-surface-row {
+            display: flex;
+            align-items: center;
+            padding: 6px 0;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+            gap: 8px;
+        }
+
+        .dm-surface-row:last-child {
+            border-bottom: none;
+        }
+
+        .dm-surface-icon {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            flex-shrink: 0;
+        }
+
+        .dm-surface-icon.toplevel {
+            background: var(--dm-blue);
+        }
+
+        .dm-surface-icon.xwayland {
+            background: var(--dm-purple);
+        }
+
+        .dm-surface-icon.activated {
+            background: var(--dm-green);
+            box-shadow: 0 0 6px var(--dm-green);
+        }
+
+        .dm-surface-title {
+            flex: 1;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            font-size: 0.75rem;
+        }
+
+        .dm-surface-meta {
+            color: var(--dm-text-dim);
+            font-size: 0.65rem;
+        }
+
+        /* ─── GPU Stats ─── */
+        .dm-stat-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 4px 0;
+        }
+
+        .dm-stat-label {
+            color: var(--dm-text-dim);
+        }
+
+        .dm-stat-value {
+            color: var(--dm-blue);
+            font-weight: 500;
+        }
+
+        .dm-stat-value.warn {
+            color: var(--dm-orange);
+        }
+
+        .dm-stat-value.crit {
+            color: var(--dm-red);
+        }
+
+        .dm-vram-bar {
+            height: 8px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 4px;
+            overflow: hidden;
+            margin: 8px 0;
+        }
+
+        .dm-vram-fill {
+            height: 100%;
+            background: linear-gradient(90deg, var(--dm-green), var(--dm-blue));
+            border-radius: 4px;
+            transition: width 0.3s ease;
+        }
+
+        .dm-vram-fill.high {
+            background: linear-gradient(90deg, var(--dm-orange), var(--dm-red));
+        }
+
+        .dm-transition-bar {
+            height: 4px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 2px;
+            overflow: hidden;
+            margin: 6px 0;
+        }
+
+        .dm-transition-fill {
+            height: 100%;
+            background: var(--dm-orange);
+            border-radius: 2px;
+            transition: width 0.05s linear;
+        }
+
+        /* ─── Event Log ─── */
+        .dm-log {
+            max-height: 300px;
+            overflow-y: auto;
+            font-size: 0.7rem;
+        }
+
+        .dm-log-entry {
+            padding: 3px 0;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.03);
+            display: flex;
+            gap: 6px;
+        }
+
+        .dm-log-time {
+            color: var(--dm-text-dim);
+            flex-shrink: 0;
+        }
+
+        .dm-log-type {
+            flex-shrink: 0;
+            font-weight: 600;
+            padding: 0 4px;
+            border-radius: 2px;
+            font-size: 0.6rem;
+        }
+
+        .dm-log-type.step {
+            color: var(--dm-orange);
+        }
+
+        .dm-log-type.pass {
+            color: var(--dm-green);
+        }
+
+        .dm-log-type.fail {
+            color: var(--dm-red);
+        }
+
+        .dm-log-type.info {
+            color: var(--dm-blue);
+        }
+
+        .dm-log-msg {
+            flex: 1;
+            word-break: break-word;
+        }
+
+        /* ─── Toggle Button ─── */
+        #dm-toggle {
+            position: fixed;
+            top: 8px;
+            right: 8px;
+            z-index: 10001;
+            background: var(--dm-orange);
+            color: black;
+            border: none;
+            border-radius: 4px;
+            padding: 5px 10px;
+            font-family: var(--dm-sans);
+            font-weight: 700;
+            font-size: 0.7rem;
+            cursor: pointer;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            display: none;
+            transition: background 0.2s;
+        }
+
+        #dm-toggle:hover {
+            background: white;
+        }
+
+        #dm-toggle.active {
+            right: 388px;
+        }
+
+        /* ─── Empty state ─── */
+        .dm-empty {
+            color: var(--dm-text-dim);
+            font-style: italic;
+            padding: 20px;
+            text-align: center;
+            font-size: 0.75rem;
+        }
+
+        /* ─── PTY section ─── */
+        .dm-pty-session {
+            background: var(--dm-panel-bg);
+            border: 1px solid var(--dm-border);
+            border-radius: 6px;
+            padding: 10px 12px;
+            margin-bottom: 8px;
+        }
+
+        .dm-pty-output {
+            background: #000;
+            color: var(--dm-green);
+            padding: 8px;
+            border-radius: 4px;
+            font-size: 0.7rem;
+            max-height: 120px;
+            overflow-y: auto;
+            white-space: pre-wrap;
+            word-break: break-all;
+            margin-top: 6px;
+        }
+
+        /* ─── Test Highlight Pulse ─── */
+        .test-highlight {
+            outline: 3px solid var(--dm-orange, #ff9900) !important;
+            outline-offset: 2px;
+            animation: test-pulse 1s ease-in-out infinite;
+            position: relative;
+            z-index: 1000;
+        }
+
+        @keyframes test-pulse {
+
+            0%,
+            100% {
+                outline-color: #ff9900;
+                box-shadow: 0 0 8px rgba(255, 153, 0, 0.4);
+            }
+
+            50% {
+                outline-color: #ffcc66;
+                box-shadow: 0 0 20px rgba(255, 153, 0, 0.8);
+            }
+        }
+    </style>
 </head>
 
 <body class="zoom-level-1">
+    <button id="dm-toggle" onclick="toggleDevPanel()">◆ DEV</button>
+
+    <div id="dev-monitor-overlay">
+        <div class="dm-header">
+            <span class="dm-header-title">◆ TOS Dev Monitor</span>
+            <span class="dm-header-badge">LIVE</span>
+        </div>
+
+        <div class="dm-tabs">
+            <div class="dm-tab active" data-panel="viewports" onclick="switchTab(this)">Viewports</div>
+            <div class="dm-tab" data-panel="compositor" onclick="switchTab(this)">Compositor</div>
+            <div class="dm-tab" data-panel="gpu" onclick="switchTab(this)">GPU</div>
+            <div class="dm-tab" data-panel="events" onclick="switchTab(this)">Events</div>
+        </div>
+
+        <!-- Viewports Panel -->
+        <div class="dm-panel active" id="panel-viewports">
+            <div class="dm-section">
+                <div class="dm-section-title">Active Viewports</div>
+                <div id="dm-viewport-list">
+                    <div class="dm-empty">Waiting for data...</div>
+                </div>
+            </div>
+            <div class="dm-section">
+                <div class="dm-section-title">Outputs</div>
+                <div id="dm-output-info">
+                    <div class="dm-stat-row">
+                        <span class="dm-stat-label">Connected</span>
+                        <span class="dm-stat-value" id="dm-output-count">—</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Compositor Panel -->
+        <div class="dm-panel" id="panel-compositor">
+            <div class="dm-section">
+                <div class="dm-section-title">Wayland Surfaces</div>
+                <div id="dm-surface-list">
+                    <div class="dm-empty">No surfaces</div>
+                </div>
+            </div>
+            <div class="dm-section">
+                <div class="dm-section-title">Clients</div>
+                <div class="dm-stat-row">
+                    <span class="dm-stat-label">Connected</span>
+                    <span class="dm-stat-value" id="dm-client-count">0</span>
+                </div>
+                <div class="dm-stat-row">
+                    <span class="dm-stat-label">Focused Surface</span>
+                    <span class="dm-stat-value" id="dm-focused-surface">—</span>
+                </div>
+            </div>
+            <div class="dm-section">
+                <div class="dm-section-title">PTY Sessions</div>
+                <div id="dm-pty-list">
+                    <div class="dm-empty">No PTY sessions</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- GPU Panel -->
+        <div class="dm-panel" id="panel-gpu">
+            <div class="dm-section">
+                <div class="dm-section-title">Rendering Pipeline</div>
+                <div class="dm-stat-row">
+                    <span class="dm-stat-label">Frame Count</span>
+                    <span class="dm-stat-value" id="dm-frame-count">0</span>
+                </div>
+                <div class="dm-stat-row">
+                    <span class="dm-stat-label">Target FPS</span>
+                    <span class="dm-stat-value" id="dm-fps">60</span>
+                </div>
+                <div class="dm-stat-row">
+                    <span class="dm-stat-label">Textures</span>
+                    <span class="dm-stat-value" id="dm-tex-count">0</span>
+                </div>
+                <div class="dm-stat-row">
+                    <span class="dm-stat-label">Dirty Textures</span>
+                    <span class="dm-stat-value" id="dm-dirty-count">0</span>
+                </div>
+            </div>
+            <div class="dm-section">
+                <div class="dm-section-title">VRAM Usage</div>
+                <div class="dm-stat-row">
+                    <span class="dm-stat-label">Used / Budget</span>
+                    <span class="dm-stat-value" id="dm-vram-text">0 / 0 MB</span>
+                </div>
+                <div class="dm-vram-bar">
+                    <div class="dm-vram-fill" id="dm-vram-fill" style="width: 0%"></div>
+                </div>
+                <div class="dm-stat-row">
+                    <span class="dm-stat-label">Usage</span>
+                    <span class="dm-stat-value" id="dm-vram-pct">0%</span>
+                </div>
+            </div>
+            <div class="dm-section">
+                <div class="dm-section-title">Active Transition</div>
+                <div id="dm-transition-info">
+                    <div class="dm-stat-row">
+                        <span class="dm-stat-label">State</span>
+                        <span class="dm-stat-value" id="dm-transition-state">Idle</span>
+                    </div>
+                    <div class="dm-transition-bar">
+                        <div class="dm-transition-fill" id="dm-transition-fill" style="width: 0%"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Events Panel -->
+        <div class="dm-panel" id="panel-events">
+            <div class="dm-section">
+                <div class="dm-section-title">Event Log</div>
+                <div class="dm-log" id="dm-event-log"></div>
+            </div>
+        </div>
+    </div>
+
     <div id="tos-root" class="lcars-container">
         <!-- Main Navigation Bar (Left Rail) -->
         <div class="lcars-column">
@@ -22,7 +570,6 @@
 
         <!-- Central Viewport -->
         <div class="viewport-content" id="main-viewport">
-            <!-- This area is entirely driven by the Rust backend via generate_viewport_html() -->
             <div id="spatial-view">
                 <h1>INITIALIZING TOS...</h1>
             </div>
@@ -46,15 +593,80 @@
     </div>
 
     <script>
-        // Use a unique ID to maintain focus across innerHTML updates
+        // ═══════════════════════════════════════════════
+        // TOS Dev Monitor — Client-Side Logic
+        // ═══════════════════════════════════════════════
+
         let lastCommand = "";
         let contextSurfaceId = null;
         let ws = null;
         let isDevMode = false;
+        let devPanelOpen = false;
 
-        // Auto-detect dev monitor mode and connect to WebSocket
+        // ─── Tab Switching ─────────────────────────────
+
+        function switchTab(el) {
+            document.querySelectorAll('.dm-tab').forEach(t => t.classList.remove('active'));
+            document.querySelectorAll('.dm-panel').forEach(p => p.classList.remove('active'));
+            el.classList.add('active');
+            document.getElementById('panel-' + el.dataset.panel).classList.add('active');
+        }
+
+        function toggleDevPanel() {
+            const overlay = document.getElementById('dev-monitor-overlay');
+            const toggle = document.getElementById('dm-toggle');
+            devPanelOpen = !devPanelOpen;
+
+            if (devPanelOpen) {
+                overlay.classList.add('visible');
+                toggle.classList.add('active');
+                document.body.classList.add('dev-panel-open');
+            } else {
+                overlay.classList.remove('visible');
+                toggle.classList.remove('active');
+                document.body.classList.remove('dev-panel-open');
+            }
+
+            // Report new viewport size after CSS transition settles
+            setTimeout(sendViewportSize, 350);
+        }
+
+        // ─── Viewport Size Reporting ───────────────────
+
+        function sendViewportSize() {
+            if (!ws || ws.readyState !== WebSocket.OPEN) return;
+
+            // Measure the main content area (excluding the dev panel sidebar)
+            const mainContent = document.getElementById('main-viewport') || document.body;
+            const rect = mainContent.getBoundingClientRect();
+
+            ws.send(JSON.stringify({
+                type: 'viewport_size',
+                width: Math.round(rect.width),
+                height: Math.round(rect.height),
+                devicePixelRatio: window.devicePixelRatio || 1,
+                devPanelOpen: devPanelOpen
+            }));
+
+            console.log(`[Dev Monitor] Viewport: ${Math.round(rect.width)}x${Math.round(rect.height)} @${window.devicePixelRatio}x`);
+        }
+
+        // Debounce resize events (fire once after 150ms of no resizes)
+        let resizeTimer = null;
+        window.addEventListener('resize', () => {
+            clearTimeout(resizeTimer);
+            resizeTimer = setTimeout(sendViewportSize, 150);
+        });
+
+        // Also report when media DPR changes (e.g. moving window between monitors)
+        if (window.matchMedia) {
+            window.matchMedia(`(resolution: ${window.devicePixelRatio}dppx)`)
+                .addEventListener('change', sendViewportSize);
+        }
+
+        // ─── WebSocket Connection ──────────────────────
+
         function connectDevMonitor() {
-            // Use current page's host for WebSocket (works with any port)
             const wsUrl = `ws://${window.location.host}/ws`;
             console.log('[Dev Monitor] Connecting to ' + wsUrl);
 
@@ -64,40 +676,21 @@
                 console.log('[Dev Monitor] Connected!');
                 isDevMode = true;
                 document.body.classList.add('dev-mode');
+                document.getElementById('dm-toggle').style.display = 'block';
 
-                // Show dev monitor UI
-                const devUI = document.createElement('div');
-                devUI.id = 'dev-monitor-ui';
-                devUI.innerHTML = `
-                    <div style="position: fixed; top: 0; right: 0; background: rgba(0,0,0,0.8); 
-                                color: #ff9900; padding: 10px; font-family: monospace; z-index: 10000;
-                                border-bottom-left-radius: 8px;">
-                        <div style="font-weight: bold; margin-bottom: 5px;">🔴 DEV MONITOR ACTIVE</div>
-                        <div id="test-status" style="font-size: 0.9em; max-width: 300px; max-height: 200px; overflow-y: auto;"></div>
-                    </div>
-                `;
-                document.body.appendChild(devUI);
+                // Auto-open dev panel on connect
+                if (!devPanelOpen) toggleDevPanel();
+
+                addLogEntry('info', 'Connected to TOS Dev Monitor');
+
+                // Report initial viewport size after a short delay for layout to settle
+                setTimeout(sendViewportSize, 100);
             };
 
             ws.onmessage = (event) => {
                 try {
                     const data = JSON.parse(event.data);
-                    console.log('[Dev Monitor] Message:', data);
-
-                    switch (data.type) {
-                        case 'viewport':
-                            updateViewportFromMonitor(data.html, data.zoom, data.redAlert);
-                            break;
-                        case 'dashboard':
-                            updateDashboardFromMonitor(data.html);
-                            break;
-                        case 'zoom':
-                            document.body.className = 'zoom-level-' + data.level;
-                            break;
-                        case 'test_event':
-                            showTestEvent(data.test, data.event, data.details);
-                            break;
-                    }
+                    handleMessage(data);
                 } catch (e) {
                     console.error('[Dev Monitor] Parse error:', e);
                 }
@@ -106,8 +699,8 @@
             ws.onclose = () => {
                 console.log('[Dev Monitor] Disconnected');
                 isDevMode = false;
-                document.body.classList.remove('dev-mode');
-                setTimeout(connectDevMonitor, 2000); // Retry
+                addLogEntry('info', 'Disconnected — reconnecting...');
+                setTimeout(connectDevMonitor, 2000);
             };
 
             ws.onerror = (err) => {
@@ -115,11 +708,283 @@
             };
         }
 
+        // ─── Message Dispatcher ────────────────────────
+
+        function handleMessage(data) {
+            switch (data.type) {
+                case 'viewport':
+                    updateViewportFromMonitor(data.html, data.zoom, data.redAlert);
+                    break;
+                case 'dashboard':
+                    updateDashboardFromMonitor(data.html);
+                    break;
+                case 'zoom':
+                    document.body.className = document.body.className.replace(/zoom-level-\d/g, '') + ' zoom-level-' + data.level;
+                    break;
+                case 'test_event':
+                    handleTestEvent(data);
+                    break;
+                case 'viewport_state':
+                    updateViewportPanel(data);
+                    break;
+                case 'compositor_state':
+                    updateCompositorPanel(data);
+                    break;
+                case 'gpu_stats':
+                    updateGpuPanel(data);
+                    break;
+                case 'pty_output':
+                    handlePtyOutput(data);
+                    break;
+                case 'pty_event':
+                    handlePtyEvent(data);
+                    break;
+                case 'pty_sessions':
+                    updatePtySessions(data);
+                    break;
+                case 'full_snapshot':
+                    handleFullSnapshot(data);
+                    break;
+            }
+        }
+
+        // ─── Viewport Panel ────────────────────────────
+
+        function updateViewportPanel(data) {
+            const list = document.getElementById('dm-viewport-list');
+            if (!data.viewports || data.viewports.length === 0) {
+                list.innerHTML = '<div class="dm-empty">No viewports</div>';
+                return;
+            }
+
+            list.innerHTML = data.viewports.map(vp => `
+                <div class="dm-viewport-card ${vp.hasFocus ? 'focused' : ''}">
+                    <div class="dm-viewport-label">
+                        ${vp.hasFocus ? '◆ ' : '◇ '}${vp.label}
+                        <span style="float:right; color: var(--dm-text-dim); font-size:0.65rem">ID: ${vp.id}</span>
+                    </div>
+                    <div class="dm-viewport-meta">
+                        ${vp.outputName} · ${vp.currentLevel} · Depth ${vp.zoomDepth}
+                    </div>
+                    <div class="dm-viewport-meta">
+                        Geometry: ${vp.geometry.map(v => v.toFixed(2)).join(', ')}
+                    </div>
+                    <div class="dm-viewport-path">${vp.zoomPath || '[ Root ]'}</div>
+                </div>
+            `).join('');
+
+            document.getElementById('dm-output-count').textContent = data.outputCount;
+        }
+
+        // ─── Compositor Panel ──────────────────────────
+
+        function updateCompositorPanel(data) {
+            const list = document.getElementById('dm-surface-list');
+            document.getElementById('dm-client-count').textContent = data.clientCount;
+            document.getElementById('dm-focused-surface').textContent =
+                data.focusedSurface != null ? `Surface ${data.focusedSurface}` : '—';
+
+            if (!data.surfaces || data.surfaces.length === 0) {
+                list.innerHTML = '<div class="dm-empty">No surfaces</div>';
+                return;
+            }
+
+            list.innerHTML = data.surfaces.map(s => {
+                const iconClass = s.activated ? 'activated' : s.role.toLowerCase();
+                const sectorLabel = s.sector != null ? `S${s.sector}` : '—';
+                const sizeLabel = s.committed ? `${s.size[0]}×${s.size[1]}` : 'uncommitted';
+                return `
+                    <div class="dm-surface-row">
+                        <div class="dm-surface-icon ${iconClass}"></div>
+                        <div class="dm-surface-title">${s.title || s.appId || 'Untitled'}</div>
+                        <div class="dm-surface-meta">${s.role}</div>
+                        <div class="dm-surface-meta">${sectorLabel}</div>
+                        <div class="dm-surface-meta">${sizeLabel}</div>
+                    </div>
+                `;
+            }).join('');
+
+            // Log compositor events
+            if (data.events && data.events.length > 0) {
+                data.events.forEach(ev => addLogEntry('info', ev));
+            }
+        }
+
+        // ─── GPU Panel ─────────────────────────────────
+
+        function updateGpuPanel(data) {
+            document.getElementById('dm-frame-count').textContent = data.frameCount.toLocaleString();
+            document.getElementById('dm-fps').textContent = data.fps;
+            document.getElementById('dm-tex-count').textContent = data.textureCount;
+            document.getElementById('dm-dirty-count').textContent = data.dirtyTextures;
+
+            const vramText = `${data.vramUsedMb.toFixed(1)} / ${data.vramBudgetMb.toFixed(1)} MB`;
+            document.getElementById('dm-vram-text').textContent = vramText;
+
+            const pctEl = document.getElementById('dm-vram-pct');
+            const pct = data.vramUsagePct;
+            pctEl.textContent = pct.toFixed(1) + '%';
+            pctEl.className = 'dm-stat-value' + (pct > 80 ? ' crit' : pct > 50 ? ' warn' : '');
+
+            const fill = document.getElementById('dm-vram-fill');
+            fill.style.width = Math.min(pct, 100) + '%';
+            fill.className = 'dm-vram-fill' + (pct > 70 ? ' high' : '');
+
+            // Transition
+            const stateEl = document.getElementById('dm-transition-state');
+            const transFill = document.getElementById('dm-transition-fill');
+
+            if (data.activeTransition) {
+                const t = data.activeTransition;
+                stateEl.textContent = `${t.direction} (${t.durationMs}ms)`;
+                stateEl.style.color = 'var(--dm-orange)';
+                transFill.style.width = (t.progress * 100) + '%';
+            } else {
+                stateEl.textContent = 'Idle';
+                stateEl.style.color = 'var(--dm-text-dim)';
+                transFill.style.width = '0%';
+            }
+        }
+
+        // ─── PTY Handling ──────────────────────────────
+
+        function handlePtyOutput(data) {
+            const el = document.getElementById(`dm-pty-output-${data.surfaceId}`);
+            if (el) {
+                el.textContent += data.text;
+                // Keep only last 2000 chars
+                if (el.textContent.length > 2000) {
+                    el.textContent = el.textContent.slice(-2000);
+                }
+                el.scrollTop = el.scrollHeight;
+            }
+        }
+
+        function handlePtyEvent(data) {
+            addLogEntry('info', `PTY[${data.surfaceId}] ${data.event}: ${data.details}`);
+        }
+
+        function updatePtySessions(data) {
+            const list = document.getElementById('dm-pty-list');
+            if (!data.sessions || data.sessions.length === 0) {
+                list.innerHTML = '<div class="dm-empty">No PTY sessions</div>';
+                return;
+            }
+
+            list.innerHTML = data.sessions.map(s => `
+                <div class="dm-pty-session">
+                    <div class="dm-viewport-label">Surface ${s.surfaceId}</div>
+                    <div class="dm-viewport-meta">${s.shellName} (${s.shellPath})</div>
+                    <div class="dm-viewport-meta">CWD: ${s.cwd}</div>
+                    <div class="dm-pty-output" id="dm-pty-output-${s.surfaceId}"></div>
+                </div>
+            `).join('');
+        }
+
+        // ─── Full Snapshot ─────────────────────────────
+
+        function handleFullSnapshot(data) {
+            updateViewportPanel(data);
+            updateCompositorPanel(data);
+            // GPU stats aren't in snapshot, but we can set what's available
+            if (data.gpuFrameCount != null) {
+                document.getElementById('dm-frame-count').textContent = data.gpuFrameCount.toLocaleString();
+                const vramText = `${data.gpuVramUsedMb.toFixed(1)} / ${data.gpuVramBudgetMb.toFixed(1)} MB`;
+                document.getElementById('dm-vram-text').textContent = vramText;
+            }
+            addLogEntry('info', 'Full snapshot received');
+        }
+
+        // ─── Event Log ─────────────────────────────────
+
+        function addLogEntry(type, message) {
+            const log = document.getElementById('dm-event-log');
+            if (!log) return;
+
+            const time = new Date().toLocaleTimeString('en-US', { hour12: false });
+            const entry = document.createElement('div');
+            entry.className = 'dm-log-entry';
+            entry.innerHTML = `
+                <span class="dm-log-time">${time}</span>
+                <span class="dm-log-type ${type}">${type.toUpperCase()}</span>
+                <span class="dm-log-msg">${message}</span>
+            `;
+            log.appendChild(entry);
+            log.scrollTop = log.scrollHeight;
+
+            // Keep last 100 entries
+            while (log.children.length > 100) {
+                log.removeChild(log.firstChild);
+            }
+        }
+
+        function handleTestEvent(data) {
+            let type = 'info';
+            if (data.details.includes('✓')) type = 'pass';
+            else if (data.details.includes('✗')) type = 'fail';
+            else if (data.event === 'step') type = 'step';
+
+            addLogEntry(type, `[${data.test}] ${data.details}`);
+
+            // Handle test actions (context menu simulation, etc.)
+            if (data.event === 'action' && data.details) {
+                const parts = data.details.split(':');
+                if (parts[0] === 'context_menu') {
+                    if (parts[1] === 'dismiss') {
+                        hideContextMenu();
+                        // Remove any highlight pulse
+                        document.querySelectorAll('.test-highlight').forEach(el => {
+                            el.classList.remove('test-highlight');
+                        });
+                        addLogEntry('info', `[${data.test}] Context menu dismissed`);
+                    } else if (parts[1] === 'first' && parts[2]) {
+                        const selector = parts[2];
+                        const target = document.querySelector(selector);
+                        if (target) {
+                            // Add visual highlight animation
+                            target.classList.add('test-highlight');
+
+                            // Get position for context menu
+                            const rect = target.getBoundingClientRect();
+                            const menu = document.getElementById('context-menu');
+
+                            // Check if this is a file item
+                            const frame = target.closest('.lcars-window-frame');
+                            const surfaceTitle = frame?.querySelector('.title-text')?.innerText || "";
+                            const stdActions = document.getElementById('std-actions');
+                            const fileActions = document.getElementById('file-actions');
+                            if (surfaceTitle.toLowerCase().includes('file')) {
+                                stdActions.style.display = 'none';
+                                fileActions.style.display = 'block';
+                            } else {
+                                stdActions.style.display = 'block';
+                                fileActions.style.display = 'none';
+                            }
+
+                            menu.style.display = 'block';
+                            menu.style.left = (rect.right + 10) + 'px';
+                            menu.style.top = rect.top + 'px';
+                            addLogEntry('step', `[${data.test}] Context menu shown on ${selector}`);
+                        } else {
+                            addLogEntry('fail', `[${data.test}] Element not found: ${selector}`);
+                        }
+                    }
+                }
+            }
+        }
+
+        // ─── Original Viewport/Dashboard Handlers ──────
+
         function updateViewportFromMonitor(html, zoom, redAlert) {
             const view = document.getElementById('spatial-view');
             if (view) {
                 view.innerHTML = html;
-                document.body.className = 'zoom-level-' + zoom + (redAlert ? ' red-alert' : '');
+                // Preserve existing classes, update zoom and alert
+                let classes = 'zoom-level-' + zoom;
+                if (redAlert) classes += ' red-alert';
+                if (devPanelOpen) classes += ' dev-panel-open';
+                if (isDevMode) classes += ' dev-mode';
+                document.body.className = classes;
             }
         }
 
@@ -130,62 +995,35 @@
             }
         }
 
-        function showTestEvent(testName, eventType, details) {
-            const status = document.getElementById('test-status');
-            if (status) {
-                const time = new Date().toLocaleTimeString();
-                const color = eventType === 'assertion' ?
-                    (details.includes('✓') ? '#00ff00' : '#ff0000') :
-                    '#ff9900';
+        // ─── Connect on Load ───────────────────────────
 
-                const entry = document.createElement('div');
-                entry.style.cssText = `color: ${color}; margin: 2px 0; font-size: 0.85em;`;
-                entry.textContent = `[${time}] ${eventType}: ${details}`;
-                status.appendChild(entry);
-                status.scrollTop = status.scrollHeight;
-
-                // Keep only last 20 entries
-                while (status.children.length > 20) {
-                    status.removeChild(status.firstChild);
-                }
-            }
-        }
-
-        // Try to connect on load
         window.addEventListener('load', () => {
-            // Attempt connection, will silently fail if server not running
-            try {
-                connectDevMonitor();
-            } catch (e) {
-                console.log('[Dev Monitor] Not available, running in normal mode');
-            }
+            try { connectDevMonitor(); }
+            catch (e) { console.log('[Dev Monitor] Not available'); }
         });
 
-        // Function to send commands back to Rust
+        // ─── Command Interface ─────────────────────────
+
         function sendCommand(cmd) {
             if (window.ipc) {
                 window.ipc.postMessage(cmd);
             } else if (ws && ws.readyState === WebSocket.OPEN) {
                 ws.send(JSON.stringify({ type: 'command', data: cmd }));
-                console.log("Dev Monitor Command: " + cmd);
             } else {
                 console.log("Mock Command: " + cmd);
             }
         }
 
-        // Handle Right-click Context Menu
+        // ─── Context Menu ──────────────────────────────
+
         document.addEventListener('contextmenu', (e) => {
             const frame = e.target.closest('.lcars-window-frame');
             if (frame) {
                 e.preventDefault();
                 const contentDiv = frame.querySelector('.lcars-window-content');
-                if (contentDiv) {
-                    contextSurfaceId = contentDiv.id.replace('surface-', '');
-                }
+                if (contentDiv) contextSurfaceId = contentDiv.id.replace('surface-', '');
 
                 const surfaceTitle = frame.querySelector('.title-text')?.innerText || "";
-
-                // Adaptive menu content
                 const stdActions = document.getElementById('std-actions');
                 const fileActions = document.getElementById('file-actions');
 
@@ -209,45 +1047,32 @@
         document.addEventListener('click', () => hideContextMenu());
 
         function hideContextMenu() {
-            const menu = document.getElementById('context-menu');
-            menu.style.display = 'none';
+            document.getElementById('context-menu').style.display = 'none';
         }
 
         function handleContextAction(action) {
             if (!contextSurfaceId) return;
-
             switch (action) {
-                case 'focus':
-                    sendCommand(`zoom:3`); // Simplification for now
-                    break;
-                case 'clone':
-                    sendCommand(`terminal:clone`);
-                    break;
-                case 'inspect':
-                    sendCommand(`terminal:inspect`);
-                    break;
-                case 'split':
-                    sendCommand(`terminal:split ${contextSurfaceId}`);
-                    break;
+                case 'focus': sendCommand('zoom:3'); break;
+                case 'clone': sendCommand('terminal:clone'); break;
+                case 'inspect': sendCommand('terminal:inspect'); break;
+                case 'split': sendCommand(`terminal:split ${contextSurfaceId}`); break;
                 case 'touch':
-                    const fileName = prompt("Enter file name:");
-                    if (fileName) sendCommand(`terminal:touch ${fileName}`);
+                    const fn = prompt("Enter file name:");
+                    if (fn) sendCommand(`terminal:touch ${fn}`);
                     break;
                 case 'mkdir':
-                    const dirName = prompt("Enter directory name:");
-                    if (dirName) sendCommand(`terminal:mkdir ${dirName}`);
+                    const dn = prompt("Enter directory name:");
+                    if (dn) sendCommand(`terminal:mkdir ${dn}`);
                     break;
-                case 'kill':
-                    sendCommand(`terminal:kill ${contextSurfaceId}`);
-                    break;
-                case 'alert':
-                    sendCommand(`terminal:alert Surface ${contextSurfaceId} status check necessary.`);
-                    break;
+                case 'kill': sendCommand(`terminal:kill ${contextSurfaceId}`); break;
+                case 'alert': sendCommand(`terminal:alert Surface ${contextSurfaceId} status check necessary.`); break;
             }
             hideContextMenu();
         }
 
-        // Handle Terminal Input
+        // ─── Terminal Input ────────────────────────────
+
         document.addEventListener('keydown', (e) => {
             const input = document.getElementById('terminal-input');
             if (input && document.activeElement === input) {
@@ -261,12 +1086,10 @@
             }
         });
 
-        // Global Zoom helper for buttons
-        function zoom(level) {
-            sendCommand("zoom:" + level);
-        }
+        function zoom(level) { sendCommand("zoom:" + level); }
 
-        // Tactile Audio Synthesis
+        // ─── Audio ─────────────────────────────────────
+
         const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
 
         function playChirp(type) {
@@ -274,7 +1097,6 @@
             const gain = audioCtx.createGain();
             osc.connect(gain);
             gain.connect(audioCtx.destination);
-
             const now = audioCtx.currentTime;
 
             if (type === 'zoom_in') {
@@ -283,24 +1105,20 @@
                 osc.frequency.exponentialRampToValueAtTime(800, now + 0.1);
                 gain.gain.setValueAtTime(0.1, now);
                 gain.gain.linearRampToValueAtTime(0, now + 0.1);
-                osc.start(now);
-                osc.stop(now + 0.1);
+                osc.start(now); osc.stop(now + 0.1);
             } else if (type === 'zoom_out') {
                 osc.type = 'sine';
                 osc.frequency.setValueAtTime(800, now);
                 osc.frequency.exponentialRampToValueAtTime(400, now + 0.1);
                 gain.gain.setValueAtTime(0.1, now);
                 gain.gain.linearRampToValueAtTime(0, now + 0.1);
-                osc.start(now);
-                osc.stop(now + 0.1);
+                osc.start(now); osc.stop(now + 0.1);
             } else {
-                // Default notification chirp
                 osc.type = 'triangle';
                 osc.frequency.setValueAtTime(660, now);
                 gain.gain.setValueAtTime(0.1, now);
                 gain.gain.linearRampToValueAtTime(0, now + 0.2);
-                osc.start(now);
-                osc.stop(now + 0.2);
+                osc.start(now); osc.stop(now + 0.2);
             }
         }
 
@@ -309,19 +1127,13 @@
             if (buffer) {
                 const sounds = buffer.getAttribute('data-sounds').split(',');
                 sounds.forEach(s => playChirp(s));
-                buffer.remove(); // Clean up so we don't replay
+                buffer.remove();
             }
         }
 
-        // Mutation Observer to handle UI updates and audio
-        const observer = new MutationObserver((mutations) => {
+        const observer = new MutationObserver(() => {
             handleAudioBuffer();
-            const input = document.getElementById('terminal-input');
-            if (input) {
-                // ...
-            }
         });
-
         observer.observe(document.body, { childList: true, subtree: true });
     </script>
 </body>

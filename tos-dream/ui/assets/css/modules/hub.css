@@ -1,0 +1,209 @@
+/* 
+  TOS // LEVEL 2: COMMAND HUB MODULE
+  ----------------------------------
+  Scope: Command, Directory, and Activity hubs.
+  Responsibility: Renders the multi-mode tactical workspace where users
+  interact with files, processes, and the unified terminal prompt.
+*/
+
+/* Command Hub Specific Styles */
+
+.command-hub {
+    display: grid;
+    grid-template-rows: auto 50px 1fr 60px;
+    height: 100%;
+    width: 100%;
+    gap: 15px;
+}
+
+.hub-header {
+    background: var(--lcars-panel);
+    border-left: 20px solid var(--lcars-blue);
+    padding: 15px 25px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-radius: 0 30px 30px 0;
+}
+
+.hub-sector-name {
+    font-size: 1.5rem;
+    font-weight: 800;
+    color: var(--lcars-blue);
+}
+
+.hub-host {
+    display: block;
+    font-family: var(--font-mono);
+    font-size: 0.8rem;
+    color: var(--lcars-orange);
+}
+
+.hub-participants {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+}
+
+.participant-avatar {
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    border: 2px solid rgba(255, 255, 255, 0.2);
+}
+
+.invite-btn {
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    background: var(--lcars-blue);
+    color: black;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 900;
+    cursor: pointer;
+}
+
+.hub-tabs {
+    display: flex;
+    gap: 2px;
+}
+
+.hub-tab {
+    background: var(--lcars-blue);
+    color: black;
+    padding: 10px 30px;
+    font-weight: 800;
+    cursor: pointer;
+    clip-path: polygon(0 0, 100% 0, 90% 100%, 0% 100%);
+}
+
+.hub-tab.active {
+    background: var(--lcars-orange);
+}
+
+.hub-content {
+    background: rgba(255, 255, 255, 0.03);
+    border-radius: 20px;
+    padding: 30px;
+    overflow-y: auto;
+    position: relative;
+}
+
+.terminal-output {
+    height: 100%;
+    overflow-y: auto;
+    font-family: var(--font-mono);
+    font-size: 0.9rem;
+    color: var(--lcars-blue);
+    display: flex;
+    flex-direction: column;
+}
+
+.log-line {
+    border-bottom: 1px solid rgba(153, 153, 204, 0.1);
+    padding: 2px 0;
+    white-space: pre-wrap;
+    word-break: break-all;
+}
+
+.unified-prompt {
+    display: flex;
+    align-items: center;
+    background: var(--lcars-panel);
+    border-left: 20px solid var(--lcars-orange);
+    border-radius: 0 30px 30px 0;
+    padding: 0 20px;
+    height: 60px;
+}
+
+.prompt-prefix {
+    font-family: var(--font-mono);
+    color: var(--lcars-orange);
+    margin-right: 15px;
+    font-weight: 700;
+}
+
+#terminal-input {
+    flex: 1;
+    background: transparent;
+    border: none;
+    color: white;
+    font-family: var(--font-mono);
+    font-size: 1.2rem;
+    outline: none;
+}
+
+/* Directory/Activity Sub-Views */
+.directory-view,
+.activity-view {
+    height: 100%;
+}
+
+.path-bar {
+    background: var(--lcars-purple);
+    color: black;
+    padding: 5px 20px;
+    font-family: var(--font-mono);
+    font-weight: 800;
+    margin-bottom: 20px;
+    border-radius: 0 15px 15px 0;
+    font-size: 0.9rem;
+}
+
+.file-grid,
+.activity-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 15px;
+}
+
+.file-item {
+    background: rgba(153, 153, 204, 0.1);
+    border-left: 5px solid var(--lcars-purple);
+    padding: 15px;
+    font-family: var(--font-mono);
+    cursor: pointer;
+}
+
+.app-tile {
+    background: rgba(100, 100, 150, 0.1);
+    border: 1px solid rgba(153, 153, 204, 0.2);
+    border-radius: 10px;
+    padding: 15px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    cursor: pointer;
+}
+
+.app-tile-icon {
+    width: 40px;
+    height: 40px;
+    background: var(--lcars-blue);
+    border-radius: 50%;
+    opacity: 0.6;
+}
+
+.app-title {
+    font-weight: 800;
+    color: var(--lcars-blue);
+    font-size: 0.9rem;
+}
+
+.app-class {
+    font-size: 0.7rem;
+    color: var(--lcars-orange);
+    font-family: var(--font-mono);
+}
+
+.app-tile-stats {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.7rem;
+    font-family: var(--font-mono);
+    color: rgba(255, 255, 255, 0.5);
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+    padding-top: 5px;
+}

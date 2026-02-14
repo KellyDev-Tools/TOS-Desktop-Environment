@@ -1,0 +1,202 @@
+/* 
+  TOS // LEVEL 1: GLOBAL OVERVIEW MODULE
+  --------------------------------------
+  Scope: Sector Command Dashboard.
+  Responsibility: Renders the top-level tactical overview, including
+  sector navigation cards, telemetry hubs, and the minimap.
+*/
+
+/* Global Overview Specific Styles */
+
+.dashboard-header {
+    text-align: center;
+    padding: 20px 0;
+    margin-top: 40px;
+}
+
+.dashboard-title {
+    font-size: 3rem;
+    font-weight: 800;
+    letter-spacing: 5px;
+    color: white;
+    text-shadow: 0 0 20px rgba(255, 255, 255, 0.3);
+    text-transform: uppercase;
+}
+
+.telemetry-bar {
+    position: absolute;
+    top: 50px;
+    right: 50px;
+    display: flex;
+    gap: 30px;
+    font-family: var(--font-mono);
+    color: rgba(255, 255, 255, 0.7);
+}
+
+.telemetry-item .value {
+    font-size: 1.8rem;
+    font-weight: 700;
+    color: white;
+    display: block;
+}
+
+.telemetry-item .label {
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    color: var(--lcars-orange);
+}
+
+.tactical-minimap {
+    position: absolute;
+    top: 40px;
+    left: 40px;
+    width: 220px;
+    padding: 15px;
+    background: rgba(40, 40, 60, 0.3);
+    border: 1px solid rgba(153, 153, 204, 0.2);
+    border-radius: 10px;
+}
+
+.minimap-title {
+    font-size: 0.7rem;
+    font-weight: 800;
+    color: var(--lcars-blue);
+    margin-bottom: 10px;
+    text-transform: uppercase;
+}
+
+.minimap-tree {
+    height: 100px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    margin-bottom: 10px;
+}
+
+.minimap-stats {
+    font-size: 0.6rem;
+    color: rgba(255, 255, 255, 0.5);
+}
+
+.global-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+    gap: 40px;
+    padding: 40px 100px;
+    width: 100%;
+}
+
+.sector-card {
+    background: rgba(40, 40, 60, 0.4);
+    border-radius: 20px;
+    overflow: hidden;
+    cursor: pointer;
+    transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    display: flex;
+    flex-direction: column;
+    border: none;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+}
+
+.sector-card .card-header {
+    height: 60px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0 20px;
+    background: var(--card-accent);
+    color: black;
+}
+
+.card-header .header-utils {
+    display: flex;
+    gap: 15px;
+    font-size: 1.2rem;
+    font-weight: 900;
+}
+
+.remote-tag {
+    font-family: var(--font-mono);
+    font-size: 0.8rem;
+    font-weight: 800;
+    background: rgba(0, 0, 0, 0.2);
+    padding: 2px 10px;
+    border-radius: 10px;
+}
+
+.sector-card .card-body {
+    padding: 30px;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+}
+
+.card-icon {
+    width: 80px;
+    height: 80px;
+    margin-bottom: 20px;
+    opacity: 0.8;
+}
+
+.sector-name {
+    font-size: 1.8rem;
+    font-weight: 800;
+    margin-bottom: 10px;
+    color: var(--card-accent);
+}
+
+.sector-desc {
+    font-size: 0.9rem;
+    color: rgba(255, 255, 255, 0.6);
+    line-height: 1.4;
+    margin-bottom: 20px;
+}
+
+.sector-card .card-footer {
+    height: 50px;
+    display: flex;
+    background: rgba(0, 0, 0, 0.3);
+    padding: 0 20px;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.execute-btn {
+    color: var(--card-accent);
+    font-weight: 800;
+    font-size: 0.9rem;
+    text-transform: uppercase;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.execute-btn::before {
+    content: '▶';
+    font-size: 0.7rem;
+}
+
+/* Color Tags */
+.sector-card.orange {
+    --card-accent: var(--lcars-orange);
+}
+
+.sector-card.blue {
+    --card-accent: var(--lcars-blue);
+}
+
+.sector-card.purple {
+    --card-accent: var(--lcars-purple);
+}
+
+.sector-card.green {
+    --card-accent: #99cc99;
+}
+
+.sector-card:hover {
+    transform: translateY(-10px) scale(1.02);
+    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.8), 0 0 20px var(--card-accent);
+}

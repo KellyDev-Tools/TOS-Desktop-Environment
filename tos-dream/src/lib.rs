@@ -1,4 +1,5 @@
 pub mod system;
+pub mod ui;
 use system::input::SemanticEvent;
 use serde::{Deserialize, Serialize};
 
@@ -59,6 +60,23 @@ pub struct CommandHub {
     pub confirmation_required: Option<String>,
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+pub enum RenderMode {
+    Full,       // Active level, full interactivity and animations
+    Throttled,  // Background level, reduced frame rate/simple styles
+    Static,     // Distant level, rendered as a static texture-like state
+}
+
+impl RenderMode {
+    pub fn throttle(self) -> Self {
+        match self {
+            RenderMode::Full => RenderMode::Throttled,
+            RenderMode::Throttled => RenderMode::Static,
+            RenderMode::Static => RenderMode::Static,
+        }
+    }
+}
+
 pub trait ApplicationModel: std::fmt::Debug + Send + Sync {
     fn title(&self) -> String;
     fn app_class(&self) -> String;
@@ -72,6 +90,13 @@ pub trait SectorType: std::fmt::Debug + Send + Sync {
     fn default_hub_mode(&self) -> CommandHubMode;
 }
 
+pub trait TosModule: std::fmt::Debug + Send + Sync {
+    fn name(&self) -> String;
+    fn version(&self) -> String;
+    fn on_load(&mut self, _state: &mut TosState) {}
+    fn render_override(&self, _level: HierarchyLevel) -> Option<String> { None }
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Application {
     pub id: uuid::Uuid,
@@ -80,12 +105,44 @@ pub struct Application {
     pub is_minimized: bool,
 }
 
+#[derive(Debug, Serialize, Deserialize)]
 pub struct TosState {
     pub current_level: HierarchyLevel,
     pub sectors: Vec<Sector>,
     pub viewports: Vec<Viewport>,
     pub active_viewport_index: usize,
     pub escape_count: usize, // For Tactical Reset
+    pub fps: f32,
+    pub performance_alert: bool,
+    #[serde(skip)]
+    pub modules: Vec<Box<dyn TosModule>>,
+}
+
+#[derive(Debug)]
+pub struct EngineeringModule {
+    pub power_distribution: [u8; 3], // Propulsion, Shields, Sensors
+}
+
+impl TosModule for EngineeringModule {
+    fn name(&self) -> String { "ENGINEERING_CORE".to_string() }
+    fn version(&self) -> String { "1.2.0".to_string() }
+    fn on_load(&mut self, _state: &mut TosState) {
+        println!("ENGINEERING MODULE LOADED: PRIMARY CORE SYNCED");
+    }
+    fn render_override(&self, level: HierarchyLevel) -> Option<String> {
+        if level == HierarchyLevel::ApplicationFocus {
+            Some(format!(
+                r#"<div class="engineering-overlay">
+                    <div class="eng-stat">PROPULSION: {}%</div>
+                    <div class="eng-stat">SHIELDS: {}%</div>
+                    <div class="eng-stat">SENSORS: {}%</div>
+                </div>"#,
+                self.power_distribution[0], self.power_distribution[1], self.power_distribution[2]
+            ))
+        } else {
+            None
+        }
+    }
 }
 
 impl TosState {
@@ -165,6 +222,9 @@ impl TosState {
             viewports: vec![initial_viewport],
             active_viewport_index: 0,
             escape_count: 0,
+            fps: 60.0,
+            performance_alert: false,
+            modules: Vec::new(),
         }
     }
 
@@ -291,6 +351,16 @@ impl TosState {
         }
     }
 
+    pub fn update_performance_metrics(&mut self, current_fps: f32) {
+        self.fps = current_fps;
+        // Trigger alert if FPS is sustained below 30
+        if self.fps < 30.0 {
+            self.performance_alert = true;
+        } else if self.fps > 55.0 {
+            self.performance_alert = false;
+        }
+    }
+
     pub fn handle_semantic_event(&mut self, event: SemanticEvent) {
         match event {
             SemanticEvent::ZoomIn => self.zoom_in(),
@@ -323,288 +393,51 @@ impl TosState {
         }
     }
 
+    pub fn render_performance_overlay(&self) -> String {
+        ui::render::render_performance_overlay(self.fps, self.performance_alert)
+    }
+
     pub fn render_current_view(&self) -> String {
-        if self.viewports.len() > 1 {
+        let mut html = if self.viewports.len() > 1 {
             self.render_split_view()
         } else {
             let viewport = &self.viewports[0];
             self.render_viewport(viewport)
-        }
-    }
-
-    fn render_viewport(&self, viewport: &Viewport) -> String {
-        match viewport.current_level {
-            HierarchyLevel::GlobalOverview => self.render_global_overview(),
-            HierarchyLevel::CommandHub => self.render_command_hub(viewport),
-            HierarchyLevel::ApplicationFocus => self.render_application_focus(viewport),
-            HierarchyLevel::SplitView => self.render_split_view(),
-            HierarchyLevel::DetailInspector => self.render_detail_inspector(viewport),
-            HierarchyLevel::BufferInspector => self.render_buffer_inspector(viewport),
-        }
-    }
-
-    fn render_global_overview(&self) -> String {
-        let mut html = String::from(r#"<div class="global-grid">"#);
-        for (i, sector) in self.sectors.iter().enumerate() {
-            let remote_class = if sector.is_remote { "is-remote" } else { "is-local" };
-            html.push_str(&format!(
-                r#"<div class="sector-card {remote_class}" style="border-left-color: {color}" onclick="window.ipc.postMessage('select_sector:{index}')">
-                    <div class="sector-meta">SECTOR {index} // {host}</div>
-                    <div class="sector-name">{name}</div>
-                    <div class="sector-stats">{hubs} HUBS // {apps} APPS</div>
-                </div>"#,
-                color = sector.color,
-                index = i,
-                host = sector.host,
-                name = sector.name,
-                hubs = sector.hubs.len(),
-                apps = sector.hubs.iter().map(|h| h.applications.len()).sum::<usize>()
-            ));
-        }
-        
-        html.push_str(r#"<div class="sector-card add-remote-card" onclick="window.ipc.postMessage('add_remote_sector')">
-            <div class="sector-meta">SYS // COMMAND</div>
-            <div class="sector-name">+ ADD REMOTE</div>
-            <div class="sector-stats">ESTABLISH NEW SECTOR LINK</div>
-        </div>"#);
-
-        html.push_str("</div>");
-        html
-    }
-
-    fn render_command_hub(&self, viewport: &Viewport) -> String {
-        let sector = &self.sectors[viewport.sector_index];
-        let hub = &sector.hubs[viewport.hub_index];
-        
-        let mode_class = match hub.mode {
-            CommandHubMode::Command => "mode-command",
-            CommandHubMode::Directory => "mode-directory",
-            CommandHubMode::Activity => "mode-activity",
         };
 
-        let mut html = format!(r#"<div class="command-hub {mode_class}">"#);
-
-        let mut participants_html = String::new();
-        for p in &sector.participants {
-            participants_html.push_str(&format!(
-                r#"<div class="participant-avatar" style="background-color: {color}" title="{name} ({role})"></div>"#,
-                color = p.color, name = p.name, role = p.role
-            ));
+        if self.performance_alert {
+            html.push_str(&self.render_performance_overlay());
         }
-
-        html.push_str(&format!(
-            r#"<div class="hub-header">
-                <div class="hub-info">
-                    <span class="hub-sector-name">{name}</span>
-                    <span class="hub-host">LINK: {host}</span>
-                </div>
-                <div class="hub-participants">
-                    {participants_html}
-                    <div class="invite-btn" onclick="window.ipc.postMessage('collaboration_invite')">+</div>
-                </div>
-            </div>"#,
-            name = sector.name.to_uppercase(),
-            host = sector.host,
-            participants_html = participants_html
-        ));
-        
-        html.push_str(r#"<div class="hub-tabs">"#);
-        let modes = [
-            (CommandHubMode::Command, "COMMAND"),
-            (CommandHubMode::Directory, "DIRECTORY"),
-            (CommandHubMode::Activity, "ACTIVITY"),
-        ];
-        for (m, label) in modes {
-            let active = if hub.mode == m { "active" } else { "" };
-            html.push_str(&format!(
-                r#"<div class="hub-tab {active}" onclick="window.ipc.postMessage('set_mode:{mode:?}')">{label}</div>"#,
-                mode = m
-            ));
-        }
-        html.push_str("</div>");
-
-        html.push_str(r#"<div class="hub-content">"#);
-        if let Some(dangerous_cmd) = &hub.confirmation_required {
-            html.push_str(&format!(
-                r#"<div class="dangerous-overlay">
-                    <div class="alert-header">TACTICAL ALERT // DANGEROUS COMMAND DETECTED</div>
-                    <div class="alert-subline">EXECUTION BLOCKED PENDING TACTILE CONFIRMATION</div>
-                    <div class="dangerous-command">SPEC: {cmd}</div>
-                    <div class="confirmation-zone">
-                        <div class="slider-track">
-                            <input type="range" class="confirm-slider" min="0" max="100" value="0" 
-                                oninput="if(this.value == 100) {{ window.ipc.postMessage('prompt_submit:{cmd}'); }}"
-                                onchange="if(this.value < 100) {{ this.value = 0; }}">
-                            <div class="slider-label">SLIDE TO CONFIRM EXECUTION</div>
-                        </div>
-                    </div>
-                    <div class="bezel-btn danger" onclick="window.ipc.postMessage('stage_command:')">ABORT ACTION</div>
-                </div>"#,
-                cmd = dangerous_cmd
-            ));
-        }
-        match hub.mode {
-            CommandHubMode::Command => {
-                let mut output_html = String::new();
-                for line in &hub.terminal_output {
-                    output_html.push_str(&format!(r#"<div class="log-line">{}</div>"#, line));
-                }
-
-                html.push_str(&format!(r#"<div class="command-view">
-                    <div class="terminal-output" id="hub-term-{}">
-                        {}
-                    </div>
-                </div>"#, hub.id, output_html));
-            }
-            CommandHubMode::Directory => {
-                html.push_str(r#"<div class="directory-view">
-                    <div class="path-bar">/HOME/USER/SECTOR_PRIMARY</div>
-                    <div class="file-grid">
-                        <div class="file-item staging-item" onclick="window.ipc.postMessage('stage_command:ls ..')">..</div>
-                        <div class="file-item staging-item" onclick="window.ipc.postMessage('stage_command:cd DOCUMENTS')">DOCUMENTS/</div>
-                        <div class="file-item staging-item" onclick="window.ipc.postMessage('stage_command:ls SYSTEM_CORE')">SYSTEM_CORE/</div>
-                        <div class="file-item staging-item" onclick="window.ipc.postMessage('stage_command:view CONFIG.TOS')">CONFIG.TOS</div>
-                    </div>
-                </div>"#);
-            }
-            CommandHubMode::Activity => {
-                let mut apps_html = String::new();
-                for app in &hub.applications {
-                    apps_html.push_str(&format!(
-                        r#"<div class="app-tile staging-item" onclick="window.ipc.postMessage('stage_command:focus {title}')">
-                            <div class="app-tile-icon"></div>
-                            <div class="app-tile-info">
-                                <div class="app-title">{title}</div>
-                                <div class="app-class">{class}</div>
-                            </div>
-                            <div class="app-tile-stats">
-                                <div class="stat">CPU: 2.1%</div>
-                                <div class="stat">MEM: 82MB</div>
-                            </div>
-                        </div>"#,
-                        title = app.title.to_uppercase(),
-                        class = app.app_class.to_uppercase()
-                    ));
-                }
-                html.push_str(&format!(
-                    r#"<div class="activity-view">
-                        <div class="activity-grid">
-                            {apps_html}
-                            <div class="app-tile add-tile" onclick="window.ipc.postMessage('stage_command:spawn ')">
-                                <span>+ NEW PROCESS</span>
-                            </div>
-                        </div>
-                    </div>"#,
-                    apps_html = apps_html
-                ));
-            }
-        }
-        html.push_str("</div>");
-
-        html.push_str(&format!(
-            r#"<div class="unified-prompt">
-                <div class="voice-trigger" onclick="window.ipc.postMessage('semantic_event:VoiceCommandStart')">
-                    <span class="mic-icon"></span>
-                </div>
-                <div class="prompt-prefix">TOS@{} ></div>
-                <input type="text" id="terminal-input" value="{}" onkeydown="handlePromptKey(event)" autofocus>
-            </div>"#,
-            sector.name.to_uppercase(), hub.prompt
-        ));
-
-        html.push_str("</div>");
         html
     }
 
-    fn render_application_focus(&self, viewport: &Viewport) -> String {
-        let sector = &self.sectors[viewport.sector_index];
-        let hub = &sector.hubs[viewport.hub_index];
-        let app = &hub.applications[viewport.active_app_index.unwrap_or(0)];
-        let bezel_class = if viewport.bezel_expanded { "expanded" } else { "collapsed" };
+    pub fn render_viewport(&self, viewport: &Viewport) -> String {
+        use ui::render::ViewRenderer;
 
-        let mut participants_html = String::new();
-        for p in &sector.participants {
-            participants_html.push_str(&format!(
-                r#"<div class="participant-avatar mini" style="background-color: {color}" title="{name}"></div>"#,
-                color = p.color, name = p.name
-            ));
+        let (mut mode_l1, mut mode_l2, mut mode_l3) = match viewport.current_level {
+            HierarchyLevel::GlobalOverview => (RenderMode::Full, RenderMode::Static, RenderMode::Static),
+            HierarchyLevel::CommandHub => (RenderMode::Throttled, RenderMode::Full, RenderMode::Static),
+            HierarchyLevel::ApplicationFocus | HierarchyLevel::DetailInspector | HierarchyLevel::BufferInspector => 
+                (RenderMode::Static, RenderMode::Throttled, RenderMode::Full),
+            _ => (RenderMode::Static, RenderMode::Static, RenderMode::Static),
+        };
+
+        // Viewport-level throttling: background viewports in split view are penalized
+        let is_focused = self.viewports[self.active_viewport_index].id == viewport.id;
+        if !is_focused && self.current_level == HierarchyLevel::SplitView {
+            mode_l1 = mode_l1.throttle();
+            mode_l2 = mode_l2.throttle();
+            mode_l3 = mode_l3.throttle();
         }
 
-        format!(
-            r#"<div class="application-container">
-                <div class="tactical-bezel {bezel_class}">
-                    <div class="bezel-top">
-                        <div class="bezel-back" onclick="window.ipc.postMessage('zoom_out')">BACK</div>
-                        <div class="bezel-title">{title} // {class}</div>
-                        <div class="bezel-participants">
-                            {participants_html}
-                        </div>
-                        <div class="bezel-handle" onclick="window.ipc.postMessage('toggle_bezel')">
-                            <span class="chevron"></span>
-                        </div>
-                    </div>
-                    <div class="bezel-expanded-content">
-                        <div class="bezel-group">
-                            <div class="bezel-btn" onclick="window.ipc.postMessage('zoom_out')">ZOOM OUT</div>
-                            <div class="bezel-btn" onclick="window.ipc.postMessage('split_viewport')">SPLIT VIEW</div>
-                            <div class="bezel-btn">TELEPORT</div>
-                            <div class="bezel-btn danger">CLOSE</div>
-                        </div>
-                        <div class="bezel-group sliders">
-                            <div class="action-slider">
-                                <span>PRIORITY</span>
-                                <input type="range" min="1" max="10" value="5">
-                            </div>
-                            <div class="action-slider">
-                                <span>POWER</span>
-                                <input type="range" min="1" max="100" value="80">
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                <div class="application-surface" onclick="window.ipc.postMessage('zoom_in')">
-                    <div class="app-mock-content">
-                        APPLICATION DATA FEED: {title}
-                    </div>
-                </div>
-            </div>"#,
-            bezel_class = bezel_class,
-            title = app.title.to_uppercase(),
-            class = app.app_class.to_uppercase()
-        )
-    }
-
-    fn render_detail_inspector(&self, viewport: &Viewport) -> String {
-        let sector = &self.sectors[viewport.sector_index];
-        let hub = &sector.hubs[viewport.hub_index];
-        let app = &hub.applications[viewport.active_app_index.unwrap_or(0)];
-
-        format!(
-            r#"<div class="inspector-container detail-inspector">
-                <div class="inspector-header">NODE INSPECTOR // LEVEL 4</div>
-                <div class="inspector-content">
-                    <div class="stat-row"><span>ID:</span> <span>{id}</span></div>
-                    <div class="stat-row"><span>CLASS:</span> <span>{class}</span></div>
-                    <div class="stat-row"><span>SECTOR:</span> <span>{sector}</span></div>
-                    <div class="stat-row"><span>PERMISSIONS:</span> <span>0755</span></div>
-                    <div class="stat-row"><span>UPTIME:</span> <span>00:14:32</span></div>
-                </div>
-                <div class="inspector-footer" onclick="window.ipc.postMessage('zoom_out')">BACK</div>
-            </div>"#,
-            id = app.id, class = app.app_class, sector = sector.name
-        )
-    }
-
-    fn render_buffer_inspector(&self, _viewport: &Viewport) -> String {
-        r#"<div class="inspector-container buffer-inspector">
-            <div class="inspector-header">BUFFER HEX DUMP // LEVEL 5</div>
-            <div class="buffer-hex">
-                0000: 4c 43 41 52 53 20 44 52 45 41 4d 20 43 4f 4d 50  LCARS DREAM COMP
-                0010: 4c 45 54 45 20 56 45 52 53 49 4f 4e 20 31 2e 30  LETE VERSION 1.0
-                0020: 0a 01 02 03 04 05 06 07 08 09 0a 0b 0c 0d 0e 0f  ................
-            </div>
-            <div class="inspector-footer" onclick="window.ipc.postMessage('zoom_out')">BACK</div>
-        </div>"#.to_string()
+        match viewport.current_level {
+            HierarchyLevel::GlobalOverview => ui::render::global::GlobalRenderer.render(self, viewport, mode_l1),
+            HierarchyLevel::CommandHub => ui::render::hub::HubRenderer.render(self, viewport, mode_l2),
+            HierarchyLevel::ApplicationFocus => ui::render::app::AppRenderer.render(self, viewport, mode_l3),
+            HierarchyLevel::DetailInspector => ui::render::inspector::DetailInspectorRenderer.render(self, viewport, mode_l3),
+            HierarchyLevel::BufferInspector => ui::render::inspector::BufferInspectorRenderer.render(self, viewport, mode_l3),
+            HierarchyLevel::SplitView => self.render_split_view(),
+        }
     }
 
     fn render_split_view(&self) -> String {
@@ -731,5 +564,36 @@ mod tests {
         // Test Tactical Reset
         state.handle_semantic_event(SemanticEvent::TacticalReset);
         assert_eq!(state.current_level, HierarchyLevel::GlobalOverview);
+    }
+    #[test]
+    fn test_render_modes() {
+        let mut state = TosState::new();
+        
+        // Level 1: Global Overview should be Full
+        let html = state.render_current_view();
+        assert!(html.contains("mode-Full"));
+        
+        // Level 2: Command Hub should be Full
+        state.zoom_in();
+        let html = state.render_current_view();
+        assert!(html.contains("render-Full"));
+        
+        // Level 3: Application should be Full
+        state.zoom_in();
+        let html = state.render_current_view();
+        assert!(html.contains("render-Full"));
+    }
+
+    #[test]
+    fn test_module_integration() {
+        let mut state = TosState::new();
+        state.modules.push(Box::new(EngineeringModule { power_distribution: [100, 80, 50] }));
+        
+        state.zoom_in(); // Hub
+        state.zoom_in(); // Focus
+        
+        let html = state.render_current_view();
+        assert!(html.contains("PROPULSION: 100%"));
+        assert!(html.contains("SHIELDS: 80%"));
     }
 }

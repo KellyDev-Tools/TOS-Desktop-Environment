@@ -1,6 +1,8 @@
 use std::sync::mpsc::{Sender, Receiver, channel};
 use std::thread;
 use std::time::Duration;
+use std::sync::{Arc, Mutex};
+use std::collections::HashMap;
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
@@ -152,6 +154,38 @@ impl PtyHandle {
 
     pub fn write(&self, s: &str) {
         let _ = self.cmd_tx.send(PtyCommand::Write(s.to_string()));
+    }
+
+    pub fn poll_all(
+        state: Arc<Mutex<crate::TosState>>, 
+        ptys: Arc<Mutex<HashMap<uuid::Uuid, PtyHandle>>>
+    ) {
+        thread::spawn(move || {
+            loop {
+                let mut ptys_lock = ptys.lock().unwrap();
+                for (hub_id, pty) in ptys_lock.iter_mut() {
+                    while let Ok(event) = pty.event_rx.try_recv() {
+                        let mut state_lock = state.lock().unwrap();
+                        for sector in &mut state_lock.sectors {
+                            if let Some(hub) = sector.hubs.iter_mut().find(|h| h.id == *hub_id) {
+                                match event.clone() {
+                                    PtyEvent::Output(data) => {
+                                        hub.terminal_output.push(data);
+                                        if hub.terminal_output.len() > 100 { hub.terminal_output.remove(0); }
+                                    }
+                                    PtyEvent::DirectoryChanged(path) => {
+                                        println!("Hub {} directory changed to: {}", hub.id, path);
+                                    }
+                                    _ => {}
+                                }
+                            }
+                        }
+                    }
+                }
+                drop(ptys_lock);
+                thread::sleep(Duration::from_millis(50));
+            }
+        });
     }
 }
 

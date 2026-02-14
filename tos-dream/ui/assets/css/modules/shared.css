@@ -1,0 +1,163 @@
+/* 
+  TOS // SYSTEM CHROME & UTILITY MODULE
+  -------------------------------------
+  Scope: Cross-view components and viewport orchestration.
+  Responsibility: Manages the Status Bar, split-viewport grid, modal 
+  overlays (Danger/Performance), and global RenderMode transitions 
+  (Full/Throttled/Static).
+*/
+
+/* Status Bar */
+.lcars-status-bar {
+    background: var(--lcars-panel);
+    border-bottom: 2px solid var(--lcars-orange);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0 20px;
+    font-size: 0.8rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+.status-center {
+    color: var(--lcars-orange);
+    font-weight: 800;
+}
+
+/* Split Viewports */
+.split-viewport-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    height: 100%;
+    width: 100%;
+    gap: 15px;
+}
+
+.viewport-cell {
+    border: 2px solid rgba(153, 153, 204, 0.2);
+    background: rgba(0, 0, 0, 0.4);
+    overflow: hidden;
+    position: relative;
+    border-radius: 10px;
+}
+
+/* Dangerous Command Overlay */
+.dangerous-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(40, 0, 0, 0.95);
+    z-index: 1000;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+    animation: pulse-red 2s infinite;
+    backdrop-filter: blur(5px);
+}
+
+.alert-header {
+    color: var(--lcars-red);
+    font-size: 1.5rem;
+    font-weight: 900;
+}
+
+.alert-subline {
+    color: var(--lcars-orange);
+    font-size: 0.8rem;
+    margin-bottom: 30px;
+}
+
+/* Performance Overlay */
+.perflo-alert {
+    animation: pulse-amber 3s infinite;
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    padding: 30px;
+    background: rgba(80, 40, 0, 0.95);
+    border: 2px solid var(--lcars-orange);
+    z-index: 2000;
+    text-align: center;
+}
+
+.render-Full {
+    will-change: transform, opacity;
+}
+
+.render-Throttled {
+    filter: blur(2px) brightness(0.7);
+    pointer-events: none;
+    transition: filter 0.5s ease;
+    user-select: none;
+}
+
+.render-Throttled * {
+    animation: none !important;
+}
+
+.render-Static {
+    filter: blur(8px) brightness(0.4) grayscale(0.5);
+    pointer-events: none;
+    transform: scale(0.95);
+    transition: filter 0.8s ease;
+    user-select: none;
+}
+
+.render-Static * {
+    animation: none !important;
+    box-shadow: none !important;
+    text-shadow: none !important;
+}
+
+@keyframes pulse-red {
+    0% {
+        background: rgba(40, 0, 0, 0.95);
+    }
+
+    50% {
+        background: rgba(80, 0, 0, 0.95);
+    }
+
+    100% {
+        background: rgba(40, 0, 0, 0.95);
+    }
+}
+
+@keyframes pulse-amber {
+    0% {
+        background: rgba(80, 40, 0, 0.9);
+    }
+
+    50% {
+        background: rgba(120, 60, 0, 0.9);
+    }
+
+    100% {
+        background: rgba(80, 40, 0, 0.9);
+    }
+}
+
+@keyframes morph-in {
+    from {
+        opacity: 0;
+        transform: scale(0.98);
+        filter: blur(5px);
+    }
+
+    to {
+        opacity: 1;
+        transform: scale(1);
+        filter: blur(0);
+    }
+}
+
+#main-content>div {
+    animation: morph-in 0.4s ease-out;
+}

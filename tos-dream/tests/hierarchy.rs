@@ -57,3 +57,45 @@ fn test_viewport_independence() {
     assert!(html.contains("split-viewport-grid"));
     assert!(html.contains("viewport-cell"));
 }
+
+#[test]
+fn test_deep_inspection() {
+    let mut state = TosState::new();
+    state.zoom_in(); // Hub
+    state.zoom_in(); // Focus
+    
+    // Test Level 4
+    state.zoom_in();
+    assert_eq!(state.current_level, HierarchyLevel::DetailInspector);
+    let html = state.render_current_view();
+    assert!(html.contains("NODE INSPECTOR"));
+    
+    // Test Level 5
+    state.zoom_in();
+    assert_eq!(state.current_level, HierarchyLevel::BufferInspector);
+    let html = state.render_current_view();
+    assert!(html.contains("BUFFER HEX DUMP"));
+    
+    // Zoom out back to Hub
+    state.zoom_out(); // Buffer -> Detail
+    state.zoom_out(); // Detail -> Focus
+    state.zoom_out(); // Focus -> Hub
+    assert_eq!(state.current_level, HierarchyLevel::CommandHub);
+}
+
+#[test]
+fn test_command_staging_flow() {
+    let mut state = TosState::new();
+    state.zoom_in(); // Hub
+    
+    // Simulator staging a command
+    state.stage_command("focus Stellar Cartography".to_string());
+    
+    let sector = &state.sectors[state.viewports[0].sector_index];
+    let hub = &sector.hubs[state.viewports[0].hub_index];
+    assert_eq!(hub.prompt, "focus Stellar Cartography");
+    
+    // Verify it renders in the prompt
+    let html = state.render_current_view();
+    assert!(html.contains("focus Stellar Cartography"));
+}

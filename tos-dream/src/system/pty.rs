@@ -1,10 +1,9 @@
 use std::sync::mpsc::{Sender, Receiver, channel};
 use std::thread;
 use std::time::Duration;
-use std::os::unix::io::RawFd;
 use serde::{Deserialize, Serialize};
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub enum PtyEvent {
     Output(String),
     DirectoryChanged(String),
@@ -25,6 +24,31 @@ pub struct PtyHandle {
     pub cmd_tx: Sender<PtyCommand>,
     pub event_rx: Receiver<PtyEvent>,
     pub child_pid: u32,
+}
+
+pub struct PtyParser;
+
+impl PtyParser {
+    pub fn parse_data(data: &str) -> Vec<PtyEvent> {
+        let mut events = Vec::new();
+        
+        // Basic OSC 1337 extraction for CurrentDir
+        if data.contains("\x1b]1337;CurrentDir=") {
+            let parts: Vec<&str> = data.split("\x1b]1337;").collect();
+            for part in parts {
+                if part.starts_with("CurrentDir=") {
+                    let rest = &part[11..];
+                    if let Some(end) = rest.find('\x07').or(rest.find('\x1b')) {
+                        let dir = rest[..end].to_string();
+                        events.push(PtyEvent::DirectoryChanged(dir));
+                    }
+                }
+            }
+        }
+        
+        events.push(PtyEvent::Output(data.to_string()));
+        events
+    }
 }
 
 impl PtyHandle {
@@ -83,17 +107,10 @@ impl PtyHandle {
                 };
                 if n > 0 {
                     let data = String::from_utf8_lossy(&buf[..n as usize]).to_string();
-                    // Basic OSC 1337 extraction for CurrentDir
-                    if data.contains("\x1b]1337;CurrentDir=") {
-                        if let Some(start) = data.find("CurrentDir=") {
-                            let rest = &data[start + 11..];
-                            if let Some(end) = rest.find('\x07').or(rest.find('\x1b')) {
-                                let dir = rest[..end].to_string();
-                                let _ = reader_tx.send(PtyEvent::DirectoryChanged(dir));
-                            }
-                        }
+                    let events = PtyParser::parse_data(&data);
+                    for event in events {
+                        let _ = reader_tx.send(event);
                     }
-                    let _ = reader_tx.send(PtyEvent::Output(data));
                 } else if n == 0 {
                     let _ = reader_tx.send(PtyEvent::ProcessExited(0));
                     break;
@@ -135,5 +152,27 @@ impl PtyHandle {
 
     pub fn write(&self, s: &str) {
         let _ = self.cmd_tx.send(PtyCommand::Write(s.to_string()));
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_pty_parser_osc() {
+        let data = "normal text\x1b]1337;CurrentDir=/home/user\x07more text";
+        let events = PtyParser::parse_data(data);
+        
+        assert!(events.iter().any(|e| matches!(e, PtyEvent::DirectoryChanged(ref d) if d == "/home/user")));
+        assert!(events.iter().any(|e| matches!(e, PtyEvent::Output(ref o) if o == data)));
+    }
+
+    #[test]
+    fn test_pty_parser_no_osc() {
+        let data = "just some text";
+        let events = PtyParser::parse_data(data);
+        assert_eq!(events.len(), 1);
+        assert_eq!(events[0], PtyEvent::Output(data.to_string()));
     }
 }

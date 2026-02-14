@@ -458,4 +458,24 @@ mod tests {
         assert_eq!(state.current_level, HierarchyLevel::GlobalOverview);
         assert_eq!(state.viewports[0].current_level, HierarchyLevel::GlobalOverview);
     }
+
+    #[test]
+    fn test_inspector_rendering() {
+        let mut state = TosState::new();
+        state.zoom_in(); // Hub
+        state.zoom_in(); // Focus
+        
+        // Detail Inspector
+        state.zoom_in();
+        let html = state.render_current_view();
+        assert!(html.contains("NODE INSPECTOR"));
+        assert!(html.contains("UPTIME"));
+        assert!(html.contains("tos.terminal")); // Check class name
+
+        // Buffer Inspector
+        state.zoom_in();
+        let html = state.render_current_view();
+        assert!(html.contains("BUFFER HEX DUMP"));
+        assert!(html.contains("4c 43 41 52 53")); // "LCARS" in hex
+    }
 }

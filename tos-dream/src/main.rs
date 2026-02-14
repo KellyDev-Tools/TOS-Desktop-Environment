@@ -1,13 +1,16 @@
 use tao::{
-    event::{Event, WindowEvent},
+    event::{Event, WindowEvent, DeviceEvent, ElementState},
     event_loop::{ControlFlow, EventLoop},
     window::WindowBuilder,
+    keyboard::KeyCode,
 };
 use wry::WebViewBuilder;
 use tos_core::TosState;
-use std::sync::{Arc, Mutex};
-
 use tos_core::system::pty::{PtyHandle, PtyEvent};
+use tos_core::system::input::SemanticEvent;
+use std::sync::{Arc, Mutex};
+#[cfg(feature = "gamepad")]
+use gilrs::{Gilrs, Event as GilrsEvent, Button};
 use std::collections::HashMap;
 
 fn main() -> anyhow::Result<()> {
@@ -58,6 +61,37 @@ fn main() -> anyhow::Result<()> {
             std::thread::sleep(std::time::Duration::from_millis(50));
         }
     });
+
+    // 2.1 Gamepad Event Poller
+    #[cfg(feature = "gamepad")]
+    {
+        let state_gamepad = Arc::clone(&state);
+        std::thread::spawn(move || {
+            let mut gilrs = Gilrs::new().expect("Failed to initialize Gilrs");
+            loop {
+                while let Some(GilrsEvent { event, .. }) = gilrs.next_event() {
+                    let mut state = state_gamepad.lock().unwrap();
+                    match event {
+                        gilrs::EventType::ButtonPressed(button, _) => {
+                            match button {
+                                Button::South => state.handle_semantic_event(SemanticEvent::ZoomIn),
+                                Button::East => state.handle_semantic_event(SemanticEvent::ZoomOut),
+                                Button::North => state.handle_semantic_event(SemanticEvent::TacticalReset),
+                                Button::West => state.handle_semantic_event(SemanticEvent::CycleMode),
+                                Button::LeftTrigger => state.handle_semantic_event(SemanticEvent::ModeCommand),
+                                Button::RightTrigger => state.handle_semantic_event(SemanticEvent::ModeDirectory),
+                                Button::Select => state.handle_semantic_event(SemanticEvent::ModeActivity),
+                                Button::Start => state.handle_semantic_event(SemanticEvent::ToggleBezel),
+                                _ => {}
+                            }
+                        }
+                        _ => {}
+                    }
+                }
+                std::thread::sleep(std::time::Duration::from_millis(10));
+            }
+        });
+    }
 
     // 3. Setup UI Thread (Tao + Wry)
     let event_loop = EventLoop::new();
@@ -225,6 +259,22 @@ fn main() -> anyhow::Result<()> {
                         bezel_expanded: false,
                     });
                     state.current_level = tos_core::HierarchyLevel::SplitView;
+                } else if request.starts_with("semantic_event:") {
+                    let event_name = &request[15..];
+                    match event_name {
+                        "ZoomIn" => state.handle_semantic_event(SemanticEvent::ZoomIn),
+                        "ZoomOut" => state.handle_semantic_event(SemanticEvent::ZoomOut),
+                        "CycleMode" => state.handle_semantic_event(SemanticEvent::CycleMode),
+                        "ToggleBezel" => state.handle_semantic_event(SemanticEvent::ToggleBezel),
+                        "TacticalReset" => state.handle_semantic_event(SemanticEvent::TacticalReset),
+                        "OpenGlobalOverview" => state.handle_semantic_event(SemanticEvent::OpenGlobalOverview),
+                        "VoiceCommandStart" => {
+                            // Simulation of voice starting
+                            tracing::info!("VOICE COMMAND INITIATED");
+                            state.stage_command("LISTENING...".to_string());
+                        }
+                        _ => tracing::warn!("Unknown semantic event from IPC: {}", event_name),
+                    }
                 } else {
                     match request {
                         "zoom_in" => state.zoom_in(),
@@ -284,6 +334,30 @@ fn main() -> anyhow::Result<()> {
                 event: WindowEvent::CloseRequested,
                 ..
             } => *control_flow = ControlFlow::Exit,
+            Event::WindowEvent {
+                event: WindowEvent::KeyboardInput {
+                    event: tao::event::KeyEvent {
+                        physical_key: tao::keyboard::PhysicalKey::Code(code),
+                        state: ElementState::Pressed,
+                        ..
+                    },
+                    ..
+                },
+                ..
+            } => {
+                let mut state = state.lock().unwrap();
+                match code {
+                    KeyCode::PageUp => state.handle_semantic_event(SemanticEvent::ZoomIn),
+                    KeyCode::PageDown => state.handle_semantic_event(SemanticEvent::ZoomOut),
+                    KeyCode::Home => state.handle_semantic_event(SemanticEvent::OpenGlobalOverview),
+                    KeyCode::End => state.handle_semantic_event(SemanticEvent::TacticalReset),
+                    KeyCode::F1 => state.handle_semantic_event(SemanticEvent::ModeCommand),
+                    KeyCode::F2 => state.handle_semantic_event(SemanticEvent::ModeDirectory),
+                    KeyCode::F3 => state.handle_semantic_event(SemanticEvent::ModeActivity),
+                    KeyCode::F4 => state.handle_semantic_event(SemanticEvent::ToggleBezel),
+                    _ => {}
+                }
+            }
             _ => (),
         }
     });

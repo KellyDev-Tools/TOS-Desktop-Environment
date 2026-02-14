@@ -181,6 +181,46 @@ body {
     border-left: 20px solid var(--lcars-orange);
     border-radius: 0 30px 30px 0;
     padding: 0 20px;
+    height: 60px;
+}
+
+.voice-trigger {
+    width: 40px;
+    height: 40px;
+    margin-right: 15px;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.3s;
+    border: 1px solid rgba(255, 153, 0, 0.3);
+}
+
+.voice-trigger:hover {
+    background: rgba(255, 153, 0, 0.2);
+    box-shadow: 0 0 15px var(--lcars-orange);
+}
+
+.mic-icon {
+    width: 12px;
+    height: 20px;
+    background: var(--lcars-orange);
+    border-radius: 6px;
+    position: relative;
+}
+
+.mic-icon::after {
+    content: '';
+    position: absolute;
+    bottom: -5px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 16px;
+    height: 8px;
+    border-bottom: 2px solid var(--lcars-orange);
+    border-radius: 0 0 10px 10px;
 }
 
 .prompt-prefix {

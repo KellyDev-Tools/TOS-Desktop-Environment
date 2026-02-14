@@ -12,6 +12,7 @@ tracing = "0.1"
 tracing-subscriber = "0.3"
 anyhow = "1.0"
 libc = "0.2"
+gilrs = { version = "0.10", optional = true }
 
 # GUI dependencies (optional for headless testing)
 wry = { version = "0.35", optional = true }
@@ -20,6 +21,7 @@ tao = { version = "0.25", optional = true }
 [features]
 default = ["gui"]
 gui = ["dep:wry", "dep:tao"]
+gamepad = ["dep:gilrs"]
 
 [lib]
 name = "tos_core"

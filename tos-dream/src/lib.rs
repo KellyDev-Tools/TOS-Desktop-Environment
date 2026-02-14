@@ -1,3 +1,5 @@
+pub mod system;
+use system::input::SemanticEvent;
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
@@ -46,8 +48,6 @@ pub struct Sector {
     pub participants: Vec<Participant>,
 }
 
-pub mod system;
-
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct CommandHub {
     pub id: uuid::Uuid,
@@ -57,6 +57,19 @@ pub struct CommandHub {
     pub active_app_index: Option<usize>,
     pub terminal_output: Vec<String>,
     pub confirmation_required: Option<String>,
+}
+
+pub trait ApplicationModel: std::fmt::Debug + Send + Sync {
+    fn title(&self) -> String;
+    fn app_class(&self) -> String;
+    fn bezel_actions(&self) -> Vec<String>;
+    fn handle_command(&self, cmd: &str) -> Option<String>;
+}
+
+pub trait SectorType: std::fmt::Debug + Send + Sync {
+    fn name(&self) -> String;
+    fn command_favourites(&self) -> Vec<String>;
+    fn default_hub_mode(&self) -> CommandHubMode;
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -278,6 +291,38 @@ impl TosState {
         }
     }
 
+    pub fn handle_semantic_event(&mut self, event: SemanticEvent) {
+        match event {
+            SemanticEvent::ZoomIn => self.zoom_in(),
+            SemanticEvent::ZoomOut => self.zoom_out(),
+            SemanticEvent::TacticalReset => self.tactical_reset(),
+            SemanticEvent::ToggleBezel => self.toggle_bezel(),
+            SemanticEvent::ModeCommand => self.toggle_mode(CommandHubMode::Command),
+            SemanticEvent::ModeDirectory => self.toggle_mode(CommandHubMode::Directory),
+            SemanticEvent::ModeActivity => self.toggle_mode(CommandHubMode::Activity),
+            SemanticEvent::CycleMode => {
+                let viewport = &self.viewports[self.active_viewport_index];
+                let current_mode = self.sectors[viewport.sector_index].hubs[viewport.hub_index].mode;
+                let next_mode = match current_mode {
+                    CommandHubMode::Command => CommandHubMode::Directory,
+                    CommandHubMode::Directory => CommandHubMode::Activity,
+                    CommandHubMode::Activity => CommandHubMode::Command,
+                };
+                self.toggle_mode(next_mode);
+            }
+            SemanticEvent::OpenGlobalOverview => {
+                self.current_level = HierarchyLevel::GlobalOverview;
+                for v in &mut self.viewports {
+                    v.current_level = HierarchyLevel::GlobalOverview;
+                }
+            }
+            _ => {
+                // Placeholder for other events
+                tracing::info!("Received semantic event: {:?}", event);
+            }
+        }
+    }
+
     pub fn render_current_view(&self) -> String {
         if self.viewports.len() > 1 {
             self.render_split_view()
@@ -458,6 +503,9 @@ impl TosState {
 
         html.push_str(&format!(
             r#"<div class="unified-prompt">
+                <div class="voice-trigger" onclick="window.ipc.postMessage('semantic_event:VoiceCommandStart')">
+                    <span class="mic-icon"></span>
+                </div>
                 <div class="prompt-prefix">TOS@{} ></div>
                 <input type="text" id="terminal-input" value="{}" onkeydown="handlePromptKey(event)" autofocus>
             </div>"#,
@@ -660,5 +708,28 @@ mod tests {
         let html = state.render_current_view();
         assert!(html.contains("tactical-bezel expanded"));
         assert!(html.contains("PRIORITY"));
+    }
+
+    #[test]
+    fn test_semantic_events() {
+        let mut state = TosState::new();
+        
+        // Test Zoom In
+        state.handle_semantic_event(SemanticEvent::ZoomIn);
+        assert_eq!(state.current_level, HierarchyLevel::CommandHub);
+        
+        // Test Zoom Out
+        state.handle_semantic_event(SemanticEvent::ZoomOut);
+        assert_eq!(state.current_level, HierarchyLevel::GlobalOverview);
+        
+        // Test Mode Switching via CycleMode
+        state.handle_semantic_event(SemanticEvent::ZoomIn);
+        state.handle_semantic_event(SemanticEvent::CycleMode);
+        let viewport = &state.viewports[0];
+        assert_eq!(state.sectors[viewport.sector_index].hubs[viewport.hub_index].mode, CommandHubMode::Directory);
+        
+        // Test Tactical Reset
+        state.handle_semantic_event(SemanticEvent::TacticalReset);
+        assert_eq!(state.current_level, HierarchyLevel::GlobalOverview);
     }
 }

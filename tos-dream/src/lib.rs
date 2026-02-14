@@ -28,12 +28,22 @@ pub enum CommandHubMode {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct Participant {
+    pub name: String,
+    pub color: String,
+    pub role: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Sector {
     pub id: uuid::Uuid,
     pub name: String,
     pub color: String,
     pub hubs: Vec<CommandHub>,
     pub active_hub_index: usize,
+    pub host: String,
+    pub is_remote: bool,
+    pub participants: Vec<Participant>,
 }
 
 pub mod system;
@@ -86,6 +96,9 @@ impl TosState {
                 confirmation_required: None,
             }],
             active_hub_index: 0,
+            host: "LOCAL".to_string(),
+            is_remote: false,
+            participants: vec![Participant { name: "Host".to_string(), color: "#ffcc00".to_string(), role: "Co-owner".to_string() }],
         };
 
         let second_sector = Sector {
@@ -115,6 +128,13 @@ impl TosState {
                 confirmation_required: None,
             }],
             active_hub_index: 0,
+            host: "LAB-SRV-01".to_string(),
+            is_remote: true,
+            participants: vec![
+                Participant { name: "Commander".to_string(), color: "#ffcc00".to_string(), role: "Co-owner".to_string() },
+                Participant { name: "Ensign Kim".to_string(), color: "#99ccff".to_string(), role: "Operator".to_string() },
+                Participant { name: "Seven".to_string(), color: "#cc99ff".to_string(), role: "Viewer".to_string() },
+            ],
         };
 
         let initial_viewport = Viewport {
@@ -248,19 +268,28 @@ impl TosState {
     fn render_global_overview(&self) -> String {
         let mut html = String::from(r#"<div class="global-grid">"#);
         for (i, sector) in self.sectors.iter().enumerate() {
+            let remote_class = if sector.is_remote { "is-remote" } else { "is-local" };
             html.push_str(&format!(
-                r#"<div class="sector-card" style="border-left-color: {color}" onclick="window.ipc.postMessage('select_sector:{index}')">
-                    <div class="sector-meta">SECTOR {index}</div>
+                r#"<div class="sector-card {remote_class}" style="border-left-color: {color}" onclick="window.ipc.postMessage('select_sector:{index}')">
+                    <div class="sector-meta">SECTOR {index} // {host}</div>
                     <div class="sector-name">{name}</div>
                     <div class="sector-stats">{hubs} HUBS // {apps} APPS</div>
                 </div>"#,
                 color = sector.color,
                 index = i,
+                host = sector.host,
                 name = sector.name,
                 hubs = sector.hubs.len(),
                 apps = sector.hubs.iter().map(|h| h.applications.len()).sum::<usize>()
             ));
         }
+        
+        html.push_str(r#"<div class="sector-card add-remote-card" onclick="window.ipc.postMessage('add_remote_sector')">
+            <div class="sector-meta">SYS // COMMAND</div>
+            <div class="sector-name">+ ADD REMOTE</div>
+            <div class="sector-stats">ESTABLISH NEW SECTOR LINK</div>
+        </div>"#);
+
         html.push_str("</div>");
         html
     }
@@ -276,6 +305,30 @@ impl TosState {
         };
 
         let mut html = format!(r#"<div class="command-hub {mode_class}">"#);
+
+        let mut participants_html = String::new();
+        for p in &sector.participants {
+            participants_html.push_str(&format!(
+                r#"<div class="participant-avatar" style="background-color: {color}" title="{name} ({role})"></div>"#,
+                color = p.color, name = p.name, role = p.role
+            ));
+        }
+
+        html.push_str(&format!(
+            r#"<div class="hub-header">
+                <div class="hub-info">
+                    <span class="hub-sector-name">{name}</span>
+                    <span class="hub-host">LINK: {host}</span>
+                </div>
+                <div class="hub-participants">
+                    {participants_html}
+                    <div class="invite-btn" onclick="window.ipc.postMessage('collaboration_invite')">+</div>
+                </div>
+            </div>"#,
+            name = sector.name.to_uppercase(),
+            host = sector.host,
+            participants_html = participants_html
+        ));
         
         html.push_str(r#"<div class="hub-tabs">"#);
         let modes = [
@@ -388,12 +441,23 @@ impl TosState {
         let app = &hub.applications[viewport.active_app_index.unwrap_or(0)];
         let bezel_class = if viewport.bezel_expanded { "expanded" } else { "collapsed" };
 
+        let mut participants_html = String::new();
+        for p in &sector.participants {
+            participants_html.push_str(&format!(
+                r#"<div class="participant-avatar mini" style="background-color: {color}" title="{name}"></div>"#,
+                color = p.color, name = p.name
+            ));
+        }
+
         format!(
             r#"<div class="application-container">
                 <div class="tactical-bezel {bezel_class}">
                     <div class="bezel-top">
                         <div class="bezel-back" onclick="window.ipc.postMessage('zoom_out')">BACK</div>
                         <div class="bezel-title">{title} // {class}</div>
+                        <div class="bezel-participants">
+                            {participants_html}
+                        </div>
                         <div class="bezel-handle" onclick="window.ipc.postMessage('toggle_bezel')">
                             <span class="chevron"></span>
                         </div>

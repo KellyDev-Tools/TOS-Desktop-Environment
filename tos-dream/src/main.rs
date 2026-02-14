@@ -161,6 +161,38 @@ fn main() -> anyhow::Result<()> {
                         state.current_level = tos_core::HierarchyLevel::ApplicationFocus;
                         state.viewports[state.active_viewport_index].current_level = tos_core::HierarchyLevel::ApplicationFocus;
                     }
+                } else if request == "add_remote_sector" {
+                    let new_sector_id = uuid::Uuid::new_v4();
+                    let hub_id = uuid::Uuid::new_v4();
+                    let new_sector = tos_core::Sector {
+                        id: new_sector_id,
+                        name: "Command Remote".to_string(),
+                        color: "#cc6666".to_string(),
+                        hubs: vec![tos_core::CommandHub {
+                            id: hub_id,
+                            mode: tos_core::CommandHubMode::Command,
+                            prompt: String::new(),
+                            applications: vec![tos_core::Application {
+                                id: uuid::Uuid::new_v4(),
+                                title: "Remote Shell".to_string(),
+                                app_class: "tos.remote".to_string(),
+                                is_minimized: false,
+                            }],
+                            active_app_index: Some(0),
+                            terminal_output: Vec::new(),
+                            confirmation_required: None,
+                        }],
+                        active_hub_index: 0,
+                        host: "10.0.4.15".to_string(),
+                        is_remote: true,
+                        participants: Vec::new(),
+                    };
+                    state.sectors.push(new_sector);
+                    
+                    // Spawn PTY for the new hub
+                    if let Some(pty) = PtyHandle::spawn("/usr/bin/fish", ".") {
+                        ptys.lock().unwrap().insert(hub_id, pty);
+                    }
                 } else if request == "toggle_bezel" {
                     state.toggle_bezel();
                 } else if request == "split_viewport" {

@@ -1,0 +1,220 @@
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&family=JetBrains+Mono:wght@400;700&display=swap');
+
+:root {
+    --lcars-orange: #ff9900;
+    --lcars-blue: #9999cc;
+    --lcars-purple: #cc99cc;
+    --lcars-red: #cc6666;
+    --lcars-bg: #000000;
+    --lcars-panel: rgba(20, 20, 40, 0.6);
+    --lcars-glow: 0 0 15px rgba(153, 153, 204, 0.3);
+
+    --font-main: 'Outfit', sans-serif;
+    --font-mono: 'JetBrains Mono', monospace;
+}
+
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+body {
+    background-color: var(--lcars-bg);
+    color: white;
+    font-family: var(--font-main);
+    overflow: hidden;
+    height: 100vh;
+    width: 100vw;
+}
+
+.lcars-grid-base {
+    display: grid;
+    grid-template-rows: 40px 1fr;
+    height: 100vh;
+}
+
+/* ─── Status Bar ─── */
+.lcars-status-bar {
+    background: var(--lcars-panel);
+    border-bottom: 2px solid var(--lcars-orange);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0 20px;
+    font-size: 0.8rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+.status-center {
+    color: var(--lcars-orange);
+    font-weight: 800;
+}
+
+/* ─── Global Overview ─── */
+.global-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 30px;
+    width: 100%;
+}
+
+.sector-card {
+    background: var(--lcars-panel);
+    border-left: 10px solid var(--lcars-blue);
+    padding: 20px;
+    border-radius: 0 20px 20px 0;
+    cursor: pointer;
+    transition: all 0.3s;
+}
+
+.sector-card:hover {
+    background: rgba(153, 153, 204, 0.2);
+    transform: translateX(10px);
+}
+
+.sector-meta {
+    font-size: 0.6rem;
+    opacity: 0.6;
+}
+
+.sector-name {
+    font-size: 1.5rem;
+    color: var(--lcars-blue);
+    font-weight: 800;
+    margin: 5px 0;
+}
+
+.sector-stats {
+    font-family: var(--font-mono);
+    font-size: 0.7rem;
+    color: var(--lcars-orange);
+}
+
+/* ─── Command Hub ─── */
+.command-hub {
+    display: grid;
+    grid-template-rows: 50px 1fr 60px;
+    height: 100%;
+    width: 100%;
+    gap: 20px;
+}
+
+.hub-tabs {
+    display: flex;
+    gap: 2px;
+}
+
+.hub-tab {
+    background: var(--lcars-blue);
+    color: black;
+    padding: 10px 30px;
+    font-weight: 800;
+    cursor: pointer;
+    clip-path: polygon(0 0, 100% 0, 90% 100%, 0% 100%);
+}
+
+.hub-tab.active {
+    background: var(--lcars-orange);
+}
+
+.hub-content {
+    background: rgba(255, 255, 255, 0.03);
+    border-radius: 20px;
+    padding: 30px;
+    overflow-y: auto;
+}
+
+.unified-prompt {
+    display: flex;
+    align-items: center;
+    background: var(--lcars-panel);
+    border-left: 20px solid var(--lcars-orange);
+    border-radius: 0 30px 30px 0;
+    padding: 0 20px;
+}
+
+.prompt-prefix {
+    font-family: var(--font-mono);
+    color: var(--lcars-orange);
+    margin-right: 15px;
+    font-weight: 700;
+}
+
+#terminal-input {
+    flex: 1;
+    background: transparent;
+    border: none;
+    color: white;
+    font-family: var(--font-mono);
+    font-size: 1.2rem;
+    outline: none;
+}
+
+/* ─── Application Focus ─── */
+.application-container {
+    width: 100%;
+    height: 100%;
+    display: grid;
+    grid-template-rows: auto 1fr;
+}
+
+.tactical-bezel {
+    border-left: 15px solid var(--lcars-purple);
+    border-top: 2px solid var(--lcars-purple);
+    padding: 10px 20px;
+    border-radius: 20px 0 0 0;
+    margin-bottom: 20px;
+}
+
+.bezel-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.bezel-back {
+    background: var(--lcars-purple);
+    color: black;
+    padding: 5px 20px;
+    font-weight: 800;
+    cursor: pointer;
+}
+
+/* ─── Split Viewports ─── */
+.split-viewport-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    height: 100%;
+    width: 100%;
+    gap: 15px;
+}
+
+.viewport-cell {
+    border: 2px solid rgba(153, 153, 204, 0.2);
+    background: rgba(0, 0, 0, 0.4);
+    overflow: hidden;
+    position: relative;
+    border-radius: 10px;
+}
+
+/* ─── Animations ─── */
+@keyframes morph-in {
+    from {
+        opacity: 0;
+        transform: scale(0.98);
+        filter: blur(5px);
+    }
+
+    to {
+        opacity: 1;
+        transform: scale(1);
+        filter: blur(0);
+    }
+}
+
+#main-content>div {
+    animation: morph-in 0.4s ease-out;
+}

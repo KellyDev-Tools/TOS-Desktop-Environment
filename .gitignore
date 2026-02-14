@@ -1,5 +1,5 @@
-# Rust related
-/target
+# Rust / Cargo
+**/target/
 Cargo.lock
 
 # IDEs
@@ -7,6 +7,8 @@ Cargo.lock
 .idea/
 *.swp
 *.swo
+.direnv/
+.env
 
 # OS related
 .DS_Store
@@ -18,3 +20,15 @@ thumbs.db
 *.rlib
 *.pdb
 *.d
+*.dll
+*.exe
+
+# Web related
+**/node_modules/
+.svelte-kit/
+.next/
+dist/
+
+# TOS specific
+/traditional/concepts/cpp_nav/build/
+/traditional/concepts/cpp_nav/bin/

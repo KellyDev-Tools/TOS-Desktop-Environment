@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TOS Dream Complete</title>
+    <link rel="stylesheet" href="assets/css/lcars.css">
+</head>
+
+<body class="level-1">
+    <div id="tos-root" class="lcars-grid-base">
+        <!-- Persistent Status Bar (Global) -->
+        <div class="lcars-status-bar">
+            <div class="status-left">TOS VER 1.0 // DREAM COMPLETE</div>
+            <div class="status-center" id="current-location">GLOBAL OVERVIEW</div>
+            <div class="status-right" id="clock">--:--:--</div>
+        </div>
+
+        <!-- Main Content Area -->
+        <div id="main-content" class="lcars-main-viewport">
+            <h1>INITIALIZING...</h1>
+        </div>
+    </div>
+
+    <script>
+        function handlePromptKey(e) {
+            if (e.key === 'Enter') {
+                window.ipc.postMessage('prompt_submit:' + e.target.value);
+                e.target.value = '';
+            }
+        }
+
+        window.addEventListener('keydown', (e) => {
+            // Level 1 Navigation
+            if (e.key === 'Enter' && e.ctrlKey) window.ipc.postMessage('zoom_in');
+            if (e.key === 'Escape') window.ipc.postMessage('zoom_out');
+        });
+
+        // Update clock
+        setInterval(() => {
+            document.getElementById('clock').innerText = new Date().toLocaleTimeString('en-GB');
+        }, 1000);
+    </script>
+</body>
+
+</html>

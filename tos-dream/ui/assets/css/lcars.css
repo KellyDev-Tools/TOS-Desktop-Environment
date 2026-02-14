@@ -19,3 +19,6 @@
 
 /* 6. Hierarchy Level 4 & 5: Analysis & Data Interrogation */
 @import "modules/inspector.css";
+
+/* 7. System Fallbacks: Remote Desktop (HTTP) */
+@import "modules/remote.css";

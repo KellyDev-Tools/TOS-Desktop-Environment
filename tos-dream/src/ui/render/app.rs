@@ -18,6 +18,20 @@ impl ViewRenderer for AppRenderer {
             ));
         }
 
+        let portal_active_class = if sector.portal_active { "active" } else { "" };
+        let portal_label = if sector.portal_active { "DISABLE PORTAL" } else { "EXPORT PORTAL" };
+        let portal_info_html = if sector.portal_active {
+            format!(
+                r#"<div class="bezel-status-panel">
+                    <div class="status-label">WEB PORTAL ACTIVE</div>
+                    <div class="status-value">{}</div>
+                </div>"#,
+                sector.portal_url.as_ref().unwrap_or(&"INITIALIZING...".to_string())
+            )
+        } else {
+            String::new()
+        };
+
         let mut module_content = String::new();
         for module in &state.modules {
             if let Some(content) = module.render_override(HierarchyLevel::ApplicationFocus) {
@@ -42,18 +56,19 @@ impl ViewRenderer for AppRenderer {
                         <div class="bezel-group">
                             <div class="bezel-btn" onclick="window.ipc.postMessage('zoom_out')">ZOOM OUT</div>
                             <div class="bezel-btn" onclick="window.ipc.postMessage('split_viewport')">SPLIT VIEW</div>
-                            <div class="bezel-btn">TELEPORT</div>
+                            <div class="bezel-btn {portal_active_class}" onclick="window.ipc.postMessage('toggle_portal')">{portal_label}</div>
                             <div class="bezel-btn danger">CLOSE</div>
                         </div>
+                        {portal_info_html}
                         <div class="bezel-group sliders">
-                            <div class="action-slider">
+                             <div class="action-slider">
                                 <span>PRIORITY</span>
                                 <input type="range" min="1" max="10" value="5">
-                            </div>
-                            <div class="action-slider">
+                             </div>
+                             <div class="action-slider">
                                 <span>POWER</span>
                                 <input type="range" min="1" max="100" value="80">
-                            </div>
+                             </div>
                         </div>
                     </div>
                 </div>
@@ -69,7 +84,10 @@ impl ViewRenderer for AppRenderer {
             title = app.title.to_uppercase(),
             class = app.app_class.to_uppercase(),
             participants_html = participants_html,
-            module_content = module_content
+            module_content = module_content,
+            portal_active_class = portal_active_class,
+            portal_label = portal_label,
+            portal_info_html = portal_info_html
         )
     }
 }

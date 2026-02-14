@@ -24,6 +24,18 @@
     </div>
 
     <script>
+        const hierarchyMap = {
+            'GlobalOverview': 0,
+            'CommandHub': 1,
+            'ApplicationFocus': 2,
+            'DetailInspector': 3,
+            'BufferInspector': 4,
+            'SplitView': 99 // Special case
+        };
+
+        let lastLevel = null;
+        let isTransitioning = false;
+
         function handlePromptKey(e) {
             if (e.key === 'Enter') {
                 window.ipc.postMessage('prompt_submit:' + e.target.value);
@@ -32,12 +44,54 @@
         }
 
         window.addEventListener('keydown', (e) => {
-            // Level 1 Navigation
             if (e.key === 'Enter' && e.ctrlKey) window.ipc.postMessage('zoom_in');
-            if (e.key === 'Escape') window.ipc.postMessage('escape_press');
+            if (e.key === 'Escape') window.ipc.postMessage('zoom_out');
         });
 
-        // Update clock
+        // The update function called from Rust (indirectly via evaluate_script)
+        window.updateView = function (html, currentLevelStr) {
+            const container = document.getElementById('main-content');
+            const cleanLevel = currentLevelStr.replace('"', '').replace('"', ''); // Strip quotes if any
+
+            // Check if we need to transition
+            if (lastLevel && lastLevel !== cleanLevel && !isTransitioning) {
+                performTransition(container, html, lastLevel, cleanLevel);
+            } else if (!isTransitioning) {
+                // Static update
+                container.innerHTML = `<div class="viewport-layer active-layer">${html}</div>`;
+            }
+
+            lastLevel = cleanLevel;
+            document.body.className = 'level-' + cleanLevel;
+            document.getElementById('current-location').innerText = cleanLevel.toUpperCase();
+        };
+
+        function performTransition(container, newHtml, fromLevel, toLevel) {
+            isTransitioning = true;
+
+            const fromRank = hierarchyMap[fromLevel] ?? 0;
+            const toRank = hierarchyMap[toLevel] ?? 0;
+            const direction = toRank > fromRank ? 'in' : 'out';
+
+            // 1. Create layers
+            const outgoing = container.querySelector('.viewport-layer') || document.createElement('div');
+            outgoing.className = 'viewport-layer zoom-' + direction + '-outgoing';
+
+            const incoming = document.createElement('div');
+            incoming.className = 'viewport-layer zoom-' + direction + '-incoming';
+            incoming.innerHTML = newHtml;
+
+            // 2. Add to container
+            container.appendChild(incoming);
+
+            // 3. Cleanup after animation
+            setTimeout(() => {
+                if (outgoing.parentNode === container) container.removeChild(outgoing);
+                incoming.className = 'viewport-layer active-layer';
+                isTransitioning = false;
+            }, 600);
+        }
+
         setInterval(() => {
             document.getElementById('clock').innerText = new Date().toLocaleTimeString('en-GB');
         }, 1000);

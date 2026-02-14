@@ -1,4 +1,4 @@
-use crate::{TosState, Viewport, RenderMode};
+use crate::{TosState, Viewport, RenderMode, ConnectionType};
 use super::ViewRenderer;
 
 pub struct GlobalRenderer;
@@ -58,10 +58,17 @@ impl ViewRenderer for GlobalRenderer {
                 _ => ("Remote node established via TOS protocol.", "📡"),
             };
 
-            let remote_indicator = if sector.is_remote {
-                format!(r#"<div class="remote-tag">HOST: {}</div>"#, sector.host)
+            let remote_indicator = match sector.connection_type {
+                ConnectionType::Local => String::new(),
+                ConnectionType::TOSNative => format!(r#"<div class="remote-tag">TOS // {}</div>"#, sector.host),
+                ConnectionType::SSH => format!(r#"<div class="remote-tag">SSH // {}</div>"#, sector.host),
+                ConnectionType::HTTP => format!(r#"<div class="remote-tag">HTTP // {}</div>"#, sector.host),
+            };
+
+            let portal_tag = if sector.portal_active {
+                r#"<div class="portal-tag">PORTAL ACTIVE</div>"#
             } else {
-                String::new()
+                ""
             };
 
             html.push_str(&format!(
@@ -69,6 +76,7 @@ impl ViewRenderer for GlobalRenderer {
                     <div class="card-header">
                         <div class="header-label">SECTOR {index}</div>
                         {remote_indicator}
+                        {portal_tag}
                         <div class="header-utils">
                             <span>+</span>
                             <span>✎</span>
@@ -87,7 +95,8 @@ impl ViewRenderer for GlobalRenderer {
                 index = i,
                 name = sector.name.to_uppercase(),
                 icon = icon,
-                desc = desc
+                desc = desc,
+                portal_tag = portal_tag
             ));
         }
         

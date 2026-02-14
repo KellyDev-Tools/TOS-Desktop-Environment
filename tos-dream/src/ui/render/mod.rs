@@ -4,6 +4,7 @@ pub mod global;
 pub mod hub;
 pub mod app;
 pub mod inspector;
+pub mod remote;
 
 pub trait ViewRenderer {
     fn render(&self, state: &TosState, viewport: &Viewport, mode: RenderMode) -> String;

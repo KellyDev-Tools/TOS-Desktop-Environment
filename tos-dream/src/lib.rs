@@ -37,6 +37,14 @@ pub struct Participant {
     pub role: String,
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+pub enum ConnectionType {
+    Local,
+    TOSNative,
+    SSH,
+    HTTP,
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Sector {
     pub id: uuid::Uuid,
@@ -45,8 +53,10 @@ pub struct Sector {
     pub hubs: Vec<CommandHub>,
     pub active_hub_index: usize,
     pub host: String,
-    pub is_remote: bool,
+    pub connection_type: ConnectionType,
     pub participants: Vec<Participant>,
+    pub portal_active: bool,
+    pub portal_url: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -167,8 +177,10 @@ impl TosState {
             }],
             active_hub_index: 0,
             host: "LOCAL".to_string(),
-            is_remote: false,
+            connection_type: ConnectionType::Local,
             participants: vec![Participant { name: "Host".to_string(), color: "#ffcc00".to_string(), role: "Co-owner".to_string() }],
+            portal_active: false,
+            portal_url: None,
         };
 
         let second_sector = Sector {
@@ -199,12 +211,40 @@ impl TosState {
             }],
             active_hub_index: 0,
             host: "LAB-SRV-01".to_string(),
-            is_remote: true,
+            connection_type: ConnectionType::TOSNative,
             participants: vec![
                 Participant { name: "Commander".to_string(), color: "#ffcc00".to_string(), role: "Co-owner".to_string() },
                 Participant { name: "Ensign Kim".to_string(), color: "#99ccff".to_string(), role: "Operator".to_string() },
                 Participant { name: "Seven".to_string(), color: "#cc99ff".to_string(), role: "Viewer".to_string() },
             ],
+            portal_active: false,
+            portal_url: None,
+        };
+
+        let third_sector = Sector {
+            id: uuid::Uuid::new_v4(),
+            name: "Observation Hub".to_string(),
+            color: "#cc6666".to_string(),
+            hubs: vec![CommandHub {
+                id: uuid::Uuid::new_v4(),
+                mode: CommandHubMode::Command,
+                prompt: String::new(),
+                applications: vec![Application {
+                    id: uuid::Uuid::new_v4(),
+                    title: "Remote Desktop".to_string(),
+                    app_class: "tos.remote_desktop".to_string(),
+                    is_minimized: false,
+                }],
+                active_app_index: Some(0),
+                terminal_output: Vec::new(),
+                confirmation_required: None,
+            }],
+            active_hub_index: 0,
+            host: "OBS-NODE-04".to_string(),
+            connection_type: ConnectionType::HTTP,
+            participants: Vec::new(),
+            portal_active: false,
+            portal_url: None,
         };
 
         let initial_viewport = Viewport {
@@ -218,7 +258,7 @@ impl TosState {
 
         Self {
             current_level: HierarchyLevel::GlobalOverview,
-            sectors: vec![first_sector, second_sector],
+            sectors: vec![first_sector, second_sector, third_sector],
             viewports: vec![initial_viewport],
             active_viewport_index: 0,
             escape_count: 0,
@@ -238,6 +278,17 @@ impl TosState {
 
     pub fn toggle_bezel(&mut self) {
         self.viewports[self.active_viewport_index].bezel_expanded = !self.viewports[self.active_viewport_index].bezel_expanded;
+    }
+
+    pub fn toggle_portal(&mut self) {
+        let viewport = &self.viewports[self.active_viewport_index];
+        let sector = &mut self.sectors[viewport.sector_index];
+        sector.portal_active = !sector.portal_active;
+        if sector.portal_active {
+            sector.portal_url = Some(format!("https://tos.grid/portal/{}", &sector.id.to_string()[..8]));
+        } else {
+            sector.portal_url = None;
+        }
     }
 
     pub fn zoom_in(&mut self) {
@@ -433,7 +484,14 @@ impl TosState {
         match viewport.current_level {
             HierarchyLevel::GlobalOverview => ui::render::global::GlobalRenderer.render(self, viewport, mode_l1),
             HierarchyLevel::CommandHub => ui::render::hub::HubRenderer.render(self, viewport, mode_l2),
-            HierarchyLevel::ApplicationFocus => ui::render::app::AppRenderer.render(self, viewport, mode_l3),
+            HierarchyLevel::ApplicationFocus => {
+                let sector = &self.sectors[viewport.sector_index];
+                if sector.connection_type == ConnectionType::HTTP {
+                    ui::render::remote::RemoteDesktopRenderer.render(self, viewport, mode_l3)
+                } else {
+                    ui::render::app::AppRenderer.render(self, viewport, mode_l3)
+                }
+            },
             HierarchyLevel::DetailInspector => ui::render::inspector::DetailInspectorRenderer.render(self, viewport, mode_l3),
             HierarchyLevel::BufferInspector => ui::render::inspector::BufferInspectorRenderer.render(self, viewport, mode_l3),
             HierarchyLevel::SplitView => self.render_split_view(),

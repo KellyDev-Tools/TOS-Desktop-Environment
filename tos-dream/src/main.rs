@@ -62,20 +62,16 @@ fn main() -> anyhow::Result<()> {
     let webview_update = Arc::clone(&webview);
     std::thread::spawn(move || {
         loop {
-            let html = {
-                let state = state_update.lock().unwrap();
-                state.render_current_view()
+            let (html, current_level) = {
+                let s = state_update.lock().unwrap();
+                (s.render_current_view(), s.current_level)
             };
             
-            // Inject the new HTML into the main-content div
+            // Call the frontend transition engine
             let js = format!(
-                r#"document.getElementById('main-content').innerHTML = `{}`; 
-                   document.body.className = 'level-{:?}';
-                   document.getElementById('current-location').innerText = '{:?}';
+                r#"window.updateView(`{}`, "{:?}");
                    document.querySelectorAll('.terminal-output').forEach(el => el.scrollTop = el.scrollHeight);"#,
-                html,
-                { let s = state_update.lock().unwrap(); s.current_level },
-                { let s = state_update.lock().unwrap(); s.current_level }
+                html, current_level
             );
             
             let _ = webview_update.evaluate_script(&js);

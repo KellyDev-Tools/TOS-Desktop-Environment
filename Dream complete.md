@@ -160,7 +160,13 @@ Remote sectors are enabled by the **TOS Remote Server**, a daemon installed on t
 - Multiple simultaneous connections (for collaboration).
 
 ### 7.3 Fallback Modes
-- If the TOS Remote Server cannot be installed, fallback to SSH (terminal only) or VNC (full desktop) with reduced functionality.
+- If the TOS Remote Server cannot be installed, fallback to SSH (terminal only) or HTTP (full desktop) with reduced(no file system sync or local process awareness) just remote desktop functionality.
+
+### 7.4 TOS Web Portal (Display Export)
+- **Concept**: Any sector or application viewport can be "exported" as a unique URL.
+- **Access**: Any modern web browser can connect to this URL to view and interact with the TOS interface as a "virtual display."
+- **Capabilities**: Full interaction (mouse/touch/keyboard) via WebSockets/WebRTC. No installation required on the client side.
+- **Security**: Portals can be password protected or require "Tactile Approval" on the host machine before a connection is established.
 
 ---
 

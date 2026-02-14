@@ -2,7 +2,7 @@ use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
 use uuid::Uuid;
 use crate::system::pty::PtyHandle;
-use crate::{TosState, CommandHubMode, HierarchyLevel, system::input::SemanticEvent, Sector, CommandHub, Application, Viewport};
+use crate::{TosState, CommandHubMode, HierarchyLevel, system::input::SemanticEvent, Sector, CommandHub, Application, Viewport, ConnectionType};
 
 pub struct IpcDispatcher {
     pub state: Arc<Mutex<TosState>>,
@@ -43,6 +43,8 @@ impl IpcDispatcher {
             self.handle_add_remote_sector(&mut state);
         } else if request == "toggle_bezel" {
             state.toggle_bezel();
+        } else if request == "toggle_portal" {
+            state.toggle_portal();
         } else if request == "split_viewport" {
             self.handle_split_viewport(&mut state);
         } else if request == "zoom_in" {
@@ -142,8 +144,10 @@ impl IpcDispatcher {
             }],
             active_hub_index: 0,
             host: "10.0.4.15".to_string(),
-            is_remote: true,
+            connection_type: ConnectionType::SSH,
             participants: Vec::new(),
+            portal_active: false,
+            portal_url: None,
         };
         state.add_sector(new_sector);
         

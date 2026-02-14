@@ -34,7 +34,7 @@
         window.addEventListener('keydown', (e) => {
             // Level 1 Navigation
             if (e.key === 'Enter' && e.ctrlKey) window.ipc.postMessage('zoom_in');
-            if (e.key === 'Escape') window.ipc.postMessage('zoom_out');
+            if (e.key === 'Escape') window.ipc.postMessage('escape_press');
         });
 
         // Update clock

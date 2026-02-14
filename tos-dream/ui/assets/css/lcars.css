@@ -127,6 +127,38 @@ body {
     overflow-y: auto;
 }
 
+.staging-item {
+    cursor: pointer;
+    transition: background 0.2s, transform 0.2s;
+}
+
+.staging-item:hover {
+    background: rgba(255, 255, 255, 0.1) !important;
+    transform: translateX(5px);
+}
+
+.staging-item:active {
+    background: var(--lcars-orange) !important;
+    color: black;
+}
+
+.terminal-output {
+    height: 100%;
+    overflow-y: auto;
+    font-family: var(--font-mono);
+    font-size: 0.9rem;
+    color: var(--lcars-blue);
+    display: flex;
+    flex-direction: column;
+}
+
+.log-line {
+    border-bottom: 1px solid rgba(153, 153, 204, 0.1);
+    padding: 2px 0;
+    white-space: pre-wrap;
+    word-break: break-all;
+}
+
 .unified-prompt {
     display: flex;
     align-items: center;
@@ -181,6 +213,72 @@ body {
     padding: 5px 20px;
     font-weight: 800;
     cursor: pointer;
+}
+
+/* ─── Inspector Views (L4/L5) ─── */
+.inspector-container {
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.8);
+    border: 2px solid var(--lcars-blue);
+    padding: 30px;
+    border-radius: 20px;
+    display: flex;
+    flex-direction: column;
+}
+
+.inspector-header {
+    color: var(--lcars-blue);
+    font-size: 1.2rem;
+    font-weight: 800;
+    margin-bottom: 20px;
+    border-bottom: 2px solid var(--lcars-blue);
+}
+
+.inspector-content {
+    flex: 1;
+    font-family: var(--font-mono);
+}
+
+.stat-row {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 10px;
+}
+
+.stat-row span:first-child {
+    color: var(--lcars-orange);
+}
+
+.buffer-hex {
+    font-family: var(--font-mono);
+    font-size: 0.9rem;
+    color: var(--lcars-blue);
+    white-space: pre;
+    line-height: 1.5;
+}
+
+.inspector-footer {
+    margin-top: 20px;
+    background: var(--lcars-blue);
+    color: black;
+    padding: 10px;
+    text-align: center;
+    font-weight: 800;
+    cursor: pointer;
+}
+
+.buffer-inspector {
+    border-color: var(--lcars-red);
+}
+
+.buffer-inspector .inspector-header {
+    color: var(--lcars-red);
+    border-color: var(--lcars-red);
+}
+
+.buffer-inspector .inspector-footer {
+    background: var(--lcars-red);
 }
 
 /* ─── Split Viewports ─── */

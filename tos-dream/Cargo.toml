@@ -11,6 +11,7 @@ uuid = { version = "1.7", features = ["v4", "serde"] }
 tracing = "0.1"
 tracing-subscriber = "0.3"
 anyhow = "1.0"
+libc = "0.2"
 
 # GUI dependencies (optional for headless testing)
 wry = { version = "0.35", optional = true }

@@ -26,8 +26,8 @@ fn test_complex_navigation_flow() {
     assert!(html.contains("APPLICATION DATA FEED: Sensor Array"));
     
     // 5. Tactical Reset (Zoom all the way out)
-    state.zoom_out();
-    state.zoom_out();
+    state.zoom_out(); // Focus -> Hub
+    state.zoom_out(); // Hub -> Global
     assert_eq!(state.current_level, HierarchyLevel::GlobalOverview);
 }
 

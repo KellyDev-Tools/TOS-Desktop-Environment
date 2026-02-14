@@ -17,7 +17,7 @@ fn test_complex_navigation_flow() {
     state.toggle_mode(CommandHubMode::Activity);
     let html = state.render_current_view();
     assert!(html.contains("ACTIVITY"));
-    assert!(html.contains("Sensor Array"));
+    assert!(html.contains("SENSOR ARRAY"));
     
     // 4. Focus App
     state.zoom_in();
@@ -44,6 +44,7 @@ fn test_viewport_independence() {
         hub_index: 0,
         current_level: HierarchyLevel::GlobalOverview,
         active_app_index: None,
+        bezel_expanded: false,
     };
     state.viewports.push(second_viewport);
     state.current_level = HierarchyLevel::SplitView;

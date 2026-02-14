@@ -126,10 +126,23 @@ fn main() -> anyhow::Result<()> {
                             }
                         }
                         _ => {
-                            // System Command: Route to PTY
+                            // Dangerous command check (Section 11.4)
+                            let is_dangerous = cmd_full.contains("rm -rf") || cmd_full.contains(":(){ :|:& };:");
+                            
                             let viewport = &state.viewports[state.active_viewport_index];
-                            let sector = &state.sectors[viewport.sector_index];
-                            let hub = &sector.hubs[viewport.hub_index];
+                            let sector = &mut state.sectors[viewport.sector_index];
+                            let hub = &mut sector.hubs[viewport.hub_index];
+
+                            if is_dangerous && hub.confirmation_required.is_none() {
+                                println!("!! DANGEROUS COMMAND DETECTED: {}", cmd_full);
+                                hub.confirmation_required = Some(cmd_full.to_string());
+                                return;
+                            }
+
+                            // Clear confirmation and execute
+                            hub.confirmation_required = None;
+                            
+                            // System Command: Route to PTY
                             if let Some(pty) = ptys.lock().unwrap().get(&hub.id) {
                                 pty.write(&format!("{}\n", cmd_full));
                             }
@@ -148,6 +161,8 @@ fn main() -> anyhow::Result<()> {
                         state.current_level = tos_core::HierarchyLevel::ApplicationFocus;
                         state.viewports[state.active_viewport_index].current_level = tos_core::HierarchyLevel::ApplicationFocus;
                     }
+                } else if request == "toggle_bezel" {
+                    state.toggle_bezel();
                 } else if request == "split_viewport" {
                     // Create a second viewport and a new HUB for it
                     let sector_idx = state.viewports[state.active_viewport_index].sector_index;
@@ -162,6 +177,7 @@ fn main() -> anyhow::Result<()> {
                         applications: Vec::new(),
                         active_app_index: None,
                         terminal_output: Vec::new(),
+                        confirmation_required: None,
                     });
                     
                     let hub_idx = sector.hubs.len() - 1;
@@ -177,6 +193,7 @@ fn main() -> anyhow::Result<()> {
                         hub_index: hub_idx,
                         current_level: tos_core::HierarchyLevel::CommandHub,
                         active_app_index: None,
+                        bezel_expanded: false,
                     });
                     state.current_level = tos_core::HierarchyLevel::SplitView;
                 } else {

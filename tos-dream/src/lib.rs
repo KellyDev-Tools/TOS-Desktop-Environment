@@ -17,6 +17,7 @@ pub struct Viewport {
     pub hub_index: usize,
     pub current_level: HierarchyLevel,
     pub active_app_index: Option<usize>,
+    pub bezel_expanded: bool,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
@@ -45,6 +46,7 @@ pub struct CommandHub {
     pub applications: Vec<Application>,
     pub active_app_index: Option<usize>,
     pub terminal_output: Vec<String>,
+    pub confirmation_required: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -81,6 +83,7 @@ impl TosState {
                 }],
                 active_app_index: Some(0),
                 terminal_output: Vec::new(),
+                confirmation_required: None,
             }],
             active_hub_index: 0,
         };
@@ -109,6 +112,7 @@ impl TosState {
                 ],
                 active_app_index: Some(0),
                 terminal_output: Vec::new(),
+                confirmation_required: None,
             }],
             active_hub_index: 0,
         };
@@ -119,6 +123,7 @@ impl TosState {
             hub_index: 0,
             current_level: HierarchyLevel::GlobalOverview,
             active_app_index: None,
+            bezel_expanded: false,
         };
 
         Self {
@@ -136,6 +141,10 @@ impl TosState {
             viewport.current_level = HierarchyLevel::GlobalOverview;
         }
         self.escape_count = 0;
+    }
+
+    pub fn toggle_bezel(&mut self) {
+        self.viewports[self.active_viewport_index].bezel_expanded = !self.viewports[self.active_viewport_index].bezel_expanded;
     }
 
     pub fn zoom_in(&mut self) {
@@ -284,6 +293,25 @@ impl TosState {
         html.push_str("</div>");
 
         html.push_str(r#"<div class="hub-content">"#);
+        if let Some(dangerous_cmd) = &hub.confirmation_required {
+            html.push_str(&format!(
+                r#"<div class="dangerous-overlay">
+                    <div class="alert-header">TACTICAL ALERT // DANGEROUS COMMAND DETECTED</div>
+                    <div class="alert-subline">EXECUTION BLOCKED PENDING TACTILE CONFIRMATION</div>
+                    <div class="dangerous-command">SPEC: {cmd}</div>
+                    <div class="confirmation-zone">
+                        <div class="slider-track">
+                            <input type="range" class="confirm-slider" min="0" max="100" value="0" 
+                                oninput="if(this.value == 100) {{ window.ipc.postMessage('prompt_submit:{cmd}'); }}"
+                                onchange="if(this.value < 100) {{ this.value = 0; }}">
+                            <div class="slider-label">SLIDE TO CONFIRM EXECUTION</div>
+                        </div>
+                    </div>
+                    <div class="bezel-btn danger" onclick="window.ipc.postMessage('stage_command:')">ABORT ACTION</div>
+                </div>"#,
+                cmd = dangerous_cmd
+            ));
+        }
         match hub.mode {
             CommandHubMode::Command => {
                 let mut output_html = String::new();
@@ -299,25 +327,45 @@ impl TosState {
             }
             CommandHubMode::Directory => {
                 html.push_str(r#"<div class="directory-view">
-                    <div class="file-item staging-item" onclick="window.ipc.postMessage('stage_command:ls ..')">..</div>
-                    <div class="file-item staging-item" onclick="window.ipc.postMessage('stage_command:cd DOCUMENTS')">DOCUMENTS/</div>
-                    <div class="file-item staging-item" onclick="window.ipc.postMessage('stage_command:ls SYSTEM_CORE')">SYSTEM_CORE/</div>
-                    <div class="file-item staging-item" onclick="window.ipc.postMessage('stage_command:view CONFIG.TOS')">CONFIG.TOS</div>
+                    <div class="path-bar">/HOME/USER/SECTOR_PRIMARY</div>
+                    <div class="file-grid">
+                        <div class="file-item staging-item" onclick="window.ipc.postMessage('stage_command:ls ..')">..</div>
+                        <div class="file-item staging-item" onclick="window.ipc.postMessage('stage_command:cd DOCUMENTS')">DOCUMENTS/</div>
+                        <div class="file-item staging-item" onclick="window.ipc.postMessage('stage_command:ls SYSTEM_CORE')">SYSTEM_CORE/</div>
+                        <div class="file-item staging-item" onclick="window.ipc.postMessage('stage_command:view CONFIG.TOS')">CONFIG.TOS</div>
+                    </div>
                 </div>"#);
             }
             CommandHubMode::Activity => {
-                html.push_str(r#"<div class="activity-view">"#);
+                let mut apps_html = String::new();
                 for app in &hub.applications {
-                    html.push_str(&format!(
+                    apps_html.push_str(&format!(
                         r#"<div class="app-tile staging-item" onclick="window.ipc.postMessage('stage_command:focus {title}')">
-                            <div class="app-title">{title}</div>
-                            <div class="app-class">{class}</div>
+                            <div class="app-tile-icon"></div>
+                            <div class="app-tile-info">
+                                <div class="app-title">{title}</div>
+                                <div class="app-class">{class}</div>
+                            </div>
+                            <div class="app-tile-stats">
+                                <div class="stat">CPU: 2.1%</div>
+                                <div class="stat">MEM: 82MB</div>
+                            </div>
                         </div>"#,
-                        title = app.title,
-                        class = app.app_class
+                        title = app.title.to_uppercase(),
+                        class = app.app_class.to_uppercase()
                     ));
                 }
-                html.push_str("</div>");
+                html.push_str(&format!(
+                    r#"<div class="activity-view">
+                        <div class="activity-grid">
+                            {apps_html}
+                            <div class="app-tile add-tile" onclick="window.ipc.postMessage('stage_command:spawn ')">
+                                <span>+ NEW PROCESS</span>
+                            </div>
+                        </div>
+                    </div>"#,
+                    apps_html = apps_html
+                ));
             }
         }
         html.push_str("</div>");
@@ -338,14 +386,35 @@ impl TosState {
         let sector = &self.sectors[viewport.sector_index];
         let hub = &sector.hubs[viewport.hub_index];
         let app = &hub.applications[viewport.active_app_index.unwrap_or(0)];
+        let bezel_class = if viewport.bezel_expanded { "expanded" } else { "collapsed" };
 
         format!(
             r#"<div class="application-container">
-                <div class="tactical-bezel">
+                <div class="tactical-bezel {bezel_class}">
                     <div class="bezel-top">
                         <div class="bezel-back" onclick="window.ipc.postMessage('zoom_out')">BACK</div>
                         <div class="bezel-title">{title} // {class}</div>
-                        <div class="bezel-status" onclick="window.ipc.postMessage('split_viewport')">SPLIT</div>
+                        <div class="bezel-handle" onclick="window.ipc.postMessage('toggle_bezel')">
+                            <span class="chevron"></span>
+                        </div>
+                    </div>
+                    <div class="bezel-expanded-content">
+                        <div class="bezel-group">
+                            <div class="bezel-btn" onclick="window.ipc.postMessage('zoom_out')">ZOOM OUT</div>
+                            <div class="bezel-btn" onclick="window.ipc.postMessage('split_viewport')">SPLIT VIEW</div>
+                            <div class="bezel-btn">TELEPORT</div>
+                            <div class="bezel-btn danger">CLOSE</div>
+                        </div>
+                        <div class="bezel-group sliders">
+                            <div class="action-slider">
+                                <span>PRIORITY</span>
+                                <input type="range" min="1" max="10" value="5">
+                            </div>
+                            <div class="action-slider">
+                                <span>POWER</span>
+                                <input type="range" min="1" max="100" value="80">
+                            </div>
+                        </div>
                     </div>
                 </div>
                 <div class="application-surface" onclick="window.ipc.postMessage('zoom_in')">
@@ -354,7 +423,9 @@ impl TosState {
                     </div>
                 </div>
             </div>"#,
-            title = app.title, class = app.app_class
+            bezel_class = bezel_class,
+            title = app.title,
+            class = app.app_class
         )
     }
 
@@ -477,5 +548,20 @@ mod tests {
         let html = state.render_current_view();
         assert!(html.contains("BUFFER HEX DUMP"));
         assert!(html.contains("4c 43 41 52 53")); // "LCARS" in hex
+    }
+
+    #[test]
+    fn test_bezel_toggling() {
+        let mut state = TosState::new();
+        state.zoom_in(); // Hub
+        state.zoom_in(); // Focus
+        
+        assert_eq!(state.viewports[0].bezel_expanded, false);
+        state.toggle_bezel();
+        assert_eq!(state.viewports[0].bezel_expanded, true);
+        
+        let html = state.render_current_view();
+        assert!(html.contains("tactical-bezel expanded"));
+        assert!(html.contains("PRIORITY"));
     }
 }

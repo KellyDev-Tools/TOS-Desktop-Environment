@@ -148,24 +148,21 @@ fn main() -> anyhow::Result<()> {
                             }
                         }
                     }
+                } else if request.starts_with("select_sector:") {
+                    if let Ok(idx) = request[14..].parse::<usize>() {
+                        state.select_sector(idx);
+                    }
                 } else if request.starts_with("stage_command:") {
                     let cmd = &request[14..];
                     state.stage_command(cmd.to_string());
                 } else if request.starts_with("focus_app:") {
-                    let app_id_str = &request[10..];
-                    let viewport = &state.viewports[state.active_viewport_index];
-                    let sector = &mut state.sectors[viewport.sector_index];
-                    let hub = &mut sector.hubs[viewport.hub_index];
-                    if let Some(pos) = hub.applications.iter().position(|a| a.id.to_string() == app_id_str) {
-                        hub.active_app_index = Some(pos);
-                        state.current_level = tos_core::HierarchyLevel::ApplicationFocus;
-                        state.viewports[state.active_viewport_index].current_level = tos_core::HierarchyLevel::ApplicationFocus;
+                    if let Ok(id) = uuid::Uuid::parse_str(&request[10..]) {
+                        state.focus_app_by_id(id);
                     }
                 } else if request == "add_remote_sector" {
-                    let new_sector_id = uuid::Uuid::new_v4();
                     let hub_id = uuid::Uuid::new_v4();
                     let new_sector = tos_core::Sector {
-                        id: new_sector_id,
+                        id: uuid::Uuid::new_v4(),
                         name: "Command Remote".to_string(),
                         color: "#cc6666".to_string(),
                         hubs: vec![tos_core::CommandHub {
@@ -187,7 +184,7 @@ fn main() -> anyhow::Result<()> {
                         is_remote: true,
                         participants: Vec::new(),
                     };
-                    state.sectors.push(new_sector);
+                    state.add_sector(new_sector);
                     
                     // Spawn PTY for the new hub
                     if let Some(pty) = PtyHandle::spawn("/usr/bin/fish", ".") {

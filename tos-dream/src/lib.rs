@@ -238,10 +238,43 @@ impl TosState {
 
     pub fn stage_command(&mut self, cmd: String) {
         let viewport = &self.viewports[self.active_viewport_index];
-        if viewport.current_level == HierarchyLevel::CommandHub {
-            let sector = &mut self.sectors[viewport.sector_index];
-            let hub = &mut sector.hubs[viewport.hub_index];
-            hub.prompt = cmd;
+        let sector = &mut self.sectors[viewport.sector_index];
+        let hub = &mut sector.hubs[viewport.hub_index];
+        hub.prompt = cmd;
+    }
+
+    pub fn select_sector(&mut self, index: usize) {
+        if index < self.sectors.len() {
+            self.viewports[self.active_viewport_index].sector_index = index;
+            self.viewports[self.active_viewport_index].hub_index = self.sectors[index].active_hub_index;
+            self.viewports[self.active_viewport_index].current_level = HierarchyLevel::CommandHub;
+            self.current_level = HierarchyLevel::CommandHub;
+        }
+    }
+
+    pub fn add_sector(&mut self, sector: Sector) {
+        self.sectors.push(sector);
+    }
+
+    pub fn focus_app_by_id(&mut self, app_id: uuid::Uuid) {
+        let viewport_idx = self.active_viewport_index;
+        let sector_idx = self.viewports[viewport_idx].sector_index;
+        let hub_idx = self.viewports[viewport_idx].hub_index;
+        let sector = &mut self.sectors[sector_idx];
+        let hub = &mut sector.hubs[hub_idx];
+
+        if let Some(pos) = hub.applications.iter().position(|a| a.id == app_id) {
+            hub.active_app_index = Some(pos);
+            let viewport = &mut self.viewports[viewport_idx];
+            viewport.active_app_index = Some(pos);
+            viewport.current_level = HierarchyLevel::ApplicationFocus;
+            self.current_level = HierarchyLevel::ApplicationFocus;
+        }
+    }
+
+    pub fn add_participant(&mut self, sector_index: usize, name: String, color: String, role: String) {
+        if let Some(sector) = self.sectors.get_mut(sector_index) {
+            sector.participants.push(Participant { name, color, role });
         }
     }
 
@@ -488,8 +521,8 @@ impl TosState {
                 </div>
             </div>"#,
             bezel_class = bezel_class,
-            title = app.title,
-            class = app.app_class
+            title = app.title.to_uppercase(),
+            class = app.app_class.to_uppercase()
         )
     }
 

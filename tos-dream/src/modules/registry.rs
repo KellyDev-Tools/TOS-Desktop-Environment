@@ -144,7 +144,7 @@ impl ModuleRegistry {
     }
     
     /// Initialize all loaded modules
-    pub fn initialize_all(&mut self, state: &mut TosState) {
+    pub fn initialize_all(&mut self, _state: &mut TosState) {
         let names: Vec<String> = self.modules.keys().cloned().collect();
         
         for name in names {

@@ -4,7 +4,7 @@
 //! that can be customized via module manifests.
 
 use super::manifest::ModuleManifest;
-use crate::{ApplicationModel, TosState, CommandHubMode};
+use crate::{ApplicationModel, TosState};
 use std::collections::HashMap;
 
 /// A concrete application model implementation
@@ -309,7 +309,7 @@ impl ApplicationModel for AppModel {
     
     fn handle_command(&self, cmd: &str) -> Option<String> {
         // Check if we have a custom handler
-        if let Some(handler) = self.command_handlers.get(cmd) {
+        if let Some(_handler) = self.command_handlers.get(cmd) {
             // Note: This would need a mutable state reference in practice
             // For now, return a placeholder
             Some(format!("Handled by custom handler: {}", cmd))

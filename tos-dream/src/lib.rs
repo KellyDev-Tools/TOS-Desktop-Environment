@@ -4,6 +4,9 @@ pub mod modules;
 pub mod marketplace;
 pub mod cli;
 
+#[cfg(feature = "accessibility")]
+pub mod accessibility;
+
 use system::input::SemanticEvent;
 use modules::{ModuleRegistry, ModuleState, ModuleManifest};
 use serde::{Deserialize, Serialize};
@@ -146,6 +149,14 @@ pub struct TosState {
     /// Marketplace for Phase 9
     #[serde(skip)]
     pub marketplace: marketplace::Marketplace,
+    /// Accessibility manager for Phase 10
+    #[serde(skip)]
+    #[cfg(feature = "accessibility")]
+    pub accessibility: Option<accessibility::AccessibilityManager>,
+    /// Live feed server for Phase 10
+    #[serde(skip)]
+    #[cfg(feature = "live-feed")]
+    pub live_feed: Option<system::live_feed::LiveFeedServer>,
 }
 
 impl std::fmt::Debug for TosState {
@@ -313,7 +324,7 @@ impl TosState {
             bezel_expanded: false,
         };
 
-        let mut state = Self {
+        let state = Self {
             current_level: HierarchyLevel::GlobalOverview,
             sectors: vec![first_sector, second_sector, third_sector],
             viewports: vec![initial_viewport],
@@ -328,6 +339,10 @@ impl TosState {
             app_model_registry,
             sector_type_registry,
             marketplace,
+            #[cfg(feature = "accessibility")]
+            accessibility: None,
+            #[cfg(feature = "live-feed")]
+            live_feed: None,
         };
         
         // Initialize all loaded modules
@@ -347,6 +362,23 @@ impl TosState {
             viewport.current_level = HierarchyLevel::GlobalOverview;
         }
         self.escape_count = 0;
+        
+        // Announce reset to accessibility system
+        #[cfg(feature = "accessibility")]
+        if let Some(ref accessibility) = self.accessibility {
+            let rt = tokio::runtime::Handle::try_current();
+            if let Ok(handle) = rt {
+                let accessibility = accessibility.clone();
+                handle.spawn(async move {
+                    use accessibility::AccessibilityAnnouncement;
+                    let _ = accessibility.announce(AccessibilityAnnouncement::Navigation {
+                        from_level: "Any".to_string(),
+                        to_level: "Global Overview".to_string(),
+                        description: "Tactical reset activated".to_string(),
+                    }).await;
+                });
+            }
+        }
     }
     
     /// Enable hot-reloading for modules
@@ -611,6 +643,21 @@ impl TosState {
     }
 
     pub fn handle_semantic_event(&mut self, event: SemanticEvent) {
+        // Broadcast to live feed if enabled
+        #[cfg(feature = "live-feed")]
+        {
+            let live_feed_clone = self.live_feed.clone();
+            if let Some(live_feed) = live_feed_clone {
+                let rt = tokio::runtime::Handle::try_current();
+                if let Ok(handle) = rt {
+                    let event_name = format!("{:?}", event);
+                    handle.spawn(async move {
+                        let _ = live_feed.broadcast_interaction("semantic", &event_name).await;
+                    });
+                }
+            }
+        }
+        
         match event {
             SemanticEvent::ZoomIn => self.zoom_in(),
             SemanticEvent::ZoomOut => self.zoom_out(),
@@ -620,7 +667,7 @@ impl TosState {
             SemanticEvent::ModeDirectory => self.toggle_mode(CommandHubMode::Directory),
             SemanticEvent::ModeActivity => self.toggle_mode(CommandHubMode::Activity),
             SemanticEvent::CycleMode => {
-                let viewport = &self.viewports[self.active_viewport_index];
+                let viewport = &self.viewports[0];
                 let current_mode = self.sectors[viewport.sector_index].hubs[viewport.hub_index].mode;
                 let next_mode = match current_mode {
                     CommandHubMode::Command => CommandHubMode::Directory,
@@ -640,7 +687,107 @@ impl TosState {
                 tracing::info!("Received semantic event: {:?}", event);
             }
         }
+        
+        // Announce to accessibility system
+        #[cfg(feature = "accessibility")]
+        self.announce_event(&event);
     }
+    
+    /// Initialize accessibility system
+    #[cfg(feature = "accessibility")]
+    pub async fn init_accessibility(&mut self, config: accessibility::AccessibilityConfig) -> Result<(), accessibility::AccessibilityError> {
+        let manager = accessibility::AccessibilityManager::new(config).await?;
+        self.accessibility = Some(manager);
+        tracing::info!("Accessibility system initialized");
+        Ok(())
+    }
+    
+    /// Announce semantic event to accessibility system
+    #[cfg(feature = "accessibility")]
+    fn announce_event(&self, event: &SemanticEvent) {
+        if let Some(ref accessibility) = self.accessibility {
+            let rt = tokio::runtime::Handle::try_current();
+            if let Ok(handle) = rt {
+                let accessibility = accessibility.clone();
+                let announcement = self.event_to_announcement(event);
+                handle.spawn(async move {
+                    let _ = accessibility.announce(announcement).await;
+                });
+            }
+        }
+    }
+    
+    /// Convert semantic event to accessibility announcement
+    #[cfg(feature = "accessibility")]
+    fn event_to_announcement(&self, event: &SemanticEvent) -> accessibility::AccessibilityAnnouncement {
+        use accessibility::AccessibilityAnnouncement;
+        
+        match event {
+            SemanticEvent::ZoomIn => AccessibilityAnnouncement::Navigation {
+                from_level: format!("{:?}", self.current_level),
+                to_level: "Deeper".to_string(),
+                description: "Zooming in".to_string(),
+            },
+            SemanticEvent::ZoomOut => AccessibilityAnnouncement::Navigation {
+                from_level: format!("{:?}", self.current_level),
+                to_level: "Higher".to_string(),
+                description: "Zooming out".to_string(),
+            },
+            SemanticEvent::TacticalReset => AccessibilityAnnouncement::Action {
+                action: "Tactical Reset".to_string(),
+                result: "Returned to Global Overview".to_string(),
+            },
+            SemanticEvent::ToggleBezel => AccessibilityAnnouncement::Action {
+                action: "Toggle Bezel".to_string(),
+                result: "Bezel state changed".to_string(),
+            },
+            SemanticEvent::ModeCommand => AccessibilityAnnouncement::Status {
+                component: "Command Hub".to_string(),
+                state: "Command Mode".to_string(),
+            },
+            SemanticEvent::ModeDirectory => AccessibilityAnnouncement::Status {
+                component: "Command Hub".to_string(),
+                state: "Directory Mode".to_string(),
+            },
+            SemanticEvent::ModeActivity => AccessibilityAnnouncement::Status {
+                component: "Command Hub".to_string(),
+                state: "Activity Mode".to_string(),
+            },
+            _ => AccessibilityAnnouncement::Action {
+                action: format!("{:?}", event),
+                result: "Executed".to_string(),
+            },
+        }
+    }
+    
+    /// Initialize live feed server
+    #[cfg(feature = "live-feed")]
+    pub async fn init_live_feed(&mut self, config: system::live_feed::LiveFeedConfig) -> Result<(), Box<dyn std::error::Error>> {
+        let server = system::live_feed::LiveFeedServer::new(config);
+        server.start().await?;
+        self.live_feed = Some(server);
+        tracing::info!("Live feed server initialized");
+        Ok(())
+    }
+    
+    /// Start test recording on live feed
+    #[cfg(feature = "live-feed")]
+    pub async fn start_test_recording(&self, test_name: &str) {
+        if let Some(ref live_feed) = self.live_feed {
+            let sender = live_feed.command_sender();
+            let _ = sender.send(system::live_feed::FeedCommand::StartRecording(test_name.to_string())).await;
+        }
+    }
+    
+    /// Stop test recording
+    #[cfg(feature = "live-feed")]
+    pub async fn stop_test_recording(&self) {
+        if let Some(ref live_feed) = self.live_feed {
+            let sender = live_feed.command_sender();
+            let _ = sender.send(system::live_feed::FeedCommand::StopRecording).await;
+        }
+    }
+
 
     pub fn render_performance_overlay(&self) -> String {
         ui::render::render_performance_overlay(self.fps, self.performance_alert)

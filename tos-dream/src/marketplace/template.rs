@@ -3,7 +3,7 @@
 //! Handles export and import of sector configurations as templates.
 //! Templates are configuration-only packages that can be shared and reused.
 
-use super::{MarketplaceError, ExportRequest, ExportResult, PackageType};
+use super::{MarketplaceError, ExportRequest, ExportResult};
 use sha2::Digest;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;

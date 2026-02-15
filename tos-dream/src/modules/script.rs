@@ -204,7 +204,7 @@ impl<'a> TosModule for ScriptModuleWrapper<'a> {
         tracing::info!("Script module unloaded: {}", self.engine.manifest.name);
     }
     
-    fn render_override(&self, level: HierarchyLevel) -> Option<String> {
+    fn render_override(&self, _level: HierarchyLevel) -> Option<String> {
         // Try to call a render function in the script
         // This is a placeholder - real implementation would
         // actually execute the script function

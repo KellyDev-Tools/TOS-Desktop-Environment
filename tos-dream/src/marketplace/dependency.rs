@@ -95,7 +95,7 @@ impl DependencyResolver {
     pub async fn resolve(
         &self,
         package: &PackageMetadata,
-        repository_manager: &RepositoryManager,
+        _repository_manager: &RepositoryManager,
     ) -> Result<Vec<PackageMetadata>, MarketplaceError> {
         // Build dependency graph
         let mut graph = DependencyGraph {
@@ -208,9 +208,9 @@ impl DependencyResolver {
     pub async fn resolve_detailed(
         &self,
         package: &PackageMetadata,
-        repository_manager: &RepositoryManager,
+        _repository_manager: &RepositoryManager,
     ) -> Result<ResolutionResult, MarketplaceError> {
-        let packages = self.resolve(package, repository_manager).await?;
+        let packages = self.resolve(package, _repository_manager).await?;
         
         Ok(ResolutionResult {
             packages,
@@ -366,7 +366,7 @@ impl DependencyResolver {
         // For installation order, we want to install B before A
         // So we count: for each edge A -> B, B's in-degree increases
         for (node, deps) in &graph.edges {
-            for dep in deps {
+            for _dep in deps {
                 // node depends on dep, so dep must be installed before node
                 // This means dep has an outgoing edge to node in the dependency graph
                 // But for topological sort, we need to reverse the edges
@@ -415,7 +415,7 @@ impl DependencyResolver {
     pub fn format_dependency_tree(
         &self,
         package: &PackageMetadata,
-        repository_manager: &RepositoryManager,
+        _repository_manager: &RepositoryManager,
     ) -> String {
         let mut output = format!("{}@{}\n", package.name, package.version);
         

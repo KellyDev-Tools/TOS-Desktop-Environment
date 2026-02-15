@@ -5,7 +5,7 @@
 
 use crate::marketplace::{
     Marketplace, MarketplaceConfig, InstallRequest, ExportRequest, 
-    RepositoryConfig, PackageType, Template
+    RepositoryConfig
 };
 use std::path::PathBuf;
 
@@ -127,7 +127,7 @@ impl CliHandler {
     /// Handle marketplace commands
     async fn handle_marketplace(&self, command: MarketplaceCommand) -> Result<String, String> {
         match command {
-            MarketplaceCommand::Search { query, repository } => {
+            MarketplaceCommand::Search { query, repository: _repository } => {
                 let results = self.marketplace.search(&query).await
                     .map_err(|e| format!("Search failed: {}", e))?;
                 
@@ -205,7 +205,7 @@ impl CliHandler {
             }
             
             MarketplaceCommand::AddRepo { name, url } => {
-                let config = RepositoryConfig {
+                let _config = RepositoryConfig {
                     name: name.clone(),
                     url: url.clone(),
                     enabled: true,

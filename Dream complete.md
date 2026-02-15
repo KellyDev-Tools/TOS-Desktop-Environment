@@ -168,6 +168,16 @@ Remote sectors are enabled by the **TOS Remote Server**, a daemon installed on t
 - **Capabilities**: Full interaction (mouse/touch/keyboard) via WebSockets/WebRTC. No installation required on the client side.
 - **Security**: Portals can be password protected or require "Tactile Approval" on the host machine before a connection is established.
 
+#### 7.4.1 Live Feed Testing
+- **Purpose**: Real-time streaming of TOS state and test execution for observation, debugging, and demonstration.
+- **WebSocket Streaming**: State snapshots, performance metrics, and user interactions broadcast at 30 FPS.
+- **Test Recording**: Automatic capture of test sessions with state history, events, and performance data.
+- **Live Observation**: Watch tests execute in real-time via web browser without affecting the test environment.
+- **Replay Capability**: Recorded sessions can be replayed for analysis or documentation.
+- **Multi-Viewer Support**: Multiple clients can observe the same live feed simultaneously.
+- **Authentication**: Optional token-based access control for secure test environments.
+- **Integration**: Works with all accessibility features to show screen reader output, auditory cues, and motor input events.
+
 ---
 
 ## 8. Collaboration

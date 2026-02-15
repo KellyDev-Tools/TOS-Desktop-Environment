@@ -1,4 +1,4 @@
-use crate::{TosState, Viewport, RenderMode, ConnectionType};
+use crate::{TosState, Viewport, RenderMode};
 use super::ViewRenderer;
 
 pub struct RemoteDesktopRenderer;

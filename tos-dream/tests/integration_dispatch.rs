@@ -102,7 +102,7 @@ fn test_ipc_dangerous_command_block_integration() {
     let hub = &sector.hubs[0];
     
     // Should be blocked and pending confirmation
-    assert_eq!(hub.confirmation_required, Some("rm -rf /".to_string()));
+    assert!(hub.confirmation_required.as_ref().unwrap().contains("Risk: Critical"));
     
     // Verify renderer shows the dangerous overlay
     let html = s.render_current_view();

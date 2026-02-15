@@ -176,6 +176,9 @@ pub struct TosState {
     /// Phase 11: Shell API
     #[serde(skip)]
     pub shell_api: ShellApi,
+    /// Phase 11: Modular Shell Registry
+    #[serde(skip)]
+    pub shell_registry: system::shell::ShellRegistry,
     /// Phase 11: Security Manager
     #[serde(skip)]
     pub security: SecurityManager,
@@ -370,6 +373,7 @@ impl TosState {
             tactical_reset: TacticalReset::new(),
             voice: VoiceCommandProcessor::new(),
             shell_api: ShellApi::new(),
+            shell_registry: system::shell::ShellRegistry::new(),
             security: SecurityManager::new(),
         };
         
@@ -598,6 +602,14 @@ impl TosState {
                 self.current_level = HierarchyLevel::DetailInspector;
             }
         }
+    }
+
+    /// Process shell output and handle OSC sequences
+    pub fn process_shell_output(&mut self, output: &str) -> String {
+        let mut api = std::mem::take(&mut self.shell_api);
+        let clean = api.process_output(output, self);
+        self.shell_api = api;
+        clean
     }
 
     pub fn toggle_mode(&mut self, mode: CommandHubMode) {

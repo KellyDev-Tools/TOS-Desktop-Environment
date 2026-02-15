@@ -12,6 +12,7 @@ tracing = "0.1"
 tracing-subscriber = "0.3"
 anyhow = "1.0"
 libc = "0.2"
+dirs = "5.0"
 gilrs = { version = "0.10", optional = true }
 
 # Phase 8: Module System dependencies

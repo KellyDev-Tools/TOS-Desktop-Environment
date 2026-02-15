@@ -26,11 +26,13 @@ fn main() -> anyhow::Result<()> {
     
     // Create PTYs for initial hubs
     {
-        let state = state.lock().unwrap();
-        for sector in &state.sectors {
-            for hub in &sector.hubs {
-                if let Some(pty) = PtyHandle::spawn("/usr/bin/fish", ".") {
-                    ptys.lock().unwrap().insert(hub.id, pty);
+        let state_lock = state.lock().unwrap();
+        if let Some(fish) = state_lock.shell_registry.get("fish") {
+            for sector in &state_lock.sectors {
+                for hub in &sector.hubs {
+                    if let Some(pty) = fish.spawn(".") {
+                        ptys.lock().unwrap().insert(hub.id, pty);
+                    }
                 }
             }
         }

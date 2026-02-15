@@ -107,15 +107,20 @@ impl IpcDispatcher {
                 }
             }
             _ => {
-                let is_dangerous = cmd_full.contains("rm -rf") || cmd_full.contains(":(){ :|:& };:");
                 let viewport = &state.viewports[state.active_viewport_index];
                 let sector = &mut state.sectors[viewport.sector_index];
                 let hub = &mut sector.hubs[viewport.hub_index];
 
-                if is_dangerous && hub.confirmation_required.is_none() {
-                    println!("!! DANGEROUS COMMAND DETECTED: {}", cmd_full);
-                    hub.confirmation_required = Some(cmd_full.to_string());
-                    return;
+                // Use SecurityManager for dangerous command detection
+                if let Some((risk, pattern)) = state.security.check_command(cmd_full) {
+                    if hub.confirmation_required.is_none() {
+                        println!("!! DANGEROUS COMMAND DETECTED ({}): {}", pattern.name, cmd_full);
+                        hub.confirmation_required = Some(format!("{} (Risk: {:?})", pattern.message, risk));
+                        
+                        // Start a confirmation session
+                        state.security.start_confirmation(cmd_full, "host", sector.id);
+                        return;
+                    }
                 }
 
                 hub.confirmation_required = None;
@@ -155,8 +160,10 @@ impl IpcDispatcher {
         };
         state.add_sector(new_sector);
         
-        if let Some(pty) = PtyHandle::spawn("/usr/bin/fish", ".") {
-            self.ptys.lock().unwrap().insert(hub_id, pty);
+        if let Some(fish) = state.shell_registry.get("fish") {
+            if let Some(pty) = fish.spawn(".") {
+                self.ptys.lock().unwrap().insert(hub_id, pty);
+            }
         }
     }
 
@@ -177,8 +184,10 @@ impl IpcDispatcher {
         
         let hub_idx = sector.hubs.len() - 1;
 
-        if let Some(pty) = PtyHandle::spawn("/usr/bin/fish", ".") {
-            self.ptys.lock().unwrap().insert(new_hub_id, pty);
+        if let Some(fish) = state.shell_registry.get("fish") {
+            if let Some(pty) = fish.spawn(".") {
+                self.ptys.lock().unwrap().insert(new_hub_id, pty);
+            }
         }
 
         state.viewports.push(Viewport {

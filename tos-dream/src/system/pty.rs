@@ -55,6 +55,10 @@ impl PtyParser {
 
 impl PtyHandle {
     pub fn spawn(shell: &str, cwd: &str) -> Option<Self> {
+        Self::spawn_with_args(shell, &[], cwd)
+    }
+
+    pub fn spawn_with_args(shell: &str, args: &[&str], cwd: &str) -> Option<Self> {
         let (cmd_tx, cmd_rx) = channel::<PtyCommand>();
         let (event_tx, event_rx) = channel::<PtyEvent>();
 
@@ -85,8 +89,19 @@ impl PtyHandle {
             std::env::set_var("TOS_DREAM", "1");
 
             let shell_path = std::ffi::CString::new(shell).unwrap();
+            
+            // Prepare arguments: [shell, ...args, NULL]
+            let mut arg_cstrs = Vec::new();
+            arg_cstrs.push(shell_path.clone());
+            for arg in args {
+                arg_cstrs.push(std::ffi::CString::new(*arg).unwrap());
+            }
+            
+            let mut arg_ptrs: Vec<*const libc::c_char> = arg_cstrs.iter().map(|s| s.as_ptr()).collect();
+            arg_ptrs.push(std::ptr::null());
+
             unsafe {
-                libc::execl(shell_path.as_ptr(), shell_path.as_ptr(), std::ptr::null::<libc::c_char>());
+                libc::execv(shell_path.as_ptr(), arg_ptrs.as_ptr());
                 libc::_exit(127);
             }
         }
@@ -166,19 +181,42 @@ impl PtyHandle {
                 for (hub_id, pty) in ptys_lock.iter_mut() {
                     while let Ok(event) = pty.event_rx.try_recv() {
                         let mut state_lock = state.lock().unwrap();
-                        for sector in &mut state_lock.sectors {
-                            if let Some(hub) = sector.hubs.iter_mut().find(|h| h.id == *hub_id) {
-                                match event.clone() {
-                                    PtyEvent::Output(data) => {
-                                        hub.terminal_output.push(data);
-                                        if hub.terminal_output.len() > 100 { hub.terminal_output.remove(0); }
+                        
+                        // Find the target hub
+                        let (sector_idx, hub_idx) = if let Some(indices) = state_lock.sectors.iter().enumerate().find_map(|(s_idx, s)| {
+                            s.hubs.iter().enumerate().find_map(|(h_idx, h)| {
+                                if h.id == *hub_id { Some((s_idx, h_idx)) } else { None }
+                            })
+                        }) {
+                            indices
+                        } else {
+                            continue;
+                        };
+
+                        match event {
+                            PtyEvent::Output(data) => {
+                                // Use ShellApi to process output and handle OSC sequences
+                                let clean_output = state_lock.process_shell_output(&data);
+                                
+                                // Direct access to the hub to update terminal output after ShellApi processed it
+                                let hub = &mut state_lock.sectors[sector_idx].hubs[hub_idx];
+                                if !clean_output.is_empty() {
+                                    hub.terminal_output.push(clean_output);
+                                    if hub.terminal_output.len() > 100 {
+                                        hub.terminal_output.remove(0);
                                     }
-                                    PtyEvent::DirectoryChanged(path) => {
-                                        println!("Hub {} directory changed to: {}", hub.id, path);
-                                    }
-                                    _ => {}
                                 }
                             }
+                            PtyEvent::DirectoryChanged(path) => {
+                                // Manual override or legacy support
+                                let hub = &mut state_lock.sectors[sector_idx].hubs[hub_idx];
+                                tracing::debug!("Hub {} directory changed to: {}", hub.id, path);
+                            }
+                            PtyEvent::ProcessExited(code) => {
+                                let hub = &mut state_lock.sectors[sector_idx].hubs[hub_idx];
+                                hub.terminal_output.push(format!("\n[PROCESS EXITED WITH CODE {}]", code));
+                            }
+                            _ => {}
                         }
                     }
                 }

@@ -328,8 +328,10 @@ The Shell API enables bi‑directional communication between the Command Hub and
 - `SETENV <var=value>`: Set environment variable.
 
 ### 13.3 Reference Implementation
-- **Fish** is the reference shell, with a built‑in plugin.
-- Bash/Zsh plugins can be implemented using `PROMPT_COMMAND` and `preexec` hooks.
+- **Fish** is the reference shell, implemented as a modular **Shell Provider**.
+- Shell Providers supply the shell executable, integration scripts, and spawning logic.
+- Integration scripts are injected at launch (e.g., via `--init-command` or `source`) to enable bi-directional communication.
+- Bash/Zsh providers are supported through the same Shell Provider interface using `PROMPT_COMMAND` and `DEBUG` traps.
 
 ---
 

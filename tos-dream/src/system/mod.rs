@@ -15,5 +15,9 @@ pub mod shell;
 // Phase 11: Security and Dangerous Command Handling
 pub mod security;
 
+// Phase 12: Remote Sectors & Collaboration
+pub mod remote;
+pub mod collaboration;
+
 #[cfg(feature = "live-feed")]
 pub mod live_feed;

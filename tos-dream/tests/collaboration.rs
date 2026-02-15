@@ -1,4 +1,5 @@
 use tos_core::*;
+use tos_core::system::collaboration::*;
 
 #[test]
 fn test_sector_management() {
@@ -68,4 +69,45 @@ fn test_app_focus_by_id() {
     let html = state.render_current_view();
     println!("DEBUG HTML: {}", html);
     assert!(html.contains("STELLAR CARTOGRAPHY"));
+}
+
+#[test]
+fn test_invitation_system() {
+    let mut state = TosState::new();
+    let sector_id = state.sectors[0].id;
+    
+    // Create invitation
+    let token = state.collaboration_manager.create_invitation(sector_id, CollaborationRole::Operator);
+    assert!(!token.is_empty());
+    
+    // Redeem invitation
+    let result = state.collaboration_manager.redeem_invitation(&token);
+    assert!(result.is_some());
+    let (redeemed_sector, redeemed_role) = result.unwrap();
+    assert_eq!(redeemed_sector, sector_id);
+    assert_eq!(redeemed_role, CollaborationRole::Operator);
+    
+    // Token should now be used
+    let result_second = state.collaboration_manager.redeem_invitation(&token);
+    assert!(result_second.is_none());
+}
+
+#[test]
+fn test_rbac_permissions() {
+    let co_owner = CollaborationRole::CoOwner;
+    let operator = CollaborationRole::Operator;
+    let viewer = CollaborationRole::Viewer;
+    
+    let co_owner_perms = PermissionSet::for_role(co_owner);
+    let operator_perms = PermissionSet::for_role(operator);
+    let viewer_perms = PermissionSet::for_role(viewer);
+    
+    assert!(co_owner_perms.allow_sector_reset);
+    assert!(co_owner_perms.allow_shell_input);
+    
+    assert!(!operator_perms.allow_sector_reset);
+    assert!(operator_perms.allow_shell_input);
+    
+    assert!(!viewer_perms.allow_shell_input);
+    assert!(!viewer_perms.allow_app_launch);
 }

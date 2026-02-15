@@ -10,16 +10,23 @@ impl ViewRenderer for RemoteDesktopRenderer {
         let app = &hub.applications[viewport.active_app_index.unwrap_or(0)];
         
         let bezel_class = if viewport.bezel_expanded { "expanded" } else { "collapsed" };
+        let protocol_str = match sector.connection_type {
+            crate::ConnectionType::Local => "LOCAL",
+            crate::ConnectionType::TOSNative => "TOS-NATIVE",
+            crate::ConnectionType::SSH => "SSH-PTY",
+            crate::ConnectionType::HTTP => "HTTP-FALLBACK",
+        };
 
         let participants_html = sector.participants.iter().map(|p| {
-            format!(r#"<div class="participant-avatar" style="background: {};" title="{}"></div>"#, p.color, p.name)
+            format!(r#"<div class="participant-avatar" style="background: {};" title="{} ({})"></div>"#, 
+                p.color, p.name, p.role)
         }).collect::<String>();
 
         format!(
             r#"<div class="application-container remote-desktop-view render-{mode:?}">
                 <div class="tactical-bezel {bezel_class}">
                     <div class="bezel-top">
-                        <div class="bezel-title">{title} // {host} // FALLBACK-HTTP</div>
+                        <div class="bezel-title">{title} // {host} // {protocol}</div>
                         <div class="bezel-participants">{participants_html}</div>
                         <div class="bezel-handle" onclick="window.ipc.postMessage('toggle_bezel')">
                             <div class="chevron"></div>
@@ -41,6 +48,8 @@ impl ViewRenderer for RemoteDesktopRenderer {
                              </div>
                         </div>
                         <div class="bezel-group">
+                            <div class="bezel-btn" onclick="window.ipc.postMessage('invite_participant:Operator')">+ INVITE OPERATOR</div>
+                            <div class="bezel-btn" onclick="window.ipc.postMessage('invite_participant:Viewer')">+ INVITE VIEWER</div>
                             <div class="bezel-btn danger">TERMINATE LINK</div>
                         </div>
                     </div>
@@ -49,7 +58,7 @@ impl ViewRenderer for RemoteDesktopRenderer {
                     <div class="remote-desktop-placeholder">
                         <div class="status-indicator ripple"></div>
                         <div class="link-label">RECEIVING STREAM: {host}</div>
-                        <div class="link-sub">PROTOCOL: HTTP-FALLBACK // NO-FS-SYNC</div>
+                        <div class="link-sub">PROTOCOL: {protocol} // SYNC-ACTIVE</div>
                         
                         <div class="desktop-mock-ui">
                             <div class="mock-window"></div>
@@ -62,6 +71,7 @@ impl ViewRenderer for RemoteDesktopRenderer {
             bezel_class = bezel_class,
             title = app.title.to_uppercase(),
             host = sector.host,
+            protocol = protocol_str,
             participants_html = participants_html
         )
     }

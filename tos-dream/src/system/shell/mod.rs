@@ -3,6 +3,7 @@ use crate::system::shell_api::OscParser;
 use uuid::Uuid;
 
 pub mod fish;
+pub mod ssh;
 
 /// Trait for shell providers
 pub trait ShellProvider: std::fmt::Debug + Send + Sync {
@@ -31,6 +32,7 @@ impl ShellRegistry {
             providers: std::collections::HashMap::new(),
         };
         registry.register(Box::new(fish::FishShellProvider::new()));
+        registry.register(Box::new(ssh::SshShellProvider::new()));
         registry
     }
 

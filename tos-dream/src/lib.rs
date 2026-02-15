@@ -18,6 +18,10 @@ use system::shell_api::ShellApi;
 use system::security::SecurityManager;
 use ui::minimap::MiniMap;
 
+// Phase 12 imports
+use system::remote::RemoteManager;
+use system::collaboration::CollaborationManager;
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum HierarchyLevel {
     GlobalOverview,
@@ -182,6 +186,12 @@ pub struct TosState {
     /// Phase 11: Security Manager
     #[serde(skip)]
     pub security: SecurityManager,
+    /// Phase 12: Remote Manager
+    #[serde(skip)]
+    pub remote_manager: RemoteManager,
+    /// Phase 12: Collaboration Manager
+    #[serde(skip)]
+    pub collaboration_manager: CollaborationManager,
 }
 
 impl std::fmt::Debug for TosState {
@@ -375,6 +385,9 @@ impl TosState {
             shell_api: ShellApi::new(),
             shell_registry: system::shell::ShellRegistry::new(),
             security: SecurityManager::new(),
+            // Phase 12: Initialize new components
+            remote_manager: RemoteManager::new(),
+            collaboration_manager: CollaborationManager::new(),
         };
         
         // Initialize all loaded modules

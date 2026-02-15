@@ -2,7 +2,9 @@ use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
 use uuid::Uuid;
 use crate::system::pty::PtyHandle;
-use crate::{TosState, CommandHubMode, HierarchyLevel, system::input::SemanticEvent, Sector, CommandHub, Application, Viewport, ConnectionType};
+use crate::system::remote::{RemoteNodeInfo, RemoteStatus};
+use crate::system::collaboration::{CollaborationRole, PermissionSet};
+use crate::{TosState, CommandHubMode, HierarchyLevel, system::input::SemanticEvent, Sector, CommandHub, Application, Viewport, ConnectionType, Participant};
 
 pub struct IpcDispatcher {
     pub state: Arc<Mutex<TosState>>,
@@ -63,6 +65,12 @@ impl IpcDispatcher {
             state.handle_semantic_event(SemanticEvent::TacticalReset);
         } else if request.starts_with("semantic_event:") {
             self.handle_semantic_event(&mut state, &request[15..]);
+        } else if request.starts_with("connect_remote:") {
+            let addr = &request[15..];
+            self.handle_connect_remote(&mut state, addr);
+        } else if request.starts_with("invite_participant:") {
+            let role_str = &request[19..];
+            self.handle_invite_participant(&mut state, role_str);
         } else {
             // Legacy/Direct zoom fallback
             match request {
@@ -132,39 +140,93 @@ impl IpcDispatcher {
     }
 
     fn handle_add_remote_sector(&self, state: &mut TosState) {
-        let hub_id = Uuid::new_v4();
-        let new_sector = Sector {
-            id: Uuid::new_v4(),
-            name: "Command Remote".to_string(),
-            color: "#cc6666".to_string(),
-            hubs: vec![CommandHub {
-                id: hub_id,
-                mode: CommandHubMode::Command,
-                prompt: String::new(),
-                applications: vec![Application {
-                    id: Uuid::new_v4(),
-                    title: "Remote Shell".to_string(),
-                    app_class: "tos.remote".to_string(),
-                    is_minimized: false,
-                }],
-                active_app_index: Some(0),
-                terminal_output: Vec::new(),
-                confirmation_required: None,
-            }],
-            active_hub_index: 0,
-            host: "10.0.4.15".to_string(),
-            connection_type: ConnectionType::SSH,
-            participants: Vec::new(),
-            portal_active: false,
-            portal_url: None,
+        // Use RemoteManager to register and connect to a mock node
+        let node_id = Uuid::new_v4();
+        let info = RemoteNodeInfo {
+            id: node_id,
+            hostname: "REMOTE-NODE-01".to_string(),
+            address: "10.0.4.15".to_string(),
+            os_type: "TOS".to_string(),
+            version: "1.0.0".to_string(),
+            status: RemoteStatus::Online,
         };
-        state.add_sector(new_sector);
-        
-        if let Some(fish) = state.shell_registry.get("fish") {
-            if let Some(pty) = fish.spawn(".") {
-                self.ptys.lock().unwrap().insert(hub_id, pty);
+
+        state.remote_manager.register_node(info);
+        if let Ok(_) = state.remote_manager.connect(node_id, ConnectionType::SSH) {
+            if let Some(sector) = state.remote_manager.create_remote_sector(node_id) {
+                let hub_id = sector.hubs[0].id;
+                let host = sector.host.clone();
+                state.add_sector(sector);
+
+                // Spawn a shell for the remote (Real SSH)
+                if let Some(ssh) = state.shell_registry.get("ssh") {
+                    // We need a way to pass the host to the ssh provider.
+                    // For now, we'll use a hack or update the trait.
+                    // Actually, if we have the SshShellProvider, we can try to cast it
+                    // or just use a generic command if we update the trait.
+                    
+                    // Simple approach: look for 'ssh' in registry and use it.
+                    // Since we can't easily downcast Box<dyn ShellProvider>, 
+                    // let's just use PtyHandle directly here if it's SSH.
+                    
+                    let pty = if host != "LOCAL" {
+                        crate::system::pty::PtyHandle::spawn_with_args("/usr/bin/ssh", &["-t", &host], ".")
+                    } else {
+                        state.shell_registry.get("fish").and_then(|f| f.spawn("."))
+                    };
+
+                    if let Some(pty) = pty {
+                        self.ptys.lock().unwrap().insert(hub_id, pty);
+                    }
+                }
             }
         }
+    }
+
+    fn handle_connect_remote(&self, state: &mut TosState, address: &str) {
+        // Attempt to link to a specific address
+        let node_id = Uuid::new_v4();
+        let info = RemoteNodeInfo {
+            id: node_id,
+            hostname: format!("REMOTE-{}", address),
+            address: address.to_string(),
+            os_type: "TOS".to_string(),
+            version: "1.0.0".to_string(),
+            status: RemoteStatus::Online,
+        };
+
+        state.remote_manager.register_node(info);
+        if let Ok(_) = state.remote_manager.connect(node_id, ConnectionType::TOSNative) {
+            if let Some(sector) = state.remote_manager.create_remote_sector(node_id) {
+                state.add_sector(sector);
+                println!("TOS // ESTABLISHED NATIVE LINK TO {}", address);
+            }
+        }
+    }
+
+    fn handle_invite_participant(&self, state: &mut TosState, role_str: &str) {
+        let role = match role_str {
+            "CoOwner" => CollaborationRole::CoOwner,
+            "Operator" => CollaborationRole::Operator,
+            "Viewer" => CollaborationRole::Viewer,
+            _ => CollaborationRole::Viewer,
+        };
+
+        let sector_idx = state.viewports[state.active_viewport_index].sector_index;
+        let sector_id = state.sectors[sector_idx].id;
+
+        let token = state.collaboration_manager.create_invitation(sector_id, role);
+        println!("TOS // INVITATION CREATED FOR {:?}: {}", role, token);
+        
+        // Mock: Automatically add the participant for demo purposes
+        let p_id = Uuid::new_v4();
+        state.sectors[sector_idx].participants.push(Participant {
+            name: format!("Guest-{}", &token[..4]),
+            color: "#00ffcc".to_string(),
+            role: role.as_str().to_string(),
+        });
+        
+        state.collaboration_manager.sessions.insert(p_id, PermissionSet::for_role(role));
     }
 
     fn handle_split_viewport(&self, state: &mut TosState) {

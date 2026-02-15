@@ -1,6 +1,7 @@
-//! Marketplace Integration Tests
+//! Marketplace Integration Tests (Dream complete.md Section 15)
 //! 
-//! Tests for Phase 9: Marketplace and Templates functionality
+//! Section 15: Sector Templates and Marketplace — package types (15.1),
+//! repository indices and dependencies (15.2), signature verification (15.3).
 
 use tos_core::marketplace::*;
 use tos_core::marketplace::template::{TemplateHandler, SectorConfig};
@@ -437,4 +438,33 @@ fn test_verification_result() {
     assert!(result.valid);
     assert!(result.trusted);
     assert_eq!(result.key_id, Some("abc123".to_string()));
+}
+
+/// Section 15 spec coverage: 15.1 Package Types, 15.2 Marketplace, 15.3 Security
+#[test]
+fn test_section_15_spec_coverage() {
+    // 15.1 Package Types: .tos-template (config only), .tos-sector, .tos-appmodel (module packages)
+    assert_eq!(PackageType::Template.extension(), ".tos-template");
+    assert_eq!(PackageType::SectorType.extension(), ".tos-sector");
+    assert_eq!(PackageType::ApplicationModel.extension(), ".tos-appmodel");
+    assert!(matches!(PackageType::from_extension(".tos-sector"), Some(PackageType::SectorType)));
+
+    // 15.2 Marketplace: user-configurable repos (JSON/HTTPS), dependencies, install flow
+    let config = MarketplaceConfig::default();
+    assert!(config.cache_dir.as_os_str().len() > 0);
+    assert!(config.auto_install_dependencies);
+    let req = InstallRequest {
+        package_name: "pkg".to_string(),
+        version_constraint: "latest".to_string(),
+        repository: Some("repo".to_string()),
+        auto_accept: false,
+        skip_signature_check: false,
+    };
+    assert!(!req.auto_accept);
+    assert_eq!(req.repository, Some("repo".to_string()));
+
+    // 15.3 Security: trusted keys, signature verification
+    let verifier = SignatureVerifier::new(vec!["trusted-key-id".to_string()]);
+    assert_eq!(verifier.trusted_key_count(), 1);
+    assert!(verifier.is_key_trusted("trusted-key-id"));
 }

@@ -1,20 +1,18 @@
-//! TOS Marketplace and Templates System
+//! TOS Marketplace and Templates System (Dream complete.md Section 15)
 //! 
-//! Phase 9 Implementation: Provides package management, repository handling,
-//! template export/import, and digital signature verification for TOS modules.
+//! ## 15.1 Package Types
+//! - **Sector Template** (`.tos-template`): Configuration only; exported from any sector.
+//! - **Sector Type** (`.tos-sector`): Module package.
+//! - **Application Model** (`.tos-appmodel`): Module package.
 //! 
-//! ## Package Types
+//! ## 15.2 Marketplace
+//! - User-configurable repository indices (JSON over HTTPS).
+//! - Manual download; installation shows warnings for code-containing packages and permission requests.
+//! - Dependencies checked and can be auto-installed from the same repository.
 //! 
-//! - **Sector Template** (`.tos-template`): Configuration-only export from any sector
-//! - **Sector Type** (`.tos-sector`): Module package containing code and metadata
-//! - **Application Model** (`.tos-appmodel`): Application model module package
-//! 
-//! ## Security
-//! 
-//! - SHA256 checksum verification
-//! - Minisign signature verification
-//! - Permission prompts for installation
-//! - Optional containerization for code packages
+//! ## 15.3 Security
+//! - Code packages sandboxed via module API and optional containerization.
+//! - Signatures (GPG/minisign) verifiable when user imports trusted keys.
 
 use serde::{Deserialize, Serialize};
 use std::path::{Path, PathBuf};

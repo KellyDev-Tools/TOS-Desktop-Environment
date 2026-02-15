@@ -36,6 +36,9 @@ tao = { version = "0.27", optional = true }
 # Phase 10: Accessibility and Live Feed dependencies
 # Audio/earcons - using rodio for cross-platform audio
 rodio = { version = "0.17", optional = true }
+
+# Phase 11: Security and Shell API dependencies
+regex = "1.10"
 # WebSocket for live feed streaming
 tokio-tungstenite = { version = "0.21", optional = true }
 # TTS - using speech-dispatcher for Linux

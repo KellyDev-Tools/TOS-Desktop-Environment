@@ -34,6 +34,9 @@ pub enum SemanticEvent {
     SubmitPrompt,
     HistoryPrev,
     HistoryNext,
+
+    // Voice
+    VoiceCommandStart,
 }
 
 #[cfg(feature = "gamepad")]

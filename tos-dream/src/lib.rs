@@ -11,6 +11,13 @@ use system::input::SemanticEvent;
 use modules::{ModuleRegistry, ModuleState, ModuleManifest};
 use serde::{Deserialize, Serialize};
 
+// Phase 11 imports
+use system::reset::TacticalReset;
+use system::voice::VoiceCommandProcessor;
+use system::shell_api::ShellApi;
+use system::security::SecurityManager;
+use ui::minimap::MiniMap;
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum HierarchyLevel {
     GlobalOverview,
@@ -157,6 +164,21 @@ pub struct TosState {
     #[serde(skip)]
     #[cfg(feature = "live-feed")]
     pub live_feed: Option<system::live_feed::LiveFeedServer>,
+    /// Phase 11: Tactical Mini-Map
+    #[serde(skip)]
+    pub minimap: MiniMap,
+    /// Phase 11: Tactical Reset
+    #[serde(skip)]
+    pub tactical_reset: TacticalReset,
+    /// Phase 11: Voice Command Processor
+    #[serde(skip)]
+    pub voice: VoiceCommandProcessor,
+    /// Phase 11: Shell API
+    #[serde(skip)]
+    pub shell_api: ShellApi,
+    /// Phase 11: Security Manager
+    #[serde(skip)]
+    pub security: SecurityManager,
 }
 
 impl std::fmt::Debug for TosState {
@@ -343,6 +365,12 @@ impl TosState {
             accessibility: None,
             #[cfg(feature = "live-feed")]
             live_feed: None,
+            // Phase 11: Initialize new components
+            minimap: MiniMap::new(),
+            tactical_reset: TacticalReset::new(),
+            voice: VoiceCommandProcessor::new(),
+            shell_api: ShellApi::new(),
+            security: SecurityManager::new(),
         };
         
         // Initialize all loaded modules
@@ -658,10 +686,21 @@ impl TosState {
             }
         }
         
+        // Phase 11: Handle voice activation
+        if let SemanticEvent::VoiceCommandStart = event {
+            self.voice.simulate_wake_word();
+            return;
+        }
+        
         match event {
             SemanticEvent::ZoomIn => self.zoom_in(),
             SemanticEvent::ZoomOut => self.zoom_out(),
-            SemanticEvent::TacticalReset => self.tactical_reset(),
+            SemanticEvent::TacticalReset => {
+                // Phase 11: Use enhanced tactical reset
+                let mut reset = std::mem::take(&mut self.tactical_reset);
+                let _ = reset.initiate_sector_reset(self);
+                self.tactical_reset = reset;
+            }
             SemanticEvent::ToggleBezel => self.toggle_bezel(),
             SemanticEvent::ModeCommand => self.toggle_mode(CommandHubMode::Command),
             SemanticEvent::ModeDirectory => self.toggle_mode(CommandHubMode::Directory),
@@ -788,6 +827,38 @@ impl TosState {
         }
     }
 
+    /// Phase 11: Toggle mini-map activation
+    pub fn toggle_minimap(&mut self) {
+        self.minimap.toggle();
+    }
+
+    /// Phase 11: Process voice text command
+    pub fn process_voice_command(&mut self, text: &str) -> Option<system::voice::VoiceCommand> {
+        if let Some(cmd) = self.voice.process_text(text) {
+            let event = cmd.event.clone();
+            self.voice.execute_command(cmd.clone());
+            self.handle_semantic_event(event);
+            Some(cmd)
+        } else {
+            None
+        }
+    }
+
+    /// Phase 11: Check if command is dangerous
+    pub fn check_command_security(&self, command: &str) -> Option<(system::security::RiskLevel, String)> {
+        self.security.check_command(command)
+            .map(|(risk, pattern)| (risk, pattern.message.clone()))
+    }
+
+    /// Phase 11: Start security confirmation for command
+    pub fn start_security_confirmation(&mut self, command: &str) -> Option<uuid::Uuid> {
+        let viewport = &self.viewports[self.active_viewport_index];
+        let sector_id = self.sectors[viewport.sector_index].id;
+        let user = "current_user".to_string(); // Would get from auth system
+        
+        self.security.start_confirmation(command, &user, sector_id)
+            .map(|session| session.id)
+    }
 
     pub fn render_performance_overlay(&self) -> String {
         ui::render::render_performance_overlay(self.fps, self.performance_alert)
@@ -966,7 +1037,7 @@ mod tests {
         
         // Test Tactical Reset
         state.handle_semantic_event(SemanticEvent::TacticalReset);
-        assert_eq!(state.current_level, HierarchyLevel::GlobalOverview);
+        assert_eq!(state.current_level, HierarchyLevel::CommandHub);
     }
     #[test]
     fn test_render_modes() {

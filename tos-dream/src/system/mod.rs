@@ -2,5 +2,17 @@ pub mod input;
 pub mod pty;
 pub mod ipc;
 
+// Phase 11: Enhanced Tactical Reset
+pub mod reset;
+
+// Phase 11: Voice Command System
+pub mod voice;
+
+// Phase 11: Shell API
+pub mod shell_api;
+
+// Phase 11: Security and Dangerous Command Handling
+pub mod security;
+
 #[cfg(feature = "live-feed")]
 pub mod live_feed;

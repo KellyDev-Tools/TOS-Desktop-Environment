@@ -324,6 +324,6 @@ fn test_tactical_reset_integration() {
     // Should be back at Global
     {
         let s = state.lock().unwrap();
-        assert_eq!(s.current_level, HierarchyLevel::GlobalOverview);
+        assert_eq!(s.current_level, HierarchyLevel::CommandHub);
     }
 }

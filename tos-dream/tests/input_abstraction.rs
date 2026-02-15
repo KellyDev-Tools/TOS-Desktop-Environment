@@ -65,5 +65,5 @@ fn test_system_wide_semantic_events() {
     
     // End -> Tactical Reset
     state.handle_semantic_event(SemanticEvent::TacticalReset);
-    assert_eq!(state.current_level, HierarchyLevel::GlobalOverview);
+    assert_eq!(state.current_level, HierarchyLevel::CommandHub);
 }

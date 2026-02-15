@@ -40,6 +40,8 @@ rodio = { version = "0.17", optional = true }
 
 # Phase 11: Security and Shell API dependencies
 regex = "1.10"
+base64 = "0.22"
+rand = "0.8"
 # WebSocket for live feed streaming
 tokio-tungstenite = { version = "0.21", optional = true }
 # TTS - using speech-dispatcher for Linux

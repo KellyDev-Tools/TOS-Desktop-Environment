@@ -32,3 +32,7 @@ pub use input::advanced;
 
 #[cfg(feature = "live-feed")]
 pub mod live_feed;
+
+// Phase 16: Container Strategy & SaaS Architecture
+// Note: containers module is at crate root (src/containers/)
+// Re-exported in lib.rs

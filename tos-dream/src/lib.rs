@@ -7,6 +7,9 @@ pub mod cli;
 #[cfg(feature = "accessibility")]
 pub mod accessibility;
 
+// Phase 16: Container Strategy & SaaS Architecture
+pub mod containers;
+
 use system::input::SemanticEvent;
 use modules::{ModuleRegistry, ModuleState, ModuleManifest};
 use serde::{Deserialize, Serialize};
@@ -32,6 +35,12 @@ use system::audio::themes::ThemeManager;
 
 // Phase 15: Advanced Input
 use system::input::advanced::AdvancedInputManager;
+
+// Phase 16: Container Infrastructure
+use containers::{
+    ContainerManager, ContainerBackend,
+    sector::SectorContainerManager,
+};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum HierarchyLevel {
@@ -218,6 +227,12 @@ pub struct TosState {
     /// Phase 15: Advanced Input Manager
     #[serde(skip)]
     pub advanced_input: AdvancedInputManager,
+    /// Phase 16: Container Manager
+    #[serde(skip)]
+    pub container_manager: Option<ContainerManager>,
+    /// Phase 16: Sector Container Manager
+    #[serde(skip)]
+    pub sector_container_manager: Option<SectorContainerManager>,
 }
 
 impl std::fmt::Debug for TosState {
@@ -421,6 +436,9 @@ impl TosState {
             earcon_player: EarconPlayer::new(),
             sound_theme_manager: ThemeManager::new(),
             advanced_input: AdvancedInputManager::new(),
+            // Phase 16: Initialize container managers (lazy initialization)
+            container_manager: None,
+            sector_container_manager: None,
         };
         
         // Initialize all loaded modules

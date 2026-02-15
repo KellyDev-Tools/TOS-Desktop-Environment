@@ -23,6 +23,16 @@ use system::remote::RemoteManager;
 use system::collaboration::CollaborationManager;
 use system::audio::AudioManager;
 
+// Phase 15: Performance Monitoring
+use system::performance::PerformanceMonitor;
+
+// Phase 15: Auditory Interface
+use system::audio::earcons::EarconPlayer;
+use system::audio::themes::ThemeManager;
+
+// Phase 15: Advanced Input
+use system::input::advanced::AdvancedInputManager;
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum HierarchyLevel {
     GlobalOverview,
@@ -196,6 +206,18 @@ pub struct TosState {
     /// Phase 13: Audio Manager
     #[serde(skip)]
     pub audio_manager: AudioManager,
+    /// Phase 15: Performance Monitor
+    #[serde(skip)]
+    pub performance_monitor: PerformanceMonitor,
+    /// Phase 15: Earcon Player
+    #[serde(skip)]
+    pub earcon_player: EarconPlayer,
+    /// Phase 15: Sound Theme Manager
+    #[serde(skip)]
+    pub sound_theme_manager: ThemeManager,
+    /// Phase 15: Advanced Input Manager
+    #[serde(skip)]
+    pub advanced_input: AdvancedInputManager,
 }
 
 impl std::fmt::Debug for TosState {
@@ -394,6 +416,11 @@ impl TosState {
             collaboration_manager: CollaborationManager::new(),
             // Phase 13: Initialize new components
             audio_manager: AudioManager::new(),
+            // Phase 15: Initialize new components
+            performance_monitor: PerformanceMonitor::new(),
+            earcon_player: EarconPlayer::new(),
+            sound_theme_manager: ThemeManager::new(),
+            advanced_input: AdvancedInputManager::new(),
         };
         
         // Initialize all loaded modules

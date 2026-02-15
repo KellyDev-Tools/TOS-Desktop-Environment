@@ -2,6 +2,10 @@
 //! 
 //! Handles background ambience, UI sounds, and sector-specific spatial audio.
 
+// Phase 15: Auditory Interface submodules
+pub mod earcons;
+pub mod themes;
+
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use uuid::Uuid;

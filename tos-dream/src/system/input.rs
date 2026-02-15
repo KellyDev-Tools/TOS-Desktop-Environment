@@ -1,3 +1,6 @@
+// Phase 15: Advanced Input submodules
+pub mod advanced;
+
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]

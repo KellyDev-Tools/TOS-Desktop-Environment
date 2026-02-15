@@ -1,6 +1,8 @@
 pub mod system;
 pub mod ui;
 pub mod modules;
+pub mod marketplace;
+pub mod cli;
 
 use system::input::SemanticEvent;
 use modules::{ModuleRegistry, ModuleState, ModuleManifest};
@@ -141,6 +143,9 @@ pub struct TosState {
     /// Sector type registry
     #[serde(skip)]
     pub sector_type_registry: modules::sector_type::SectorTypeRegistry,
+    /// Marketplace for Phase 9
+    #[serde(skip)]
+    pub marketplace: marketplace::Marketplace,
 }
 
 impl std::fmt::Debug for TosState {
@@ -198,6 +203,12 @@ impl TosState {
         
         let mut sector_type_registry = modules::sector_type::SectorTypeRegistry::new();
         sector_type_registry.register_builtin_types();
+        
+        // Initialize marketplace
+        let marketplace = marketplace::Marketplace::new();
+        if let Err(e) = marketplace.initialize() {
+            tracing::warn!("Failed to initialize marketplace: {}", e);
+        }
         
         // Try to scan and load modules from default paths
         if let Ok(loaded) = module_registry.scan_and_load() {
@@ -316,6 +327,7 @@ impl TosState {
             module_registry,
             app_model_registry,
             sector_type_registry,
+            marketplace,
         };
         
         // Initialize all loaded modules

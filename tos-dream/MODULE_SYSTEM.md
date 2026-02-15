@@ -248,11 +248,230 @@ cd tos-dream
 cargo test modules::
 ```
 
+## Phase 9: Marketplace and Templates
+
+The TOS Marketplace provides package management, repository handling, and digital signature verification for modules and sector templates.
+
+### Package Types
+
+#### Sector Template (`.tos-template`)
+Configuration-only export from any sector:
+- Sector settings and preferences
+- Command hub configurations
+- Environment variables
+- Directory bookmarks
+- Command favorites
+
+#### Sector Type Package (`.tos-sector`)
+Module package containing:
+- Compiled or scripted sector type implementation
+- Manifest with metadata
+- Optional containerization configuration
+
+#### Application Model Package (`.tos-appmodel`)
+Module package containing:
+- Application model implementation
+- Custom bezel actions
+- Decoration policies
+- Command handlers
+
+### Repository System
+
+Repositories are JSON-based indexes served over HTTPS:
+
+```json
+{
+  "repository": {
+    "name": "tos-official",
+    "description": "Official TOS Module Repository",
+    "base_url": "https://marketplace.tos.dev/packages/",
+    "last_updated": "2024-01-15T10:00:00Z",
+    "tos_version": "0.1.0"
+  },
+  "packages": [
+    {
+      "name": "terminal-enhanced",
+      "versions": [
+        {
+          "version": "1.0.0",
+          "download_path": "terminal-enhanced-1.0.0.tos-appmodel",
+          "sha256": "abc123...",
+          "signature": "sig456...",
+          "dependencies": [],
+          "size": 10240
+        }
+      ],
+      "package_type": "app-model",
+      "description": "Enhanced terminal",
+      "author": "TOS Team",
+      "license": "MIT",
+      "tags": ["terminal", "productivity"]
+    }
+  ],
+  "version": "1.0"
+}
+```
+
+### Configuration
+
+Configure repositories in `~/.config/tos/marketplace.json`:
+
+```json
+{
+  "repositories": [
+    {
+      "name": "official",
+      "url": "https://marketplace.tos.dev",
+      "enabled": true,
+      "priority": 1
+    }
+  ],
+  "verify_signatures": true,
+  "auto_install_dependencies": true,
+  "trusted_keys": []
+}
+```
+
+### API Usage
+
+#### Search Packages
+
+```rust
+use tos_core::marketplace::{Marketplace, InstallRequest};
+
+let marketplace = Marketplace::new();
+let results = marketplace.search("terminal").await?;
+```
+
+#### Install Package
+
+```rust
+let request = InstallRequest {
+    package_name: "terminal-enhanced".to_string(),
+    version_constraint: "1.0.0".to_string(),
+    repository: None, // Search all repos
+    auto_accept: false,
+    skip_signature_check: false,
+};
+
+let result = marketplace.install(request).await?;
+println!("Installed to: {}", result.install_path.display());
+```
+
+#### Export Sector Template
+
+```rust
+use tos_core::marketplace::{ExportRequest, TemplateHandler};
+
+let handler = TemplateHandler::new();
+let request = ExportRequest {
+    sector_id: "my-sector".to_string(),
+    name: "dev-workspace".to_string(),
+    version: "1.0.0".to_string(),
+    output_path: PathBuf::from("dev-workspace.tos-template"),
+    description: "Development workspace".to_string(),
+    author: "Developer".to_string(),
+    license: "MIT".to_string(),
+    include_state: false,
+    tags: vec!["dev".to_string()],
+};
+
+let result = handler.export_sector(request)?;
+println!("Exported: {} ({} bytes)", result.template_path.display(), result.size);
+```
+
+#### Import Template
+
+```rust
+let template = handler.import_template(Path::new("dev-workspace.tos-template"))?;
+let sector_dir = handler.apply_template(&template, "new-sector")?;
+```
+
+### Security
+
+#### Signature Verification
+
+Packages can be signed with Minisign (Ed25519):
+
+```rust
+use tos_core::marketplace::SignatureVerifier;
+
+let mut verifier = SignatureVerifier::new(vec![]);
+verifier.add_trusted_key("RWQf6LRCGA9i53mlYecO4IzT51TGPpvWucNSCh1CBYm0+Ng0h0i0".to_string());
+verifier.save_trusted_key("official", "RWQf6L...")?;
+```
+
+#### Trust on First Use (TOFU)
+
+```rust
+use tos_core::marketplace::TofuKeyManager;
+
+let mut tofu = TofuKeyManager::new();
+if tofu.record_key("key_id", "public_key") {
+    println!("New key recorded");
+}
+```
+
+#### Checksum Verification
+
+All packages include SHA256 checksums verified during download:
+
+```rust
+let package_manager = PackageManager::new(cache_dir);
+let path = package_manager.download(&metadata).await?; // Verifies checksum
+```
+
+### Dependency Resolution
+
+Dependencies are automatically resolved and installed:
+
+```rust
+use tos_core::marketplace::DependencyResolver;
+
+let resolver = DependencyResolver::new();
+let deps = resolver.resolve(&package, &repository_manager).await?;
+```
+
+Dependency format in manifests:
+```toml
+dependencies = ["base-lib@1.0.0", "utils@>=2.0.0", "optional-lib@^3.0"]
+```
+
+### Lock Files
+
+Generate lock files for reproducible installations:
+
+```rust
+use tos_core::marketplace::LockFile;
+
+let lockfile = LockFile::new(packages);
+lockfile.save(Path::new("tos.lock"))?;
+```
+
+### CLI Commands (Future)
+
+```bash
+# Search marketplace
+tos marketplace search <query>
+
+# Install package
+tos marketplace install <package>[@<version>]
+
+# Export sector as template
+tos sector export <sector-name> --name <template-name>
+
+# List installed packages
+tos marketplace list
+
+# Update packages
+tos marketplace update
+```
+
 ## Future Enhancements
 
 - Full JavaScript runtime (quickjs/deno_core)
 - Full Lua runtime (mlua)
-- Module marketplace integration
-- Digital signature verification
-- Dependency auto-installation
-- Module update notifications
+- WebAssembly module support
+- Module sandboxing improvements
+- Peer-to-peer package sharing
+- Automated security scanning

@@ -119,3 +119,124 @@
     font-family: var(--font-mono);
     color: var(--lcars-blue);
 }
+
+/* Portal Approval Dialog - 7.4 Security Feature */
+.portal-approval-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.85);
+    backdrop-filter: blur(8px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+    animation: fadeIn 0.3s ease;
+}
+
+.approval-dialog {
+    background: linear-gradient(135deg, rgba(40, 40, 60, 0.95) 0%, rgba(20, 20, 40, 0.98) 100%);
+    border: 3px solid var(--lcars-orange);
+    border-radius: 20px;
+    padding: 40px;
+    max-width: 500px;
+    text-align: center;
+    box-shadow: 0 0 60px rgba(255, 153, 0, 0.3);
+    animation: slideIn 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.approval-title {
+    font-family: var(--font-mono);
+    font-size: 1.4rem;
+    font-weight: 800;
+    color: var(--lcars-orange);
+    margin-bottom: 20px;
+    letter-spacing: 2px;
+}
+
+.approval-message {
+    font-family: var(--font-main);
+    font-size: 1.1rem;
+    color: var(--lcars-text);
+    margin-bottom: 15px;
+    line-height: 1.5;
+}
+
+.approval-message strong {
+    color: var(--lcars-purple);
+    font-size: 1.3rem;
+    display: block;
+    margin-top: 10px;
+}
+
+.approval-warning {
+    font-family: var(--font-main);
+    font-size: 0.9rem;
+    color: var(--lcars-red);
+    background: rgba(204, 102, 102, 0.1);
+    border-left: 4px solid var(--lcars-red);
+    padding: 15px;
+    margin: 20px 0;
+    text-align: left;
+    border-radius: 0 10px 10px 0;
+}
+
+.approval-actions {
+    display: flex;
+    gap: 20px;
+    justify-content: center;
+    margin-top: 30px;
+}
+
+.approval-btn {
+    font-family: var(--font-mono);
+    font-size: 1rem;
+    font-weight: 800;
+    padding: 15px 40px;
+    border: none;
+    border-radius: 30px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+.approval-btn.approve {
+    background: var(--lcars-green);
+    color: black;
+}
+
+.approval-btn.approve:hover {
+    background: #66cc66;
+    box-shadow: 0 0 20px rgba(153, 204, 153, 0.5);
+    transform: scale(1.05);
+}
+
+.approval-btn.deny {
+    background: var(--lcars-red);
+    color: black;
+}
+
+.approval-btn.deny:hover {
+    background: #cc6666;
+    box-shadow: 0 0 20px rgba(204, 102, 102, 0.5);
+    transform: scale(1.05);
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+@keyframes slideIn {
+    from { 
+        opacity: 0;
+        transform: translateY(-30px) scale(0.95);
+    }
+    to { 
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+}

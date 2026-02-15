@@ -20,6 +20,38 @@ impl ViewRenderer for AppRenderer {
 
         let portal_active_class = if sector.portal_active { "active" } else { "" };
         let portal_label = if sector.portal_active { "DISABLE PORTAL" } else { "EXPORT PORTAL" };
+        
+        // Portal approval dialog for 7.4 security
+        let portal_approval_html = if state.is_portal_approval_pending() {
+            let sector_name = state.get_approval_requested_sector_name().unwrap_or_default();
+            format!(
+                r#"<div class="portal-approval-overlay">
+                    <div class="approval-dialog">
+                        <div class="approval-title">TACTICAL APPROVAL REQUIRED</div>
+                        <div class="approval-message">
+                            Web portal access requested for sector:<br>
+                            <strong>{}</strong>
+                        </div>
+                        <div class="approval-warning">
+                            ⚠️ This will expose the sector to external web access.<br>
+                            Tactile approval required on host machine.
+                        </div>
+                        <div class="approval-actions">
+                            <button class="approval-btn approve" onclick="window.ipc.postMessage('approve_portal')">
+                                ✓ APPROVE
+                            </button>
+                            <button class="approval-btn deny" onclick="window.ipc.postMessage('deny_portal')">
+                                ✗ DENY
+                            </button>
+                        </div>
+                    </div>
+                </div>"#,
+                sector_name
+            )
+        } else {
+            String::new()
+        };
+        
         let portal_info_html = if sector.portal_active {
             format!(
                 r#"<div class="bezel-status-panel">
@@ -39,7 +71,7 @@ impl ViewRenderer for AppRenderer {
             }
         }
 
-        format!(
+            format!(
             r#"<div class="application-container render-{mode:?}">
                 <div class="tactical-bezel {bezel_class}">
                     <div class="bezel-top">
@@ -72,6 +104,7 @@ impl ViewRenderer for AppRenderer {
                         </div>
                     </div>
                 </div>
+                {portal_approval_html}
                 <div class="application-surface" onclick="window.ipc.postMessage('zoom_in')">
                     <div class="app-mock-content">
                         APPLICATION DATA FEED: {title}
@@ -87,7 +120,9 @@ impl ViewRenderer for AppRenderer {
             module_content = module_content,
             portal_active_class = portal_active_class,
             portal_label = portal_label,
-            portal_info_html = portal_info_html
+            portal_info_html = portal_info_html,
+            portal_approval_html = portal_approval_html
         )
+
     }
 }

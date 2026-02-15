@@ -4,8 +4,8 @@ use tos_core::*;
 fn test_sector_management() {
     let mut state = TosState::new();
     
-    // Initial state: 2 sectors (Alpha, Science)
-    assert_eq!(state.sectors.len(), 2);
+    // Initial state: 3 sectors (Alpha, Science, Observation Hub)
+    assert_eq!(state.sectors.len(), 3);
     
     // Select second sector
     state.select_sector(1);
@@ -28,12 +28,14 @@ fn test_sector_management() {
         }],
         active_hub_index: 0,
         host: "LOCAL".to_string(),
-        is_remote: false,
+        connection_type: ConnectionType::Local,
         participants: Vec::new(),
+        portal_active: false,
+        portal_url: None,
     };
     state.add_sector(new_sector);
-    assert_eq!(state.sectors.len(), 3);
-    assert_eq!(state.sectors[2].name, "Engineering");
+    assert_eq!(state.sectors.len(), 4);
+    assert_eq!(state.sectors[3].name, "Engineering");
 }
 
 #[test]

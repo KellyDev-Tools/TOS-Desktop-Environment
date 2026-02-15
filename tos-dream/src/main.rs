@@ -1,12 +1,11 @@
 use tao::{
-    event::{Event, WindowEvent, DeviceEvent, ElementState},
+    event::{Event, WindowEvent, ElementState},
     event_loop::{ControlFlow, EventLoop},
     window::WindowBuilder,
-    keyboard::KeyCode,
 };
 use wry::WebViewBuilder;
 use tos_core::TosState;
-use tos_core::system::pty::{PtyHandle, PtyEvent};
+use tos_core::system::pty::PtyHandle;
 use tos_core::system::input::SemanticEvent;
 use std::sync::{Arc, Mutex};
 #[cfg(feature = "gamepad")]
@@ -14,8 +13,15 @@ use gilrs::{Gilrs, Event as GilrsEvent, Button};
 use std::collections::HashMap;
 
 fn main() -> anyhow::Result<()> {
+    let args: Vec<String> = std::env::args().collect();
+    let disable_security = args.iter().any(|arg| arg == "--disable-portal-security");
+
     // 1. Initialize System State
-    let state = Arc::new(Mutex::new(TosState::new()));
+    let state = {
+        let mut s = TosState::new();
+        s.portal_security_bypass = disable_security;
+        Arc::new(Mutex::new(s))
+    };
     let ptys: Arc<Mutex<HashMap<uuid::Uuid, PtyHandle>>> = Arc::new(Mutex::new(HashMap::new()));
     
     // Create PTYs for initial hubs
@@ -43,45 +49,38 @@ fn main() -> anyhow::Result<()> {
         .build(&event_loop)?;
 
     let webview = WebViewBuilder::new(&window)
-        .with_html(include_str!("../ui/index.html"))?
+        .with_html(include_str!("../ui/index.html"))
         .with_ipc_handler({
             let dispatcher = tos_core::system::ipc::IpcDispatcher::new(Arc::clone(&state), Arc::clone(&ptys));
-            move |request: &str| {
-                        }
-                        _ => println!("Unknown IPC command: {}", request),
-                    }
-                }
+            move |request: wry::http::Request<String>| {
+                dispatcher.handle_request(request.body());
             }
         })
         .build()?;
 
-    let webview = Arc::new(webview);
-
-    // 3. UI Update Loop (simple poll for this demo)
+    // 4. Main Event Loop with UI updates
     let state_update = Arc::clone(&state);
-    let webview_update = Arc::clone(&webview);
-    std::thread::spawn(move || {
-        loop {
+    let mut last_update = std::time::Instant::now();
+    
+    event_loop.run(move |event, _, control_flow| {
+        *control_flow = ControlFlow::Wait;
+
+        // Periodic UI update (every 100ms)
+        if last_update.elapsed().as_millis() >= 100 {
             let (html, current_level) = {
                 let s = state_update.lock().unwrap();
                 (s.render_current_view(), s.current_level)
             };
             
-            // Call the frontend transition engine
             let js = format!(
                 r#"window.updateView(`{}`, "{:?}");
                    document.querySelectorAll('.terminal-output').forEach(el => el.scrollTop = el.scrollHeight);"#,
                 html, current_level
             );
             
-            let _ = webview_update.evaluate_script(&js);
-            std::thread::sleep(std::time::Duration::from_millis(100));
+            let _ = webview.evaluate_script(&js);
+            last_update = std::time::Instant::now();
         }
-    });
-
-    // 4. Main Event Loop
-    event_loop.run(move |event, _, control_flow| {
-        *control_flow = ControlFlow::Wait;
 
         match event {
             Event::WindowEvent {
@@ -91,7 +90,7 @@ fn main() -> anyhow::Result<()> {
             Event::WindowEvent {
                 event: WindowEvent::KeyboardInput {
                     event: tao::event::KeyEvent {
-                        physical_key: tao::keyboard::PhysicalKey::Code(code),
+                        physical_key,
                         state: ElementState::Pressed,
                         ..
                     },
@@ -99,17 +98,21 @@ fn main() -> anyhow::Result<()> {
                 },
                 ..
             } => {
-                let mut state = state.lock().unwrap();
-                match code {
-                    KeyCode::PageUp => state.handle_semantic_event(SemanticEvent::ZoomIn),
-                    KeyCode::PageDown => state.handle_semantic_event(SemanticEvent::ZoomOut),
-                    KeyCode::Home => state.handle_semantic_event(SemanticEvent::OpenGlobalOverview),
-                    KeyCode::End => state.handle_semantic_event(SemanticEvent::TacticalReset),
-                    KeyCode::F1 => state.handle_semantic_event(SemanticEvent::ModeCommand),
-                    KeyCode::F2 => state.handle_semantic_event(SemanticEvent::ModeDirectory),
-                    KeyCode::F3 => state.handle_semantic_event(SemanticEvent::ModeActivity),
-                    KeyCode::F4 => state.handle_semantic_event(SemanticEvent::ToggleBezel),
-                    _ => {}
+                if let tao::keyboard::KeyCode::Unidentified(_) = physical_key {
+                    // Handle unidentified keys
+                } else {
+                    let mut state = state_update.lock().unwrap();
+                    match physical_key {
+                        tao::keyboard::KeyCode::PageUp => state.handle_semantic_event(SemanticEvent::ZoomIn),
+                        tao::keyboard::KeyCode::PageDown => state.handle_semantic_event(SemanticEvent::ZoomOut),
+                        tao::keyboard::KeyCode::Home => state.handle_semantic_event(SemanticEvent::OpenGlobalOverview),
+                        tao::keyboard::KeyCode::End => state.handle_semantic_event(SemanticEvent::TacticalReset),
+                        tao::keyboard::KeyCode::F1 => state.handle_semantic_event(SemanticEvent::ModeCommand),
+                        tao::keyboard::KeyCode::F2 => state.handle_semantic_event(SemanticEvent::ModeDirectory),
+                        tao::keyboard::KeyCode::F3 => state.handle_semantic_event(SemanticEvent::ModeActivity),
+                        tao::keyboard::KeyCode::F4 => state.handle_semantic_event(SemanticEvent::ToggleBezel),
+                        _ => {}
+                    }
                 }
             }
             _ => (),

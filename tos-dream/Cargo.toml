@@ -15,8 +15,8 @@ libc = "0.2"
 gilrs = { version = "0.10", optional = true }
 
 # GUI dependencies (optional for headless testing)
-wry = { version = "0.35", optional = true }
-tao = { version = "0.25", optional = true }
+wry = { version = "0.40", optional = true }
+tao = { version = "0.27", optional = true }
 
 [features]
 default = ["gui"]

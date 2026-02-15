@@ -45,6 +45,10 @@ impl IpcDispatcher {
             state.toggle_bezel();
         } else if request == "toggle_portal" {
             state.toggle_portal();
+        } else if request == "approve_portal" {
+            state.approve_portal();
+        } else if request == "deny_portal" {
+            state.deny_portal();
         } else if request == "split_viewport" {
             self.handle_split_viewport(&mut state);
         } else if request == "zoom_in" {

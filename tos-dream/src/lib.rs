@@ -126,6 +126,8 @@ pub struct TosState {
     pub performance_alert: bool,
     #[serde(skip)]
     pub modules: Vec<Box<dyn TosModule>>,
+    pub portal_security_bypass: bool,
+    pub approval_requested_sector: Option<uuid::Uuid>,
 }
 
 #[derive(Debug)]
@@ -265,6 +267,8 @@ impl TosState {
             fps: 60.0,
             performance_alert: false,
             modules: Vec::new(),
+            portal_security_bypass: false,
+            approval_requested_sector: None,
         }
     }
 
@@ -282,13 +286,50 @@ impl TosState {
 
     pub fn toggle_portal(&mut self) {
         let viewport = &self.viewports[self.active_viewport_index];
-        let sector = &mut self.sectors[viewport.sector_index];
-        sector.portal_active = !sector.portal_active;
-        if sector.portal_active {
-            sector.portal_url = Some(format!("https://tos.grid/portal/{}", &sector.id.to_string()[..8]));
-        } else {
-            sector.portal_url = None;
+        let sector_id = self.sectors[viewport.sector_index].id;
+        
+        if self.sectors[viewport.sector_index].portal_active {
+             let sector = &mut self.sectors[viewport.sector_index];
+             sector.portal_active = false;
+             sector.portal_url = None;
+             return;
         }
+
+        if self.portal_security_bypass {
+            self.activate_portal_inner(viewport.sector_index);
+        } else {
+            self.approval_requested_sector = Some(sector_id);
+        }
+    }
+
+    fn activate_portal_inner(&mut self, sector_index: usize) {
+        let sector = &mut self.sectors[sector_index];
+        sector.portal_active = true;
+        sector.portal_url = Some(format!("https://tos.grid/portal/{}", &sector.id.to_string()[..8]));
+        self.approval_requested_sector = None;
+    }
+
+    pub fn approve_portal(&mut self) {
+        if let Some(id) = self.approval_requested_sector {
+            if let Some(idx) = self.sectors.iter().position(|s| s.id == id) {
+                self.activate_portal_inner(idx);
+            }
+        }
+    }
+
+    pub fn deny_portal(&mut self) {
+        self.approval_requested_sector = None;
+    }
+
+    pub fn is_portal_approval_pending(&self) -> bool {
+        let viewport = &self.viewports[self.active_viewport_index];
+        self.approval_requested_sector == Some(self.sectors[viewport.sector_index].id)
+    }
+
+    pub fn get_approval_requested_sector_name(&self) -> Option<String> {
+        self.approval_requested_sector.and_then(|id| {
+            self.sectors.iter().find(|s| s.id == id).map(|s| s.name.clone())
+        })
     }
 
     pub fn zoom_in(&mut self) {
@@ -520,7 +561,7 @@ mod tests {
         let state = TosState::new();
         assert_eq!(state.current_level, HierarchyLevel::GlobalOverview);
         assert_eq!(state.viewports.len(), 1);
-        assert_eq!(state.sectors.len(), 2);
+        assert_eq!(state.sectors.len(), 3);
     }
 
     #[test]

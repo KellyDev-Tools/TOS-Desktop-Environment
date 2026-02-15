@@ -77,7 +77,7 @@ fn test_ipc_remote_sector_integration() {
     
     let s = state.lock().unwrap();
     assert_eq!(s.sectors.len(), initial_sector_count + 1);
-    assert!(s.sectors.last().unwrap().is_remote);
+    assert!(matches!(s.sectors.last().unwrap().connection_type, tos_core::ConnectionType::SSH));
     
     // Verify renderer shows remote status
     let html = s.render_current_view(); // Global Overview
@@ -230,25 +230,25 @@ fn test_performance_alert_integration() {
     let ptys = Arc::new(Mutex::new(HashMap::<uuid::Uuid, tos_core::system::pty::PtyHandle>::new()));
     let dispatcher = IpcDispatcher::new(Arc::clone(&state), Arc::clone(&ptys));
 
-    // Trigger performance alert
-    {
+    // Trigger performance alert and render view
+    let html = {
         let mut s = state.lock().unwrap();
         s.performance_alert = true;
         s.fps = 15.2;
-    }
-
-    let s = state.lock().unwrap();
-    let html = s.render_current_view();
+        s.render_current_view()
+    };
 
     // Verify tactical alert overlay is present
     assert!(html.contains("PERFORMANCE CRITICAL"));
     assert!(html.contains("15.2"));
 
-    // Test IPC optimization action
+    // Test IPC optimization action (lock released above, so dispatcher can acquire it)
     dispatcher.handle_request("optimize_system");
-    let s2 = state.lock().unwrap();
-    assert_eq!(s2.performance_alert, false);
-    assert_eq!(s2.fps, 60.0);
+    
+    // Verify optimization was applied
+    let s = state.lock().unwrap();
+    assert_eq!(s.performance_alert, false);
+    assert_eq!(s.fps, 60.0);
 }
 
 #[test]

@@ -26,8 +26,11 @@ pub enum SemanticEvent {
     SplitViewport,
     CloseViewport,
     
-    // System
+    // System (Section 14: Tactical Reset)
+    /// Level 1: Sector reset (Super+Backspace)
     TacticalReset,
+    /// Level 2: System reset dialog (Super+Alt+Backspace)
+    SystemReset,
     OpenGlobalOverview,
     
     // Text

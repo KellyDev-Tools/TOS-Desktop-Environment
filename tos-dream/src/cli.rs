@@ -18,6 +18,8 @@ pub enum CliCommand {
     Sector(SectorCommand),
     /// Module operations
     Module(ModuleCommand),
+    /// System operations (Section 14: Tactical Reset)
+    System(SystemCommand),
 }
 
 /// Marketplace subcommands
@@ -59,6 +61,8 @@ pub enum MarketplaceCommand {
 /// Sector subcommands
 #[derive(Debug)]
 pub enum SectorCommand {
+    /// Level 1 tactical reset: current sector only (Section 14.1)
+    Reset,
     /// Export a sector as template
     Export {
         sector_id: String,
@@ -78,6 +82,13 @@ pub enum SectorCommand {
         template_path: PathBuf,
         sector_name: String,
     },
+}
+
+/// System subcommands (Section 14: Tactical Reset)
+#[derive(Debug)]
+pub enum SystemCommand {
+    /// Level 2 tactical reset: compositor restart / logout dialog (Section 14.2)
+    Reset,
 }
 
 /// Module subcommands
@@ -121,6 +132,7 @@ impl CliHandler {
             CliCommand::Marketplace(cmd) => self.handle_marketplace(cmd).await,
             CliCommand::Sector(cmd) => self.handle_sector(cmd),
             CliCommand::Module(cmd) => self.handle_module(cmd),
+            CliCommand::System(cmd) => self.handle_system(cmd),
         }
     }
     
@@ -253,6 +265,9 @@ impl CliHandler {
     /// Handle sector commands
     fn handle_sector(&self, command: SectorCommand) -> Result<String, String> {
         match command {
+            SectorCommand::Reset => {
+                Ok("Sector reset requested (Level 1). In TOS GUI: Super+Backspace or on-screen control.".to_string())
+            }
             SectorCommand::Export { sector_id, name, output, description, author } => {
                 let request = ExportRequest {
                     sector_id: sector_id.clone(),
@@ -332,6 +347,15 @@ impl CliHandler {
         }
     }
     
+    /// Handle system commands (Section 14: Tactical Reset)
+    fn handle_system(&self, command: SystemCommand) -> Result<String, String> {
+        match command {
+            SystemCommand::Reset => {
+                Ok("System reset requested (Level 2). In TOS GUI: Super+Alt+Backspace or on-screen dialog.".to_string())
+            }
+        }
+    }
+
     /// Handle module commands
     fn handle_module(&self, command: ModuleCommand) -> Result<String, String> {
         match command {
@@ -370,6 +394,7 @@ impl CliHandler {
             "marketplace" | "mp" => self.parse_marketplace_args(args),
             "sector" | "s" => self.parse_sector_args(args),
             "module" | "m" => self.parse_module_args(args),
+            "system" => self.parse_system_args(args),
             _ => Err(format!("Unknown command: {}", args[1])),
         }
     }
@@ -470,10 +495,22 @@ impl CliHandler {
                     sector_name: args[4].clone(),
                 }
             }
+            "reset" | "r" => SectorCommand::Reset,
             _ => return Err(format!("Unknown sector command: {}", args[2])),
         };
         
         Ok(CliCommand::Sector(cmd))
+    }
+
+    fn parse_system_args(&self, args: &[String]) -> Result<CliCommand, String> {
+        if args.len() < 3 {
+            return Err("No system subcommand specified.".to_string());
+        }
+        let cmd = match args[2].as_str() {
+            "reset" | "r" => SystemCommand::Reset,
+            _ => return Err(format!("Unknown system command: {}", args[2])),
+        };
+        Ok(CliCommand::System(cmd))
     }
     
     fn parse_module_args(&self, args: &[String]) -> Result<CliCommand, String> {
@@ -524,10 +561,14 @@ COMMANDS:
         update                      Update repository indexes
 
     sector, s          Sector operations
+        reset                       Level 1 tactical reset (current sector)
         export <id> <name> <path>   Export sector as template
         import <path>               Import a template
         list-templates              List available templates
         apply <path> <name>         Apply template to create sector
+
+    system             System operations (Section 14: Tactical Reset)
+        reset                       Level 2 tactical reset (compositor / logout)
 
     module, m          Module operations
         list                        List loaded modules
@@ -537,6 +578,8 @@ COMMANDS:
 EXAMPLES:
     tos marketplace search terminal
     tos mp install terminal-enhanced
+    tos sector reset
+    tos system reset
     tos sector export sector-123 my-template ./my-template.tos-template
     tos sector import ./my-template.tos-template
 "#.to_string()
@@ -645,5 +688,29 @@ mod tests {
         
         let result = handler.parse_args(&args);
         assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_parse_sector_reset() {
+        let handler = CliHandler::new();
+        let args = vec!["tos".to_string(), "sector".to_string(), "reset".to_string()];
+        let result = handler.parse_args(&args);
+        assert!(result.is_ok());
+        match result.unwrap() {
+            CliCommand::Sector(SectorCommand::Reset) => {}
+            _ => panic!("Expected sector reset command"),
+        }
+    }
+
+    #[test]
+    fn test_parse_system_reset() {
+        let handler = CliHandler::new();
+        let args = vec!["tos".to_string(), "system".to_string(), "reset".to_string()];
+        let result = handler.parse_args(&args);
+        assert!(result.is_ok());
+        match result.unwrap() {
+            CliCommand::System(SystemCommand::Reset) => {}
+            _ => panic!("Expected system reset command"),
+        }
     }
 }

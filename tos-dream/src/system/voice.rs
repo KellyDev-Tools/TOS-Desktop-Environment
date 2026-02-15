@@ -343,6 +343,7 @@ impl VoiceCommandProcessor {
             "zoom_in" => Some(SemanticEvent::ZoomIn),
             "zoom_out" => Some(SemanticEvent::ZoomOut),
             "tactical_reset" => Some(SemanticEvent::TacticalReset),
+            "system_reset" => Some(SemanticEvent::SystemReset),
             "toggle_bezel" => Some(SemanticEvent::ToggleBezel),
             "mode_command" => Some(SemanticEvent::ModeCommand),
             "mode_directory" => Some(SemanticEvent::ModeDirectory),

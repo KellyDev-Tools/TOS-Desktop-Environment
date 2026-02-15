@@ -727,9 +727,15 @@ impl TosState {
             SemanticEvent::ZoomIn => self.zoom_in(),
             SemanticEvent::ZoomOut => self.zoom_out(),
             SemanticEvent::TacticalReset => {
-                // Phase 11: Use enhanced tactical reset
+                // Section 14.1: Level 1 sector reset
                 let mut reset = std::mem::take(&mut self.tactical_reset);
                 let _ = reset.initiate_sector_reset(self);
+                self.tactical_reset = reset;
+            }
+            SemanticEvent::SystemReset => {
+                // Section 14.2: Level 2 system reset (dialog)
+                let mut reset = std::mem::take(&mut self.tactical_reset);
+                let _ = reset.initiate_system_reset();
                 self.tactical_reset = reset;
             }
             SemanticEvent::ToggleBezel => self.toggle_bezel(),
@@ -806,6 +812,10 @@ impl TosState {
             SemanticEvent::TacticalReset => AccessibilityAnnouncement::Action {
                 action: "Tactical Reset".to_string(),
                 result: "Returned to Global Overview".to_string(),
+            },
+            SemanticEvent::SystemReset => AccessibilityAnnouncement::Action {
+                action: "System Reset".to_string(),
+                result: "System reset dialog shown".to_string(),
             },
             SemanticEvent::ToggleBezel => AccessibilityAnnouncement::Action {
                 action: "Toggle Bezel".to_string(),

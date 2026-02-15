@@ -1,6 +1,7 @@
 use tao::{
     event::{Event, WindowEvent, ElementState},
     event_loop::{ControlFlow, EventLoop},
+    keyboard::{KeyCode, ModifiersState},
     window::WindowBuilder,
 };
 use wry::WebViewBuilder;
@@ -63,7 +64,9 @@ fn main() -> anyhow::Result<()> {
     // 4. Main Event Loop with UI updates
     let state_update = Arc::clone(&state);
     let mut last_update = std::time::Instant::now();
-    
+    // Section 14: Track modifiers for Super+Backspace / Super+Alt+Backspace
+    let mut modifiers = ModifiersState::empty();
+
     event_loop.run(move |event, _, control_flow| {
         *control_flow = ControlFlow::Wait;
 
@@ -90,6 +93,10 @@ fn main() -> anyhow::Result<()> {
                 ..
             } => *control_flow = ControlFlow::Exit,
             Event::WindowEvent {
+                event: WindowEvent::ModifiersChanged(m),
+                ..
+            } => modifiers = m,
+            Event::WindowEvent {
                 event: WindowEvent::KeyboardInput {
                     event: tao::event::KeyEvent {
                         physical_key,
@@ -100,19 +107,27 @@ fn main() -> anyhow::Result<()> {
                 },
                 ..
             } => {
-                if let tao::keyboard::KeyCode::Unidentified(_) = physical_key {
+                if let KeyCode::Unidentified(_) = physical_key {
                     // Handle unidentified keys
                 } else {
                     let mut state = state_update.lock().unwrap();
                     match physical_key {
-                        tao::keyboard::KeyCode::PageUp => state.handle_semantic_event(SemanticEvent::ZoomIn),
-                        tao::keyboard::KeyCode::PageDown => state.handle_semantic_event(SemanticEvent::ZoomOut),
-                        tao::keyboard::KeyCode::Home => state.handle_semantic_event(SemanticEvent::OpenGlobalOverview),
-                        tao::keyboard::KeyCode::End => state.handle_semantic_event(SemanticEvent::TacticalReset),
-                        tao::keyboard::KeyCode::F1 => state.handle_semantic_event(SemanticEvent::ModeCommand),
-                        tao::keyboard::KeyCode::F2 => state.handle_semantic_event(SemanticEvent::ModeDirectory),
-                        tao::keyboard::KeyCode::F3 => state.handle_semantic_event(SemanticEvent::ModeActivity),
-                        tao::keyboard::KeyCode::F4 => state.handle_semantic_event(SemanticEvent::ToggleBezel),
+                        KeyCode::PageUp => state.handle_semantic_event(SemanticEvent::ZoomIn),
+                        KeyCode::PageDown => state.handle_semantic_event(SemanticEvent::ZoomOut),
+                        KeyCode::Home => state.handle_semantic_event(SemanticEvent::OpenGlobalOverview),
+                        KeyCode::End => state.handle_semantic_event(SemanticEvent::TacticalReset),
+                        KeyCode::F1 => state.handle_semantic_event(SemanticEvent::ModeCommand),
+                        KeyCode::F2 => state.handle_semantic_event(SemanticEvent::ModeDirectory),
+                        KeyCode::F3 => state.handle_semantic_event(SemanticEvent::ModeActivity),
+                        KeyCode::F4 => state.handle_semantic_event(SemanticEvent::ToggleBezel),
+                        // Section 14: Super+Alt+Backspace = Level 2 system reset, Super+Backspace = Level 1 sector reset
+                        KeyCode::Backspace => {
+                            if modifiers.super_key() && modifiers.alt_key() {
+                                state.handle_semantic_event(SemanticEvent::SystemReset);
+                            } else if modifiers.super_key() {
+                                state.handle_semantic_event(SemanticEvent::TacticalReset);
+                            }
+                        }
                         _ => {}
                     }
                 }

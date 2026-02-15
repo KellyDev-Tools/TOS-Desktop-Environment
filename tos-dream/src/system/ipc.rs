@@ -325,6 +325,7 @@ impl IpcDispatcher {
             "CycleMode" => state.handle_semantic_event(SemanticEvent::CycleMode),
             "ToggleBezel" => state.handle_semantic_event(SemanticEvent::ToggleBezel),
             "TacticalReset" => state.handle_semantic_event(SemanticEvent::TacticalReset),
+            "SystemReset" => state.handle_semantic_event(SemanticEvent::SystemReset),
             "OpenGlobalOverview" => state.handle_semantic_event(SemanticEvent::OpenGlobalOverview),
             "VoiceCommandStart" => {
                 tracing::info!("VOICE COMMAND INITIATED");

@@ -1,6 +1,9 @@
 pub mod system;
 pub mod ui;
+pub mod modules;
+
 use system::input::SemanticEvent;
+use modules::{ModuleRegistry, ModuleState, ModuleManifest};
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
@@ -104,6 +107,7 @@ pub trait TosModule: std::fmt::Debug + Send + Sync {
     fn name(&self) -> String;
     fn version(&self) -> String;
     fn on_load(&mut self, _state: &mut TosState) {}
+    fn on_unload(&mut self, _state: &mut TosState) {}
     fn render_override(&self, _level: HierarchyLevel) -> Option<String> { None }
 }
 
@@ -115,7 +119,7 @@ pub struct Application {
     pub is_minimized: bool,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Serialize, Deserialize)]
 pub struct TosState {
     pub current_level: HierarchyLevel,
     pub sectors: Vec<Sector>,
@@ -128,6 +132,32 @@ pub struct TosState {
     pub modules: Vec<Box<dyn TosModule>>,
     pub portal_security_bypass: bool,
     pub approval_requested_sector: Option<uuid::Uuid>,
+    /// Module registry for Phase 8
+    #[serde(skip)]
+    pub module_registry: ModuleRegistry,
+    /// Application model registry
+    #[serde(skip)]
+    pub app_model_registry: modules::app_model::AppModelRegistry,
+    /// Sector type registry
+    #[serde(skip)]
+    pub sector_type_registry: modules::sector_type::SectorTypeRegistry,
+}
+
+impl std::fmt::Debug for TosState {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("TosState")
+            .field("current_level", &self.current_level)
+            .field("sectors", &self.sectors)
+            .field("viewports", &self.viewports)
+            .field("active_viewport_index", &self.active_viewport_index)
+            .field("escape_count", &self.escape_count)
+            .field("fps", &self.fps)
+            .field("performance_alert", &self.performance_alert)
+            .field("modules", &self.modules.len())
+            .field("portal_security_bypass", &self.portal_security_bypass)
+            .field("approval_requested_sector", &self.approval_requested_sector)
+            .finish_non_exhaustive()
+    }
 }
 
 #[derive(Debug)]
@@ -159,6 +189,20 @@ impl TosModule for EngineeringModule {
 
 impl TosState {
     pub fn new() -> Self {
+        // Initialize module registries
+        let mut module_registry = ModuleRegistry::new();
+        module_registry.set_default_paths();
+        
+        let mut app_model_registry = modules::app_model::AppModelRegistry::new();
+        app_model_registry.register_builtin_models();
+        
+        let mut sector_type_registry = modules::sector_type::SectorTypeRegistry::new();
+        sector_type_registry.register_builtin_types();
+        
+        // Try to scan and load modules from default paths
+        if let Ok(loaded) = module_registry.scan_and_load() {
+            tracing::info!("Loaded {} modules from filesystem", loaded.len());
+        }
         let first_sector = Sector {
             id: uuid::Uuid::new_v4(),
             name: "Alpha Sector".to_string(),
@@ -258,7 +302,7 @@ impl TosState {
             bezel_expanded: false,
         };
 
-        Self {
+        let mut state = Self {
             current_level: HierarchyLevel::GlobalOverview,
             sectors: vec![first_sector, second_sector, third_sector],
             viewports: vec![initial_viewport],
@@ -269,7 +313,20 @@ impl TosState {
             modules: Vec::new(),
             portal_security_bypass: false,
             approval_requested_sector: None,
+            module_registry,
+            app_model_registry,
+            sector_type_registry,
+        };
+        
+        // Initialize all loaded modules
+        // Note: Module initialization happens after state construction
+        // to avoid borrow checker issues with self-referential structs
+        let module_names: Vec<String> = state.module_registry.module_names();
+        for name in &module_names {
+            tracing::info!("Module loaded: {}", name);
         }
+        
+        state
     }
 
     pub fn tactical_reset(&mut self) {
@@ -278,6 +335,94 @@ impl TosState {
             viewport.current_level = HierarchyLevel::GlobalOverview;
         }
         self.escape_count = 0;
+    }
+    
+    /// Enable hot-reloading for modules
+    pub fn enable_module_hot_reload(&mut self) -> Result<(), String> {
+        self.module_registry.enable_hot_reload()
+            .map_err(|e| e.to_string())
+    }
+    
+    /// Process file system events for module hot-reload
+    pub fn process_module_fs_events(&mut self) {
+        // Collect events first to avoid borrow checker issues
+        let events: Vec<_> = if let Some(ref receiver) = self.module_registry.event_receiver {
+            std::iter::from_fn(|| receiver.try_recv().ok())
+                .filter_map(|res| res.ok())
+                .collect()
+        } else {
+            Vec::new()
+        };
+        
+        // Process events
+        for event in events {
+            match event.kind {
+                notify::EventKind::Modify(_) | notify::EventKind::Create(_) => {
+                    for path in &event.paths {
+                        if let Some(name) = self.find_module_by_path(path) {
+                            tracing::info!("Module changed, reloading: {}", name);
+                            let _ = self.reload_module(&name);
+                        }
+                    }
+                }
+                notify::EventKind::Remove(_) => {
+                    for path in &event.paths {
+                        if let Some(name) = self.find_module_by_path(path) {
+                            tracing::info!("Module removed: {}", name);
+                        }
+                    }
+                }
+                _ => {}
+            }
+        }
+    }
+    
+    /// Find a module by its path
+    fn find_module_by_path(&self, path: &std::path::Path) -> Option<String> {
+        for (name, info) in &self.module_registry.modules {
+            if info.path == path || info.path.starts_with(path) {
+                return Some(name.clone());
+            }
+        }
+        None
+    }
+    
+    /// Reload a specific module
+    fn reload_module(&mut self, name: &str) -> Result<(), String> {
+        // Get the module info
+        let info = self.module_registry.modules.get_mut(name)
+            .ok_or_else(|| format!("Module {} not found", name))?;
+        
+        // Mark as reloading
+        info.state = ModuleState::Reloading;
+        
+        // Reload manifest
+        let manifest_path = info.path.join("module.toml");
+        let new_manifest = ModuleManifest::from_toml_file(&manifest_path)
+            .map_err(|e| format!("Failed to reload manifest: {}", e))?;
+        
+        // Update info
+        info.manifest = new_manifest;
+        info.state = ModuleState::Active;
+        info.error = None;
+        
+        tracing::info!("Module reloaded: {}", name);
+        Ok(())
+    }
+    
+    /// Get list of loaded modules
+    pub fn list_modules(&self) -> Vec<String> {
+        self.module_registry.module_names()
+    }
+    
+    /// Get module count
+    pub fn module_count(&self) -> usize {
+        self.module_registry.len()
+    }
+    
+    /// Check if a module is loaded
+    pub fn is_module_loaded(&self, name: &str) -> bool {
+        self.module_registry.is_loaded(name)
     }
 
     pub fn toggle_bezel(&mut self) {

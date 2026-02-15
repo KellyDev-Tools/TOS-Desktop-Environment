@@ -1,0 +1,109 @@
+name = "dev-workspace"
+version = "2.1.0"
+description = "Development sector with git integration and build tools"
+author = "TOS Dev Team"
+license = "Apache-2.0"
+type = "sector-type"
+entry = "dev_workspace.lua"
+language = "lua"
+
+permissions = ["filesystem", "process", "notifications"]
+
+[config]
+default_hub_mode = "command"
+default_guest_role = "Operator"
+
+[config.environment]
+EDITOR = "nvim"
+GIT_PAGER = "cat"
+RUST_BACKTRACE = "1"
+NODE_ENV = "development"
+
+[[config.command_favourites]]
+command = "git status"
+label = "Git Status"
+description = "Show git repository status"
+category = "git"
+icon = "📊"
+
+[[config.command_favourites]]
+command = "git log --oneline -10"
+label = "Recent Commits"
+description = "Show last 10 commits"
+category = "git"
+icon = "📜"
+
+[[config.command_favourites]]
+command = "cargo build"
+label = "Build"
+description = "Build the Rust project"
+category = "rust"
+icon = "🔨"
+
+[[config.command_favourites]]
+command = "cargo test"
+label = "Test"
+description = "Run all tests"
+category = "rust"
+icon = "🧪"
+
+[[config.command_favourites]]
+command = "cargo run"
+label = "Run"
+description = "Run the project"
+category = "rust"
+icon = "▶️"
+
+[[config.command_favourites]]
+command = "npm install"
+label = "Install"
+description = "Install Node dependencies"
+category = "node"
+icon = "📦"
+
+[[config.command_favourites]]
+command = "npm run dev"
+label = "Dev Server"
+description = "Start development server"
+category = "node"
+icon = "🌐"
+
+[[config.command_favourites]]
+command = "nvim ."
+label = "Edit"
+description = "Open editor in current directory"
+category = "editor"
+icon = "📝"
+
+[[config.interesting_directories]]
+pattern = ".git"
+type = "exact"
+description = "Git repository"
+suggested_actions = ["git status", "git log"]
+
+[[config.interesting_directories]]
+pattern = "Cargo.toml"
+type = "exact"
+description = "Rust project"
+suggested_actions = ["cargo build", "cargo test"]
+
+[[config.interesting_directories]]
+pattern = "package.json"
+type = "exact"
+description = "Node.js project"
+suggested_actions = ["npm install", "npm run dev"]
+
+[[config.interesting_directories]]
+pattern = "Makefile"
+type = "exact"
+description = "Make-based project"
+suggested_actions = ["make", "make test"]
+
+[config.associated_app_models]
+models = ["tos.terminal", "tos.editor", "tos.browser"]
+
+[settings]
+auto_format_on_save = true
+show_git_branch_in_prompt = true
+enable_lsp = true
+preferred_shell = "fish"

@@ -1,0 +1,58 @@
+name = "terminal-enhanced"
+version = "1.0.0"
+description = "Enhanced terminal with custom bezel actions and keybindings"
+author = "TOS Team"
+license = "MIT"
+type = "app-model"
+entry = "terminal.so"
+language = "rust"
+
+permissions = ["filesystem", "process", "clipboard"]
+
+[config]
+app_class = "tos.terminal"
+decoration_policy = "overlay"
+
+[[config.bezel_actions]]
+id = "clear"
+label = "Clear"
+icon = "🧹"
+command = "clear"
+priority = 80
+shortcut = "Ctrl+L"
+
+[[config.bezel_actions]]
+id = "copy"
+label = "Copy"
+icon = "📋"
+command = "copy_selection"
+priority = 70
+shortcut = "Ctrl+Shift+C"
+
+[[config.bezel_actions]]
+id = "paste"
+label = "Paste"
+icon = "📥"
+command = "paste_clipboard"
+priority = 60
+shortcut = "Ctrl+Shift+V"
+
+[[config.bezel_actions]]
+id = "search"
+label = "Search"
+icon = "🔍"
+command = "search_history"
+priority = 50
+shortcut = "Ctrl+R"
+
+[config.thumbnail]
+enabled = true
+update_interval_ms = 500
+width = 320
+height = 240
+show_content = true
+
+[settings]
+scrollback_lines = 10000
+font_size = 14
+color_scheme = "lcars"

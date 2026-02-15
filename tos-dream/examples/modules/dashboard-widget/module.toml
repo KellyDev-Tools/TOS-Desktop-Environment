@@ -1,0 +1,25 @@
+name = "dashboard-widget"
+version = "1.0.0"
+description = "Custom dashboard widget showing system metrics"
+author = "TOS Team"
+license = "MIT"
+type = "hybrid"
+entry = "widget.js"
+language = "javascript"
+
+permissions = ["process", "filesystem"]
+
+[config]
+app_class = "tos.dashboard.widget"
+update_interval = 5000
+
+[config.widget]
+position = "top-right"
+size = "small"
+refresh_rate_ms = 5000
+
+[settings]
+show_cpu = true
+show_memory = true
+show_disk = true
+show_network = false

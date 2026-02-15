@@ -18,6 +18,7 @@ pub mod security;
 // Phase 12: Remote Sectors & Collaboration
 pub mod remote;
 pub mod collaboration;
+pub mod audio;
 
 #[cfg(feature = "live-feed")]
 pub mod live_feed;

@@ -22,3 +22,4 @@
 
 /* 7. System Fallbacks: Remote Desktop (HTTP) */
 @import "modules/remote.css";
+@import "modules/ecosystem.css";

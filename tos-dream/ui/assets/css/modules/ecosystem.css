@@ -1,0 +1,74 @@
+/* Activity and Directory Enhancements */
+.activity-section {
+    margin-bottom: 30px;
+}
+
+.section-title {
+    font-family: 'Antonio', sans-serif;
+    font-size: 1.2rem;
+    color: var(--lcars-orange);
+    border-bottom: 2px solid var(--lcars-orange);
+    margin-bottom: 15px;
+    padding-bottom: 5px;
+}
+
+.template-registry {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 15px;
+}
+
+.template-item {
+    background: rgba(255, 153, 0, 0.1);
+    border-left: 5px solid var(--lcars-orange);
+    padding: 15px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.template-item:hover {
+    background: rgba(255, 153, 0, 0.2);
+    transform: translateX(5px);
+}
+
+.template-name {
+    font-weight: bold;
+    color: var(--lcars-orange);
+}
+
+.template-meta {
+    font-size: 0.8rem;
+    opacity: 0.7;
+}
+
+.template-item.action-item {
+    border-left-color: var(--lcars-blue);
+    background: rgba(0, 153, 255, 0.1);
+}
+
+.file-meta {
+    float: right;
+    font-size: 0.7rem;
+    opacity: 0.6;
+    margin-top: 5px;
+}
+
+.app-tile-actions {
+    margin-top: 10px;
+    display: flex;
+    justify-content: flex-end;
+}
+
+.tile-btn {
+    font-family: 'Antonio', sans-serif;
+    font-size: 0.8rem;
+    padding: 5px 15px;
+    border: none;
+    cursor: pointer;
+    text-transform: uppercase;
+}
+
+.tile-btn.danger {
+    background: #ff3333;
+    color: white;
+}

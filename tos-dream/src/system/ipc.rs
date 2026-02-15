@@ -71,6 +71,18 @@ impl IpcDispatcher {
         } else if request.starts_with("invite_participant:") {
             let role_str = &request[19..];
             self.handle_invite_participant(&mut state, role_str);
+        } else if request.starts_with("save_template:") {
+            let name = &request[14..];
+            self.handle_save_template(&mut state, name);
+        } else if request.starts_with("load_template:") {
+            let name = &request[14..];
+            self.handle_load_template(&mut state, name);
+        } else if request.starts_with("kill_app:") {
+            let id_str = &request[9..];
+            self.handle_kill_app(&mut state, id_str);
+        } else if request.starts_with("play_audio:") {
+            let event_str = &request[11..];
+            self.handle_play_audio(&mut state, event_str);
         } else {
             // Legacy/Direct zoom fallback
             match request {
@@ -227,6 +239,49 @@ impl IpcDispatcher {
         });
         
         state.collaboration_manager.sessions.insert(p_id, PermissionSet::for_role(role));
+    }
+
+    fn handle_save_template(&self, state: &mut TosState, name: &str) {
+        let viewport = &state.viewports[state.active_viewport_index];
+        let sector = &state.sectors[viewport.sector_index];
+        
+        println!("TOS // EXPORTING SECTOR {} AS TEMPLATE: {}", sector.name, name);
+        // Mocking the export result for the UI
+        state.sectors[viewport.sector_index].hubs[viewport.hub_index].terminal_output.push(
+            format!("SYSTEM // TEMPLATE EXPORTED: {}.tos-template", name)
+        );
+    }
+
+    fn handle_load_template(&self, state: &mut TosState, name: &str) {
+        println!("TOS // LOADING TEMPLATE: {}", name);
+        // Mocking the load result
+        state.sectors[state.viewports[state.active_viewport_index].sector_index].name = format!("TEMPLATE: {}", name);
+    }
+
+    fn handle_kill_app(&self, state: &mut TosState, id_str: &str) {
+        if let Ok(id) = Uuid::parse_str(id_str) {
+            for sector in &mut state.sectors {
+                for hub in &mut sector.hubs {
+                    if let Some(pos) = hub.applications.iter().position(|a| a.id == id) {
+                        let app = hub.applications.remove(pos);
+                        println!("TOS // KILLED APP: {}", app.title);
+                        return;
+                    }
+                }
+            }
+        }
+    }
+
+    fn handle_play_audio(&self, state: &mut TosState, event_str: &str) {
+        use crate::system::audio::AudioEvent;
+        let event = match event_str {
+            "AmbientHum" => AudioEvent::AmbientHum,
+            "AlertBeep" => AudioEvent::AlertBeep,
+            "SectorTransition" => AudioEvent::SectorTransition,
+            "DataTransfer" => AudioEvent::DataTransfer,
+            _ => AudioEvent::AlertBeep,
+        };
+        state.audio_manager.play_event(event);
     }
 
     fn handle_split_viewport(&self, state: &mut TosState) {

@@ -92,10 +92,21 @@ impl ViewRenderer for HubRenderer {
                 html.push_str(r#"<div class="directory-view">
                     <div class="path-bar">/HOME/USER/SECTOR_PRIMARY</div>
                     <div class="file-grid">
-                        <div class="file-item staging-item" onclick="window.ipc.postMessage('stage_command:ls ..')">..</div>
-                        <div class="file-item staging-item" onclick="window.ipc.postMessage('stage_command:cd DOCUMENTS')">DOCUMENTS/</div>
-                        <div class="file-item staging-item" onclick="window.ipc.postMessage('stage_command:ls SYSTEM_CORE')">SYSTEM_CORE/</div>
-                        <div class="file-item staging-item" onclick="window.ipc.postMessage('stage_command:view CONFIG.TOS')">CONFIG.TOS</div>
+                        <div class="file-item staging-item" onclick="window.ipc.postMessage('stage_command:ls ..')">
+                            <span class="file-icon folder"></span> ..
+                        </div>
+                        <div class="file-item staging-item" onclick="window.ipc.postMessage('stage_command:cd DOCUMENTS')">
+                            <span class="file-icon folder"></span> DOCUMENTS/
+                            <span class="file-meta">4 ITEMS // SECURE</span>
+                        </div>
+                        <div class="file-item staging-item" onclick="window.ipc.postMessage('stage_command:ls SYSTEM_CORE')">
+                            <span class="file-icon folder"></span> SYSTEM_CORE/
+                            <span class="file-meta">SYSTEM-MOUNT</span>
+                        </div>
+                        <div class="file-item staging-item" onclick="window.ipc.postMessage('stage_command:view CONFIG.TOS')">
+                            <span class="file-icon file"></span> CONFIG.TOS
+                            <span class="file-meta">2KB // TXT</span>
+                        </div>
                     </div>
                 </div>"#);
             }
@@ -103,27 +114,52 @@ impl ViewRenderer for HubRenderer {
                 let mut apps_html = String::new();
                 for app in &hub.applications {
                     apps_html.push_str(&format!(
-                        r#"<div class="app-tile staging-item" onclick="window.ipc.postMessage('stage_command:focus {title}')">
-                            <div class="app-tile-icon"></div>
-                            <div class="app-tile-info">
-                                <div class="app-title">{title}</div>
-                                <div class="app-class">{class}</div>
+                        r#"<div class="app-tile staging-item">
+                            <div class="app-tile-header" onclick="window.ipc.postMessage('stage_command:focus {title}')">
+                                <div class="app-tile-icon"></div>
+                                <div class="app-tile-info">
+                                    <div class="app-title">{title}</div>
+                                    <div class="app-class">{class}</div>
+                                </div>
                             </div>
                             <div class="app-tile-stats">
                                 <div class="stat">CPU: 2.1%</div>
                                 <div class="stat">MEM: 82MB</div>
                             </div>
+                            <div class="app-tile-actions">
+                                <button class="tile-btn danger" onclick="window.ipc.postMessage('kill_app:{id}')">KILL</button>
+                            </div>
                         </div>"#,
                         title = app.title.to_uppercase(),
-                        class = app.app_class.to_uppercase()
+                        class = app.app_class.to_uppercase(),
+                        id = app.id
                     ));
                 }
                 html.push_str(&format!(
                     r#"<div class="activity-view">
-                        <div class="activity-grid">
-                            {apps_html}
-                            <div class="app-tile add-tile" onclick="window.ipc.postMessage('stage_command:spawn ')">
-                                <span>+ NEW PROCESS</span>
+                        <div class="activity-section">
+                            <div class="section-title">ACTIVE PROCESSES</div>
+                            <div class="activity-grid">
+                                {apps_html}
+                                <div class="app-tile add-tile" onclick="window.ipc.postMessage('stage_command:spawn ')">
+                                    <span>+ NEW PROCESS</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="activity-section">
+                            <div class="section-title">SECTOR TEMPLATES</div>
+                            <div class="template-registry">
+                                <div class="template-item" onclick="window.ipc.postMessage('load_template:Dev-Grid')">
+                                    <div class="template-name">DEV-GRID</div>
+                                    <div class="template-meta">3 HUBS // 5 APPS</div>
+                                </div>
+                                <div class="template-item" onclick="window.ipc.postMessage('load_template:Science-Lab')">
+                                    <div class="template-name">SCIENCE-LAB</div>
+                                    <div class="template-meta">1 HUB // 2 APPS</div>
+                                </div>
+                                <div class="template-item action-item" onclick="window.ipc.postMessage('save_template:Current-Sector')">
+                                    <div class="template-name">+ SAVE CURRENT AS TEMPLATE</div>
+                                </div>
                             </div>
                         </div>
                     </div>"#,

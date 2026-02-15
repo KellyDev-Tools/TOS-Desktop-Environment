@@ -21,6 +21,7 @@ use ui::minimap::MiniMap;
 // Phase 12 imports
 use system::remote::RemoteManager;
 use system::collaboration::CollaborationManager;
+use system::audio::AudioManager;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum HierarchyLevel {
@@ -192,6 +193,9 @@ pub struct TosState {
     /// Phase 12: Collaboration Manager
     #[serde(skip)]
     pub collaboration_manager: CollaborationManager,
+    /// Phase 13: Audio Manager
+    #[serde(skip)]
+    pub audio_manager: AudioManager,
 }
 
 impl std::fmt::Debug for TosState {
@@ -388,6 +392,8 @@ impl TosState {
             // Phase 12: Initialize new components
             remote_manager: RemoteManager::new(),
             collaboration_manager: CollaborationManager::new(),
+            // Phase 13: Initialize new components
+            audio_manager: AudioManager::new(),
         };
         
         // Initialize all loaded modules

@@ -25,6 +25,7 @@
 use crate::{TosState, CommandHubMode};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
+use uuid::Uuid;
 
 /// OSC sequence types for shell-to-compositor communication
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -61,6 +62,19 @@ pub enum OscSequence {
         partial: String,
         cursor_pos: usize,
     },
+    /// Request sector/system context metadata
+    ContextRequest {
+        hub_id: Uuid,
+    },
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ContextInfo {
+    pub sector_name: String,
+    pub sector_type: String,
+    pub active_modules: Vec<String>,
+    pub current_time: String,
+    pub node_id: Uuid,
 }
 
 /// Risk level for dangerous commands
@@ -434,6 +448,16 @@ impl OscParser {
                     None
                 }
             }
+            9008 => {
+                // Explicit completion response from shell (Pt = text;command;desc;cat|...)
+                let suggestions = self.parse_suggestions(&pt);
+                Some(OscSequence::Suggestions(suggestions))
+            }
+            9010 => {
+                // Context request
+                let hub_id = Uuid::parse_str(&pt).ok()?;
+                Some(OscSequence::ContextRequest { hub_id })
+            }
             _ => None,
         }
     }
@@ -761,6 +785,11 @@ impl ShellApi {
                 let completions = self.generate_completions(&partial, cursor_pos, state);
                 self.pending_completions.insert(partial, completions);
             }
+            OscSequence::ContextRequest { hub_id: _ } => {
+                // In a real implementation, we would send back a ContextInfo packet to the shell
+                // This would be done via PTY: format!("\x1b]9011;{}\x07", serde_json::to_string(&info))
+                tracing::info!("Shell requested context metadata");
+            }
         }
     }
 
@@ -768,46 +797,79 @@ impl ShellApi {
     fn generate_completions(&self, partial: &str, _cursor_pos: usize, state: &TosState) -> Vec<CommandSuggestion> {
         let mut suggestions = Vec::new();
         
-        // Add file/directory completions
         let viewport = &state.viewports[state.active_viewport_index];
         let sector = &state.sectors[viewport.sector_index];
         let hub = &sector.hubs[viewport.hub_index];
         
-        // Simple completions based on current mode
+        // 1. Sector-specific completions
+        if sector.name.contains("Stellar") || sector.name.contains("Science") {
+             suggestions.push(CommandSuggestion {
+                text: "scan ".to_string(),
+                command: "scan ".to_string(),
+                description: "Initiate sensor scan".to_string(),
+                category: "science".to_string(),
+                confidence: 0.95,
+            });
+        }
+
+        // 2. Mode-specific completions
         match hub.mode {
             CommandHubMode::Command => {
-                suggestions.push(CommandSuggestion {
-                    text: "cd ".to_string(),
-                    command: "cd ".to_string(),
-                    description: "Change directory".to_string(),
-                    category: "builtin".to_string(),
-                    confidence: 0.9,
-                });
-                suggestions.push(CommandSuggestion {
-                    text: "ls ".to_string(),
-                    command: "ls ".to_string(),
-                    description: "List directory".to_string(),
-                    category: "builtin".to_string(),
-                    confidence: 0.9,
-                });
+                let builtins = vec![
+                    ("cd ", "Change directory"),
+                    ("ls ", "List directory"),
+                    ("rm ", "Remove file"),
+                    ("mkdir ", "Create directory"),
+                    ("cat ", "View file"),
+                    ("grep ", "Search in files"),
+                ];
+
+                for (cmd, desc) in builtins {
+                    if cmd.starts_with(partial) {
+                        suggestions.push(CommandSuggestion {
+                            text: cmd.to_string(),
+                            command: cmd.to_string(),
+                            description: desc.to_string(),
+                            category: "builtin".to_string(),
+                            confidence: 0.9,
+                        });
+                    }
+                }
             }
             CommandHubMode::Directory => {
-                // Add file suggestions
+                // Add file suggestions from the hub's applications (mocking filesystem)
                 for app in &hub.applications {
                     if app.title.to_lowercase().contains(&partial.to_lowercase()) {
                         suggestions.push(CommandSuggestion {
                             text: app.title.clone(),
                             command: app.app_class.clone(),
-                            description: format!("Open {}", app.title),
+                            description: format!("Launch {}", app.title),
                             category: "application".to_string(),
-                            confidence: 0.8,
+                            confidence: 0.85,
                         });
                     }
                 }
             }
             CommandHubMode::Activity => {
-                // Add process suggestions
+                suggestions.push(CommandSuggestion {
+                    text: "ps ".to_string(),
+                    command: "ps ".to_string(),
+                    description: "List processes".to_string(),
+                    category: "activity".to_string(),
+                    confidence: 0.8,
+                });
             }
+        }
+
+        // 3. Security context completions
+        if state.security.is_tactical_lockdown() {
+            suggestions.push(CommandSuggestion {
+                text: "unlock ".to_string(),
+                command: "unlock ".to_string(),
+                description: "Authorize system release".to_string(),
+                category: "security".to_string(),
+                confidence: 1.0,
+            });
         }
         
         suggestions

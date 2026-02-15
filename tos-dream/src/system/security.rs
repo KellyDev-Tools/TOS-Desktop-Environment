@@ -374,6 +374,13 @@ impl SecurityManager {
         !self.active_sessions.is_empty()
     }
 
+    /// Check if the system is in tactical lockdown (high/critical sessions active)
+    pub fn is_tactical_lockdown(&self) -> bool {
+        self.active_sessions.values().any(|s| 
+            s.risk_level == RiskLevel::High || s.risk_level == RiskLevel::Critical
+        )
+    }
+
     /// Check if a command matches dangerous patterns
     pub fn check_command(&self, command: &str) -> Option<(RiskLevel, &DangerousPattern)> {
         if !self.config.enable_detection {

@@ -36,6 +36,13 @@ impl ViewRenderer for GlobalRenderer {
                 <span class="value">10:39</span>
             </div>
             <div class="telemetry-item">
+                <span class="label">Ambience</span>
+                <div class="ambience-controls">
+                    <button class="bezel-btn" onclick="window.ipc.postMessage('play_audio:AmbientHum')">HUM</button>
+                    <button class="bezel-btn" onclick="window.ipc.postMessage('play_audio:BridgeChirps')">CHIRP</button>
+                </div>
+            </div>
+            <div class="telemetry-item">
                 <span class="label">Stardate</span>
                 <span class="value">02-33 // 02-1478</span>
             </div>

@@ -9,6 +9,7 @@ pub mod accessibility;
 
 // Phase 16: Container Strategy & SaaS Architecture
 pub mod containers;
+pub mod saas;
 
 use system::input::SemanticEvent;
 use modules::{ModuleRegistry, ModuleState, ModuleManifest};
@@ -41,6 +42,9 @@ use containers::{
     ContainerManager, ContainerBackend,
     sector::SectorContainerManager,
 };
+
+// Phase 16 Week 2: SaaS Infrastructure
+use saas::{SaasManager, SaasConfig};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum HierarchyLevel {
@@ -233,6 +237,9 @@ pub struct TosState {
     /// Phase 16: Sector Container Manager
     #[serde(skip)]
     pub sector_container_manager: Option<SectorContainerManager>,
+    /// Phase 16 Week 2: SaaS Manager
+    #[serde(skip)]
+    pub saas_manager: Option<SaasManager>,
 }
 
 impl std::fmt::Debug for TosState {
@@ -439,6 +446,8 @@ impl TosState {
             // Phase 16: Initialize container managers (lazy initialization)
             container_manager: None,
             sector_container_manager: None,
+            // Phase 16 Week 2: Initialize SaaS manager (lazy initialization)
+            saas_manager: None,
         };
         
         // Initialize all loaded modules

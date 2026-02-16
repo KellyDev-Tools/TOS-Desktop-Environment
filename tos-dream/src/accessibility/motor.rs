@@ -29,8 +29,19 @@ struct MotorState {
     dwell: DwellState,
     /// Switch scanning state
     scanning: ScanningState,
+    /// Slow keys state
+    slow_keys: SlowKeysState,
     /// Last input time for debouncing
     last_input_time: Instant,
+}
+
+/// Slow keys state
+#[derive(Debug, Default)]
+struct SlowKeysState {
+    /// Keys currently being held down
+    pressed_keys: HashMap<String, Instant>,
+    /// Delay required before key registers
+    delay_ms: u32,
 }
 
 /// Sticky keys state
@@ -135,6 +146,10 @@ impl MotorAccessibility {
                 groups: Vec::new(),
                 last_advance: Instant::now(),
             },
+            slow_keys: SlowKeysState {
+                pressed_keys: HashMap::new(),
+                delay_ms: config.read().await.slow_keys_ms,
+            },
             last_input_time: Instant::now(),
         }));
         
@@ -198,27 +213,79 @@ impl MotorAccessibility {
         let _ = self.event_sender.send(input).await;
         
         // For immediate responses, check state
-        let state = self.state.read().await;
+        let mut state = self.state.write().await;
+        let config = self.config.read().await;
+        
+        let slow_keys_enabled = config.slow_keys_ms > 0;
         
         match input {
             MotorInput::Switch1Press => {
-                // In scanning mode, select current item
-                if state.scanning.enabled {
-                    return state.get_current_scan_action();
+                if slow_keys_enabled {
+                    state.slow_keys.pressed_keys.insert("switch1".to_string(), Instant::now());
+                    None
+                } else {
+                    if state.scanning.enabled {
+                        state.get_current_scan_action()
+                    } else {
+                        Some(SemanticEvent::Select)
+                    }
                 }
-                // Otherwise, treat as select
-                Some(SemanticEvent::Select)
+            }
+            MotorInput::Switch1Release => {
+                if let Some(press_time) = state.slow_keys.pressed_keys.remove("switch1") {
+                    if press_time.elapsed().as_millis() >= config.slow_keys_ms as u128 {
+                        if state.scanning.enabled {
+                            return state.get_current_scan_action();
+                        }
+                        return Some(SemanticEvent::Select);
+                    }
+                }
+                None
             }
             MotorInput::Switch2Press => {
-                // Secondary action or advance scan manually
-                if state.scanning.enabled && !state.scanning.auto_scan {
-                    drop(state);
-                    let mut st = self.state.write().await;
-                    st.advance_scan();
+                if slow_keys_enabled {
+                    state.slow_keys.pressed_keys.insert("switch2".to_string(), Instant::now());
+                    None
+                } else if state.scanning.enabled && !state.scanning.auto_scan {
+                    state.advance_scan();
                     None
                 } else {
                     Some(SemanticEvent::SecondarySelect)
                 }
+            }
+            MotorInput::Switch2Release => {
+                if let Some(press_time) = state.slow_keys.pressed_keys.remove("switch2") {
+                    if press_time.elapsed().as_millis() >= config.slow_keys_ms as u128 {
+                        if state.scanning.enabled && !state.scanning.auto_scan {
+                            state.advance_scan();
+                            return None;
+                        }
+                        return Some(SemanticEvent::SecondarySelect);
+                    }
+                }
+                None
+            }
+            MotorInput::KeyPress { key } => {
+                if slow_keys_enabled {
+                    state.slow_keys.pressed_keys.insert(key, Instant::now());
+                    None
+                } else {
+                    // Map common keys to semantic events if desired
+                    None
+                }
+            }
+            MotorInput::KeyRelease { key } => {
+                if let Some(press_time) = state.slow_keys.pressed_keys.remove(&key) {
+                    if press_time.elapsed().as_millis() >= config.slow_keys_ms as u128 {
+                        // Key held long enough
+                        tracing::info!("Slow key accepted: {}", key);
+                        // Trigger haptic on success
+                        drop(state);
+                        drop(config);
+                        self.trigger_haptic(50).await;
+                    }
+                }
+                None
             }
             MotorInput::DwellTrigger { .. } => {
                 Some(SemanticEvent::Select)
@@ -374,6 +441,19 @@ impl MotorAccessibility {
     pub async fn set_scan_speed(&self, items_per_minute: u32) {
         let mut state = self.state.write().await;
         state.scanning.scan_speed = items_per_minute.clamp(10, 300);
+    }
+
+    /// Trigger haptic feedback
+    pub async fn trigger_haptic(&self, duration_ms: u32) {
+        let config = self.config.read().await;
+        if config.haptic_feedback_intensity > 0.0 {
+            tracing::info!("Haptic feedback: {}ms at intensity {}", duration_ms, config.haptic_feedback_intensity);
+            
+            // In a real implementation on Linux, this might use:
+            // 1. input-event-codes for force feedback API
+            // 2. Platform-specific gamepad vibration APIs
+            // 3. Mobile bridging via the Web Portal
+        }
     }
     
     /// Shutdown motor accessibility systems

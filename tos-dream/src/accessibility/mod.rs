@@ -14,11 +14,13 @@ pub mod audio;
 pub mod visual;
 pub mod motor;
 pub mod screen_reader;
+pub mod cognitive;
 
 pub use audio::AuditoryInterface;
 pub use visual::VisualAccessibility;
 pub use motor::MotorAccessibility;
 pub use screen_reader::ScreenReader;
+pub use cognitive::CognitiveAccessibility;
 
 /// Accessibility configuration for TOS
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -43,6 +45,16 @@ pub struct AccessibilityConfig {
     pub sticky_keys: bool,
     /// Dwell click time in milliseconds (0 = disabled)
     pub dwell_click_ms: u32,
+    /// Slow keys delay in milliseconds (0 = disabled)
+    pub slow_keys_ms: u32,
+    /// Haptic feedback intensity (0.0 to 1.0)
+    pub haptic_feedback_intensity: f32,
+    /// Enable simplified mode (reduced clutter)
+    pub simplified_mode: bool,
+    /// Enable Braille display output
+    pub braille_output_enabled: bool,
+    /// Enable tutorial mode
+    pub tutorial_mode: bool,
     /// Sound theme name
     pub sound_theme: String,
     /// TTS voice settings
@@ -66,6 +78,11 @@ impl Default for AccessibilityConfig {
             switch_device_enabled: false,
             sticky_keys: false,
             dwell_click_ms: 0,
+            slow_keys_ms: 0,
+            haptic_feedback_intensity: 0.0,
+            simplified_mode: false,
+            braille_output_enabled: false,
+            tutorial_mode: false,
             sound_theme: "default".to_string(),
             tts_voice: "default".to_string(),
             tts_rate: 1.0,
@@ -150,6 +167,7 @@ pub struct AccessibilityManager {
     visual: VisualAccessibility,
     motor: Option<MotorAccessibility>,
     screen_reader: Option<ScreenReader>,
+    cognitive: CognitiveAccessibility,
 }
 
 impl AccessibilityManager {
@@ -181,12 +199,16 @@ impl AccessibilityManager {
             None
         };
         
+        // Initialize cognitive accessibility
+        let cognitive = CognitiveAccessibility::new(config.clone()).await;
+        
         Ok(Self {
             config,
             auditory,
-            visual,
+            visual: visual,
             motor,
             screen_reader,
+            cognitive,
         })
     }
     
@@ -211,7 +233,17 @@ impl AccessibilityManager {
         // Speak with TTS if enabled
         if config.tts_enabled {
             if let Some(ref audio) = self.auditory {
-                let text = format_announcement(&announcement, config.verbosity);
+                let mut text = format_announcement(&announcement, config.verbosity);
+                
+                // Add cognitive guidance if in tutorial mode
+                if config.tutorial_mode {
+                    if let AccessibilityAnnouncement::Navigation { from_level, to_level, .. } = &announcement {
+                        if let Some(guidance) = self.cognitive.get_guidance(from_level, to_level).await {
+                            text = format!("{}. Guidance: {}", text, guidance);
+                        }
+                    }
+                }
+                
                 let _ = audio.speak(&text).await;
             }
         }
@@ -314,6 +346,8 @@ pub enum MotorInput {
     Switch1Release,
     Switch2Press,
     Switch2Release,
+    KeyPress { key: String },
+    KeyRelease { key: String },
     DwellStart { x: f32, y: f32 },
     DwellEnd { x: f32, y: f32 },
     DwellTrigger { x: f32, y: f32 },

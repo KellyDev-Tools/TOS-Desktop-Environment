@@ -94,6 +94,10 @@ impl VisualAccessibility {
             classes.push(format!("colorblind-{:?}", filter).to_lowercase());
         }
         
+        if config.simplified_mode {
+            classes.push("simplified-mode".to_string());
+        }
+        
         classes.join(" ")
     }
     
@@ -164,6 +168,18 @@ impl VisualAccessibility {
 }}
 .colorblind-achromatopsia {{
     filter: grayscale(100%) contrast(150%);
+}}
+
+/* Simplified Mode */
+.simplified-mode .background-details,
+.simplified-mode .ambient-particles,
+.simplified-mode .complex-decoration {{
+    display: none !important;
+}}
+
+.simplified-mode {{
+    --tos-base-size: calc(var(--tos-base-size) * 1.15);
+    --tos-line-height: 1.8;
 }}
 
 /* Focus Indicators */

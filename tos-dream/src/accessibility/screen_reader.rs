@@ -78,6 +78,9 @@ impl ScreenReader {
             self.send_atspi_announcement(conn, &text, priority).await?;
         }
         
+        // Send to Braille if enabled
+        self.send_braille(&text).await?;
+        
         // Also log for debugging
         tracing::info!("Screen reader: {}", text);
         
@@ -152,6 +155,21 @@ impl ScreenReader {
     /// Shutdown the screen reader connection
     pub async fn shutdown(&self) -> Result<(), AccessibilityError> {
         tracing::info!("Screen reader shutdown");
+        Ok(())
+    }
+
+    /// Send text to Braille display
+    pub async fn send_braille(&self, text: &str) -> Result<(), AccessibilityError> {
+        let config = self.config.read().await;
+        if !config.braille_output_enabled {
+            return Ok(());
+        }
+        
+        tracing::info!("Braille output: {}", text);
+        // In a real implementation on Linux, this might:
+        // 1. Connect to brltty via its API
+        // 2. Or send to AT-SPI Braille interface
+        
         Ok(())
     }
     

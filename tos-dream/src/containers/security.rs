@@ -36,6 +36,47 @@ pub struct SecurityPolicy {
     pub denied_syscalls: Vec<String>,
     /// Security options
     pub security_opts: Vec<String>,
+    /// Graphical isolation (X11/Wayland)
+    pub display_isolation: DisplayIsolation,
+    /// Audio isolation (PulseAudio/PipeWire)
+    pub audio_isolation: AudioIsolation,
+    /// Network isolation level
+    pub network_isolation: NetworkIsolation,
+}
+
+/// Graphical isolation levels
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+pub enum DisplayIsolation {
+    /// No display access
+    None,
+    /// Shared display with host (insecure)
+    Shared,
+    /// Virtualized / Proxied display (via Wayland-Proxy or separate X11)
+    Virtualized,
+}
+
+/// Audio isolation levels
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+pub enum AudioIsolation {
+    /// No audio access
+    None,
+    /// Shared audio with host (passthrough)
+    Shared,
+    /// Filtered / Proxied audio
+    Filtered,
+}
+
+/// Network isolation levels
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+pub enum NetworkIsolation {
+    /// No network access
+    None,
+    /// Shared with host
+    Host,
+    /// Private bridge network (default)
+    Bridge,
+    /// Internal only (no outbound internet)
+    Internal,
 }
 
 impl Default for SecurityPolicy {
@@ -54,6 +95,9 @@ impl Default for SecurityPolicy {
             allowed_syscalls: Vec::new(),
             denied_syscalls: Vec::new(),
             security_opts: vec!["no-new-privileges:true".to_string()],
+            display_isolation: DisplayIsolation::None,
+            audio_isolation: AudioIsolation::None,
+            network_isolation: NetworkIsolation::Bridge,
         }
     }
 }
@@ -75,6 +119,9 @@ impl SecurityPolicy {
             allowed_syscalls: Vec::new(),
             denied_syscalls: Vec::new(),
             security_opts: Vec::new(),
+            display_isolation: DisplayIsolation::Shared,
+            audio_isolation: AudioIsolation::Shared,
+            network_isolation: NetworkIsolation::Host,
         }
     }
     
@@ -97,6 +144,9 @@ impl SecurityPolicy {
                 "no-new-privileges:true".to_string(),
                 "seccomp:restricted".to_string(),
             ],
+            display_isolation: DisplayIsolation::Virtualized,
+            audio_isolation: AudioIsolation::Filtered,
+            network_isolation: NetworkIsolation::Internal,
         }
     }
     

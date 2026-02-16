@@ -10,6 +10,7 @@ pub mod network;
 pub mod sector;
 pub mod security;
 pub mod metrics;
+pub mod sandbox;
 
 pub use runtime::{ContainerRuntime, ContainerBackend, RestartPolicy, SecurityOptions, MockRuntime};
 pub use image::{ImageManager, ImageBuilder, ImageInfo};
@@ -17,6 +18,7 @@ pub use network::{ContainerNetwork, NetworkConfig, PortMapping, Protocol, Networ
 pub use sector::{SectorContainer, SectorContainerManager};
 pub use security::{SecurityPolicy, SeccompProfile, Capability};
 pub use metrics::{ContainerMetrics, ResourceUsage};
+pub use sandbox::{SandboxManager, SandboxLevel, SandboxInfo};
 
 use std::collections::HashMap;
 use std::path::PathBuf;

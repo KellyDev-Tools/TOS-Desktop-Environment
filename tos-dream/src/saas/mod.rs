@@ -1,27 +1,42 @@
-//! Phase 16 Week 2: SaaS Foundation
+//! Phase 16 Week 2: Cloud Resource Integration
 //!
-//! Multi-tenant SaaS infrastructure for TOS-Dream, enabling cloud deployments
-//! with tenant isolation, session management, and API gateway functionality.
+//! Infrastructure for leveraging external Enterprise and Cloud resources
+//! (AWS, Kubernetes) within TOS, providing isolated environments for 
+//! remote sectors and offloaded computation.
 
 pub mod tenant;
 pub mod session;
 pub mod gateway;
+pub mod billing;
+pub mod persistence;
+pub mod secrets;
+pub mod kubernetes;
+pub mod cloud;
+pub mod telemetry;
+pub mod logging;
 
 pub use tenant::{TenantManager, Tenant, TenantConfig, TenantStatus};
 pub use session::{SessionManager, Session, SessionConfig, SessionStatus};
 pub use gateway::{ApiGateway, GatewayConfig, Route, RateLimit};
+pub use billing::BillingManager;
+pub use persistence::PersistenceManager;
+pub use secrets::SecretsManager;
+pub use kubernetes::K8sManager;
+pub use cloud::{AwsManager, AwsConfig};
+pub use telemetry::TracingManager;
+pub use logging::LoggingManager;
 
 use std::collections::HashMap;
 use serde::{Deserialize, Serialize};
 
-/// Unique identifier for SaaS resources
+/// Unique identifier for Cloud resources
 pub type TenantId = String;
 pub type SessionId = String;
 pub type UserId = String;
 
-/// SaaS configuration
+/// Cloud Resource configuration
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct SaasConfig {
+pub struct CloudConfig {
     /// Default tenant configuration
     pub default_tenant_config: TenantConfig,
     /// Session timeout in seconds
@@ -30,13 +45,13 @@ pub struct SaasConfig {
     pub max_sessions_per_tenant: usize,
     /// API gateway configuration
     pub gateway_config: GatewayConfig,
-    /// Enable multi-tenancy
+    /// Enable multi-tenancy for shared resources
     pub multi_tenancy_enabled: bool,
-    /// Default rate limits
+    /// Default rate limits for external APIs
     pub default_rate_limits: RateLimitConfig,
 }
 
-impl Default for SaasConfig {
+impl Default for CloudConfig {
     fn default() -> Self {
         Self {
             default_tenant_config: TenantConfig::default(),
@@ -49,7 +64,7 @@ impl Default for SaasConfig {
     }
 }
 
-/// Rate limit configuration
+/// Rate limit configuration for cloud providers
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct RateLimitConfig {
     /// Requests per minute
@@ -70,33 +85,52 @@ impl Default for RateLimitConfig {
     }
 }
 
-/// SaaS manager coordinates all SaaS operations
+/// CloudResourceManager coordinates access to external infrastructure
 #[derive(Debug)]
-pub struct SaasManager {
-    config: SaasConfig,
+pub struct CloudResourceManager {
+    config: CloudConfig,
     tenant_manager: TenantManager,
     session_manager: SessionManager,
     gateway: ApiGateway,
+    billing: BillingManager,
+    persistence: PersistenceManager,
+    secrets: SecretsManager,
+    k8s: Option<K8sManager>,
+    aws: Option<AwsManager>,
+    tracing_manager: TracingManager,
+    logging_manager: LoggingManager,
 }
 
-impl SaasManager {
-    /// Create a new SaaS manager
-    pub fn new(config: SaasConfig) -> Self {
+impl CloudResourceManager {
+    /// Create a new cloud resource manager
+    pub fn new(config: CloudConfig) -> Self {
         let tenant_manager = TenantManager::new(config.default_tenant_config.clone());
         let session_manager = SessionManager::new(config.session_timeout);
         let gateway = ApiGateway::new(config.gateway_config.clone());
+        let billing = BillingManager::new();
+        let persistence = PersistenceManager::new("data/cloud");
+        let secrets = SecretsManager::new();
+        let tracing_manager = TracingManager::new("tos-cloud", "http://localhost:4317");
+        let logging_manager = LoggingManager::new();
         
         Self {
             config,
             tenant_manager,
             session_manager,
             gateway,
+            billing,
+            persistence,
+            secrets,
+            k8s: None,
+            aws: None,
+            tracing_manager,
+            logging_manager,
         }
     }
     
-    /// Initialize the SaaS infrastructure
+    /// Initialize the Cloud infrastructure
     pub async fn initialize(&mut self) -> SaasResult<()> {
-        tracing::info!("Initializing SaaS infrastructure");
+        tracing::info!("Initializing Cloud Resource infrastructure");
         
         // Initialize tenant manager
         self.tenant_manager.initialize().await?;
@@ -107,13 +141,20 @@ impl SaasManager {
         // Initialize API gateway
         self.gateway.initialize().await?;
         
-        tracing::info!("SaaS infrastructure initialized");
+        // Initialize persistence
+        self.persistence.initialize().await?;
+        
+        // Initialize observability
+        self.tracing_manager.initialize()?;
+        self.logging_manager.initialize()?;
+        
+        tracing::info!("Cloud Resource infrastructure initialized");
         Ok(())
     }
     
-    /// Shutdown the SaaS infrastructure
+    /// Shutdown the Cloud infrastructure
     pub async fn shutdown(&mut self) -> SaasResult<()> {
-        tracing::info!("Shutting down SaaS infrastructure");
+        tracing::info!("Shutting down Cloud Resource infrastructure");
         
         // Close all sessions
         self.session_manager.close_all_sessions().await?;
@@ -124,7 +165,7 @@ impl SaasManager {
         // Shutdown gateway
         self.gateway.shutdown().await?;
         
-        tracing::info!("SaaS infrastructure shutdown complete");
+        tracing::info!("Cloud Resource infrastructure shutdown complete");
         Ok(())
     }
     
@@ -159,13 +200,48 @@ impl SaasManager {
     }
     
     /// Get configuration
-    pub fn config(&self) -> &SaasConfig {
+    pub fn config(&self) -> &CloudConfig {
         &self.config
     }
     
     /// Update configuration
-    pub fn set_config(&mut self, config: SaasConfig) {
+    pub fn set_config(&mut self, config: CloudConfig) {
         self.config = config;
+    }
+
+    /// Access billing manager
+    pub fn billing(&self) -> &BillingManager {
+        &self.billing
+    }
+
+    /// Access persistence manager
+    pub fn persistence(&self) -> &PersistenceManager {
+        &self.persistence
+    }
+
+    /// Access secrets manager
+    pub fn secrets(&self) -> &SecretsManager {
+        &self.secrets
+    }
+
+    /// Access K8s manager
+    pub fn k8s(&self) -> Option<&K8sManager> {
+        self.k8s.as_ref()
+    }
+
+    /// Access Cloud manager
+    pub fn aws(&self) -> Option<&AwsManager> {
+        self.aws.as_ref()
+    }
+
+    /// Access tracing manager
+    pub fn tracing(&self) -> &TracingManager {
+        &self.tracing_manager
+    }
+
+    /// Access logging manager
+    pub fn logging(&self) -> &LoggingManager {
+        &self.logging_manager
     }
 }
 
@@ -220,8 +296,8 @@ mod tests {
     use super::*;
     
     #[test]
-    fn test_saas_config_default() {
-        let config = SaasConfig::default();
+    fn test_cloud_config_default() {
+        let config = CloudConfig::default();
         assert_eq!(config.session_timeout, 3600);
         assert_eq!(config.max_sessions_per_tenant, 100);
         assert!(config.multi_tenancy_enabled);
@@ -236,9 +312,9 @@ mod tests {
     }
     
     #[tokio::test]
-    async fn test_saas_manager_creation() {
-        let config = SaasConfig::default();
-        let manager = SaasManager::new(config);
+    async fn test_cloud_manager_creation() {
+        let config = CloudConfig::default();
+        let manager = CloudResourceManager::new(config);
         
         assert!(manager.tenant_manager().list_tenants().is_empty());
         assert!(manager.session_manager().list_sessions().is_empty());

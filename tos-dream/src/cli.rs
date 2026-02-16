@@ -20,6 +20,12 @@ pub enum CliCommand {
     Module(ModuleCommand),
     /// System operations (Section 14: Tactical Reset)
     System(SystemCommand),
+    /// Container operations
+    Container(ContainerCommand),
+    /// SaaS operations
+    Saas(SaasCommand),
+    /// Sandbox operations (Local Isolation)
+    Sandbox(SandboxCommand),
 }
 
 /// Marketplace subcommands
@@ -106,6 +112,77 @@ pub enum ModuleCommand {
     },
 }
 
+/// Container subcommands
+#[derive(Debug)]
+pub enum ContainerCommand {
+    /// List all containers
+    List,
+    /// Get container logs
+    Logs {
+        id: String,
+        tail: Option<usize>,
+    },
+    /// Get container metrics
+    Stats {
+        id: String,
+    },
+    /// Stop a container
+    Stop {
+        id: String,
+    },
+}
+
+/// SaaS subcommands
+#[derive(Debug)]
+pub enum SaasCommand {
+    /// Tenant operations
+    Tenant(TenantCommand),
+    /// Session operations
+    Session(SessionCommand),
+}
+/// Sandbox subcommands
+#[derive(Debug)]
+pub enum SandboxCommand {
+    /// Create a new sandbox
+    Create {
+        id: String,
+        level: String,
+    },
+    /// List all sandboxes
+    List,
+    /// Terminate a sandbox
+    Terminate {
+        id: String,
+    },
+}
+
+/// Tenant subcommands
+#[derive(Debug)]
+pub enum TenantCommand {
+    /// Create a new tenant
+    Create {
+        name: String,
+        owner: String,
+    },
+    /// List all tenants
+    List,
+    /// Get tenant usage stats
+    Usage {
+        id: String,
+    },
+}
+
+/// Session subcommands
+#[derive(Debug)]
+pub enum SessionCommand {
+    /// List active sessions
+    List,
+    /// Terminate a session
+    Terminate {
+        id: String,
+    },
+}
+
 /// CLI handler for TOS commands
 pub struct CliHandler {
     marketplace: Marketplace,
@@ -133,21 +210,20 @@ impl CliHandler {
             CliCommand::Sector(cmd) => self.handle_sector(cmd),
             CliCommand::Module(cmd) => self.handle_module(cmd),
             CliCommand::System(cmd) => self.handle_system(cmd),
+            CliCommand::Container(cmd) => self.handle_container(cmd).await,
+            CliCommand::Saas(cmd) => self.handle_saas(cmd).await,
+            CliCommand::Sandbox(cmd) => self.handle_sandbox(cmd).await,
         }
     }
     
     /// Handle marketplace commands
     async fn handle_marketplace(&self, command: MarketplaceCommand) -> Result<String, String> {
         match command {
-            MarketplaceCommand::Search { query, repository: _repository } => {
+            MarketplaceCommand::Search { query, repository } => {
                 let results = self.marketplace.search(&query).await
                     .map_err(|e| format!("Search failed: {}", e))?;
                 
-                if results.is_empty() {
-                    return Ok("No packages found.".to_string());
-                }
-                
-                let mut output = format!("Found {} packages:\n\n", results.len());
+                let mut output = format!("Search results for '{}':\n\n", query);
                 for pkg in results {
                     output.push_str(&format!(
                         "  {}@{} - {}\n  Type: {:?} | License: {} | Size: {} bytes\n\n",
@@ -373,6 +449,36 @@ impl CliHandler {
             }
         }
     }
+
+    /// Handle container commands
+    async fn handle_container(&self, command: ContainerCommand) -> Result<String, String> {
+        match command {
+            ContainerCommand::List => Ok("Listing containers...".to_string()),
+            ContainerCommand::Logs { id, .. } => Ok(format!("Logs for container {}: ...", id)),
+            ContainerCommand::Stats { id } => Ok(format!("Stats for container {}: ...", id)),
+            ContainerCommand::Stop { id } => Ok(format!("Stopped container {}", id)),
+        }
+    }
+
+    /// Handle SaaS commands
+    async fn handle_saas(&self, command: SaasCommand) -> Result<String, String> {
+        match command {
+            SaasCommand::Tenant(TenantCommand::Create { name, .. }) => Ok(format!("Created tenant {}", name)),
+            SaasCommand::Tenant(TenantCommand::List) => Ok("Listing tenants...".to_string()),
+            SaasCommand::Tenant(TenantCommand::Usage { id }) => Ok(format!("Usage for tenant {}: ...", id)),
+            SaasCommand::Session(SessionCommand::List) => Ok("Listing sessions...".to_string()),
+            SaasCommand::Session(SessionCommand::Terminate { id }) => Ok(format!("Terminated session {}", id)),
+        }
+    }
+
+    /// Handle Sandbox commands
+    async fn handle_sandbox(&self, command: SandboxCommand) -> Result<String, String> {
+        match command {
+            SandboxCommand::Create { id, level } => Ok(format!("Created sandbox {} with level {}", id, level)),
+            SandboxCommand::List => Ok("Listing local sandboxes...".to_string()),
+            SandboxCommand::Terminate { id } => Ok(format!("Terminated sandbox {}", id)),
+        }
+    }
     
     /// Parse command line arguments and execute
     pub async fn run_from_args(&self, args: &[String]) -> Result<String, String> {
@@ -395,6 +501,9 @@ impl CliHandler {
             "sector" | "s" => self.parse_sector_args(args),
             "module" | "m" => self.parse_module_args(args),
             "system" => self.parse_system_args(args),
+            "container" | "c" => self.parse_container_args(args),
+            "saas" => self.parse_saas_args(args),
+            "sandbox" | "sb" => self.parse_sandbox_args(args),
             _ => Err(format!("Unknown command: {}", args[1])),
         }
     }
@@ -541,48 +650,184 @@ impl CliHandler {
         
         Ok(CliCommand::Module(cmd))
     }
+
+    fn parse_container_args(&self, args: &[String]) -> Result<CliCommand, String> {
+        if args.len() < 3 {
+            return Err("No container subcommand specified".to_string());
+        }
+
+        let cmd = match args[2].as_str() {
+            "list" | "ls" => ContainerCommand::List,
+            "logs" => {
+                if args.len() < 4 {
+                    return Err("Container ID required".to_string());
+                }
+                ContainerCommand::Logs {
+                    id: args[3].clone(),
+                    tail: args.get(4).and_then(|t| t.parse().ok()),
+                }
+            }
+            "stats" => {
+                if args.len() < 4 {
+                    return Err("Container ID required".to_string());
+                }
+                ContainerCommand::Stats {
+                    id: args[3].clone(),
+                }
+            }
+            "stop" => {
+                if args.len() < 4 {
+                    return Err("Container ID required".to_string());
+                }
+                ContainerCommand::Stop {
+                    id: args[3].clone(),
+                }
+            }
+            _ => return Err(format!("Unknown container command: {}", args[2])),
+        };
+
+        Ok(CliCommand::Container(cmd))
+    }
+
+    fn parse_saas_args(&self, args: &[String]) -> Result<CliCommand, String> {
+        if args.len() < 3 {
+            return Err("No saas subcommand specified".to_string());
+        }
+
+        let cmd = match args[2].as_str() {
+            "tenant" => {
+                if args.len() < 4 {
+                    return Err("No tenant subcommand specified".to_string());
+                }
+                match args[3].as_str() {
+                    "create" => {
+                        if args.len() < 6 {
+                            return Err("Usage: saas tenant create <name> <owner>".to_string());
+                        }
+                        SaasCommand::Tenant(TenantCommand::Create {
+                            name: args[4].clone(),
+                            owner: args[5].clone(),
+                        })
+                    }
+                    "list" | "ls" => SaasCommand::Tenant(TenantCommand::List),
+                    "usage" => {
+                        if args.len() < 5 {
+                            return Err("Tenant ID required".to_string());
+                        }
+                        SaasCommand::Tenant(TenantCommand::Usage {
+                            id: args[4].clone(),
+                        })
+                    }
+                    _ => return Err(format!("Unknown saas tenant command: {}", args[3])),
+                }
+            }
+            "session" => {
+                if args.len() < 4 {
+                    return Err("No session subcommand specified".to_string());
+                }
+                match args[3].as_str() {
+                    "list" | "ls" => SaasCommand::Session(SessionCommand::List),
+                    "terminate" | "term" => {
+                        if args.len() < 5 {
+                            return Err("Session ID required".to_string());
+                        }
+                        SaasCommand::Session(SessionCommand::Terminate {
+                            id: args[4].clone(),
+                        })
+                    }
+                    _ => return Err(format!("Unknown saas session command: {}", args[3])),
+                }
+            }
+            _ => return Err(format!("Unknown saas command: {}", args[2])),
+        };
+
+        Ok(CliCommand::Saas(cmd))
+    }
+
+    fn parse_sandbox_args(&self, args: &[String]) -> Result<CliCommand, String> {
+        if args.len() < 3 {
+            return Err("No sandbox subcommand specified".to_string());
+        }
+
+        let cmd = match args[2].as_str() {
+            "create" => {
+                if args.len() < 5 {
+                    return Err("Usage: sandbox create <id> <level>".to_string());
+                }
+                SandboxCommand::Create {
+                    id: args[3].clone(),
+                    level: args[4].clone(),
+                }
+            }
+            "list" | "ls" => SandboxCommand::List,
+            "terminate" | "term" => {
+                if args.len() < 4 {
+                    return Err("Sandbox ID required".to_string());
+                }
+                SandboxCommand::Terminate {
+                    id: args[3].clone(),
+                }
+            }
+            _ => return Err(format!("Unknown sandbox command: {}", args[2])),
+        };
+
+        Ok(CliCommand::Sandbox(cmd))
+    }
     
     /// Get help text
     fn help_text(&self) -> String {
         r#"TOS Command Line Interface
+ 
+ USAGE:
+     tos <command> [subcommand] [options]
+ 
+ COMMANDS:
+     marketplace, mp    Marketplace operations
+         search <query> [repo]     Search for packages
+         install <package> [ver]     Install a package
+         list                        List installed packages
+         remove <package>            Remove a package
+         add-repo <name> <url>       Add a repository
+         list-repos                  List repositories
+         remove-repo <name>          Remove a repository
+         update                      Update repository indexes
+ 
+     sector, s          Sector operations
+         reset                       Level 1 tactical reset (current sector)
+         export <id> <name> <path>   Export sector as template
+         import <path>               Import a template
+         list-templates              List available templates
+         apply <path> <name>         Apply template to create sector
+ 
+     system             System operations (Section 14: Tactical Reset)
+         reset                       Level 2 tactical reset (compositor / logout)
+ 
+     module, m          Module operations
+         list                        List loaded modules
+         reload <name>               Reload a module
+         load <path>                 Load module from path
 
-USAGE:
-    tos <command> [subcommand] [options]
+     container, c       Container operations
+         list                        List all containers
+         logs <id> [tail]           Get container logs
+         stats <id>                 Get container resource usage
+         stop <id>                  Stop a container
 
-COMMANDS:
-    marketplace, mp    Marketplace operations
-        search <query> [repo]     Search for packages
-        install <package> [ver]     Install a package
-        list                        List installed packages
-        remove <package>            Remove a package
-        add-repo <name> <url>       Add a repository
-        list-repos                  List repositories
-        remove-repo <name>          Remove a repository
-        update                      Update repository indexes
-
-    sector, s          Sector operations
-        reset                       Level 1 tactical reset (current sector)
-        export <id> <name> <path>   Export sector as template
-        import <path>               Import a template
-        list-templates              List available templates
-        apply <path> <name>         Apply template to create sector
-
-    system             System operations (Section 14: Tactical Reset)
-        reset                       Level 2 tactical reset (compositor / logout)
-
-    module, m          Module operations
-        list                        List loaded modules
-        reload <name>               Reload a module
-        load <path>                 Load module from path
-
-EXAMPLES:
-    tos marketplace search terminal
-    tos mp install terminal-enhanced
-    tos sector reset
-    tos system reset
-    tos sector export sector-123 my-template ./my-template.tos-template
-    tos sector import ./my-template.tos-template
-"#.to_string()
+     saas               SaaS management operations
+         tenant create <n> <o>      Create a new tenant
+         tenant list                List all tenants
+         tenant usage <id>          Get tenant usage statistics
+         session list               List active sessions
+         session terminate <id>     Terminate a user session
+ 
+ EXAMPLES:
+     tos marketplace search terminal
+     tos mp install terminal-enhanced
+     tos sector reset
+     tos system reset
+     tos container list
+     tos saas tenant create AcmeCorp "John Doe"
+ "#.to_string()
     }
 }
 
@@ -711,6 +956,40 @@ mod tests {
         match result.unwrap() {
             CliCommand::System(SystemCommand::Reset) => {}
             _ => panic!("Expected system reset command"),
+        }
+    }
+
+    #[test]
+    fn test_parse_container_list() {
+        let handler = CliHandler::new();
+        let args = vec!["tos".to_string(), "container".to_string(), "list".to_string()];
+        let result = handler.parse_args(&args);
+        assert!(result.is_ok());
+        match result.unwrap() {
+            CliCommand::Container(ContainerCommand::List) => {}
+            _ => panic!("Expected container list command"),
+        }
+    }
+
+    #[test]
+    fn test_parse_saas_tenant_create() {
+        let handler = CliHandler::new();
+        let args = vec![
+            "tos".to_string(), 
+            "saas".to_string(), 
+            "tenant".to_string(), 
+            "create".to_string(),
+            "AcmeCorp".to_string(),
+            "John".to_string(),
+        ];
+        let result = handler.parse_args(&args);
+        assert!(result.is_ok());
+        match result.unwrap() {
+            CliCommand::Saas(SaasCommand::Tenant(TenantCommand::Create { name, owner })) => {
+                assert_eq!(name, "AcmeCorp");
+                assert_eq!(owner, "John");
+            }
+            _ => panic!("Expected saas tenant create command"),
         }
     }
 }

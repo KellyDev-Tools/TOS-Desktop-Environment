@@ -173,55 +173,24 @@ impl Default for SecurityOptions {
 }
 
 /// Docker runtime implementation
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct DockerRuntime {
-    client: reqwest::Client,
-    socket_path: String,
+    docker: bollard::Docker,
 }
 
 impl DockerRuntime {
     pub async fn new() -> ContainerResult<Self> {
-        let socket_path = ContainerBackend::Docker.default_socket().to_string();
+        let docker = bollard::Docker::connect_with_local_defaults()
+            .map_err(|e| ContainerError::Runtime(format!("Failed to connect to Docker: {}", e)))?;
         
-        if !std::path::Path::new(&socket_path).exists() {
-            return Err(ContainerError::Runtime(
-                format!("Docker socket not found at {}", socket_path)
-            ));
-        }
-        
-        let client = reqwest::Client::builder()
-            .timeout(std::time::Duration::from_secs(30))
-            .build()
-            .map_err(|e| ContainerError::Runtime(e.to_string()))?;
-        
-        Ok(Self {
-            client,
-            socket_path,
-        })
-    }
-    
-    /// Make API request to Docker daemon
-    async fn api_request(
-        &self,
-        method: reqwest::Method,
-        path: &str,
-        body: Option<serde_json::Value>,
-    ) -> ContainerResult<reqwest::Response> {
-        // In a real implementation, this would use Unix socket
-        // For now, we return a mock error
-        Err(ContainerError::Runtime(
-            "Docker API not yet implemented - requires Unix socket support".to_string()
-        ))
+        Ok(Self { docker })
     }
 }
 
 #[async_trait]
 impl ContainerRuntime for DockerRuntime {
     fn clone_box(&self) -> Box<dyn ContainerRuntime> {
-        Box::new(Self {
-            client: self.client.clone(),
-            socket_path: self.socket_path.clone(),
-        })
+        Box::new(self.clone())
     }
     
     fn backend(&self) -> ContainerBackend {
@@ -229,7 +198,19 @@ impl ContainerRuntime for DockerRuntime {
     }
     
     async fn create_container(&self, config: ContainerConfig) -> ContainerResult<ContainerInfo> {
-        // TODO: Implement Docker container creation
+        let options = Some(bollard::container::CreateContainerOptions {
+            name: config.name.as_str(),
+            ..Default::default()
+        });
+        
+        let docker_config = bollard::container::Config {
+            image: Some(config.image.clone()),
+            ..Default::default()
+        };
+
+        self.docker.create_container::<&str, String>(options, docker_config).await
+            .map_err(|e| ContainerError::Runtime(format!("Docker create failed: {}", e)))?;
+        
         let id = format!("docker-{}", uuid::Uuid::new_v4());
         
         Ok(ContainerInfo {

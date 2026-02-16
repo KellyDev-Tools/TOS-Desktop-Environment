@@ -237,9 +237,12 @@ pub struct TosState {
     /// Phase 16: Sector Container Manager
     #[serde(skip)]
     pub sector_container_manager: Option<SectorContainerManager>,
-    /// Phase 16 Week 2: SaaS Manager
+    /// Phase 16: Local Sandbox Manager
     #[serde(skip)]
-    pub saas_manager: Option<SaasManager>,
+    pub sandbox_manager: Option<sandbox::SandboxManager>,
+    /// Phase 16 Week 2: Cloud Resource Manager
+    #[serde(skip)]
+    pub cloud_manager: Option<saas::CloudResourceManager>,
 }
 
 impl std::fmt::Debug for TosState {
@@ -407,15 +410,39 @@ impl TosState {
             bezel_expanded: false,
         };
 
-        let state = Self {
+        let sectors = vec![first_sector, second_sector, third_sector];
+        let viewports = vec![initial_viewport];
+        let modules = Vec::new(); // Modules are loaded and managed by module_registry
+        let minimap = MiniMap::new();
+        let tactical_reset = TacticalReset::new();
+        let voice = VoiceCommandProcessor::new();
+        let shell_api = ShellApi::new();
+        let shell_registry = system::shell::ShellRegistry::new();
+        let security = SecurityManager::new();
+        let remote_manager = RemoteManager::new();
+        let collaboration_manager = CollaborationManager::new();
+        let audio_manager = AudioManager::new();
+        let performance_monitor = PerformanceMonitor::new();
+        let earcon_player = EarconPlayer::new();
+        let sound_theme_manager = ThemeManager::new();
+        let advanced_input = AdvancedInputManager::new();
+        let container_manager = None;
+        let sector_container_manager = None;
+        #[cfg(feature = "accessibility")]
+        let accessibility = None;
+        #[cfg(feature = "live-feed")]
+        let live_feed = None;
+        let cloud_manager = Some(saas::CloudResourceManager::new(saas::CloudConfig::default()));
+
+        let mut state = Self {
             current_level: HierarchyLevel::GlobalOverview,
-            sectors: vec![first_sector, second_sector, third_sector],
-            viewports: vec![initial_viewport],
+            sectors,
+            viewports,
             active_viewport_index: 0,
             escape_count: 0,
             fps: 60.0,
             performance_alert: false,
-            modules: Vec::new(),
+            modules,
             portal_security_bypass: false,
             approval_requested_sector: None,
             module_registry,
@@ -423,31 +450,26 @@ impl TosState {
             sector_type_registry,
             marketplace,
             #[cfg(feature = "accessibility")]
-            accessibility: None,
+            accessibility,
             #[cfg(feature = "live-feed")]
-            live_feed: None,
-            // Phase 11: Initialize new components
-            minimap: MiniMap::new(),
-            tactical_reset: TacticalReset::new(),
-            voice: VoiceCommandProcessor::new(),
-            shell_api: ShellApi::new(),
-            shell_registry: system::shell::ShellRegistry::new(),
-            security: SecurityManager::new(),
-            // Phase 12: Initialize new components
-            remote_manager: RemoteManager::new(),
-            collaboration_manager: CollaborationManager::new(),
-            // Phase 13: Initialize new components
-            audio_manager: AudioManager::new(),
-            // Phase 15: Initialize new components
-            performance_monitor: PerformanceMonitor::new(),
-            earcon_player: EarconPlayer::new(),
-            sound_theme_manager: ThemeManager::new(),
-            advanced_input: AdvancedInputManager::new(),
-            // Phase 16: Initialize container managers (lazy initialization)
-            container_manager: None,
-            sector_container_manager: None,
-            // Phase 16 Week 2: Initialize SaaS manager (lazy initialization)
-            saas_manager: None,
+            live_feed,
+            minimap,
+            tactical_reset,
+            voice,
+            shell_api,
+            shell_registry,
+            security,
+            remote_manager,
+            collaboration_manager,
+            audio_manager,
+            performance_monitor,
+            earcon_player,
+            sound_theme_manager,
+            advanced_input,
+            container_manager,
+            sector_container_manager,
+            sandbox_manager: None,
+            cloud_manager,
         };
         
         // Initialize all loaded modules

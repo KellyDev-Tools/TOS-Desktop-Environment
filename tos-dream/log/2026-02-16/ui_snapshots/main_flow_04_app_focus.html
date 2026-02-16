@@ -1,0 +1,40 @@
+<div class="application-container render-Full">
+                <div class="tactical-bezel collapsed">
+                    <div class="bezel-top">
+                        <div class="bezel-back" onclick="window.ipc.postMessage('zoom_out')">BACK</div>
+                        <div class="bezel-title">MAIN TERMINAL // TOS.TERMINAL</div>
+                        <div class="bezel-participants">
+                            <div class="participant-avatar mini" style="background-color: #ffcc00" title="Host"></div>
+                        </div>
+                        <div class="bezel-handle" onclick="window.ipc.postMessage('toggle_bezel')">
+                            <span class="chevron"></span>
+                        </div>
+                    </div>
+                    <div class="bezel-expanded-content">
+                        <div class="bezel-group">
+                            <div class="bezel-btn" onclick="window.ipc.postMessage('zoom_out')">ZOOM OUT</div>
+                            <div class="bezel-btn" onclick="window.ipc.postMessage('split_viewport')">SPLIT VIEW</div>
+                            <div class="bezel-btn " onclick="window.ipc.postMessage('toggle_portal')">EXPORT PORTAL</div>
+                            <div class="bezel-btn danger">CLOSE</div>
+                        </div>
+                        
+                        <div class="bezel-group sliders">
+                             <div class="action-slider">
+                                <span>PRIORITY</span>
+                                <input type="range" min="1" max="10" value="5">
+                             </div>
+                             <div class="action-slider">
+                                <span>POWER</span>
+                                <input type="range" min="1" max="100" value="80">
+                             </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="application-surface" onclick="window.ipc.postMessage('zoom_in')">
+                    <div class="app-mock-content">
+                        APPLICATION DATA FEED: MAIN TERMINAL
+                        
+                    </div>
+                </div>
+            </div>

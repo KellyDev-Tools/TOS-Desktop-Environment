@@ -1,0 +1,35 @@
+<div class="command-hub mode-directory render-Full"><div class="hub-header">
+                <div class="hub-info">
+                    <span class="hub-sector-name">ALPHA SECTOR</span>
+                    <span class="hub-host">LINK: LOCAL</span>
+                </div>
+                <div class="hub-participants">
+                    <div class="participant-avatar" style="background-color: #ffcc00" title="Host (Co-owner)"></div>
+                    <div class="invite-btn" onclick="window.ipc.postMessage('collaboration_invite')">+</div>
+                </div>
+            </div><div class="hub-tabs"><div class="hub-tab " onclick="window.ipc.postMessage('set_mode:Command')">COMMAND</div><div class="hub-tab active" onclick="window.ipc.postMessage('set_mode:Directory')">DIRECTORY</div><div class="hub-tab " onclick="window.ipc.postMessage('set_mode:Activity')">ACTIVITY</div></div><div class="hub-content"><div class="directory-view">
+                    <div class="path-bar">/HOME/USER/SECTOR_PRIMARY</div>
+                    <div class="file-grid">
+                        <div class="file-item staging-item" onclick="window.ipc.postMessage('stage_command:ls ..')">
+                            <span class="file-icon folder"></span> ..
+                        </div>
+                        <div class="file-item staging-item" onclick="window.ipc.postMessage('stage_command:cd DOCUMENTS')">
+                            <span class="file-icon folder"></span> DOCUMENTS/
+                            <span class="file-meta">4 ITEMS // SECURE</span>
+                        </div>
+                        <div class="file-item staging-item" onclick="window.ipc.postMessage('stage_command:ls SYSTEM_CORE')">
+                            <span class="file-icon folder"></span> SYSTEM_CORE/
+                            <span class="file-meta">SYSTEM-MOUNT</span>
+                        </div>
+                        <div class="file-item staging-item" onclick="window.ipc.postMessage('stage_command:view CONFIG.TOS')">
+                            <span class="file-icon file"></span> CONFIG.TOS
+                            <span class="file-meta">2KB // TXT</span>
+                        </div>
+                    </div>
+                </div></div><div class="unified-prompt">
+                <div class="voice-trigger" onclick="window.ipc.postMessage('semantic_event:VoiceCommandStart')">
+                    <span class="mic-icon"></span>
+                </div>
+                <div class="prompt-prefix">TOS@ALPHA SECTOR ></div>
+                <input type="text" id="terminal-input" value="" onkeydown="handlePromptKey(event)" autofocus>
+            </div></div>

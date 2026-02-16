@@ -80,6 +80,12 @@ impl IpcDispatcher {
         } else if request.starts_with("kill_app:") {
             let id_str = &request[9..];
             self.handle_kill_app(&mut state, id_str);
+        } else if request.starts_with("kill_sector:") {
+            if let Ok(idx) = request[12..].parse::<usize>() {
+                if idx < state.sectors.len() {
+                    state.sectors.remove(idx);
+                }
+            }
         } else if request.starts_with("play_audio:") {
             let event_str = &request[11..];
             self.handle_play_audio(&mut state, event_str);

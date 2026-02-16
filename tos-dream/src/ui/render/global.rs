@@ -85,40 +85,54 @@ impl ViewRenderer for GlobalRenderer {
                         {remote_indicator}
                         {portal_tag}
                         <div class="header-utils">
-                            <span>+</span>
-                            <span>✎</span>
+                            <span title="Settings">⚙️</span>
+                            <span title="Pin">📌</span>
                         </div>
                     </div>
                     <div class="card-body">
-                        <div class="card-icon" style="font-size: 3rem; margin-top: 10px;">{icon}</div>
+                        <div class="card-icon">{icon}</div>
                         <div class="sector-name">{name}</div>
                         <div class="sector-desc">{desc}</div>
+                        <div class="sector-stats">
+                            <div class="stat"><span class="label">USERS</span><span class="val">{participants}</span></div>
+                            <div class="stat"><span class="label">HUBS</span><span class="val">{hubs}</span></div>
+                        </div>
                     </div>
                     <div class="card-footer">
-                        <div class="execute-btn">Execute</div>
-                        <div class="header-utils"><span style="opacity: 0.5">🗑</span></div>
+                        <div class="execute-btn">ENTER</div>
+                        <div class="footer-actions">
+                            <button class="action-btn share-btn" onclick="event.stopPropagation(); window.ipc.postMessage('invite_participant:Viewer')">SHARE</button>
+                            <button class="action-btn delete-btn" onclick="event.stopPropagation(); window.ipc.postMessage('kill_sector:{index}')">DEL</button>
+                        </div>
                     </div>
                 </div>"#,
                 index = i,
                 name = sector.name.to_uppercase(),
                 icon = icon,
                 desc = desc,
+                participants = sector.participants.len(),
+                hubs = sector.hubs.len(),
                 portal_tag = portal_tag
             ));
         }
         
         // Add Remote Card (Styled like a sector card)
-        html.push_str(r#"<div class="sector-card green" onclick="window.ipc.postMessage('add_remote_sector')">
+        html.push_str(r#"<div class="sector-card remote-card green">
             <div class="card-header">
-                <div class="header-label">REMOTE</div>
+                <div class="header-label">REMOTE CONNECTION</div>
             </div>
             <div class="card-body">
-                <div class="card-icon" style="font-size: 3rem; margin-top: 10px;">📡</div>
-                <div class="sector-name">ADD REMOTE</div>
-                <div class="sector-desc">Establish link to remote TOS node.</div>
+                <div class="card-icon">📡</div>
+                <div class="sector-name">LINK NODE</div>
+                <p class="sector-desc">Establish a persistent tactical link to a remote TOS installation via IP/Hostname.</p>
+                <div class="remote-input-group">
+                    <input type="text" id="remote-host-input" placeholder="ADDRESS (e.g. 192.168.1.50)" 
+                           onkeyup="if(event.key==='Enter') window.ipc.postMessage('connect_remote:' + this.value)">
+                </div>
             </div>
             <div class="card-footer">
-                <div class="execute-btn">Link</div>
+                <button class="execute-btn" onclick="const val = document.getElementById('remote-host-input').value; if(val) window.ipc.postMessage('connect_remote:' + val)">CONNECT</button>
+                <button class="action-btn" onclick="window.ipc.postMessage('add_remote_sector')">MOCK</button>
             </div>
         </div>"#);
 

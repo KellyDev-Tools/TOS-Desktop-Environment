@@ -1,202 +1,280 @@
 /* 
-  TOS // LEVEL 1: GLOBAL OVERVIEW MODULE
-  --------------------------------------
+  TOS // LEVEL 1: GLOBAL OVERVIEW MODULE (PREMIUM UPGRADE)
+  --------------------------------------------------------
   Scope: Sector Command Dashboard.
-  Responsibility: Renders the top-level tactical overview, including
-  sector navigation cards, telemetry hubs, and the minimap.
+  Responsibility: Renders the top-level tactical overview with glassmorphism,
+  refined LCARS proportions, and high-fidelity animations.
 */
 
-/* Global Overview Specific Styles */
-
 .dashboard-header {
-    text-align: center;
-    padding: 20px 0;
-    margin-top: 40px;
+    text-align: left;
+    padding: 40px 100px;
+    margin-bottom: 20px;
 }
 
 .dashboard-title {
-    font-size: 3rem;
+    font-size: 3.5rem;
     font-weight: 800;
-    letter-spacing: 5px;
+    letter-spacing: 2px;
     color: white;
-    text-shadow: 0 0 20px rgba(255, 255, 255, 0.3);
     text-transform: uppercase;
+    font-family: var(--font-main);
+    background: linear-gradient(to right, #fff, rgba(255, 255, 255, 0.3));
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
 }
 
 .telemetry-bar {
     position: absolute;
-    top: 50px;
-    right: 50px;
+    top: 55px;
+    right: 100px;
     display: flex;
-    gap: 30px;
+    gap: 40px;
     font-family: var(--font-mono);
-    color: rgba(255, 255, 255, 0.7);
+    backdrop-filter: blur(10px);
+    background: rgba(255, 255, 255, 0.05);
+    padding: 10px 25px;
+    border-radius: 15px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
 }
 
 .telemetry-item .value {
-    font-size: 1.8rem;
+    font-size: 1.5rem;
     font-weight: 700;
-    color: white;
+    color: var(--lcars-orange);
     display: block;
 }
 
 .telemetry-item .label {
-    font-size: 0.7rem;
-    text-transform: uppercase;
-    color: var(--lcars-orange);
-}
-
-.tactical-minimap {
-    position: absolute;
-    top: 40px;
-    left: 40px;
-    width: 220px;
-    padding: 15px;
-    background: rgba(40, 40, 60, 0.3);
-    border: 1px solid rgba(153, 153, 204, 0.2);
-    border-radius: 10px;
-}
-
-.minimap-title {
-    font-size: 0.7rem;
-    font-weight: 800;
-    color: var(--lcars-blue);
-    margin-bottom: 10px;
-    text-transform: uppercase;
-}
-
-.minimap-tree {
-    height: 100px;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-    margin-bottom: 10px;
-}
-
-.minimap-stats {
     font-size: 0.6rem;
-    color: rgba(255, 255, 255, 0.5);
+    text-transform: uppercase;
+    color: rgba(255, 255, 255, 0.4);
+    letter-spacing: 1px;
 }
 
 .global-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
-    gap: 40px;
-    padding: 40px 100px;
+    grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+    gap: 30px;
+    padding: 0 100px 100px 100px;
     width: 100%;
+    animation: fade-in-up 0.8s ease-out;
 }
 
 .sector-card {
-    background: rgba(40, 40, 60, 0.4);
+    background: rgba(20, 20, 30, 0.4);
+    backdrop-filter: blur(25px);
+    border: 1px solid rgba(255, 255, 255, 0.05);
     border-radius: 20px;
     overflow: hidden;
     cursor: pointer;
-    transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    transition: all 0.5s cubic-bezier(0.16, 1, 0.3, 1);
     display: flex;
     flex-direction: column;
-    border: none;
-    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+    box-shadow: 0 15px 45px rgba(0, 0, 0, 0.4);
 }
 
 .sector-card .card-header {
-    height: 60px;
+    padding: 15px 25px;
+    background: var(--card-accent);
+    color: black;
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 0 20px;
-    background: var(--card-accent);
-    color: black;
+    position: relative;
 }
 
-.card-header .header-utils {
-    display: flex;
-    gap: 15px;
-    font-size: 1.2rem;
-    font-weight: 900;
+.card-header::after {
+    content: '';
+    position: absolute;
+    bottom: -10px;
+    left: 0;
+    width: 100%;
+    height: 10px;
+    background: linear-gradient(to bottom, var(--card-accent), transparent);
+    opacity: 0.3;
 }
 
-.remote-tag {
-    font-family: var(--font-mono);
-    font-size: 0.8rem;
+.header-label {
     font-weight: 800;
-    background: rgba(0, 0, 0, 0.2);
-    padding: 2px 10px;
-    border-radius: 10px;
+    font-size: 0.8rem;
+    letter-spacing: 2px;
 }
 
 .sector-card .card-body {
-    padding: 30px;
+    padding: 40px 30px;
     flex: 1;
     display: flex;
     flex-direction: column;
-    align-items: center;
-    text-align: center;
+    align-items: flex-start;
+    text-align: left;
 }
 
 .card-icon {
-    width: 80px;
-    height: 80px;
-    margin-bottom: 20px;
-    opacity: 0.8;
+    font-size: 3.5rem;
+    margin-bottom: 25px;
+    filter: drop-shadow(0 0 15px var(--card-accent));
 }
 
 .sector-name {
-    font-size: 1.8rem;
+    font-size: 2rem;
     font-weight: 800;
-    margin-bottom: 10px;
-    color: var(--card-accent);
+    margin-bottom: 5px;
+    color: #fff;
 }
 
 .sector-desc {
-    font-size: 0.9rem;
-    color: rgba(255, 255, 255, 0.6);
-    line-height: 1.4;
-    margin-bottom: 20px;
+    font-size: 0.95rem;
+    color: rgba(255, 255, 255, 0.5);
+    line-height: 1.5;
+    margin-bottom: 30px;
+    height: 3em;
+    overflow: hidden;
+}
+
+.sector-stats {
+    display: flex;
+    gap: 30px;
+    width: 100%;
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+    padding-top: 20px;
+}
+
+.stat {
+    display: flex;
+    flex-direction: column;
+}
+
+.stat .label {
+    font-size: 0.6rem;
+    color: rgba(255, 255, 255, 0.3);
+    font-weight: 800;
+    margin-bottom: 5px;
+}
+
+.stat .val {
+    font-size: 1.2rem;
+    font-weight: 700;
+    color: var(--card-accent);
 }
 
 .sector-card .card-footer {
-    height: 50px;
+    padding: 20px 25px;
     display: flex;
-    background: rgba(0, 0, 0, 0.3);
-    padding: 0 20px;
+    background: rgba(0, 0, 0, 0.2);
     align-items: center;
     justify-content: space-between;
 }
 
 .execute-btn {
-    color: var(--card-accent);
+    background: var(--card-accent);
+    color: #000;
+    border: none;
+    padding: 8px 20px;
+    border-radius: 5px;
     font-weight: 800;
-    font-size: 0.9rem;
-    text-transform: uppercase;
+    font-size: 0.8rem;
+    letter-spacing: 1px;
+    cursor: pointer;
+    transition: transform 0.2s;
+}
+
+.execute-btn:hover {
+    transform: scale(1.05);
+}
+
+.footer-actions {
     display: flex;
-    align-items: center;
     gap: 10px;
 }
 
-.execute-btn::before {
-    content: '▶';
+.action-btn {
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    color: white;
+    padding: 5px 12px;
+    border-radius: 4px;
     font-size: 0.7rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.2s;
 }
 
-/* Color Tags */
+.action-btn:hover {
+    background: rgba(255, 255, 255, 0.2);
+}
+
+.share-btn:hover {
+    border-color: var(--lcars-blue);
+    color: var(--lcars-blue);
+}
+
+/* Remote Connection Upgrade */
+.remote-card {
+    background: rgba(20, 40, 30, 0.3);
+    border: 1px dashed rgba(153, 204, 153, 0.3);
+}
+
+.remote-input-group {
+    width: 100%;
+}
+
+.remote-input-group input {
+    width: 100%;
+    background: rgba(0, 0, 0, 0.4);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    padding: 12px 15px;
+    color: white;
+    font-family: var(--font-mono);
+    border-radius: 8px;
+    font-size: 0.9rem;
+    margin-top: 10px;
+}
+
+.remote-input-group input:focus {
+    outline: none;
+    border-color: var(--lcars-green);
+    box-shadow: 0 0 15px rgba(153, 204, 153, 0.2);
+}
+
+/* Hover States */
+.sector-card:hover {
+    transform: translateY(-12px);
+    background: rgba(30, 30, 50, 0.5);
+    border-color: rgba(255, 255, 255, 0.15);
+    box-shadow: 0 30px 60px rgba(0, 0, 0, 0.6), 0 0 30px rgba(var(--card-accent-rgb), 0.1);
+}
+
+/* Color Variables and RGB equivalents for glows */
 .sector-card.orange {
     --card-accent: var(--lcars-orange);
+    --card-accent-rgb: 255, 153, 0;
 }
 
 .sector-card.blue {
     --card-accent: var(--lcars-blue);
+    --card-accent-rgb: 153, 153, 204;
 }
 
 .sector-card.purple {
     --card-accent: var(--lcars-purple);
+    --card-accent-rgb: 204, 153, 204;
 }
 
 .sector-card.green {
     --card-accent: #99cc99;
+    --card-accent-rgb: 153, 204, 153;
 }
 
-.sector-card:hover {
-    transform: translateY(-10px) scale(1.02);
-    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.8), 0 0 20px var(--card-accent);
+@keyframes fade-in-up {
+    from {
+        opacity: 0;
+        transform: translateY(30px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
 }

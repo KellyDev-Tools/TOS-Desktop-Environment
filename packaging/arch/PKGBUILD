@@ -1,0 +1,22 @@
+pkgname=tos
+pkgver=0.1.0
+pkgrel=1
+pkgdesc="Tactical Operating System"
+arch=('x86_64')
+url="https://tos-project.org"
+license=('GPL3')
+depends=('wayland' 'libxkbcommon')
+makedepends=('rust' 'cargo')
+source=("$pkgname-$pkgver.tar.gz")
+sha256sums=('SKIP')
+
+build() {
+    cd "$srcdir/$pkgname-$pkgver/tos-dream"
+    cargo build --release
+}
+
+package() {
+    cd "$srcdir/$pkgname-$pkgver"
+    install -Dm755 tos-dream/target/release/tos "$pkgdir/usr/bin/tos-session"
+    install -Dm644 packaging/tos.desktop "$pkgdir/usr/share/xsessions/tos.desktop"
+}

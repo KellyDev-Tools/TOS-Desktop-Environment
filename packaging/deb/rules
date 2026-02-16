@@ -1,0 +1,13 @@
+#!/usr/bin/make -f
+%:
+	dh $@
+
+override_dh_auto_build:
+	cd tos-dream && cargo build --release
+
+override_dh_auto_install:
+	mkdir -p debian/tos/usr/bin
+	cp tos-dream/target/release/tos debian/tos/usr/bin/tos-session
+	# Install desktop files
+	mkdir -p debian/tos/usr/share/xsessions
+	cp packaging/tos.desktop debian/tos/usr/share/xsessions/

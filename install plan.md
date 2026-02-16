@@ -287,13 +287,32 @@ cargo deb
 
 ### 5. Installation Checklist
 
-- [ ] Create `.desktop` file in `/usr/share/xsessions/`
-- [ ] Create session wrapper script in `/usr/bin/`
-- [ ] Set correct permissions (755 for executables, 644 for desktop files)
-- [ ] Detect active display manager and restart if needed
-- [ ] Create configuration directories (`/etc/tos/`, `/var/log/tos/`)
-- [ ] Package for all target distributions (deb, rpm, PKGBUILD)
-- [ ] Provide universal install script for source builds
-- [ ] Document manual steps for XDM fallback
+- [x] Create `.desktop` file in `/usr/share/xsessions/`
+- [x] Create session wrapper script in `/usr/bin/`
+- [x] Set correct permissions (755 for executables, 644 for desktop files)
+- [x] Detect active display manager and restart if needed
+- [x] Create configuration directories (`/etc/tos/`, `/var/log/tos/`)
+- [x] Package for all target distributions (deb, rpm, PKGBUILD)
+- [x] Provide universal install script for source builds
+- [x] Document manual steps for XDM fallback
+
+### 6. XDM and Legacy Fallback
+
+For systems using XDM or older login managers that do not support `.desktop` files in `/usr/share/xsessions`, follow these steps:
+
+1. **Create .xsession script:**
+   In your home directory, create or edit `~/.xsession`:
+   ```bash
+   #!/bin/bash
+   exec /usr/bin/tos-session
+   ```
+
+2. **Set permissions:**
+   ```bash
+   chmod +x ~/.xsession
+   ```
+
+3. **Select 'Custom' or 'Default' session:**
+   On the XDM login screen, the system will now execute `~/.xsession` when you log in.
 
 This plan ensures TOS integrates seamlessly with any Linux distribution's display manager and can be packaged and distributed through official channels.

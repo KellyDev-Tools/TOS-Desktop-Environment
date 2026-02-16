@@ -1,0 +1,15 @@
+Source: tos
+Section: x11
+Priority: optional
+Maintainer: TOS Development Team <dev@tos-project.org>
+Build-Depends: debhelper-compat (= 13), rustc, cargo, libwayland-dev, libxkbcommon-dev
+Standards-Version: 4.6.0
+Homepage: https://tos-project.org
+
+Package: tos
+Architecture: any
+Depends: ${shlibs:Depends}, ${misc:Depends}, libwayland-client0, libxkbcommon0
+Description: Tactical Operating System
+ TOS is a reimagining of the Linux desktop with a recursive zoom hierarchy
+ and command-first philosophy. It provides a spatial command platform
+ for productivity.

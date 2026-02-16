@@ -1,0 +1,8 @@
+[Desktop Entry]
+Name=TOS
+Comment=Tactical Operating System
+Exec=/usr/bin/tos-session
+TryExec=/usr/bin/tos-session
+Icon=/usr/share/pixmaps/tos-icon.png
+Type=Application
+DesktopNames=TOS

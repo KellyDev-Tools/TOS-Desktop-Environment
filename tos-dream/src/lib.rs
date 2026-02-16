@@ -43,8 +43,8 @@ use containers::{
     sector::SectorContainerManager,
 };
 
-// Phase 16 Week 2: SaaS Infrastructure
-use saas::{SaasManager, SaasConfig};
+// Phase 16 Week 2: Cloud Resource Infrastructure
+use saas::{CloudResourceManager, CloudConfig};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum HierarchyLevel {
@@ -239,7 +239,7 @@ pub struct TosState {
     pub sector_container_manager: Option<SectorContainerManager>,
     /// Phase 16: Local Sandbox Manager
     #[serde(skip)]
-    pub sandbox_manager: Option<sandbox::SandboxManager>,
+    pub sandbox_manager: Option<containers::SandboxManager>,
     /// Phase 16 Week 2: Cloud Resource Manager
     #[serde(skip)]
     pub cloud_manager: Option<saas::CloudResourceManager>,

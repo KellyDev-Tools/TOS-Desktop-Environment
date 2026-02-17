@@ -345,7 +345,7 @@ impl SessionManager {
     /// Terminate a session
     pub fn terminate_session(&self, id: &SessionId, reason: &str) -> SaasResult<()> {
         let mut sessions = self.sessions.lock().unwrap();
-        let mut session = sessions.get_mut(id)
+        let session = sessions.get_mut(id)
             .ok_or_else(|| SaasError::NotFound(format!("Session {} not found", id)))?;
         
         session.status = SessionStatus::Terminating;

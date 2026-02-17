@@ -16,7 +16,7 @@
 //! - **Level 2**: Current sector with mode indicator; other sectors dimmed
 //! - **Level 3**: Current sector with focused app highlighted; other viewports shown
 
-use crate::{HierarchyLevel, TosState, Viewport, Sector, CommandHubMode};
+use crate::{HierarchyLevel, TosState, CommandHubMode};
 use serde::{Deserialize, Serialize};
 
 /// Position of the mini-map on screen
@@ -203,7 +203,7 @@ impl MiniMap {
     }
 
     /// Update selection based on position (when active)
-    fn update_selection(&mut self, x: f32, y: f32) {
+    fn update_selection(&mut self, _x: f32, _y: f32) {
         // This would calculate which sector/viewport is under the cursor
         // For now, just store the position for rendering highlight
         // Actual selection happens on click

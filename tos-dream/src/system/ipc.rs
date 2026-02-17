@@ -4,7 +4,7 @@ use uuid::Uuid;
 use crate::system::pty::PtyHandle;
 use crate::system::remote::{RemoteNodeInfo, RemoteStatus};
 use crate::system::collaboration::{CollaborationRole, PermissionSet};
-use crate::{TosState, CommandHubMode, HierarchyLevel, system::input::SemanticEvent, Sector, CommandHub, Application, Viewport, ConnectionType, Participant};
+use crate::{TosState, CommandHubMode, HierarchyLevel, system::input::SemanticEvent, CommandHub, Viewport, ConnectionType, Participant};
 
 pub struct IpcDispatcher {
     pub state: Arc<Mutex<TosState>>,
@@ -177,7 +177,7 @@ impl IpcDispatcher {
                 state.add_sector(sector);
 
                 // Spawn a shell for the remote (Real SSH)
-                if let Some(ssh) = state.shell_registry.get("ssh") {
+                if let Some(_ssh) = state.shell_registry.get("ssh") {
                     // We need a way to pass the host to the ssh provider.
                     // For now, we'll use a hack or update the trait.
                     // Actually, if we have the SshShellProvider, we can try to cast it

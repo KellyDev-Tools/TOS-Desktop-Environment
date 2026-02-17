@@ -335,7 +335,7 @@ impl TenantManager {
     /// Delete tenant
     pub async fn delete_tenant(&self, id: &TenantId) -> SaasResult<()> {
         let mut tenants = self.tenants.lock().unwrap();
-        let mut tenant = tenants.get_mut(id)
+        let tenant = tenants.get_mut(id)
             .ok_or_else(|| SaasError::NotFound(format!("Tenant {} not found", id)))?;
         
         tenant.status = TenantStatus::Deleting;

@@ -3,7 +3,7 @@
 //! Volume management, backup/restore, and cross-region replication for multi-tenant data.
 
 use super::{TenantId, SaasResult, SaasError};
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
 use serde::{Deserialize, Serialize};
 use chrono::{DateTime, Utc};
 
@@ -105,7 +105,7 @@ impl PersistenceManager {
             return Err(SaasError::NotFound(format!("Backup {} not found", backup_id)));
         }
 
-        let target_path = self.base_path.join(tenant_id);
+        let _target_path = self.base_path.join(tenant_id);
         // In real implementation: extract compessed archive to target_path
         tracing::info!("Restoring backup {} for tenant {}", backup_id, tenant_id);
 

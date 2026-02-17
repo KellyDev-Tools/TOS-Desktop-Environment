@@ -26,7 +26,6 @@ pub use cloud::{AwsManager, AwsConfig};
 pub use telemetry::TracingManager;
 pub use logging::LoggingManager;
 
-use std::collections::HashMap;
 use serde::{Deserialize, Serialize};
 
 /// Unique identifier for Cloud resources

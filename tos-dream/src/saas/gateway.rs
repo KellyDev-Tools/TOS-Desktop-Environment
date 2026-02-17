@@ -3,7 +3,7 @@
 //! Request routing, rate limiting, authentication, and load balancing
 //! for multi-tenant SaaS deployments.
 
-use super::{TenantId, SessionId, SaasResult, SaasError, RateLimitConfig};
+use super::{TenantId, SessionId, SaasResult, RateLimitConfig};
 use std::collections::HashMap;
 use std::net::IpAddr;
 use serde::{Deserialize, Serialize};

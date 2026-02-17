@@ -2,13 +2,9 @@
 //!
 //! OpenTelemetry integration for multi-tenant request tracing across TOS services.
 
-use super::{SaasResult, SaasError};
+use super::SaasResult;
 use opentelemetry::global;
 use opentelemetry_sdk::propagation::TraceContextPropagator;
-use opentelemetry_sdk::trace::{self as sdktrace, TracerProvider};
-use opentelemetry_sdk::Resource;
-use opentelemetry::KeyValue;
-use tracing_subscriber::{layer::SubscriberExt, Registry};
 
 /// Observability manager handles tracing initialization
 #[derive(Debug)]

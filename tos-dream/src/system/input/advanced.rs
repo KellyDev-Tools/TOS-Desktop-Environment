@@ -668,7 +668,7 @@ impl AdvancedInputManager {
     fn process_game_controller(&self, device: &DeviceId, state: &GameControllerState) -> Vec<SemanticAction> {
         let mut actions = Vec::new();
         
-        if let Some(mapping) = self.mappings.get(&device.device_type) {
+        if let Some(_mapping) = self.mappings.get(&device.device_type) {
             // Check triggers for zoom
             if state.left_trigger > 0.5 {
                 actions.push(SemanticAction::ZoomOut);
@@ -704,7 +704,7 @@ impl AdvancedInputManager {
     }
     
     /// Process VR controller state
-    fn process_vr_controller(&self, device: &DeviceId, state: &VRControllerState) -> Vec<SemanticAction> {
+    fn process_vr_controller(&self, _device: &DeviceId, state: &VRControllerState) -> Vec<SemanticAction> {
         let mut actions = Vec::new();
         
         // Trigger for select
@@ -816,7 +816,7 @@ impl AdvancedInputManager {
     }
     
     /// Process switch state
-    fn process_switch(&self, device: &DeviceId, state: &SwitchState) -> Vec<SemanticAction> {
+    fn process_switch(&self, _device: &DeviceId, state: &SwitchState) -> Vec<SemanticAction> {
         let mut actions = Vec::new();
         
         if state.pressed {
@@ -828,7 +828,7 @@ impl AdvancedInputManager {
     }
     
     /// Process detected gesture
-    fn process_gesture(&self, device: &DeviceId, gesture: HandGesture, hand: Handedness) -> Vec<SemanticAction> {
+    fn process_gesture(&self, device: &DeviceId, gesture: HandGesture, _hand: Handedness) -> Vec<SemanticAction> {
         let mut actions = Vec::new();
         
         if let Some(mapping) = self.mappings.get(&device.device_type) {
@@ -858,11 +858,11 @@ impl AdvancedInputManager {
             }
             ConflictResolution::PriorityBased => {
                 // Filter actions from lower priority devices
-                let current_priority = self.device_priorities.get(&current_device.device_type).copied().unwrap_or(99);
+                let _current_priority = self.device_priorities.get(&current_device.device_type).copied().unwrap_or(99);
                 
                 // Remove actions from devices with lower priority that were active recently
-                let recent_threshold = Duration::from_millis(100);
-                let now = Instant::now();
+                let _recent_threshold = Duration::from_millis(100);
+                let _now = Instant::now();
                 
                 actions.retain(|_| {
                     // In a real implementation, we'd check if higher priority device is active

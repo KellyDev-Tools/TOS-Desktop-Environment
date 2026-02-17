@@ -4,11 +4,10 @@
 //! for TOS workspaces.
 
 use super::{
-    ContainerManager, ContainerConfig, ContainerResult, ContainerError, ContainerId,
-    ContainerStatus, VolumeMount, VolumeType, ResourceLimits, PortMapping, Protocol,
+    ContainerManager, ContainerConfig, ContainerResult, ContainerError, ContainerId, VolumeMount, VolumeType, ResourceLimits, PortMapping, Protocol,
     NetworkConfig, NetworkDriver,
 };
-use crate::{Sector, ContainerBackend};
+use crate::ContainerBackend;
 use std::collections::HashMap;
 use std::path::PathBuf;
 use serde::{Deserialize, Serialize};
@@ -609,10 +608,10 @@ impl SectorContainerManager {
     pub async fn snapshot_sector(&self, sector_id: &str, name: &str) -> ContainerResult<String> {
         tracing::info!("Creating snapshot of sector {}: {}", sector_id, name);
         
-        let sector = self.get_sector(sector_id).await?;
+        let _sector = self.get_sector(sector_id).await?;
         
         // Create snapshot image
-        let snapshot_tag = format!("tos/sector-{}-snapshot:{}", sector_id, name);
+        let _snapshot_tag = format!("tos/sector-{}-snapshot:{}", sector_id, name);
         
         // In real implementation, commit container to image
         // For now, just record the snapshot ID

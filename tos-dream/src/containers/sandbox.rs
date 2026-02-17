@@ -4,7 +4,7 @@
 //! Filtered IPC, Display Isolation) to provide a unified secure 
 //! environment for untrusted local applications.
 
-use super::{ContainerManager, ContainerConfig, ContainerResult, ContainerError, ContainerId};
+use super::{ContainerManager, ContainerConfig, ContainerResult, ContainerId};
 use super::security::{SecurityPolicy, DisplayIsolation, AudioIsolation, NetworkIsolation};
 use std::sync::{Arc, Mutex};
 use serde::{Deserialize, Serialize};

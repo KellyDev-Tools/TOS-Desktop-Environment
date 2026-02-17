@@ -17,7 +17,7 @@
 //! - Confirmation: Tactile confirmation required (hold, slider, voice, multi-button)
 //! - Countdown with cancel option
 
-use crate::{TosState, HierarchyLevel, Sector, CommandHub, Application};
+use crate::{TosState, HierarchyLevel, Sector, CommandHub};
 use serde::{Deserialize, Serialize};
 use std::time::{Duration, Instant};
 use uuid::Uuid;

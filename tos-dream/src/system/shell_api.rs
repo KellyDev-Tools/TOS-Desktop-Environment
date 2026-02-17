@@ -717,7 +717,7 @@ impl ShellApi {
                 // Update command hub with suggestions
                 let viewport = &state.viewports[state.active_viewport_index];
                 let sector = &mut state.sectors[viewport.sector_index];
-                let hub = &mut sector.hubs[viewport.hub_index];
+                let _hub = &mut sector.hubs[viewport.hub_index];
                 
                 // Store suggestions for display
                 // In real implementation, would update UI

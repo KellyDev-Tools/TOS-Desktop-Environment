@@ -274,7 +274,7 @@ impl ContainerNetwork {
         &self,
         network_name: &str,
         container_id: &ContainerId,
-        force: bool,
+        _force: bool,
     ) -> ContainerResult<()> {
         tracing::info!("Disconnecting container {} from network {}", container_id, network_name);
         

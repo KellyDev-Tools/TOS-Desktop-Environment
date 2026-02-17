@@ -168,7 +168,7 @@ impl ScriptEngine {
     }
     
     /// Create a TosModule wrapper for this script
-    pub fn as_tos_module(&self) -> ScriptModuleWrapper {
+    pub fn as_tos_module(&self) -> ScriptModuleWrapper<'_> {
         ScriptModuleWrapper {
             engine: self,
         }

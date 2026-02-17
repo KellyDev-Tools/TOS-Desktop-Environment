@@ -1,4 +1,4 @@
-use crate::{TosState, Viewport, HierarchyLevel, CommandHubMode};
+use crate::{TosState, HierarchyLevel, CommandHubMode};
 
 pub fn render_state_to_svg(state: &TosState) -> String {
     let mut svg = String::from(r##"<svg width="1280" height="720" viewBox="0 0 1280 720" xmlns="http://www.w3.org/2000/svg" style="background: black; font-family: 'Outfit', sans-serif;">"##);

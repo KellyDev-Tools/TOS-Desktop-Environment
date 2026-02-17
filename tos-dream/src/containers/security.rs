@@ -4,7 +4,6 @@
 //! for containerized TOS components.
 
 use super::{ContainerConfig, ContainerResult, ContainerError};
-use std::collections::HashMap;
 use serde::{Deserialize, Serialize};
 
 /// Security policy for containers

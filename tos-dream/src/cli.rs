@@ -219,7 +219,7 @@ impl CliHandler {
     /// Handle marketplace commands
     async fn handle_marketplace(&self, command: MarketplaceCommand) -> Result<String, String> {
         match command {
-            MarketplaceCommand::Search { query, repository } => {
+            MarketplaceCommand::Search { query, repository: _ } => {
                 let results = self.marketplace.search(&query).await
                     .map_err(|e| format!("Search failed: {}", e))?;
                 

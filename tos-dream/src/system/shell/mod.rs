@@ -1,6 +1,4 @@
 use crate::system::pty::PtyHandle;
-use crate::system::shell_api::OscParser;
-use uuid::Uuid;
 
 pub mod fish;
 pub mod ssh;

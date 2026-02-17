@@ -4,8 +4,7 @@
 
 use super::{TenantId, SaasResult, SaasError};
 use kube::{Client, Api, CustomResource, ResourceExt};
-use kube::runtime::{controller::Action, Controller};
-use k8s_openapi::api::core::v1::{Pod, Service, PersistentVolumeClaim};
+use kube::runtime::controller::Action;
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
@@ -53,7 +52,7 @@ impl K8sManager {
 
     /// Deploy a TOS sector to Kubernetes
     pub async fn deploy_sector(&self, namespace: &str, spec: TosSectorSpec) -> SaasResult<()> {
-        let sectors: Api<TosSector> = Api::namespaced(self.client.clone(), namespace);
+        let _sectors: Api<TosSector> = Api::namespaced(self.client.clone(), namespace);
         
         // In real implementation, create or patch the TosSector custom resource
         tracing::info!("Deploying sector {} for tenant {} to namespace {}", 
@@ -64,7 +63,7 @@ impl K8sManager {
 
     /// Get sector status
     pub async fn get_sector_status(&self, namespace: &str, name: &str) -> SaasResult<TosSectorStatus> {
-        let sectors: Api<TosSector> = Api::namespaced(self.client.clone(), namespace);
+        let _sectors: Api<TosSector> = Api::namespaced(self.client.clone(), namespace);
         
         // Mocking status retrieval
         Ok(TosSectorStatus {
@@ -75,7 +74,7 @@ impl K8sManager {
 
     /// Delete sector from Kubernetes
     pub async fn delete_sector(&self, namespace: &str, name: &str) -> SaasResult<()> {
-        let sectors: Api<TosSector> = Api::namespaced(self.client.clone(), namespace);
+        let _sectors: Api<TosSector> = Api::namespaced(self.client.clone(), namespace);
         tracing::info!("Deleting sector {} in namespace {}", name, namespace);
         Ok(())
     }

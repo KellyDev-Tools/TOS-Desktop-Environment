@@ -2,7 +2,7 @@
 //!
 //! AWS-specific integration for TOS SaaS deployments.
 
-use super::super::{TenantId, SaasResult, SaasError};
+use super::super::{TenantId, SaasResult};
 use serde::{Deserialize, Serialize};
 
 /// Cloud provider configuration

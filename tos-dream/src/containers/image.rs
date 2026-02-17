@@ -143,8 +143,8 @@ impl ImageManager {
     pub async fn pull_image_with_auth(
         &self,
         reference: &str,
-        username: &str,
-        password: &str,
+        _username: &str,
+        _password: &str,
     ) -> ContainerResult<ImageInfo> {
         tracing::info!("Pulling image with auth: {}", reference);
         
@@ -157,8 +157,8 @@ impl ImageManager {
     pub async fn push_image(
         &self,
         reference: &str,
-        username: &str,
-        password: &str,
+        _username: &str,
+        _password: &str,
     ) -> ContainerResult<()> {
         tracing::info!("Pushing image: {}", reference);
         
@@ -227,7 +227,7 @@ impl ImageManager {
     }
     
     /// Get image history (layers)
-    pub async fn get_image_history(&self, reference: &str) -> ContainerResult<Vec<ImageLayer>> {
+    pub async fn get_image_history(&self, _reference: &str) -> ContainerResult<Vec<ImageLayer>> {
         // In real implementation, query runtime for layer history
         Ok(vec![
             ImageLayer {

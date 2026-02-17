@@ -1,7 +1,6 @@
 use crate::system::pty::PtyHandle;
 use crate::system::shell_api::ShellApiConfig;
 use super::ShellProvider;
-use std::process::Command;
 use std::io::Write;
 use tempfile::NamedTempFile;
 
@@ -41,11 +40,11 @@ impl ShellProvider for FishShellProvider {
         
         // Keep the temp file alive for a bit or assume fish sources it immediately
         // Actually, for fish, we can use --init-command
-        let init_cmd = format!("source {}", path);
+        let _init_cmd = format!("source {}", path);
         
         // We need to modify PtyHandle::spawn to accept arguments
         // For now, we'll use a trick: spawn a script that sources our integration
-        let shell_cmd = format!("source {}; exec fish", path);
+        let _shell_cmd = format!("source {}; exec fish", path);
         
         // This is a bit hacky because NamedTempFile will be deleted when 'temp' goes out of scope.
         // We'll use a more stable approach: write to a known location in ~/.local/share/tos

@@ -44,7 +44,6 @@ use containers::{
 };
 
 // Phase 16 Week 2: Cloud Resource Infrastructure
-use saas::{CloudResourceManager, CloudConfig};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum HierarchyLevel {
@@ -434,7 +433,7 @@ impl TosState {
         let live_feed = None;
         let cloud_manager = Some(saas::CloudResourceManager::new(saas::CloudConfig::default()));
 
-        let mut state = Self {
+        let state = Self {
             current_level: HierarchyLevel::GlobalOverview,
             sectors,
             viewports,

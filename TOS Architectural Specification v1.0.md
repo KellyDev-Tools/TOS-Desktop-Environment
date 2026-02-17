@@ -1,4 +1,4 @@
-# TOS (Tactical Operating System) – Unified Architectural Specification
+# TOS (Tactical Operating System) –Architectural Specification
 
 ### Version 1.0 (Consolidated)
 

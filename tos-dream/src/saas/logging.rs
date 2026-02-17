@@ -3,7 +3,7 @@
 //! Structured logging with tenant-aware context for SaaS platforms.
 
 use super::{TenantId, SaasResult};
-use tracing::{info, span, Level};
+use tracing::{span, Level};
 use std::collections::HashMap;
 
 /// Log levels for SaaS events

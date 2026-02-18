@@ -95,11 +95,15 @@ impl ViewRenderer for AppRenderer {
                         <div class="bezel-group sliders">
                              <div class="action-slider">
                                 <span>PRIORITY</span>
-                                <input type="range" min="1" max="10" value="5">
+                                <input type="range" min="1" max="10" step="1" value="{priority}" oninput="window.ipc.postMessage('update_setting:priority:' + this.value)">
                              </div>
                              <div class="action-slider">
-                                <span>POWER</span>
-                                <input type="range" min="1" max="100" value="80">
+                                <span>GAIN</span>
+                                <input type="range" min="0" max="100" step="1" value="{gain}" oninput="window.ipc.postMessage('update_setting:gain:' + this.value)">
+                             </div>
+                             <div class="action-slider">
+                                <span>SENSITIVITY</span>
+                                <input type="range" min="0" max="100" step="1" value="{sensitivity}" oninput="window.ipc.postMessage('update_setting:sensitivity:' + this.value)">
                              </div>
                         </div>
                     </div>
@@ -114,6 +118,9 @@ impl ViewRenderer for AppRenderer {
             title = app.title.to_uppercase(),
             class = app.app_class.to_uppercase(),
             participants_html = participants_html,
+            priority = app.settings.get("priority").cloned().unwrap_or(5.0),
+            gain = app.settings.get("gain").cloned().unwrap_or(75.0),
+            sensitivity = app.settings.get("sensitivity").cloned().unwrap_or(40.0),
             app_content = if app.app_class.contains("Shell") || app.app_class.contains("terminal") {
                 let lines = hub.terminal_output.join("\n");
                 format!(r#"<pre class="terminal-content">{}</pre>"#, lines)

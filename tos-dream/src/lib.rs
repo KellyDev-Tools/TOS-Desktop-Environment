@@ -177,6 +177,8 @@ pub struct Application {
     pub pid: Option<u32>,
     pub icon: Option<String>,
     pub is_dummy: bool, // Set true for sector default apps that aren't real OS processes
+    /// Settings for the application (e.g. bezel slider values)
+    pub settings: std::collections::HashMap<String, f32>,
 }
 
 #[derive(Serialize, Deserialize)]
@@ -347,6 +349,7 @@ impl TosState {
                     pid: None,
                     icon: Some("⌨️".to_string()),
                     is_dummy: true,
+                    settings: std::collections::HashMap::new(),
                 }],
                 active_app_index: Some(0),
                 terminal_output: Vec::new(),
@@ -383,6 +386,7 @@ impl TosState {
                         pid: None,
                         icon: Some("🔬".to_string()),
                         is_dummy: true,
+                        settings: std::collections::HashMap::new(),
                     },
                     Application {
                         id: uuid::Uuid::new_v4(),
@@ -392,6 +396,7 @@ impl TosState {
                         pid: None,
                         icon: Some("📡".to_string()),
                         is_dummy: true,
+                        settings: std::collections::HashMap::new(),
                     }
                 ],
                 active_app_index: Some(0),
@@ -418,7 +423,7 @@ impl TosState {
 
         let third_sector = Sector {
             id: uuid::Uuid::new_v4(),
-            name: "Observation Hub".to_string(),
+            name: "Engineering Hub".to_string(),
             color: "#cc6666".to_string(),
             hubs: vec![CommandHub {
                 id: uuid::Uuid::new_v4(),
@@ -426,12 +431,13 @@ impl TosState {
                 prompt: String::new(),
                 applications: vec![Application {
                     id: uuid::Uuid::new_v4(),
-                    title: "Remote Desktop".to_string(),
-                    app_class: "tos.remote_desktop".to_string(),
+                    title: "Core Monitor".to_string(),
+                    app_class: "Engineering".to_string(),
                     is_minimized: false,
                     pid: None,
                     icon: Some("📡".to_string()),
                     is_dummy: true,
+                    settings: std::collections::HashMap::new(),
                 }],
                 active_app_index: Some(0),
                 terminal_output: Vec::new(),
@@ -447,8 +453,8 @@ impl TosState {
             participants: Vec::new(),
             portal_active: false,
             portal_url: None,
-            description: "Remote node established via TOS protocol.".to_string(),
-            icon: "📡".to_string(),
+            description: "Core systems and power distribution telemetry.".to_string(),
+            icon: "⚙️".to_string(),
         };
 
         let initial_viewport = Viewport {

@@ -165,6 +165,21 @@ impl IpcDispatcher {
             let sector_idx = state.viewports[state.active_viewport_index].sector_index;
             let hub_idx = state.viewports[state.active_viewport_index].hub_index;
             state.sectors[sector_idx].hubs[hub_idx].context_menu = None;
+        } else if request.starts_with("update_setting:") {
+            let parts: Vec<&str> = request[15..].split(':').collect();
+            if parts.len() >= 2 {
+                let key = parts[0];
+                let val = parts[1].parse::<f32>().unwrap_or(0.0);
+                
+                let sector_idx = state.viewports[state.active_viewport_index].sector_index;
+                let hub_idx = state.viewports[state.active_viewport_index].hub_index;
+                let app_idx = state.viewports[state.active_viewport_index].active_app_index;
+                
+                if let Some(idx) = app_idx {
+                    let app = &mut state.sectors[sector_idx].hubs[hub_idx].applications[idx];
+                    app.settings.insert(key.to_string(), val);
+                }
+            }
         } else {
             // Legacy/Direct zoom fallback
             match request {

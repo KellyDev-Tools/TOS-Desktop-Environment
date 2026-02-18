@@ -108,16 +108,76 @@
 }
 
 .application-surface {
-    background: rgba(40, 40, 60, 0.2);
-    border: 1px solid rgba(153, 153, 204, 0.2);
-    border-radius: 20px;
-    padding: 40px;
-    overflow: auto;
+    background: rgba(20, 20, 40, 0.9);
+    border: 1px solid var(--lcars-purple);
+    border-radius: 0 0 20px 0;
+    padding: 0;
+    overflow: hidden;
+    position: relative;
+    box-shadow: inset 0 0 50px rgba(153, 102, 255, 0.2);
+}
+
+.application-surface::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-image:
+        linear-gradient(rgba(153, 102, 255, 0.05) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(153, 102, 255, 0.05) 1px, transparent 1px);
+    background-size: 40px 40px;
+    pointer-events: none;
+    z-index: 1;
+}
+
+.application-surface::after {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: linear-gradient(to bottom,
+            transparent 0%,
+            rgba(153, 102, 255, 0.05) 50%,
+            transparent 100%);
+    background-size: 100% 4px;
+    pointer-events: none;
+    z-index: 2;
+    animation: scanline 10s linear infinite;
+}
+
+@keyframes scanline {
+    0% {
+        background-position: 0 0;
+    }
+
+    100% {
+        background-position: 0 100%;
+    }
 }
 
 .app-mock-content {
     font-family: var(--font-mono);
     color: var(--lcars-blue);
+    position: relative;
+    z-index: 5;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+}
+
+.terminal-content {
+    padding: 30px;
+    margin: 0;
+    height: 100%;
+    overflow-y: auto;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.95rem;
+    line-height: 1.5;
+    color: #66ccff;
 }
 
 /* Portal Approval Dialog - 7.4 Security Feature */
@@ -226,17 +286,109 @@
 }
 
 @keyframes fadeIn {
-    from { opacity: 0; }
-    to { opacity: 1; }
+    from {
+        opacity: 0;
+    }
+
+    to {
+        opacity: 1;
+    }
 }
 
 @keyframes slideIn {
-    from { 
+    from {
         opacity: 0;
         transform: translateY(-30px) scale(0.95);
     }
-    to { 
+
+    to {
         opacity: 1;
         transform: translateY(0) scale(1);
     }
+}
+/* Redesigned App Surface Styles */
+.app-surface-header {
+    background: rgba(153, 102, 255, 0.2);
+    padding: 10px 20px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 2px solid var(--lcars-purple);
+}
+
+.status-indicator {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    background: #333;
+}
+
+.status-indicator.active {
+    background: var(--lcars-green);
+    box-shadow: 0 0 10px var(--lcars-green);
+    animation: blink 2s infinite;
+}
+
+@keyframes blink {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.4; }
+}
+
+.app-id-badge {
+    font-weight: 800;
+    font-size: 0.8rem;
+    letter-spacing: 1px;
+}
+
+.app-surface-body {
+    flex: 1;
+    padding: 30px;
+    overflow-y: auto;
+}
+
+.data-stream {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.mock-data-entry {
+    font-size: 0.85rem;
+    color: var(--lcars-blue);
+    opacity: 0.8;
+}
+
+.mock-data-block {
+    margin-top: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+
+.graph-bar {
+    height: 8px;
+    background: var(--lcars-blue);
+    border-radius: 4px;
+    box-shadow: 0 0 10px rgba(102, 204, 255, 0.3);
+}
+
+.app-surface-footer {
+    background: rgba(0, 0, 0, 0.5);
+    padding: 15px 30px;
+    display: flex;
+    gap: 30px;
+    align-items: center;
+    border-top: 1px solid rgba(153, 102, 255, 0.2);
+}
+
+.footer-stat {
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: var(--lcars-orange);
+}
+
+.bezel-btn.mini {
+    padding: 5px 15px;
+    font-size: 0.7rem;
+    margin-left: auto;
 }

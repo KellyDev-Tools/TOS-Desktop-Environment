@@ -66,9 +66,27 @@ impl IpcDispatcher {
         } else if request.starts_with("semantic_event:") {
             self.handle_semantic_event(&mut state, &request[15..]);
         } else if request.starts_with("connect_remote:") {
+            let sector_idx = state.viewports[state.active_viewport_index].sector_index;
+            let sector_id = state.sectors[sector_idx].id;
+            
+            if state.sandbox_registry.get_level(&sector_id) == Some(crate::containers::sandbox::SandboxLevel::Isolated) {
+                println!("TOS // ISOLATION POLICY VIOLATION: Remote connections blocked for this sector.");
+                state.earcon_player.play(crate::system::audio::earcons::EarconEvent::CommandError);
+                return;
+            }
+
             let addr = &request[15..];
             self.handle_connect_remote(&mut state, addr);
         } else if request.starts_with("invite_participant:") {
+            let sector_idx = state.viewports[state.active_viewport_index].sector_index;
+            let sector_id = state.sectors[sector_idx].id;
+            
+            if state.sandbox_registry.get_level(&sector_id) == Some(crate::containers::sandbox::SandboxLevel::Isolated) {
+                println!("TOS // ISOLATION POLICY VIOLATION: External collaboration blocked for this sector.");
+                state.earcon_player.play(crate::system::audio::earcons::EarconEvent::CommandError);
+                return;
+            }
+
             let role_str = &request[19..];
             self.handle_invite_participant(&mut state, role_str);
         } else if request.starts_with("save_template:") {
@@ -127,6 +145,10 @@ impl IpcDispatcher {
                         if let Some(pty) = ptys.get(&hub_id) {
                             let cd_cmd = format!("cd {}\n", new_path.to_string_lossy());
                             pty.write(&cd_cmd);
+                            
+                            // Request directory listing via Shell API
+                            let ls_cmd = format!("LS {}\n", new_path.to_string_lossy());
+                            pty.write(&ls_cmd);
                         }
                     }
                 }
@@ -144,6 +166,10 @@ impl IpcDispatcher {
                         if let Some(pty) = ptys.get(&hub_id) {
                             let cd_cmd = format!("cd {}\n", new_path.to_string_lossy());
                             pty.write(&cd_cmd);
+                            
+                            // Request directory listing via Shell API
+                            let ls_cmd = format!("LS {}\n", new_path.to_string_lossy());
+                            pty.write(&ls_cmd);
                         }
                     }
                 }
@@ -153,6 +179,21 @@ impl IpcDispatcher {
             let hub_idx = state.viewports[state.active_viewport_index].hub_index;
             let hub = &mut state.sectors[sector_idx].hubs[hub_idx];
             hub.show_hidden_files = !hub.show_hidden_files;
+        } else if request.starts_with("dir_pick_file:") {
+            let name = &request[14..].replace("\\'", "'");
+            let sector_idx = state.viewports[state.active_viewport_index].sector_index;
+            let hub_idx = state.viewports[state.active_viewport_index].hub_index;
+            let hub = &mut state.sectors[sector_idx].hubs[hub_idx];
+            
+            let full_path = hub.current_directory.join(name).to_string_lossy().to_string();
+            if hub.prompt.is_empty() {
+                hub.prompt = format!("view {} ", full_path);
+            } else {
+                if !hub.prompt.ends_with(' ') {
+                    hub.prompt.push(' ');
+                }
+                hub.prompt.push_str(&full_path);
+            }
         } else if request.starts_with("dir_toggle_select:") {
             let name = &request[18..].replace("\\'", "'");
             let sector_idx = state.viewports[state.active_viewport_index].sector_index;
@@ -160,6 +201,18 @@ impl IpcDispatcher {
             let hub = &mut state.sectors[sector_idx].hubs[hub_idx];
             if !hub.selected_files.remove(name) {
                 hub.selected_files.insert(name.to_string());
+            }
+
+            // Sync multi-selection with prompt for batch operations
+            if !hub.selected_files.is_empty() {
+                let paths: Vec<String> = hub.selected_files.iter()
+                    .map(|f| hub.current_directory.join(f).to_string_lossy().to_string())
+                    .collect();
+                
+                let cmd = if hub.prompt.is_empty() { "view" } else {
+                    hub.prompt.split_whitespace().next().unwrap_or("view")
+                };
+                hub.prompt = format!("{} {}", cmd, paths.join(" "));
             }
         } else if request.starts_with("dir_context:") {
             let parts: Vec<&str> = request[12..].split(';').collect();
@@ -180,6 +233,28 @@ impl IpcDispatcher {
             let sector_idx = state.viewports[state.active_viewport_index].sector_index;
             let hub_idx = state.viewports[state.active_viewport_index].hub_index;
             state.sectors[sector_idx].hubs[hub_idx].context_menu = None;
+        } else if request == "dir_action_copy" {
+            let sector_idx = state.viewports[state.active_viewport_index].sector_index;
+            let hub_idx = state.viewports[state.active_viewport_index].hub_index;
+            let hub = &mut state.sectors[sector_idx].hubs[hub_idx];
+            if !hub.selected_files.is_empty() {
+                let files: Vec<String> = hub.selected_files.iter().cloned().collect();
+                hub.prompt = format!("cp {} ", files.join(" "));
+            }
+        } else if request == "dir_action_paste" {
+             let sector_idx = state.viewports[state.active_viewport_index].sector_index;
+             let hub_idx = state.viewports[state.active_viewport_index].hub_index;
+            let hub = &mut state.sectors[sector_idx].hubs[hub_idx];
+            // Placeholder for clipboard
+            hub.prompt = format!("cp $CLIPBOARD .");
+        } else if request == "dir_action_delete" {
+            let sector_idx = state.viewports[state.active_viewport_index].sector_index;
+            let hub_idx = state.viewports[state.active_viewport_index].hub_index;
+            let hub = &mut state.sectors[sector_idx].hubs[hub_idx];
+             if !hub.selected_files.is_empty() {
+                let files: Vec<String> = hub.selected_files.iter().cloned().collect();
+                hub.prompt = format!("rm {} ", files.join(" "));
+            }
         } else if request.starts_with("update_setting:") {
             let parts: Vec<&str> = request[15..].split(':').collect();
             if parts.len() >= 2 {
@@ -303,7 +378,26 @@ impl IpcDispatcher {
                     };
 
                     if let Some(pty) = pty {
+                        let pid = pty.child_pid;
                         self.ptys.lock().unwrap().insert(hub_id, pty);
+                        
+                        // Register shell as an application for monitoring
+                        // Find the sector we just added
+                        if let Some(s) = state.sectors.iter_mut().find(|s| s.hubs.iter().any(|h| h.id == hub_id)) {
+                            if let Some(h) = s.hubs.iter_mut().find(|h| h.id == hub_id) {
+                                h.applications.push(crate::Application {
+                                    id: Uuid::new_v4(),
+                                    title: "ssh".to_string(),
+                                    app_class: "Shell".to_string(),
+                                    is_minimized: false,
+                                    pid: Some(pid),
+                                    icon: Some("📡".to_string()),
+                                    is_dummy: false,
+                                    settings: std::collections::HashMap::new(),
+                                });
+                                h.active_app_index = Some(0);
+                            }
+                        }
                     }
                 }
             }
@@ -437,13 +531,28 @@ impl IpcDispatcher {
             show_hidden_files: false,
             selected_files: std::collections::HashSet::new(),
             context_menu: None,
+            shell_listing: None,
         });
         
         let hub_idx = sector.hubs.len() - 1;
 
         if let Some(fish) = state.shell_registry.get("fish") {
             if let Some(pty) = fish.spawn(".") {
+                let pid = pty.child_pid;
                 self.ptys.lock().unwrap().insert(new_hub_id, pty);
+                
+                // Register shell as an application for monitoring
+                sector.hubs[hub_idx].applications.push(crate::Application {
+                    id: Uuid::new_v4(),
+                    title: "fish".to_string(),
+                    app_class: "Shell".to_string(),
+                    is_minimized: false,
+                    pid: Some(pid),
+                    icon: Some("⌨️".to_string()),
+                    is_dummy: false,
+                    settings: std::collections::HashMap::new(),
+                });
+                sector.hubs[hub_idx].active_app_index = Some(0);
             }
         }
 
@@ -472,6 +581,116 @@ impl IpcDispatcher {
                 state.stage_command("LISTENING...".to_string());
             }
             _ => tracing::warn!("Unknown semantic event from IPC: {}", event_name),
+        }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::{TosState, CommandHub, CommandHubMode, Sector, Viewport, HierarchyLevel, ConnectionType};
+    use uuid::Uuid;
+    use std::collections::{HashSet, HashMap};
+    use std::sync::{Arc, Mutex};
+
+    // Helper to create a minimal state for testing
+    fn create_test_state() -> TosState {
+        let hub = CommandHub {
+            id: Uuid::new_v4(),
+            mode: CommandHubMode::Directory,
+            prompt: String::new(),
+            applications: Vec::new(),
+            active_app_index: None,
+            terminal_output: Vec::new(),
+            confirmation_required: None,
+            current_directory: std::path::PathBuf::from("/home/test"),
+            show_hidden_files: false,
+            selected_files: HashSet::new(),
+            context_menu: None,
+            shell_listing: None,
+        };
+
+        let sector = Sector {
+            id: Uuid::new_v4(),
+            name: "TEST_SECTOR".to_string(),
+            hubs: vec![hub],
+            active_hub_index: 0, 
+            color: "blue".to_string(),
+            host: "localhost".to_string(),
+            connection_type: ConnectionType::Local,
+            participants: Vec::new(),
+            portal_active: false,
+            portal_url: None,
+            description: "Test".to_string(),
+            icon: "T".to_string(),
+        };
+
+        let viewport = Viewport {
+            id: Uuid::new_v4(),
+            sector_index: 0,
+            hub_index: 0,
+            current_level: HierarchyLevel::CommandHub,
+            active_app_index: None,
+            bezel_expanded: false,
+        };
+
+        let mut state = TosState::new();
+        state.sectors = vec![sector];
+        state.viewports = vec![viewport];
+        state.active_viewport_index = 0;
+        state
+    }
+
+    #[test]
+    fn test_dir_pick_file_appends() {
+        let mut state = create_test_state();
+        state.sectors[0].hubs[0].current_directory = std::path::PathBuf::from("/home/test");
+        state.sectors[0].hubs[0].prompt = "view".to_string(); // Initial prompt
+        
+        let state_arc = Arc::new(Mutex::new(state));
+        let ptys = Arc::new(Mutex::new(HashMap::new()));
+        let dispatcher = IpcDispatcher::new(state_arc.clone(), ptys);
+
+        // Action: Pick file 'file.txt'
+        dispatcher.handle_request("dir_pick_file:file.txt");
+
+        // Assert: Prompt should be 'view /home/test/file.txt'
+        {
+            let state = state_arc.lock().unwrap();
+            assert_eq!(state.sectors[0].hubs[0].prompt, "view /home/test/file.txt");
+        }
+
+        // Action: Pick another file 'file2.log'
+        dispatcher.handle_request("dir_pick_file:file2.log");
+
+        // Assert: Prompt should be 'view /home/test/file.txt /home/test/file2.log'
+        {
+            let state = state_arc.lock().unwrap();
+            assert_eq!(state.sectors[0].hubs[0].prompt, "view /home/test/file.txt /home/test/file2.log");
+        }
+    }
+
+    #[test]
+    fn test_dir_action_copy_stages_command() {
+        let mut state = create_test_state();
+        state.sectors[0].hubs[0].current_directory = std::path::PathBuf::from("/home/test");
+        state.sectors[0].hubs[0].selected_files.insert("file1.txt".to_string());
+        state.sectors[0].hubs[0].selected_files.insert("file2.txt".to_string());
+        
+        let state_arc = Arc::new(Mutex::new(state));
+        let ptys = Arc::new(Mutex::new(HashMap::new()));
+        let dispatcher = IpcDispatcher::new(state_arc.clone(), ptys);
+
+        // Action: Copy
+        dispatcher.handle_request("dir_action_copy");
+
+        // Assert: Prompt should contain 'cp' and both files
+        {
+            let state = state_arc.lock().unwrap();
+            let prompt = &state.sectors[0].hubs[0].prompt;
+            assert!(prompt.starts_with("cp "));
+            assert!(prompt.contains("file1.txt"));
+            assert!(prompt.contains("file2.txt"));
         }
     }
 }

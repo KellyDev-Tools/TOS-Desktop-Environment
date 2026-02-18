@@ -127,13 +127,37 @@ impl ViewRenderer for AppRenderer {
             } else {
                 format!(
                     r#"<div class="app-mock-content">
-                        <div class="data-header">DATA FEED // {title}</div>
-                        <div class="data-body">{module_content}</div>
-                        <div class="data-footer">PID: {pid} // MEM: {mem}</div>
+                        <div class="app-surface-header">
+                            <div class="status-indicator active"></div>
+                            <div class="app-id-badge">{title} // SEQ: {uuid_short}</div>
+                            <div class="system-time">{time}</div>
+                        </div>
+                        <div class="app-surface-body">
+                            <div class="data-stream">
+                                {module_content}
+                                <div class="mock-data-entry">INITIALIZING SUBSYSTEMS...</div>
+                                <div class="mock-data-entry">ATTACHING TO KERNEL V{version}...</div>
+                                <div class="mock-data-entry">ESTABLISHING DATA BUFFER...</div>
+                                <div class="mock-data-block">
+                                    <div class="graph-bar" style="width: 85%"></div>
+                                    <div class="graph-bar" style="width: 62%"></div>
+                                    <div class="graph-bar" style="width: 94%"></div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="app-surface-footer">
+                            <div class="footer-stat">ID: {pid}</div>
+                            <div class="footer-stat">VRAM: 128MB</div>
+                            <div class="footer-stat">LOAD: {mem}</div>
+                            <div class="bezel-btn mini">RECALIBRATE</div>
+                        </div>
                     </div>"#,
                     title = app.title.to_uppercase(),
+                    uuid_short = &app.id.to_string()[..8],
+                    time = chrono::Local::now().format("%H:%M:%S").to_string(),
+                    version = env!("CARGO_PKG_VERSION"),
                     module_content = module_content,
-                    pid = app.pid.map(|p| p.to_string()).unwrap_or_else(|| "N/A".to_string()),
+                    pid = app.pid.map(|p| p.to_string()).unwrap_or_else(|| "TOS-SYS".to_string()),
                     mem = if let Some(pid) = app.pid {
                         if let Ok(stats) = crate::system::proc::get_process_stats(pid) {
                             format!("{}MB", stats.memory_bytes / 1024 / 1024)

@@ -29,15 +29,39 @@ fn main() -> anyhow::Result<()> {
     };
     let ptys: Arc<Mutex<HashMap<uuid::Uuid, PtyHandle>>> = Arc::new(Mutex::new(HashMap::new()));
     
-    // Create PTYs for initial hubs
     {
-        let state_lock = state.lock().unwrap();
+        let mut state_lock = state.lock().unwrap();
+        let mut initial_ptys = Vec::new();
+        
         if let Some(fish) = state_lock.shell_registry.get("fish") {
             for sector in &state_lock.sectors {
                 for hub in &sector.hubs {
                     if let Some(pty) = fish.spawn(".") {
-                        ptys.lock().unwrap().insert(hub.id, pty);
+                        initial_ptys.push((hub.id, pty));
                     }
+                }
+            }
+        }
+
+        for (hub_id, pty) in initial_ptys {
+            let pid = pty.child_pid;
+            ptys.lock().unwrap().insert(hub_id, pty);
+            
+            // Register shell as an application for monitoring in the state
+            if let Some(sector) = state_lock.sectors.iter_mut().find(|s| s.hubs.iter().any(|h| h.id == hub_id)) {
+                if let Some(hub) = sector.hubs.iter_mut().find(|h| h.id == hub_id) {
+                    hub.applications.clear();
+                    hub.applications.push(tos_core::Application {
+                        id: uuid::Uuid::new_v4(),
+                        title: "fish".to_string(),
+                        app_class: "Shell".to_string(),
+                        is_minimized: false,
+                        pid: Some(pid),
+                        icon: Some("⌨️".to_string()),
+                        is_dummy: false,
+                        settings: std::collections::HashMap::new(),
+                    });
+                    hub.active_app_index = Some(0);
                 }
             }
         }

@@ -207,3 +207,91 @@
     border-top: 1px solid rgba(255, 255, 255, 0.1);
     padding-top: 5px;
 }
+/* Phase 16: Directory Enhancements */
+
+.directory-actions {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 20px;
+    padding: 10px;
+    background: rgba(0,0,0,0.3);
+    border-bottom: 1px solid var(--lcars-blue);
+    overflow-x: auto;
+}
+
+.file-selector {
+    width: 20px;
+    height: 20px;
+    border: 2px solid var(--lcars-orange);
+    margin-right: 15px;
+    display: inline-block;
+    vertical-align: middle;
+    cursor: pointer;
+    position: relative;
+    background: rgba(0,0,0,0.5);
+}
+
+.file-item.selected .file-selector::after {
+    content: "✓";
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    color: var(--lcars-orange);
+    font-size: 16px;
+    font-weight: bold;
+}
+
+.context-menu {
+    position: fixed;
+    background: rgba(0,0,0,0.95);
+    border: 2px solid var(--lcars-orange);
+    border-radius: 0 10px 10px 10px;
+    z-index: 1000;
+    min-width: 200px;
+    box-shadow: 0 5px 20px rgba(0,0,0,0.8);
+    display: flex;
+    flex-direction: column;
+}
+
+.menu-item {
+    padding: 12px 20px;
+    color: var(--lcars-blue);
+    cursor: pointer;
+    font-family: var(--font-mono);
+    border-bottom: 1px solid rgba(255,255,255,0.1);
+    transition: all 0.2s;
+}
+
+.menu-item:hover {
+    background: var(--lcars-orange);
+    color: black;
+}
+
+.menu-item.danger {
+    color: var(--lcars-red);
+}
+
+.menu-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 999;
+}
+
+.path-sep {
+    color: var(--lcars-orange);
+    margin: 0 5px;
+}
+
+.breadcrumb {
+    cursor: pointer;
+    transition: color 0.2s;
+}
+
+.breadcrumb:hover {
+    color: white;
+    text-decoration: underline;
+}

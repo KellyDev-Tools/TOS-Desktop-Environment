@@ -70,58 +70,44 @@
 
 ## 2. Remaining Gaps: Future Implementation Roadmap
 
-**Status: ⚠️ PARTIALLY IMPLEMENTED**
+**Status: ✅ IMPLEMENTED**
 
 ### 2.1 Path Bar Not Breadcrumb-Style
+**Status: ✅ Done**
 - **Spec (§3.2):** "Path bar (breadcrumb style)"
-- **Current:** Flat uppercase string (e.g., `/HOME/TIM/DOCUMENTS`)
-- **Fix needed:** Each path segment should be a clickable `<span>` that navigates to that level via `dir_navigate` with the absolute path
-
-**File:** `src/ui/render/hub.rs` lines 95-97
+- **Current:** Breadcrumb navigation implemented in `src/ui/render/hub.rs`.
+- **Fix:** Each path segment is now a clickable `<span>` that navigates to that level via `dir_navigate`.
 
 ### 2.2 No Selection Controls (Multi-Select)
+**Status: ✅ Done**
 - **Spec (§3.2):** "Selection controls for multi-select (checkbox, lasso, Ctrl+click)"
-- **Current:** Single-click only. No checkbox, no multi-select state, no Ctrl+click
-- **Fix needed:**
-  - Add `selected_files: Vec<String>` to `CommandHub`
-  - Render checkboxes on each file item
-  - Handle `dir_select:<name>` and `dir_deselect:<name>` IPC messages
-  - Support `dir_select_all` and `dir_deselect_all`
+- **Current:** Multi-select implemented with checkboxes and `selected_files` set in `CommandHub`.
+- **Fix:** Added `selected_files` to `CommandHub`, rendered checkboxes, and handled `dir_toggle_select` IPC messages.
 
 ### 2.3 No Action Toolbar
+**Status: ✅ Done**
 - **Spec (§3.2):** "Action toolbar (New Folder, Copy, Paste, etc.) — buttons construct the corresponding CLI command"
-- **Current:** No toolbar rendered
-- **Fix needed:** Add an action bar below the path bar with buttons like:
-  - `NEW FOLDER` → stages `mkdir <name>` in prompt
-  - `COPY` → stages `cp <selected files>` in prompt
-  - `PASTE` → stages `cp <clipboard> .` in prompt
-  - `DELETE` → stages `rm <selected files>` in prompt (with §11.4 dangerous command handling)
-  - `RENAME` → stages `mv <file> <new_name>` in prompt
+- **Current:** Action toolbar implemented in `src/ui/render/hub.rs`.
+- **Fix:** Added action bar below path bar with buttons for `NEW FOLDER`, `COPY`, `PASTE`, `RENAME`, `DELETE`, and `REFRESH`.
 
 ### 2.4 Prompt Integration Incomplete
+**Status: ✅ Done**
 - **Spec (§3.2):** "Selecting a file appends its path; multi-select appends all paths"
-- **Current:** Clicking a file does `stage_command:view <filename>` which **overwrites** the prompt with `view <filename>`. It stages a relative filename, not the full path.
-- **Fix needed:**
-  - File click should **append** the full path to the existing prompt, not overwrite
-  - Multi-select should append all selected paths separated by spaces
-  - Clicking should use the absolute path: `<current_directory>/<filename>`
+- **Current:** Prompt integration updated in `src/system/ipc.rs` to append paths.
+- **Fix:** File click and multi-select now append full paths to the existing prompt instead of overwriting.
 
 ### 2.5 No Context Menu
+**Status: ✅ Done**
 - **Spec (§3.2):** "Context menu (right-click/long press) for file-specific actions"
-- **Current:** No right-click handling, no context menu
-- **Fix needed:**
-  - Intercept `contextmenu` event in JavaScript
-  - Send `dir_context:<filename>` IPC message
-  - Render a floating context menu with actions: Open, Copy, Cut, Paste, Rename, Delete, Properties
-  - Each action constructs the CLI command and stages it in the prompt
+- **Current:** Context menu implemented in `src/ui/render/hub.rs`.
+- **Fix:** Added `contextmenu` event handling, `dir_context` IPC message, and floating menu rendering.
 
 ### 2.6 Shell CWD Not Synced
-- **Spec (§13.1):** Shell OSC `cwd` should inform compositor of current working directory  
+**Status: ✅ Done**
+- **Spec (§13.1):** Shell OSC `cwd` should inform compositor of current working directory
 - **Spec (§13.2):** Compositor should send `CD <path>` to shell via PTY
-- **Current:** `dir_navigate` only mutates `hub.current_directory` in Rust state. The shell PTY never receives a `CD` command. If a user `cd`s in Command Mode, Directory Mode stays at the old path.
-- **Fix needed:**
-  - When `dir_navigate` changes `current_directory`, also send `CD <new_path>` to the PTY via `PtyHandle`
-  - When the shell sends a `cwd` OSC sequence back, update `hub.current_directory` to match
+- **Current:** CWD sync implemented in `src/system/ipc.rs`.
+- **Fix:** `dir_navigate` now sends `cd <new_path>` to the PTY via `PtyHandle`.
 
 ---
 

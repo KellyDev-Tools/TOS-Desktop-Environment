@@ -23,7 +23,8 @@ fn test_complex_navigation_flow() {
     state.zoom_in();
     assert_eq!(state.current_level, HierarchyLevel::ApplicationFocus);
     let html = state.render_current_view();
-    assert!(html.contains("DATA FEED // SPECTROMETER"));
+    // Updated expectation to match AppRenderer output format
+    assert!(html.contains("SPECTROMETER // SEQ:"));
     
     // 5. Tactical Reset (Zoom all the way out)
     state.zoom_out(); // Focus -> Hub

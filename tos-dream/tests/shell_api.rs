@@ -2,10 +2,9 @@
 
 use tos_core::system::shell_api::{
     OscParser, OscSequence, ShellApi, ShellApiConfig, ShellCommand,
-    CommandSuggestion, DirectoryListing, DirectoryEntry, EntryType,
-    RiskLevel
+    CommandSuggestion, RiskLevel
 };
-use tos_core::TosState;
+use tos_core::{TosState, DirectoryListing, DirectoryEntry, EntryType};
 
 #[test]
 fn test_shell_api_config_default() {

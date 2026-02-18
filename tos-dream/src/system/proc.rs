@@ -11,6 +11,7 @@ pub fn get_process_stats(pid: u32) -> io::Result<ProcessStats> {
     // Read /proc/[pid]/stat for CPU info
     // Read /proc/[pid]/status for Memory info
     
+    // 1. Get Memory (VmRSS) from /proc/[pid]/status
     let status_path = format!("/proc/{}/status", pid);
     let status_content = fs::read_to_string(status_path)?;
     
@@ -26,9 +27,32 @@ pub fn get_process_stats(pid: u32) -> io::Result<ProcessStats> {
         }
     }
     
-    // For CPU, we'd need to sample twice. For now, let's just return memory
-    // and a mock CPU usage that looks "real" based on PID
-    let cpu_usage = ((pid % 50) as f32) / 10.0; 
+    // 2. Get CPU stats from /proc/[pid]/stat
+    let stat_path = format!("/proc/{}/stat", pid);
+    let stat_content = fs::read_to_string(stat_path)?;
+    let stat_parts: Vec<&str> = stat_content.split_whitespace().collect();
+    
+    let mut cpu_usage = 0.0;
+    if stat_parts.len() >= 22 {
+        let utime: u64 = stat_parts[13].parse().unwrap_or(0);
+        let stime: u64 = stat_parts[14].parse().unwrap_or(0);
+        let starttime: u64 = stat_parts[21].parse().unwrap_or(0);
+        
+        // Get system uptime
+        if let Ok(uptime_content) = fs::read_to_string("/proc/uptime") {
+            if let Some(uptime_str) = uptime_content.split_whitespace().next() {
+                if let Ok(uptime) = uptime_str.parse::<f32>() {
+                    let hertz = 100.0; // Standard on Linux
+                    let total_time = (utime + stime) as f32;
+                    let seconds = uptime - (starttime as f32 / hertz);
+                    
+                    if seconds > 0.0 {
+                        cpu_usage = (total_time / hertz) / seconds * 100.0;
+                    }
+                }
+            }
+        }
+    }
 
     Ok(ProcessStats {
         pid,

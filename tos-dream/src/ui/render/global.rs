@@ -128,7 +128,6 @@ impl ViewRenderer for GlobalRenderer {
             </div>
             <div class="card-footer">
                 <button class="execute-btn" onclick="const val = document.getElementById('remote-host-input').value; if(val) window.ipc.postMessage('connect_remote:' + val)">CONNECT</button>
-                <button class="action-btn" onclick="window.ipc.postMessage('add_remote_sector')">MOCK</button>
             </div>
         </div>"#);
 

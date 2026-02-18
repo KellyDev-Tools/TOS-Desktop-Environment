@@ -187,6 +187,9 @@ impl TacticalReset {
             start_time: Instant::now(),
         };
 
+        // Trigger auditory indicator (§11)
+        state.earcon_player.play(crate::system::audio::earcons::EarconEvent::TacticalAlert);
+
         // Execute the actual reset
         self.execute_sector_reset(state, viewport.sector_index)?;
 
@@ -226,6 +229,7 @@ impl TacticalReset {
             show_hidden_files: false,
             selected_files: std::collections::HashSet::new(),
             context_menu: None,
+            shell_listing: None,
         }];
         sector.active_hub_index = 0;
 

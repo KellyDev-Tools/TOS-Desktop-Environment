@@ -853,29 +853,39 @@ impl AdvancedInputManager {
     fn resolve_conflicts(&self, actions: &mut Vec<SemanticAction>, current_device: &DeviceId) {
         match self.conflict_resolution {
             ConflictResolution::LastWins => {
-                // Keep all actions from last device, filter conflicting ones from others
-                // This is the default, so we don't need to do much
+                // Keep all actions from last device, which is the current one
+            }
+            ConflictResolution::FirstWins => {
+                // If any other device has been active in the last 100ms, ignore this one
+                let now = Instant::now();
+                let threshold = Duration::from_millis(100);
+                for state in self.devices.values() {
+                    if state.connected && state.device != *current_device {
+                        if now.duration_since(state.last_activity) < threshold {
+                            actions.clear();
+                            return;
+                        }
+                    }
+                }
             }
             ConflictResolution::PriorityBased => {
-                // Filter actions from lower priority devices
-                let _current_priority = self.device_priorities.get(&current_device.device_type).copied().unwrap_or(99);
+                let current_priority = self.device_priorities.get(&current_device.device_type).copied().unwrap_or(99);
                 
-                // Remove actions from devices with lower priority that were active recently
-                let _recent_threshold = Duration::from_millis(100);
-                let _now = Instant::now();
+                // If any higher-priority device (lower number) has been active recently, ignore this one
+                let now = Instant::now();
+                let recent_threshold = Duration::from_millis(150);
                 
-                actions.retain(|_| {
-                    // In a real implementation, we'd check if higher priority device is active
-                    true
-                });
+                for state in self.devices.values() {
+                    if state.connected && state.device != *current_device {
+                        let priority = self.device_priorities.get(&state.device.device_type).copied().unwrap_or(99);
+                        if priority < current_priority && now.duration_since(state.last_activity) < recent_threshold {
+                            actions.clear();
+                            return;
+                        }
+                    }
+                }
             }
-            ConflictResolution::Average => {
-                // For continuous inputs, average the values
-                // For discrete actions, this doesn't really apply
-            }
-            _ => {
-                // Other strategies would be implemented here
-            }
+            _ => {}
         }
     }
     

@@ -581,6 +581,14 @@ mod tests {
         let mut state = crate::TosState::new();
         let minimap = MiniMap::new();
         
+        // Explicitly reset to GlobalOverview to avoid flakiness from persisted state
+        // (TosState::new() may load saved state from a previous test in the same process)
+        state.current_level = crate::HierarchyLevel::GlobalOverview;
+        state.viewports[0].current_level = crate::HierarchyLevel::GlobalOverview;
+        state.viewports[0].sector_index = 0;
+        state.viewports[0].hub_index = 0;
+        state.active_viewport_index = 0;
+        
         // Level 1
         let html = minimap.render(&state);
         assert!(html.contains("TACTICAL MINI-MAP"));

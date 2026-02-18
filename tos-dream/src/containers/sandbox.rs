@@ -20,6 +20,8 @@ pub enum SandboxLevel {
     Restricted,
     /// Maximum isolation (no network, no display, ephemeral storage)
     Paranoid,
+    /// Strict isolation blocking all IPC and external comms
+    Isolated,
 }
 
 /// Sandbox metadata
@@ -29,6 +31,7 @@ pub struct SandboxInfo {
     pub level: SandboxLevel,
     pub container_id: Option<ContainerId>,
     pub active: bool,
+    pub created_at: chrono::DateTime<chrono::Local>,
 }
 
 /// Sandbox manager handles local isolation policies
@@ -52,7 +55,7 @@ impl SandboxManager {
         let policy = match level {
             SandboxLevel::None => SecurityPolicy::minimal(),
             SandboxLevel::Standard => SecurityPolicy::default(),
-            SandboxLevel::Restricted | SandboxLevel::Paranoid => SecurityPolicy::restricted(),
+            SandboxLevel::Restricted | SandboxLevel::Paranoid | SandboxLevel::Isolated => SecurityPolicy::restricted(),
         };
 
         // If level is paranoid, we override even restricted settings
@@ -86,6 +89,7 @@ impl SandboxManager {
             level,
             container_id: Some(container_info.id),
             active: true,
+            created_at: chrono::Local::now(),
         };
 
         self.active_sandboxes.lock().unwrap().push(sandbox.clone());
@@ -108,5 +112,42 @@ impl SandboxManager {
             }
         }
         Ok(())
+    }
+}
+
+/// Phase 16: Sandbox Registry
+/// Tracks active sandboxed sectors and enforces isolation boundaries
+#[derive(Debug, Default)]
+pub struct SandboxRegistry {
+    pub sandboxes: std::collections::HashMap<uuid::Uuid, SandboxInfo>,
+    pub isolation_rules: Vec<String>,
+}
+
+impl SandboxRegistry {
+    pub fn new() -> Self {
+        Self {
+            sandboxes: std::collections::HashMap::new(),
+            isolation_rules: vec![
+                "NO_DISPLAY_SHARE".to_string(),
+                "ENFORCE_X11_PROXY".to_string(),
+                "FILTERED_AUDIO_BRIDGE".to_string(),
+            ],
+        }
+    }
+
+    pub fn register(&mut self, sector_id: uuid::Uuid, info: SandboxInfo) {
+        self.sandboxes.insert(sector_id, info);
+    }
+
+    pub fn unregister(&mut self, sector_id: &uuid::Uuid) {
+        self.sandboxes.remove(sector_id);
+    }
+
+    pub fn is_sandboxed(&self, sector_id: &uuid::Uuid) -> bool {
+        self.sandboxes.contains_key(sector_id)
+    }
+
+    pub fn get_level(&self, sector_id: &uuid::Uuid) -> Option<SandboxLevel> {
+        self.sandboxes.get(sector_id).map(|s| s.level)
     }
 }

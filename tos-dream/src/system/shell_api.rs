@@ -22,7 +22,7 @@
 //! Fish shell is the reference shell, with a built-in plugin.
 //! Bash/Zsh plugins can be implemented using PROMPT_COMMAND and preexec hooks.
 
-use crate::{TosState, CommandHubMode};
+use crate::{TosState, CommandHubMode, DirectoryListing, DirectoryEntry, EntryType};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use uuid::Uuid;
@@ -105,54 +105,6 @@ pub struct CommandSuggestion {
     pub confidence: f32,
 }
 
-/// Directory listing entry
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
-pub struct DirectoryEntry {
-    /// File name
-    pub name: String,
-    /// File type
-    pub entry_type: EntryType,
-    /// Size in bytes
-    pub size: u64,
-    /// Permissions (unix-style string)
-    pub permissions: String,
-    /// Modification time
-    pub modified: String,
-    /// Whether file is hidden
-    pub is_hidden: bool,
-    /// Whether file is selected
-    pub is_selected: bool,
-}
-
-/// File entry type
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
-pub enum EntryType {
-    File,
-    Directory,
-    Symlink,
-    BlockDevice,
-    CharDevice,
-    Fifo,
-    Socket,
-    Unknown,
-}
-
-/// Directory listing
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
-pub struct DirectoryListing {
-    /// Current path
-    pub path: String,
-    /// Parent path (if any)
-    pub parent: Option<String>,
-    /// Entries
-    pub entries: Vec<DirectoryEntry>,
-    /// Total count
-    pub total_count: usize,
-    /// Hidden count
-    pub hidden_count: usize,
-    /// Selected count
-    pub selected_count: usize,
-}
 
 /// Compositor-to-shell command
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -736,10 +688,11 @@ impl ShellApi {
                 let sector = &mut state.sectors[viewport.sector_index];
                 let hub = &mut sector.hubs[viewport.hub_index];
                 
-                if hub.mode == CommandHubMode::Directory {
-                    // Update directory view
-                    tracing::info!("Received directory listing: {} entries", listing.entries.len());
-                }
+                // Store listing in hub for UI to pick up
+                hub.shell_listing = Some(listing.clone());
+                
+                // Log it
+                tracing::info!("Received directory listing: {} entries", listing.entries.len());
             }
             OscSequence::CommandResult { command, exit_status, output_preview } => {
                 // Update terminal output
@@ -879,6 +832,30 @@ impl ShellApi {
                 category: "security".to_string(),
                 confidence: 1.0,
             });
+        }
+        
+        // 4. Filesystem completions (§13.3)
+        let search_term = if partial.contains(' ') {
+            partial.split_whitespace().last().unwrap_or("")
+        } else {
+            partial
+        };
+
+        if let Ok(entries) = std::fs::read_dir(&hub.current_directory) {
+            for entry in entries.flatten() {
+                 let name = entry.file_name().to_string_lossy().to_string();
+                 if name.to_lowercase().starts_with(&search_term.to_lowercase()) {
+                     let is_dir = entry.path().is_dir();
+                     let suffix = if is_dir { "/" } else { "" };
+                     suggestions.push(CommandSuggestion {
+                         text: format!("{}{}", name, suffix),
+                         command: format!("{}{}", name, suffix),
+                         description: if is_dir { "Directory".to_string() } else { "File".to_string() },
+                         category: "path".to_string(),
+                         confidence: 0.9,
+                     });
+                 }
+            }
         }
         
         suggestions

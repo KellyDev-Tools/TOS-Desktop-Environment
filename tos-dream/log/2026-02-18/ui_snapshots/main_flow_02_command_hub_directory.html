@@ -10,8 +10,11 @@
             </div><div class="hub-tabs"><div class="hub-tab " onclick="window.ipc.postMessage('set_mode:Command')">COMMAND</div><div class="hub-tab active" onclick="window.ipc.postMessage('set_mode:Directory')">DIRECTORY</div><div class="hub-tab " onclick="window.ipc.postMessage('set_mode:Activity')">ACTIVITY</div></div><div class="hub-content"><div class="directory-view">
                     <div class="path-bar breadcrumbs"><span class="breadcrumb" onclick="window.ipc.postMessage('dir_navigate:/')">ROOT</span><span class="path-sep">/</span><span class="breadcrumb" onclick="window.ipc.postMessage('dir_navigate:home')">HOME</span><span class="path-sep">/</span><span class="breadcrumb" onclick="window.ipc.postMessage('dir_navigate:home/tim')">TIM</span></div><div class="directory-actions">
                     <button class="bezel-btn" onclick="window.ipc.postMessage('stage_command:mkdir ')">NEW FOLDER</button>
-                    <button class="bezel-btn" onclick="window.ipc.postMessage('dir_navigate:.')">REFRESH</button>
+                    <button class="bezel-btn" onclick="window.ipc.postMessage('dir_action_copy')">COPY</button>
+                    <button class="bezel-btn" onclick="window.ipc.postMessage('dir_action_paste')">PASTE</button>
+                    <button class="bezel-btn" onclick="window.ipc.postMessage('stage_command:mv ')">RENAME</button>
                     <button class="bezel-btn danger" onclick="window.ipc.postMessage('stage_command:rm ')">DELETE</button>
+                    <button class="bezel-btn" onclick="window.ipc.postMessage('dir_navigate:.')">REFRESH</button>
                 </div><div class="file-grid"><div class="file-item staging-item" onclick="window.ipc.postMessage('dir_navigate:..')">
                     <span class="file-icon folder"></span> ..
                 </div><div class="file-item staging-item " 

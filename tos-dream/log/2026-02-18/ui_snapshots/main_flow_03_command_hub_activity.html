@@ -25,8 +25,8 @@
                                 <div class="stat">MEM: <1MB</div>
                             </div>
                             <div class="app-tile-actions">
-                                <button class="tile-btn" onclick="window.ipc.postMessage('signal_app:60474e31-5f42-4ea6-9c97-a7b59c8c63c2;INT')">SIGINT</button>
-                                <button class="tile-btn danger" onclick="window.ipc.postMessage('kill_app:60474e31-5f42-4ea6-9c97-a7b59c8c63c2')">KILL</button>
+                                <button class="tile-btn" onclick="window.ipc.postMessage('signal_app:b13c913d-b799-41e0-b198-e5450222734b;INT')">SIGINT</button>
+                                <button class="tile-btn danger" onclick="window.ipc.postMessage('kill_app:b13c913d-b799-41e0-b198-e5450222734b')">KILL</button>
                             </div>
                         </div>
                                 <div class="app-tile add-tile" onclick="window.ipc.postMessage('spawn_app')">
@@ -43,13 +43,12 @@
                         <div class="activity-section">
                             <div class="section-title">SECTOR TEMPLATES</div>
                             <div class="template-registry">
-                                <div class="template-item" onclick="window.ipc.postMessage('load_template:Dev-Grid')">
+                                <div class="template-item" onclick="window.ipc.postMessage('load_template:DEV-GRID')">
                                     <div class="template-name">DEV-GRID</div>
-                                    <div class="template-meta">3 HUBS // 5 APPS</div>
-                                </div>
-                                <div class="template-item" onclick="window.ipc.postMessage('load_template:Science-Lab')">
+                                    <div class="template-meta">3 HUBS // 3 APPS</div>
+                                </div><div class="template-item" onclick="window.ipc.postMessage('load_template:SCIENCE-LAB')">
                                     <div class="template-name">SCIENCE-LAB</div>
-                                    <div class="template-meta">1 HUB // 2 APPS</div>
+                                    <div class="template-meta">1 HUBS // 2 APPS</div>
                                 </div>
                                 <div class="template-item action-item" onclick="window.ipc.postMessage('save_template:Current-Sector')">
                                     <div class="template-name">+ SAVE CURRENT AS TEMPLATE</div>

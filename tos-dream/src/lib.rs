@@ -41,6 +41,7 @@ use system::input::advanced::AdvancedInputManager;
 use containers::{
     ContainerManager, ContainerBackend,
     sector::SectorContainerManager,
+    sandbox::{SandboxManager, SandboxRegistry, SandboxInfo, SandboxLevel},
 };
 
 // Phase 16 Week 2: Cloud Resource Infrastructure
@@ -120,6 +121,57 @@ pub struct CommandHub {
     pub selected_files: std::collections::HashSet<String>,
     /// Active context menu in Directory Mode
     pub context_menu: Option<ContextMenu>,
+    /// Shell-provided directory listing (synchronized via OSC)
+    pub shell_listing: Option<DirectoryListing>,
+}
+
+/// Directory listing entry
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct DirectoryEntry {
+    /// File name
+    pub name: String,
+    /// File type
+    pub entry_type: EntryType,
+    /// Size in bytes
+    pub size: u64,
+    /// Permissions (unix-style string)
+    pub permissions: String,
+    /// Modification time
+    pub modified: String,
+    /// Whether file is hidden
+    pub is_hidden: bool,
+    /// Whether file is selected
+    pub is_selected: bool,
+}
+
+/// File entry type
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+pub enum EntryType {
+    File,
+    Directory,
+    Symlink,
+    BlockDevice,
+    CharDevice,
+    Fifo,
+    Socket,
+    Unknown,
+}
+
+/// Directory listing
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct DirectoryListing {
+    /// Current path
+    pub path: String,
+    /// Parent path (if any)
+    pub parent: Option<String>,
+    /// Entries
+    pub entries: Vec<DirectoryEntry>,
+    /// Total count
+    pub total_count: usize,
+    /// Hidden count
+    pub hidden_count: usize,
+    /// Selected count
+    pub selected_count: usize,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -270,7 +322,10 @@ pub struct TosState {
     pub sector_container_manager: Option<SectorContainerManager>,
     /// Phase 16: Local Sandbox Manager
     #[serde(skip)]
-    pub sandbox_manager: Option<containers::SandboxManager>,
+    pub sandbox_manager: Option<SandboxManager>,
+    /// Phase 16: Sandbox Registry
+    #[serde(skip)]
+    pub sandbox_registry: SandboxRegistry,
     /// Phase 16 Week 2: Cloud Resource Manager
     #[serde(skip)]
     pub cloud_manager: Option<saas::CloudResourceManager>,
@@ -308,11 +363,22 @@ impl TosModule for EngineeringModule {
         if level == HierarchyLevel::ApplicationFocus {
             Some(format!(
                 r#"<div class="engineering-overlay">
-                    <div class="eng-stat">PROPULSION: {}%</div>
-                    <div class="eng-stat">SHIELDS: {}%</div>
-                    <div class="eng-stat">SENSORS: {}%</div>
+                    <div class="mock-data-block">
+                        <div class="eng-stat">PROPULSION: {}%</div>
+                        <div class="graph-bar" style="width: {}%; background: var(--lcars-orange);"></div>
+                    </div>
+                    <div class="mock-data-block">
+                        <div class="eng-stat">SHIELDS: {}%</div>
+                        <div class="graph-bar" style="width: {}%; background: var(--lcars-purple);"></div>
+                    </div>
+                    <div class="mock-data-block">
+                        <div class="eng-stat">SENSORS: {}%</div>
+                        <div class="graph-bar" style="width: {}%; background: var(--lcars-blue);"></div>
+                    </div>
                 </div>"#,
-                self.power_distribution[0], self.power_distribution[1], self.power_distribution[2]
+                self.power_distribution[0], self.power_distribution[0],
+                self.power_distribution[1], self.power_distribution[1],
+                self.power_distribution[2], self.power_distribution[2]
             ))
         } else {
             None
@@ -320,12 +386,61 @@ impl TosModule for EngineeringModule {
     }
 }
 
+#[derive(Debug, Serialize, Deserialize)]
+pub struct TemplateInfo {
+    pub name: String,
+    pub description: String,
+    pub hubs: usize,
+    pub apps: usize,
+}
+
+impl TosState {
+    pub fn get_available_templates(&self) -> Vec<TemplateInfo> {
+        let mut templates = Vec::new();
+        let template_dir = format!("{}/.local/share/tos/templates", env!("HOME"));
+        
+        if let Ok(entries) = std::fs::read_dir(template_dir) {
+            for entry in entries.flatten() {
+                if entry.path().extension().and_then(|s| s.to_str()) == Some("tos-template") {
+                    if let Ok(content) = std::fs::read_to_string(entry.path()) {
+                        // For now we just use filename if JSON parsing is too heavy/complex here
+                        let name = entry.path().file_stem().unwrap_or_default().to_string_lossy().to_string().to_uppercase();
+                        
+                        // Try to parse basic info from JSON if possible
+                        if let Ok(json) = serde_json::from_str::<serde_json::Value>(&content) {
+                            templates.push(TemplateInfo {
+                                name: json["name"].as_str().unwrap_or(&name).to_string().to_uppercase(),
+                                description: format!("{} HUBS // {} APPS", 
+                                    json["hubs"].as_u64().unwrap_or(1),
+                                    json["apps"].as_array().map(|a| a.len()).unwrap_or(0)),
+                                hubs: json["hubs"].as_u64().unwrap_or(1) as usize,
+                                apps: json["apps"].as_array().map(|a| a.len()).unwrap_or(0),
+                            });
+                        } else {
+                            templates.push(TemplateInfo {
+                                name,
+                                description: "CUSTOM SECTOR LAYOUT".to_string(),
+                                hubs: 1,
+                                apps: 0,
+                            });
+                        }
+                    }
+                }
+            }
+        }
+        
+        templates
+    }
+}
+
 impl TosState {
     fn get_config_dir() -> std::path::PathBuf {
         if std::env::var("CARGO_MANIFEST_DIR").is_ok() {
-            // Use a per-process temporary directory for tests to avoid cross-test contamination
+            // Use a per-thread temporary directory for tests to avoid cross-test contamination
+            // All lib tests share the same PID, so PID alone is not sufficient
             let pid = std::process::id();
-            std::env::temp_dir().join(format!("tos-dream-test-{}", pid))
+            let tid = format!("{:?}", std::thread::current().id());
+            std::env::temp_dir().join(format!("tos-dream-test-{}-{}", pid, tid))
         } else {
             dirs::config_dir().map(|p| p.join("tos-dream")).unwrap_or_else(|| std::path::PathBuf::from(".tos_config"))
         }
@@ -440,6 +555,7 @@ impl TosState {
                 show_hidden_files: false,
                 selected_files: std::collections::HashSet::new(),
                 context_menu: None,
+                shell_listing: None,
             }],
             active_hub_index: 0,
             host: "LOCAL".to_string(),
@@ -488,6 +604,7 @@ impl TosState {
                 show_hidden_files: false,
                 selected_files: std::collections::HashSet::new(),
                 context_menu: None,
+                shell_listing: None,
             }],
             active_hub_index: 0,
             host: "LAB-SRV-01".to_string(),
@@ -527,6 +644,7 @@ impl TosState {
                 current_directory: dirs::home_dir().unwrap_or_else(|| std::path::PathBuf::from("/")),
                 show_hidden_files: false,
                 selected_files: std::collections::HashSet::new(),
+                shell_listing: None,
                 context_menu: None,
             }],
             active_hub_index: 0,
@@ -548,6 +666,7 @@ impl TosState {
             bezel_expanded: false,
         };
 
+        let third_sector_id = third_sector.id;
         let sectors = vec![first_sector, second_sector, third_sector];
         let viewports = vec![initial_viewport];
         let modules = Vec::new(); // Modules are loaded and managed by module_registry
@@ -571,6 +690,15 @@ impl TosState {
         #[cfg(feature = "live-feed")]
         let live_feed = None;
         let cloud_manager = Some(saas::CloudResourceManager::new(saas::CloudConfig::default()));
+
+        let mut sandbox_registry = SandboxRegistry::new();
+        sandbox_registry.register(third_sector_id, SandboxInfo {
+            id: "sector-obs-sandbox".to_string(),
+            level: SandboxLevel::Isolated,
+            container_id: None,
+            active: true,
+            created_at: chrono::Local::now(),
+        });
 
         let state = Self {
             current_level: HierarchyLevel::GlobalOverview,
@@ -614,6 +742,7 @@ impl TosState {
             container_manager,
             sector_container_manager,
             sandbox_manager: None,
+            sandbox_registry,
             cloud_manager,
         };
         
@@ -1220,6 +1349,11 @@ mod tests {
     #[test]
     fn test_zoom_transitions() {
         let mut state = TosState::new();
+        // Explicitly reset to avoid flakiness from persisted state
+        state.current_level = HierarchyLevel::GlobalOverview;
+        state.viewports[0].current_level = HierarchyLevel::GlobalOverview;
+        state.viewports[0].sector_index = 0;
+        state.viewports[0].hub_index = 0;
         
         // Zoom into Hub
         state.zoom_in();
@@ -1251,6 +1385,10 @@ mod tests {
     #[test]
     fn test_tactical_reset() {
         let mut state = TosState::new();
+        state.current_level = HierarchyLevel::GlobalOverview;
+        state.viewports[0].current_level = HierarchyLevel::GlobalOverview;
+        state.viewports[0].sector_index = 0;
+        state.viewports[0].hub_index = 0;
         state.zoom_in();
         state.zoom_in();
         assert_eq!(state.current_level, HierarchyLevel::ApplicationFocus);
@@ -1263,6 +1401,10 @@ mod tests {
     #[test]
     fn test_inspector_rendering() {
         let mut state = TosState::new();
+        state.current_level = HierarchyLevel::GlobalOverview;
+        state.viewports[0].current_level = HierarchyLevel::GlobalOverview;
+        state.viewports[0].sector_index = 0;
+        state.viewports[0].hub_index = 0;
         state.zoom_in(); // Hub
         state.zoom_in(); // Focus
         

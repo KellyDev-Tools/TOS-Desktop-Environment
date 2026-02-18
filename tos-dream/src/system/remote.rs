@@ -115,6 +115,7 @@ impl RemoteManager {
                 show_hidden_files: false,
                 selected_files: std::collections::HashSet::new(),
                 context_menu: None,
+                shell_listing: None,
             }],
             active_hub_index: 0,
             host: node.address.clone(),

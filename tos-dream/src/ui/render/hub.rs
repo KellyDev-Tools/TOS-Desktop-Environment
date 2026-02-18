@@ -117,8 +117,11 @@ impl ViewRenderer for HubRenderer {
                 // Action Bar (§3.2 Action toolbar)
                 html.push_str(r#"<div class="directory-actions">
                     <button class="bezel-btn" onclick="window.ipc.postMessage('stage_command:mkdir ')">NEW FOLDER</button>
-                    <button class="bezel-btn" onclick="window.ipc.postMessage('dir_navigate:.')">REFRESH</button>
+                    <button class="bezel-btn" onclick="window.ipc.postMessage('dir_action_copy')">COPY</button>
+                    <button class="bezel-btn" onclick="window.ipc.postMessage('dir_action_paste')">PASTE</button>
+                    <button class="bezel-btn" onclick="window.ipc.postMessage('stage_command:mv ')">RENAME</button>
                     <button class="bezel-btn danger" onclick="window.ipc.postMessage('stage_command:rm ')">DELETE</button>
+                    <button class="bezel-btn" onclick="window.ipc.postMessage('dir_navigate:.')">REFRESH</button>
                 </div>"#);
 
                 html.push_str(r#"<div class="file-grid">"#);
@@ -128,6 +131,63 @@ impl ViewRenderer for HubRenderer {
                     <span class="file-icon folder"></span> ..
                 </div>"#);
 
+                // Check if we have a shell-provided listing for this directory
+                let use_shell = sector.connection_type != crate::ConnectionType::Local || hub.shell_listing.is_some();
+                
+                if use_shell {
+                    if let Some(listing) = &hub.shell_listing {
+                        for entry in &listing.entries {
+                            if !hub.show_hidden_files && entry.is_hidden {
+                                continue;
+                            }
+                            
+                            let is_dir = entry.entry_type == crate::EntryType::Directory;
+                            let is_selected = hub.selected_files.contains(&entry.name);
+                            let selected_class = if is_selected { "selected" } else { "" };
+                            let escaped_name = entry.name.replace('\'', "\\'");
+                            let display_name = entry.name.to_uppercase();
+                            
+                            if is_dir {
+                                html.push_str(&format!(
+                                    r#"<div class="file-item staging-item {selected_class}" 
+                                        onclick="window.ipc.postMessage('dir_navigate:{escaped}')"
+                                        oncontextmenu="event.preventDefault(); window.ipc.postMessage('dir_context:{escaped};' + event.clientX + ';' + event.clientY)">
+                                        <div class="file-selector" onclick="event.stopPropagation(); window.ipc.postMessage('dir_toggle_select:{escaped}')"></div>
+                                        <span class="file-icon folder"></span> {display}/
+                                    </div>"#,
+                                    escaped = escaped_name,
+                                    display = display_name,
+                                    selected_class = selected_class,
+                                ));
+                            } else {
+                                let size_str = if entry.size > 1024 * 1024 {
+                                    format!("{:.1}MB", entry.size as f32 / 1024.0 / 1024.0)
+                                } else {
+                                    format!("{}KB", entry.size / 1024)
+                                };
+                                
+                                html.push_str(&format!(
+                                    r#"<div class="file-item staging-item {selected_class}" 
+                                        onclick="window.ipc.postMessage('dir_pick_file:{escaped}')"
+                                        oncontextmenu="event.preventDefault(); window.ipc.postMessage('dir_context:{escaped};' + event.clientX + ';' + event.clientY)">
+                                        <div class="file-selector" onclick="event.stopPropagation(); window.ipc.postMessage('dir_toggle_select:{escaped}')"></div>
+                                        <span class="file-icon file"></span>
+                                        <div class="file-info">
+                                            <div class="file-name">{display}</div>
+                                            <div class="file-meta">{size}</div>
+                                        </div>
+                                    </div>"#,
+                                    escaped = escaped_name,
+                                    display = display_name,
+                                    size = size_str,
+                                    selected_class = selected_class,
+                                ));
+                            }
+                        }
+                    } else {
+                        html.push_str(r#"<div class="file-item status-item">WAITING FOR SHELL...</div>"#);
+                    }
+                } else {
                 // Read actual filesystem
                 match std::fs::read_dir(cwd) {
                     Ok(entries) => {
@@ -196,7 +256,7 @@ impl ViewRenderer for HubRenderer {
 
                             html.push_str(&format!(
                                 r#"<div class="file-item staging-item {selected_class}" 
-                                    onclick="window.ipc.postMessage('stage_command:view {escaped}')"
+                                    onclick="window.ipc.postMessage('dir_pick_file:{escaped}')"
                                     oncontextmenu="event.preventDefault(); window.ipc.postMessage('dir_context:{escaped};' + event.clientX + ';' + event.clientY)">
                                     <div class="file-selector" onclick="event.stopPropagation(); window.ipc.postMessage('dir_toggle_select:{escaped}')"></div>
                                     <span class="file-icon {ext_class}"></span>
@@ -232,6 +292,7 @@ impl ViewRenderer for HubRenderer {
                         ));
                     }
                 }
+            }
 
                         html.push_str("</div>");
 
@@ -360,21 +421,31 @@ impl ViewRenderer for HubRenderer {
                         <div class="activity-section">
                             <div class="section-title">SECTOR TEMPLATES</div>
                             <div class="template-registry">
-                                <div class="template-item" onclick="window.ipc.postMessage('load_template:Dev-Grid')">
-                                    <div class="template-name">DEV-GRID</div>
-                                    <div class="template-meta">3 HUBS // 5 APPS</div>
-                                </div>
-                                <div class="template-item" onclick="window.ipc.postMessage('load_template:Science-Lab')">
-                                    <div class="template-name">SCIENCE-LAB</div>
-                                    <div class="template-meta">1 HUB // 2 APPS</div>
-                                </div>
+                                {templates_html}
                                 <div class="template-item action-item" onclick="window.ipc.postMessage('save_template:Current-Sector')">
                                     <div class="template-name">+ SAVE CURRENT AS TEMPLATE</div>
                                 </div>
                             </div>
                         </div>
                     </div>"#,
-                    apps_html = apps_html
+                    apps_html = apps_html,
+                    templates_html = {
+                        let mut html = String::new();
+                        for template in state.get_available_templates() {
+                            html.push_str(&format!(
+                                r#"<div class="template-item" onclick="window.ipc.postMessage('load_template:{}')">
+                                    <div class="template-name">{}</div>
+                                    <div class="template-meta">{}</div>
+                                </div>"#,
+                                template.name, template.name, template.description
+                            ));
+                        }
+                        if html.is_empty() {
+                            r#"<div class="template-item empty">NO TEMPLATES FOUND</div>"#.to_string()
+                        } else {
+                            html
+                        }
+                    }
                 ));
             }
         }

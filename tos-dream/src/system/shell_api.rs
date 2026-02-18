@@ -634,6 +634,23 @@ pub fn shell_escape(s: &str) -> String {
     }
 }
 
+/// Format a `ShellCommand` into a PTY-ready string (free function for testability)
+pub fn format_shell_command_str(cmd: &ShellCommand) -> String {
+    match cmd {
+        ShellCommand::Exec(command) => format!("{}\n", command),
+        ShellCommand::Cd(path) => format!("cd {}\n", shell_escape(path)),
+        ShellCommand::Complete { partial, cursor_pos } => {
+            format!("\x1b]9008;{};{}\x07", partial, cursor_pos)
+        }
+        ShellCommand::Ls(path) => format!("ls -la {}\n", shell_escape(path)),
+        ShellCommand::SetEnv { key, value } => format!("export {}={}\n", key, shell_escape(value)),
+        ShellCommand::Clear => "clear\n".to_string(),
+        ShellCommand::Interrupt => "\x03".to_string(),
+        ShellCommand::Eof => "\x04".to_string(),
+    }
+}
+
+
 /// Shell API manager for integration with TosState
 #[derive(Debug)]
 pub struct ShellApi {
@@ -673,14 +690,11 @@ impl ShellApi {
     fn handle_sequence(&mut self, seq: OscSequence, state: &mut TosState) {
         match seq {
             OscSequence::Suggestions(suggestions) => {
-                // Update command hub with suggestions
+                // §13.2: Store suggestions on the active hub for the renderer to display
                 let viewport = &state.viewports[state.active_viewport_index];
                 let sector = &mut state.sectors[viewport.sector_index];
-                let _hub = &mut sector.hubs[viewport.hub_index];
-                
-                // Store suggestions for display
-                // In real implementation, would update UI
-                tracing::info!("Received {} command suggestions", suggestions.len());
+                let hub = &mut sector.hubs[viewport.hub_index];
+                hub.suggestions = suggestions;
             }
             OscSequence::Directory(listing) => {
                 // Update directory mode with listing
@@ -745,12 +759,48 @@ impl ShellApi {
             OscSequence::RequestCompletion { partial, cursor_pos } => {
                 // Generate completions
                 let completions = self.generate_completions(&partial, cursor_pos, state);
+                // Store on hub for renderer to display
+                let viewport = &state.viewports[state.active_viewport_index];
+                let sector = &mut state.sectors[viewport.sector_index];
+                let hub = &mut sector.hubs[viewport.hub_index];
+                hub.suggestions = completions.clone();
                 self.pending_completions.insert(partial, completions);
             }
-            OscSequence::ContextRequest { hub_id: _ } => {
-                // In a real implementation, we would send back a ContextInfo packet to the shell
-                // This would be done via PTY: format!("\x1b]9011;{}\x07", serde_json::to_string(&info))
-                tracing::info!("Shell requested context metadata");
+            OscSequence::ContextRequest { hub_id } => {
+                // §13.2: Build a real ContextInfo and respond via PTY
+                // Find the sector containing this hub to build context
+                let context = state.sectors.iter().find_map(|s| {
+                    s.hubs.iter().find(|h| h.id == hub_id).map(|_h| {
+                        ContextInfo {
+                            sector_name: s.name.clone(),
+                            sector_type: format!("{:?}", s.connection_type),
+                            active_modules: state.modules.iter().map(|m| m.name()).collect(),
+                            current_time: chrono::Local::now().format("%H:%M:%S").to_string(),
+                            node_id: s.id,
+                        }
+                    })
+                });
+
+                if let Some(info) = context {
+                    // Serialize and store as a terminal line; the PTY write-back path
+                    // (OSC 9011) requires passing the PtyHandle which is not available
+                    // in this handler — the IPC layer should call pty.write() after
+                    // process_output returns. For now, store as a structured terminal line.
+                    if let Ok(json) = serde_json::to_string(&info) {
+                        // Find the hub and push the context response
+                        if let Some(sector) = state.sectors.iter_mut().find(|s| {
+                            s.hubs.iter().any(|h| h.id == hub_id)
+                        }) {
+                            if let Some(hub) = sector.hubs.iter_mut().find(|h| h.id == hub_id) {
+                                hub.terminal_output.push(format!("[CTX] {}", json));
+                                if hub.terminal_output.len() > 100 {
+                                    hub.terminal_output.remove(0);
+                                }
+                            }
+                        }
+                    }
+                    tracing::info!("Shell context response built for hub {}", hub_id);
+                }
             }
         }
     }

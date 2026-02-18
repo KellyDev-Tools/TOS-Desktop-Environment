@@ -123,6 +123,9 @@ pub struct CommandHub {
     pub context_menu: Option<ContextMenu>,
     /// Shell-provided directory listing (synchronized via OSC)
     pub shell_listing: Option<DirectoryListing>,
+    /// Shell-provided command suggestions (synchronized via OSC 9000/9008) §13.2
+    #[serde(default)]
+    pub suggestions: Vec<system::shell_api::CommandSuggestion>,
 }
 
 /// Directory listing entry
@@ -584,6 +587,7 @@ impl TosState {
                 selected_files: std::collections::HashSet::new(),
                 context_menu: None,
                 shell_listing: None,
+                suggestions: vec![],
             }],
             active_hub_index: 0,
             host: "LOCAL".to_string(),
@@ -642,6 +646,7 @@ impl TosState {
                 selected_files: std::collections::HashSet::new(),
                 context_menu: None,
                 shell_listing: None,
+                suggestions: vec![],
             }],
             active_hub_index: 0,
             host: "LAB-SRV-01".to_string(),
@@ -685,6 +690,7 @@ impl TosState {
                 show_hidden_files: false,
                 selected_files: std::collections::HashSet::new(),
                 shell_listing: None,
+                suggestions: vec![],
                 context_menu: None,
             }],
             active_hub_index: 0,

@@ -230,6 +230,7 @@ impl TacticalReset {
             selected_files: std::collections::HashSet::new(),
             context_menu: None,
             shell_listing: None,
+                suggestions: vec![],
         }];
         sector.active_hub_index = 0;
 

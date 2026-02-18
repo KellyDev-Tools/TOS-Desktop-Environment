@@ -28,6 +28,25 @@ impl IpcDispatcher {
                 _ => return,
             };
             state.toggle_mode(mode);
+
+            // §13.2: When entering Directory Mode, request an immediate ls of the cwd
+            if mode == CommandHubMode::Directory {
+                let viewport = &state.viewports[state.active_viewport_index];
+                let sector_idx = viewport.sector_index;
+                let hub_idx = viewport.hub_index;
+                let hub = &state.sectors[sector_idx].hubs[hub_idx];
+                let hub_id = hub.id;
+                let cwd = hub.current_directory.to_string_lossy().to_string();
+                drop(state); // release lock before locking ptys
+                if let Ok(ptys) = self.ptys.lock() {
+                    if let Some(pty) = ptys.get(&hub_id) {
+                        // Use the Shell API format: ls -la <path>
+                        let ls_cmd = format!("ls -la {}\n", cwd);
+                        pty.write(&ls_cmd);
+                    }
+                }
+                return;
+            }
         } else if request.starts_with("select_sector:") {
             if let Ok(idx) = request[14..].parse::<usize>() {
                 state.select_sector(idx);
@@ -598,6 +617,7 @@ impl IpcDispatcher {
             selected_files: std::collections::HashSet::new(),
             context_menu: None,
             shell_listing: None,
+            suggestions: vec![],
         });
         
         let hub_idx = sector.hubs.len() - 1;
@@ -677,6 +697,7 @@ mod tests {
             selected_files: HashSet::new(),
             context_menu: None,
             shell_listing: None,
+            suggestions: vec![],
         };
 
         let sector = Sector {

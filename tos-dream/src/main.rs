@@ -60,6 +60,9 @@ fn main() -> anyhow::Result<()> {
                         icon: Some("⌨️".to_string()),
                         is_dummy: false,
                         settings: std::collections::HashMap::new(),
+                        thumbnail: None,
+                        decoration_policy: tos_core::DecorationPolicy::Native,
+                        bezel_actions: vec![],
                     });
                     hub.active_app_index = Some(0);
                 }

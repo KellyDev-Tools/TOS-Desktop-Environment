@@ -26,6 +26,9 @@ fn create_test_state_with_apps() -> TosState {
         icon: None,
         is_dummy: true,
         settings: HashMap::new(),
+        thumbnail: None,
+        decoration_policy: DecorationPolicy::Native,
+        bezel_actions: vec![],
     };
     let app2 = Application {
         id: Uuid::new_v4(),
@@ -36,6 +39,9 @@ fn create_test_state_with_apps() -> TosState {
         icon: None,
         is_dummy: true,
         settings: HashMap::new(),
+        thumbnail: None,
+        decoration_policy: DecorationPolicy::Native,
+        bezel_actions: vec![],
     };
      state.sectors[0].hubs[0].applications.push(app1);
      state.sectors[0].hubs[0].applications.push(app2);

@@ -52,8 +52,14 @@ fn render_global_overview_svg(svg: &mut String, state: &TosState) {
     
     // Telemetry Bar
     svg.push_str(r##"<rect x="950" y="45" width="230" height="50" rx="15" fill="rgba(255,255,255,0.05)" stroke="rgba(255,255,255,0.1)" />"##);
-    svg.push_str(r##"<text x="970" y="70" fill="#ff9900" font-size="10">STARDATE</text>"##);
-    svg.push_str(&format!(r##"<text x="970" y="85" fill="white" font-size="14" font-weight="700">{}</text>"##, state.get_stardate()));
+    
+    // System Time
+    svg.push_str(r##"<text x="970" y="70" fill="#9999cc" font-size="10">SYSTEM TIME</text>"##);
+    svg.push_str(&format!(r##"<text x="970" y="85" fill="white" font-size="14" font-weight="700">{}</text>"##, state.get_system_time()));
+    
+    // Stardate
+    svg.push_str(r##"<text x="1060" y="70" fill="#ff9900" font-size="10">STARDATE</text>"##);
+    svg.push_str(&format!(r##"<text x="1060" y="85" fill="white" font-size="14" font-weight="700">{}</text>"##, state.get_stardate()));
 
     // Sectors
     let mut x = 100;

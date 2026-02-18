@@ -227,6 +227,23 @@ pub struct CommsMessage {
     pub timestamp: String,
 }
 
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+pub enum DecorationPolicy {
+    Suppress,
+    Overlay,
+    Native,
+}
+
+impl Default for DecorationPolicy {
+    fn default() -> Self { DecorationPolicy::Native }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct BezelAction {
+    pub label: String,
+    pub command: String,
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Application {
     pub id: uuid::Uuid,
@@ -236,9 +253,15 @@ pub struct Application {
     #[serde(skip)]
     pub pid: Option<u32>,
     pub icon: Option<String>,
-    pub is_dummy: bool, // Set true for sector default apps that aren't real OS processes
+    pub is_dummy: bool, 
     /// Settings for the application (e.g. bezel slider values)
     pub settings: std::collections::HashMap<String, f32>,
+    #[serde(skip)]
+    pub thumbnail: Option<Vec<u8>>,
+    #[serde(default)]
+    pub decoration_policy: DecorationPolicy,
+    #[serde(default)]
+    pub bezel_actions: Vec<BezelAction>,
 }
 
 #[derive(Serialize, Deserialize)]
@@ -448,18 +471,20 @@ impl TosState {
 
     pub fn save(&self) {
         let config_dir = Self::get_config_dir();
-        let _ = std::fs::create_dir_all(&config_dir);
-        let session_path = config_dir.join("session.json");
-        if let Ok(json) = serde_json::to_string_pretty(self) {
-            let _ = std::fs::write(session_path, json);
+        if !config_dir.exists() {
+            let _ = std::fs::create_dir_all(&config_dir);
+        }
+        
+        let path = config_dir.join("state.json");
+        if let Ok(file) = std::fs::File::create(path) {
+            let _ = serde_json::to_writer_pretty(file, self);
         }
     }
 
     pub fn load() -> Option<Self> {
-        let config_dir = Self::get_config_dir();
-        let session_path = config_dir.join("session.json");
-        if let Ok(json) = std::fs::read_to_string(session_path) {
-            if let Ok(mut state) = serde_json::from_str::<Self>(&json) {
+        let path = Self::get_config_dir().join("state.json");
+        if let Ok(file) = std::fs::File::open(path) {
+            if let Ok(mut state) = serde_json::from_reader::<_, Self>(file) {
                 state.post_load_init();
                 return Some(state);
             }
@@ -547,6 +572,9 @@ impl TosState {
                     icon: Some("⌨️".to_string()),
                     is_dummy: true,
                     settings: std::collections::HashMap::new(),
+                    thumbnail: None,
+                    decoration_policy: DecorationPolicy::Native,
+                    bezel_actions: vec![],
                 }],
                 active_app_index: Some(0),
                 terminal_output: Vec::new(),
@@ -585,6 +613,12 @@ impl TosState {
                         icon: Some("🔬".to_string()),
                         is_dummy: true,
                         settings: std::collections::HashMap::new(),
+                        thumbnail: None,
+                        decoration_policy: DecorationPolicy::Overlay,
+                        bezel_actions: vec![
+                            BezelAction { label: "SCAN".to_string(), command: "scan_start".to_string() },
+                            BezelAction { label: "CALIBRATE".to_string(), command: "calibrate".to_string() }
+                        ],
                     },
                     Application {
                         id: uuid::Uuid::new_v4(),
@@ -595,6 +629,9 @@ impl TosState {
                         icon: Some("📡".to_string()),
                         is_dummy: true,
                         settings: std::collections::HashMap::new(),
+                        thumbnail: None,
+                        decoration_policy: DecorationPolicy::Suppress,
+                        bezel_actions: vec![],
                     }
                 ],
                 active_app_index: Some(0),
@@ -637,6 +674,9 @@ impl TosState {
                     icon: Some("📡".to_string()),
                     is_dummy: true,
                     settings: std::collections::HashMap::new(),
+                    thumbnail: None,
+                    decoration_policy: DecorationPolicy::Native,
+                    bezel_actions: Vec::new(),
                 }],
                 active_app_index: Some(0),
                 terminal_output: Vec::new(),

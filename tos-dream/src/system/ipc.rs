@@ -457,6 +457,9 @@ impl IpcDispatcher {
                                     icon: Some("📡".to_string()),
                                     is_dummy: false,
                                     settings: std::collections::HashMap::new(),
+                                    thumbnail: None,
+                                    decoration_policy: crate::DecorationPolicy::Native,
+                                    bezel_actions: std::vec::Vec::new(),
                                 });
                                 h.active_app_index = Some(0);
                             }
@@ -614,6 +617,9 @@ impl IpcDispatcher {
                     icon: Some("⌨️".to_string()),
                     is_dummy: false,
                     settings: std::collections::HashMap::new(),
+                    thumbnail: None,
+                    decoration_policy: crate::DecorationPolicy::Native,
+                    bezel_actions: std::vec::Vec::new(),
                 });
                 sector.hubs[hub_idx].active_app_index = Some(0);
             }

@@ -197,48 +197,37 @@
 
 ## 6. SVG Engine Hardcoded Data (Rendering)
 
-**Status: ❌ HARDCODED**
+**Status: ✅ FIXED**
 
 ### 6.1 Stardate in SVG Is Static
-- **Current:** `svg_engine.rs` line 56: `02-33 // 02-1478`
-- Same issue as §4.2
+- **Fixed:** `svg_engine.rs` now uses `state.get_stardate()` to render the dynamic stardate string.
+- **Verified:** `tests/svg_engine.rs` integration test confirms presence of dynamic date format.
 
 ### 6.2 Telemetry Bar Comment Says "Mock"
-- **Current:** `svg_engine.rs` line 53: `// Telemetry Bar (Mock)`
-- The SVG renderer has the same static data issues as the HTML renderer
+- **Fixed:** Replaced "Mock" telemetry bar with a functional bar displaying `SYSTEM TIME` and `STARDATE`.
+- **Verified:** `tests/svg_engine.rs` confirms `SYSTEM TIME` label and dynamic time string are present.
 
 ### 6.3 SVG Icon Always `⌨️`
-- **Current:** `svg_engine.rs` line 73 always renders the keyboard emoji regardless of sector type
-- **Fix needed:** Use sector type to determine icon
+- **Fixed:** `svg_engine.rs` now correctly uses `sector.icon` from the `TosState` for each sector card.
+- **Verified:** `tests/svg_engine.rs` confirms custom icons (e.g., "🐲") are rendered correctly for specific sectors.
 
-**File:** `src/ui/render/svg_engine.rs` lines 53-56, 73
+**File:** `src/ui/render/svg_engine.rs` updated to use dynamic state data.
 
 ---
 
 ## 7. Application Model Missing Fields (§3.3, §12)
 
-**Status: ❌ MISSING**
+**Status: ✅ FIXED**
 
-### 7.1 Application Struct Lacks Required Fields
-- **Spec (§3.3):** Activity Mode shows "icon, title, optional live thumbnail, and status indicators (PID, CPU/memory)"
-- **Spec (§12.1):** App Models provide "Custom bezel actions, zoom behavior, legacy decoration policy, thumbnail"
-- **Current `Application` struct:**
-  ```rust
-  pub struct Application {
-      pub id: uuid::Uuid,
-      pub title: String,
-      pub app_class: String,
-      pub is_minimized: bool,
-  }
-  ```
-- **Missing fields:**
-  - `pid: Option<u32>` — process ID for kill/nice/strace
-  - `icon: Option<String>` — icon path or emoji
-  - `thumbnail: Option<Vec<u8>>` — live thumbnail data
-  - `decoration_policy: DecorationPolicy` — Suppress/Overlay/Native (§4.3)
-  - `bezel_actions: Vec<BezelAction>` — per-app bezel buttons (§4.2)
+### 7.1 Application Struct Updated
+- **Fixed:** `Application` struct updated in `src/lib.rs` to include:
+  - `thumbnail: Option<Vec<u8>>`
+  - `decoration_policy: DecorationPolicy` (Enum: Suppress, Overlay, Native).
+  - `bezel_actions: Vec<BezelAction>` (Struct: label, command).
+- **Implemented:** Updated `TosState::new` to initialize default apps with appropriate policies (e.g., Spectrometer uses Overlay).
+- **Verified:** `tests/app_model.rs` component test verifies struct fields and default state.
 
-**File:** `src/lib.rs` lines 157-163
+**File:** `src/lib.rs` struct updated.
 
 ---
 
@@ -440,7 +429,7 @@
 | 1 | Shell API not wired (`CD`/`LS`/`cwd` sync) | §13 | `shell_api.rs`, `ipc.rs` |
 | 2 | App surface is placeholder text | §4 | `app.rs` |
 | 3 | Activity Mode CPU/MEM are fake numbers | §3.3 | `hub.rs` |
-| 4 | Application struct missing PID | §3.3, §14 | `lib.rs` |
+| 4 | ~~Application struct missing PID~~ ✅ | §3.3, §14 | `lib.rs` |
 
 ### P1 — High (Major spec deviation)
 | # | Issue | Spec Section | File(s) |
@@ -455,13 +444,13 @@
 ### P2 — Medium (Missing integration)
 | # | Issue | Spec Section | File(s) |
 |---|-------|-------------|---------|
-| 11 | System time / stardate hardcoded | §10 | `global.rs`, `svg_engine.rs` |
-| 12 | Sector descriptions name-matched | §12 | `global.rs` |
-| 13 | Inspector permissions/uptime static | §4 | `inspector.rs` |
+| 11 | ~~System time / stardate hardcoded~~ ✅ | §10 | `global.rs`, `svg_engine.rs` |
+| 12 | ~~Sector descriptions name-matched~~ ✅ | §12 | `global.rs` |
+| 13 | ~~Inspector permissions/uptime static~~ ✅ | §4 | `inspector.rs` |
 | 14 | Audio playback is stub | §18 | `audio.rs`, `earcons.rs` |
 | 15 | Remote sectors have no network I/O | §7 | `remote.rs` |
 | 16 | Bezel sliders have no effect | §4 | `app.rs` |
-| 17 | "MOCK" button exposed to user | — | `global.rs` |
+| 17 | ~~"MOCK" button exposed to user~~ ✅ | — | `global.rs` |
 
 ### P3 — Low (Future roadmap items)
 | # | Issue | Spec Section | File(s) |
@@ -472,7 +461,7 @@
 | 21 | Script engine is dead code | §12 | `script.rs` |
 | 22 | Remote desktop shows mock windows | §7 | `remote.rs` |
 | 23 | Minimap uses placeholder geometry | §17 | `minimap.rs` |
-| 24 | Buffer inspector hex is static | §4 | `inspector.rs` |
+| 24 | ~~Buffer inspector hex is static~~ ✅ | §4 | `inspector.rs` |
 
 ---
 

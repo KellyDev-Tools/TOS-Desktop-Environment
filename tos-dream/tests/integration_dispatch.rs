@@ -185,6 +185,9 @@ fn test_complex_multi_viewport_state_integration() {
                 is_dummy: true,
                 pid: None,
                 settings: std::collections::HashMap::new(),
+                thumbnail: None,
+                decoration_policy: tos_core::DecorationPolicy::Native,
+                bezel_actions: vec![],
             }
         );
         s.zoom_in(); // Hub -> App

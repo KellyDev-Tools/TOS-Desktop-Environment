@@ -15,6 +15,9 @@ fn create_test_state_with_real_pid() -> TosState {
         icon: None,
         is_dummy: false,
         settings: HashMap::new(),
+        thumbnail: None,
+        decoration_policy: DecorationPolicy::Native,
+        bezel_actions: Vec::new(),
     };
     
     // Set level to DetailInspector

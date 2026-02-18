@@ -335,20 +335,32 @@ impl RemoteManager {
     /// Async synchronization 
     #[cfg(feature = "remote-desktop")]
     pub async fn sync_node_async(&mut self, node_id: Uuid) -> Result<(), String> {
-        if let Some(conn) = self.active_connections.get(&node_id) {
-            // Send heartbeat
-            let packet = SyncPacket::Heartbeat;
-            conn.send_packet(&packet).await?;
-            
-            // Try to receive response
-            if let Some(response) = conn.receive_packet().await? {
-                tracing::info!("Sync response from {}: {:?}", node_id, response);
+        let conn = self.active_connections.get(&node_id)
+            .ok_or_else(|| "Not connected".to_string())?;
+        
+        // Send heartbeat
+        let packet = SyncPacket::Heartbeat;
+        conn.send_packet(&packet).await?;
+        
+        // Try to receive and process packets for a short duration
+        // In a real system this would be handled by a background task per connection
+        for _ in 0..5 {
+            match conn.receive_packet().await {
+                Ok(Some(response)) => {
+                    tracing::debug!("Sync packet from {}: {:?}", node_id, response);
+                    // Note: In real app, we'd need a way to pass &mut sectors here
+                    // For now, we just log and update the connection status
+                }
+                Ok(None) => break,
+                Err(e) => return Err(e),
             }
-            
-            Ok(())
-        } else {
-            Err("Not connected".to_string())
         }
+        
+        if let Some(conn_mut) = self.active_connections.get_mut(&node_id) {
+            conn_mut.last_sync = std::time::Instant::now();
+        }
+        
+        Ok(())
     }
 
     /// Process an incoming synchronization packet (Real implementation)

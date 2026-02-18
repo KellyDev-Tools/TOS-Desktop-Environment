@@ -626,15 +626,15 @@ mod tests {
         let mut state = TosState::new();
         let mut geometry = LayoutGeometry::new();
         
-        // Single viewport default
+        // Default state has 3 sectors (Alpha, Science, Observation)
         geometry.calculate_from_state(&state);
         assert_eq!(geometry.viewports.len(), 1);
-        assert_eq!(geometry.sectors.len(), 1);
+        assert_eq!(geometry.sectors.len(), 3);
         
         // Add more sectors
         let test_sector = Sector {
             id: uuid::Uuid::new_v4(),
-            name: "Test Sector 2".to_string(),
+            name: "Test Sector 4".to_string(),
             color: "#ff0000".to_string(),
             hubs: Vec::new(),
             active_hub_index: 0,
@@ -649,7 +649,7 @@ mod tests {
         state.add_sector(test_sector);
         
         geometry.calculate_from_state(&state);
-        assert_eq!(geometry.sectors.len(), 2);
+        assert_eq!(geometry.sectors.len(), 4);
     }
 
     #[test]
@@ -673,10 +673,16 @@ mod tests {
         let mut geometry = LayoutGeometry::new();
         geometry.calculate_from_state(&state);
         
-        // Should find sector at center
-        let sector = geometry.sector_at(0.5, 0.5);
+        // 3 sectors in a 2x2 grid. 
+        // Index 0 (Alpha) is at (0.0, 0.0) with size (0.5, 0.5)
+        let sector = geometry.sector_at(0.25, 0.25);
         assert!(sector.is_some());
         assert_eq!(sector.unwrap().sector_index, 0);
+        
+        // Index 1 (Science) should be at (0.5, 0.0)
+        let sector = geometry.sector_at(0.75, 0.25);
+        assert!(sector.is_some());
+        assert_eq!(sector.unwrap().sector_index, 1);
     }
 
     #[test]
@@ -688,8 +694,8 @@ mod tests {
         let mut active_minimap = MiniMap::new();
         active_minimap.activate();
         
-        // Click at center should return current sector
-        let target = active_minimap.calculate_click_target_with_geometry(0.5, 0.5, &state);
+        // Click at top-left quadrant should return Alpha sector (index 0)
+        let target = active_minimap.calculate_click_target_with_geometry(0.25, 0.25, &state);
         assert!(target.is_some());
         
         let (sector_idx, viewport_idx) = target.unwrap();

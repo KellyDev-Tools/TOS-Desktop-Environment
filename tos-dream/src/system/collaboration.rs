@@ -184,7 +184,7 @@ impl FollowingMode {
             last_synced_view: None,
             active: true,
             sync_interval_ms: 100, // Sync every 100ms for smooth following
-            last_sync: std::time::Instant::now(),
+            last_sync: std::time::Instant::now() - std::time::Duration::from_millis(100),
         }
     }
 

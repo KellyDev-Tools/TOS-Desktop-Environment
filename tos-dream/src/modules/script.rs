@@ -173,6 +173,47 @@ impl ScriptEngine {
             engine: self,
         }
     }
+
+    pub fn to_owned_wrapper(self) -> OwnedScriptModule {
+        OwnedScriptModule {
+            engine: self,
+        }
+    }
+}
+
+/// Owned version of script module wrapper
+#[derive(Debug)]
+pub struct OwnedScriptModule {
+    pub engine: ScriptEngine,
+}
+
+impl TosModule for OwnedScriptModule {
+    fn name(&self) -> String { self.engine.as_tos_module().name() }
+    fn version(&self) -> String { self.engine.as_tos_module().version() }
+    fn on_load(&mut self, state: &mut TosState) { self.engine.as_tos_module_mut().on_load(state) }
+    fn on_unload(&mut self, state: &mut TosState) { self.engine.as_tos_module_mut().on_unload(state) }
+    fn render_override(&self, level: HierarchyLevel) -> Option<String> { self.engine.as_tos_module().render_override(level) }
+}
+
+impl ScriptEngine {
+    pub fn as_tos_module_mut(&mut self) -> ScriptModuleWrapperMut<'_> {
+        ScriptModuleWrapperMut {
+            engine: self,
+        }
+    }
+}
+
+pub struct ScriptModuleWrapperMut<'a> {
+    engine: &'a mut ScriptEngine,
+}
+
+impl<'a> ScriptModuleWrapperMut<'a> {
+    pub fn on_load(&mut self, _state: &mut TosState) {
+        tracing::info!("Script module loaded: {}", self.engine.manifest.name);
+    }
+    pub fn on_unload(&mut self, _state: &mut TosState) {
+        tracing::info!("Script module unloaded: {}", self.engine.manifest.name);
+    }
 }
 
 /// Wrapper to expose ScriptEngine as TosModule

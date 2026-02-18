@@ -1,0 +1,76 @@
+/* Phase 16: Custom Module Styling */
+
+.module-data-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 15px;
+    padding: 10px 0;
+}
+
+/* PowerGrid Module Styles */
+.power-grid-dashboard {
+    background: rgba(0, 0, 0, 0.4);
+    border: 1px solid var(--tos-gold);
+    border-left: 10px solid var(--tos-gold);
+    padding: 15px;
+    font-family: 'Inter', sans-serif;
+    border-radius: 4px;
+}
+
+.grid-header {
+    color: var(--tos-gold);
+    font-weight: bold;
+    font-size: 0.9em;
+    margin-bottom: 12px;
+    letter-spacing: 1px;
+}
+
+.stat-item {
+    margin-bottom: 10px;
+}
+
+.stat-item .label {
+    display: block;
+    font-size: 0.7em;
+    color: rgba(255, 255, 255, 0.6);
+    margin-bottom: 4px;
+}
+
+.meter-container {
+    height: 6px;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 3px;
+    overflow: hidden;
+    margin-bottom: 4px;
+}
+
+.meter-bar {
+    height: 100%;
+    background: #00ccff;
+    transition: width 0.5s ease;
+}
+
+.meter-bar.warning {
+    background: #ffcc00;
+}
+
+.meter-bar.tertiary {
+    background: #cc99ff;
+}
+
+.stat-item .value {
+    font-size: 0.8em;
+    font-weight: bold;
+    color: white;
+}
+
+.stat-item.warning .label {
+    color: #ffcc00;
+}
+
+.grid-footer {
+    margin-top: 10px;
+    font-size: 0.6em;
+    text-align: right;
+    color: rgba(255, 255, 255, 0.3);
+}

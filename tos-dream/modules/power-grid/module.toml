@@ -1,0 +1,13 @@
+name = "PowerGrid"
+version = "1.2.0"
+description = "Real-time power distribution dashboard for Engineering."
+author = "Starfleet Engineering"
+license = "Proprietary"
+type = "SystemModule"
+entry = "index.js"
+language = "javascript"
+
+[config]
+app_class = "Engineering.PowerGrid"
+bezel_actions = ["PURGE_COILS", "STABILIZE_FIELD"]
+default_hub_mode = "activity"

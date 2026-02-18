@@ -144,16 +144,60 @@ impl ModuleRegistry {
     }
     
     /// Initialize all loaded modules
-    pub fn initialize_all(&mut self, _state: &mut TosState) {
+    pub fn initialize_all(&mut self, state: &mut TosState) {
         let names: Vec<String> = self.modules.keys().cloned().collect();
         
         for name in names {
             if let Some(info) = self.modules.get_mut(&name) {
                 if info.state == ModuleState::Loaded {
-                    // In a real implementation, we would instantiate the module here
-                    // For now, just mark it as active
-                    info.state = ModuleState::Active;
-                    tracing::info!("Module initialized: {}", name);
+                    // Instantiate based on manifest type
+                    let module: Option<Box<dyn TosModule>> = match info.manifest.module_type {
+                        super::manifest::ModuleType::ApplicationModel | 
+                        super::manifest::ModuleType::SectorType |
+                        super::manifest::ModuleType::SystemModule => {
+                            // Check if it's a script module
+                            let is_script = match info.manifest.language.as_deref() {
+                                Some("javascript") | Some("js") | Some("lua") | Some("python") | Some("py") => true,
+                                _ => false,
+                            };
+
+                            if is_script {
+                                // Try to find the entry file
+                                let entry_path = info.path.join(&info.manifest.entry);
+                                if entry_path.exists() {
+                                    match super::script::ScriptEngineFactory::from_file(&info.manifest, &entry_path) {
+                                        Ok(engine) => {
+                                            // Add to state's modules if it's an overlay/system module
+                                            Some(Box::new(engine.as_tos_module().to_owned_wrapper()))
+                                        }
+                                        Err(e) => {
+                                            info.error = Some(format!("Script error: {}", e));
+                                            info.state = ModuleState::Error;
+                                            None
+                                        }
+                                    }
+                                } else {
+                                    info.error = Some(format!("Entry file not found: {:?}", entry_path));
+                                    info.state = ModuleState::Error;
+                                    None
+                                }
+                            } else {
+                                // Real dylibs would be handled here
+                                None
+                            }
+                        }
+                        _ => None,
+                    };
+
+                    if let Some(mut m) = module {
+                        m.on_load(state);
+                        info.module = Some(m);
+                        info.state = ModuleState::Active;
+                        tracing::info!("Module initialized: {}", name);
+                    } else if info.state != ModuleState::Error {
+                        // Mark as active even if no instance (for now)
+                        info.state = ModuleState::Active;
+                    }
                 }
             }
         }

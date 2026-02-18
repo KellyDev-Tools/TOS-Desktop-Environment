@@ -313,15 +313,31 @@ impl ViewRenderer for HubRenderer {
                         id = app.id
                     ));
                 }
+                // New: Module Data Feeds (Phase 16)
+                let mut modules_html = String::new();
+                for info in state.module_registry.modules.values() {
+                    if let Some(ref module) = info.module {
+                        if let Some(overlay) = module.render_override(crate::HierarchyLevel::CommandHub) {
+                            modules_html.push_str(&overlay);
+                        }
+                    }
+                }
+
                 html.push_str(&format!(
                     r#"<div class="activity-view">
                         <div class="activity-section">
                             <div class="section-title">ACTIVE PROCESSES</div>
                             <div class="activity-grid">
                                 {apps_html}
-                                <div class="app-tile add-tile" onclick="window.ipc.postMessage('stage_command:spawn ')">
+                                <div class="app-tile add-tile" onclick="window.ipc.postMessage('spawn_app')">
                                     <span>+ NEW PROCESS</span>
                                 </div>
+                            </div>
+                        </div>
+                        <div class="activity-section">
+                            <div class="section-title">MODULE DATA FEEDS</div>
+                            <div class="module-data-grid">
+                                {modules_html}
                             </div>
                         </div>
                         <div class="activity-section">

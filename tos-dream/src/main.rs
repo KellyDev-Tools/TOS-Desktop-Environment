@@ -128,6 +128,8 @@ fn main() -> anyhow::Result<()> {
     // Section 14: Track modifiers for Super+Backspace / Super+Alt+Backspace
     let mut modifiers = ModifiersState::empty();
 
+    let ptys_cleanup = Arc::clone(&ptys);
+
     event_loop.run(move |event, _, control_flow| {
         *control_flow = ControlFlow::Wait;
 
@@ -152,7 +154,18 @@ fn main() -> anyhow::Result<()> {
             Event::WindowEvent {
                 event: WindowEvent::CloseRequested,
                 ..
-            } => *control_flow = ControlFlow::Exit,
+            } => {
+                // Explicitly shut down all PTY handles before exiting.
+                // Then use process::exit() to avoid the destructor cascade
+                // where Rust's drop order races with WebKit2GTK's internal
+                // cleanup, causing "double free or corruption" on Linux.
+                if let Ok(mut ptys_lock) = ptys_cleanup.lock() {
+                    ptys_lock.clear(); // Drops all PtyHandles, triggering graceful shutdown
+                }
+                // Give PTY threads time to close their file descriptors
+                std::thread::sleep(std::time::Duration::from_millis(100));
+                std::process::exit(0);
+            }
             Event::WindowEvent {
                 event: WindowEvent::ModifiersChanged(m),
                 ..

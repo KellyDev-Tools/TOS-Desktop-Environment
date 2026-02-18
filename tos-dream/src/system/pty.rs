@@ -1,4 +1,5 @@
 use std::sync::mpsc::{Sender, Receiver, channel};
+use std::sync::atomic::{AtomicBool, Ordering};
 use std::thread;
 use std::time::Duration;
 use std::sync::{Arc, Mutex};
@@ -26,6 +27,15 @@ pub struct PtyHandle {
     pub cmd_tx: Sender<PtyCommand>,
     pub event_rx: Receiver<PtyEvent>,
     pub child_pid: u32,
+    shutdown: Arc<AtomicBool>,
+}
+
+impl Drop for PtyHandle {
+    fn drop(&mut self) {
+        // Signal shutdown so the reader thread exits before the fd is closed
+        self.shutdown.store(true, Ordering::SeqCst);
+        let _ = self.cmd_tx.send(PtyCommand::Close);
+    }
 }
 
 pub struct PtyParser;
@@ -108,6 +118,7 @@ impl PtyHandle {
 
         // Parent
         let child_pid = pid as u32;
+        let shutdown = Arc::new(AtomicBool::new(false));
 
         // Set non-blocking
         unsafe {
@@ -115,10 +126,16 @@ impl PtyHandle {
             libc::fcntl(master_fd, libc::F_SETFL, flags | libc::O_NONBLOCK);
         }
 
+        // Reader thread — checks the shutdown flag before every read so it
+        // exits cleanly before the writer thread closes master_fd.
         let reader_tx = event_tx.clone();
+        let reader_shutdown = Arc::clone(&shutdown);
         thread::spawn(move || {
             let mut buf = [0u8; 4096];
             loop {
+                if reader_shutdown.load(Ordering::SeqCst) {
+                    break;
+                }
                 let n = unsafe {
                     libc::read(master_fd, buf.as_mut_ptr() as *mut libc::c_void, buf.len())
                 };
@@ -126,7 +143,9 @@ impl PtyHandle {
                     let data = String::from_utf8_lossy(&buf[..n as usize]).to_string();
                     let events = PtyParser::parse_data(&data);
                     for event in events {
-                        let _ = reader_tx.send(event);
+                        if reader_tx.send(event).is_err() {
+                            return; // Receiver dropped
+                        }
                     }
                 } else if n == 0 {
                     let _ = reader_tx.send(PtyEvent::ProcessExited(0));
@@ -136,27 +155,37 @@ impl PtyHandle {
                     if errno == libc::EAGAIN || errno == libc::EWOULDBLOCK {
                         thread::sleep(Duration::from_millis(10));
                     } else {
+                        // EIO or EBADF — fd was closed or child exited
                         break;
                     }
                 }
             }
         });
 
+        // Writer thread — only this thread is allowed to close master_fd.
+        // It waits briefly after signalling shutdown to let the reader drain.
+        let writer_shutdown = Arc::clone(&shutdown);
         thread::spawn(move || {
             loop {
                 match cmd_rx.recv() {
                     Ok(PtyCommand::Write(s)) => {
+                        if writer_shutdown.load(Ordering::SeqCst) { break; }
                         let _ = unsafe { libc::write(master_fd, s.as_ptr() as *const libc::c_void, s.len()) };
                     }
                     Ok(PtyCommand::WriteLine(s)) => {
+                        if writer_shutdown.load(Ordering::SeqCst) { break; }
                         let line = format!("{}\n", s);
                         let _ = unsafe { libc::write(master_fd, line.as_ptr() as *const libc::c_void, line.len()) };
                     }
                     Ok(PtyCommand::Resize(cols, rows)) => {
+                        if writer_shutdown.load(Ordering::SeqCst) { break; }
                         let ws = libc::winsize { ws_row: rows, ws_col: cols, ws_xpixel: 0, ws_ypixel: 0 };
                         unsafe { libc::ioctl(master_fd, libc::TIOCSWINSZ, &ws); }
                     }
                     Ok(PtyCommand::Close) | Err(_) => {
+                        // Signal the reader to stop, then give it time to exit
+                        writer_shutdown.store(true, Ordering::SeqCst);
+                        thread::sleep(Duration::from_millis(50));
                         unsafe { libc::close(master_fd); }
                         break;
                     }
@@ -164,7 +193,7 @@ impl PtyHandle {
             }
         });
 
-        Some(Self { cmd_tx, event_rx, child_pid })
+        Some(Self { cmd_tx, event_rx, child_pid, shutdown })
     }
 
     pub fn write(&self, s: &str) {

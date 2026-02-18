@@ -233,6 +233,69 @@ impl IpcDispatcher {
             let sector_idx = state.viewports[state.active_viewport_index].sector_index;
             let hub_idx = state.viewports[state.active_viewport_index].hub_index;
             state.sectors[sector_idx].hubs[hub_idx].context_menu = None;
+        } else if request.starts_with("app_toggle_select:") {
+            let id_str = &request[18..];
+            let sector_idx = state.viewports[state.active_viewport_index].sector_index;
+            let hub_idx = state.viewports[state.active_viewport_index].hub_index;
+            let sector = &mut state.sectors[sector_idx];
+            let hub = &mut sector.hubs[hub_idx];
+            
+            if !hub.selected_files.remove(id_str) {
+                hub.selected_files.insert(id_str.to_string());
+            }
+
+            // Sync multi-selection with prompt for batch operations
+            if !hub.selected_files.is_empty() {
+                let mut pids = Vec::new();
+                for app_id_str in &hub.selected_files {
+                    if let Ok(uuid) = uuid::Uuid::parse_str(app_id_str) {
+                        if let Some(app) = hub.applications.iter().find(|a| a.id == uuid) {
+                            if let Some(pid) = app.pid {
+                                pids.push(pid.to_string());
+                            } else {
+                                // Fallback for dummy apps or non-started
+                                pids.push(format!("[{}]", app.title));
+                            }
+                        }
+                    }
+                }
+                
+                let current_cmd = hub.prompt.split_whitespace().next().unwrap_or("");
+                let cmd = if current_cmd.is_empty() || current_cmd == "view" { "manage" } else { current_cmd };
+                
+                hub.prompt = format!("{} {}", cmd, pids.join(" "));
+            } else {
+                hub.prompt = String::new();
+            }
+        } else if request == "app_batch_kill" {
+            let sector_idx = state.viewports[state.active_viewport_index].sector_index;
+            let hub_idx = state.viewports[state.active_viewport_index].hub_index;
+            let selected: Vec<String> = state.sectors[sector_idx].hubs[hub_idx].selected_files.iter().cloned().collect();
+            
+            for id in selected {
+                self.handle_kill_app(&mut state, &id);
+            }
+            
+            // Clear selection
+            let sector = &mut state.sectors[sector_idx];
+            let hub = &mut sector.hubs[hub_idx];
+            hub.selected_files.clear();
+            hub.prompt.clear();
+        } else if request.starts_with("app_batch_signal:") {
+            let signal = &request[17..];
+            let sector_idx = state.viewports[state.active_viewport_index].sector_index;
+            let hub_idx = state.viewports[state.active_viewport_index].hub_index;
+            let selected: Vec<String> = state.sectors[sector_idx].hubs[hub_idx].selected_files.iter().cloned().collect();
+
+            for id in selected {
+                self.handle_signal_app(&mut state, &id, signal);
+            }
+            
+            // Clear selection
+            let sector = &mut state.sectors[sector_idx];
+            let hub = &mut sector.hubs[hub_idx];
+            hub.selected_files.clear();
+            hub.prompt.clear();
         } else if request == "dir_action_copy" {
             let sector_idx = state.viewports[state.active_viewport_index].sector_index;
             let hub_idx = state.viewports[state.active_viewport_index].hub_index;

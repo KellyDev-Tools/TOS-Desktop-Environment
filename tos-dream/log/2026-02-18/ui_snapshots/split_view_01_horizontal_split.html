@@ -8,7 +8,7 @@
                     <div class="invite-btn" onclick="window.ipc.postMessage('collaboration_invite')">+</div>
                 </div>
             </div><div class="hub-tabs"><div class="hub-tab active" onclick="window.ipc.postMessage('set_mode:Command')">COMMAND</div><div class="hub-tab " onclick="window.ipc.postMessage('set_mode:Directory')">DIRECTORY</div><div class="hub-tab " onclick="window.ipc.postMessage('set_mode:Activity')">ACTIVITY</div></div><div class="hub-content"><div class="command-view">
-                    <div class="terminal-output" id="hub-term-159725f0-096b-475a-9792-0a028dfe9987">
+                    <div class="terminal-output" id="hub-term-69d08260-2798-4612-bd77-e2c1c586d484">
                         
                     </div>
                 </div></div><div class="unified-prompt">
@@ -29,8 +29,10 @@
             </div><div class="hub-tabs"><div class="hub-tab " onclick="window.ipc.postMessage('set_mode:Command')">COMMAND</div><div class="hub-tab " onclick="window.ipc.postMessage('set_mode:Directory')">DIRECTORY</div><div class="hub-tab active" onclick="window.ipc.postMessage('set_mode:Activity')">ACTIVITY</div></div><div class="hub-content"><div class="activity-view">
                         <div class="activity-section">
                             <div class="section-title">ACTIVE PROCESSES</div>
+                            
                             <div class="activity-grid">
-                                <div class="app-tile staging-item">
+                                <div class="app-tile staging-item ">
+                            <div class="file-selector" onclick="event.stopPropagation(); window.ipc.postMessage('app_toggle_select:5c93a346-2bc4-47f4-ab62-5f6829d6d393')"></div>
                             <div class="app-tile-header" onclick="window.ipc.postMessage('stage_command:focus SPECTROMETER')">
                                 <div class="app-tile-icon">🔬</div>
                                 <div class="app-tile-info">
@@ -44,10 +46,11 @@
                                 <div class="stat">MEM: <1MB</div>
                             </div>
                             <div class="app-tile-actions">
-                                <button class="tile-btn" onclick="window.ipc.postMessage('signal_app:188ce963-793e-4cc2-b226-03eb09c70d00;INT')">SIGINT</button>
-                                <button class="tile-btn danger" onclick="window.ipc.postMessage('kill_app:188ce963-793e-4cc2-b226-03eb09c70d00')">KILL</button>
+                                <button class="tile-btn" onclick="window.ipc.postMessage('signal_app:5c93a346-2bc4-47f4-ab62-5f6829d6d393;INT')">SIGINT</button>
+                                <button class="tile-btn danger" onclick="window.ipc.postMessage('kill_app:5c93a346-2bc4-47f4-ab62-5f6829d6d393')">KILL</button>
                             </div>
-                        </div><div class="app-tile staging-item">
+                        </div><div class="app-tile staging-item ">
+                            <div class="file-selector" onclick="event.stopPropagation(); window.ipc.postMessage('app_toggle_select:bc5e18c4-253a-4812-b97c-7dfca55e1814')"></div>
                             <div class="app-tile-header" onclick="window.ipc.postMessage('stage_command:focus DATAFEED')">
                                 <div class="app-tile-icon">📡</div>
                                 <div class="app-tile-info">
@@ -61,8 +64,8 @@
                                 <div class="stat">MEM: <1MB</div>
                             </div>
                             <div class="app-tile-actions">
-                                <button class="tile-btn" onclick="window.ipc.postMessage('signal_app:3ea50da4-6b0d-47a0-930b-794c7cf69fc1;INT')">SIGINT</button>
-                                <button class="tile-btn danger" onclick="window.ipc.postMessage('kill_app:3ea50da4-6b0d-47a0-930b-794c7cf69fc1')">KILL</button>
+                                <button class="tile-btn" onclick="window.ipc.postMessage('signal_app:bc5e18c4-253a-4812-b97c-7dfca55e1814;INT')">SIGINT</button>
+                                <button class="tile-btn danger" onclick="window.ipc.postMessage('kill_app:bc5e18c4-253a-4812-b97c-7dfca55e1814')">KILL</button>
                             </div>
                         </div>
                                 <div class="app-tile add-tile" onclick="window.ipc.postMessage('spawn_app')">

@@ -113,44 +113,37 @@
 
 ## 3. Activity Mode Hardcoded Data (§3.3)
 
-**Status: ❌ HARDCODED**
+**Status: ✅ IMPLEMENTED**
 
 ### 3.1 CPU/Memory Stats Are Fake
+**Status: ✅ Done**
 - **Spec (§3.3):** "Status indicators (PID, CPU/memory on hover)"
-- **Current:** `hub.rs` lines 209-210 render hardcoded stats:
-  ```html
-  <div class="stat">CPU: 2.1%</div>
-  <div class="stat">MEM: 82MB</div>
-  ```
-- **Fix needed:** Query actual process stats via `/proc/<pid>/stat` and `/proc/<pid>/status` on Linux, or use `sysinfo` crate
-
-**File:** `src/ui/render/hub.rs` lines 208-211
+- **Current:** Real stats implemented via `src/system/proc.rs`.
+- **Fix:** Confirmed `get_process_stats` uses `/proc` FS to query actual PID stats.
 
 ### 3.2 No PID on Application Struct
+**Status: ✅ Done**
 - **Spec (§3.3):** "PID, CPU/memory on hover"
-- **Current:** `Application` struct (`lib.rs` L158-163) has only `id`, `title`, `app_class`, `is_minimized`. No `pid` field.
-- **Fix needed:** Add `pub pid: Option<u32>` to `Application` struct and populate it when spawning processes
+- **Current:** `Application` struct has `pid: Option<u32>`.
+- **Fix:** Field exists and is populated during process spawning.
 
 ### 3.3 Sector Templates Hardcoded
-- **Spec (§15.1):** Templates should be loadable `.tos-template` packages  
-- **Current:** `hub.rs` lines 233-246 render hardcoded template entries:
-  ```html
-  DEV-GRID (3 HUBS // 5 APPS)
-  SCIENCE-LAB (1 HUB // 2 APPS)
-  ```
-- **Fix needed:** Read templates from `~/.local/share/tos/templates/` directory and render dynamically
-
-**File:** `src/ui/render/hub.rs` lines 232-247
+**Status: ✅ Done**
+- **Spec (§15.1):** Templates should be loadable `.tos-template` packages
+- **Current:** Dynamic template loading implemented.
+- **Fix:** Renderer calls `state.get_available_templates()` which reads from `~/.local/share/tos/templates/`.
 
 ### 3.4 No Multi-Select for Batch Actions
+**Status: ✅ Done**
 - **Spec (§3.3):** "Multi-select for batch actions (close, kill, move)"
-- **Current:** No multi-select mechanism on app tiles
-- **Fix needed:** Add checkboxes to app tiles, track selection state, render batch-action toolbar
+- **Current:** Multi-select implemented in `Activity` mode.
+- **Fix:** Added checkboxes to app tiles and `app_toggle_select` IPC handler.
 
 ### 3.5 No Integration with Prompt
+**Status: ✅ Done**
 - **Spec (§3.3):** "Selecting a tile populates the prompt with PID/window ID; contextual chips suggest relevant commands"
-- **Current:** Clicking an app tile stages `focus <title>` in the prompt. No PID population, no contextual chips.
-- **Fix needed:** Should stage the PID, and show chips like `kill <PID>`, `nice -n 10 <PID>`, `strace -p <PID>`
+- **Current:** Prompt integration implemented.
+- **Fix:** Selection updates prompt with PIDs; added batch action toolbar (KILL, SIGINT) as contextual controls.
 
 ---
 

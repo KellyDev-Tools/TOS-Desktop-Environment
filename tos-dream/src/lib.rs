@@ -1003,6 +1003,9 @@ impl TosState {
             let sector = &mut self.sectors[viewport.sector_index];
             let hub = &mut sector.hubs[viewport.hub_index];
             hub.mode = mode;
+            // Clear selection and prompt to avoid state bleeding between modes
+            hub.selected_files.clear();
+            hub.prompt.clear();
         }
     }
 

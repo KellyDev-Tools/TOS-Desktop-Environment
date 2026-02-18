@@ -363,8 +363,12 @@ impl ViewRenderer for HubRenderer {
 
                     let icon = app.icon.as_deref().unwrap_or("⚙️");
 
+                    let is_selected = hub.selected_files.contains(&app.id.to_string());
+                    let selected_class = if is_selected { "selected" } else { "" };
+
                     apps_html.push_str(&format!(
-                        r#"<div class="app-tile staging-item">
+                        r#"<div class="app-tile staging-item {selected_class}">
+                            <div class="file-selector" onclick="event.stopPropagation(); window.ipc.postMessage('app_toggle_select:{id}')"></div>
                             <div class="app-tile-header" onclick="window.ipc.postMessage('stage_command:focus {title}')">
                                 <div class="app-tile-icon">{icon}</div>
                                 <div class="app-tile-info">
@@ -388,7 +392,8 @@ impl ViewRenderer for HubRenderer {
                         pid = pid_str,
                         cpu = cpu_str,
                         mem = mem_str,
-                        id = app.id
+                        id = app.id,
+                        selected_class = selected_class
                     ));
                 }
                 // New: Module Data Feeds (Phase 16)
@@ -401,10 +406,25 @@ impl ViewRenderer for HubRenderer {
                     }
                 }
 
+                // Calculate toolbar HTML
+                let toolbar_html = if !hub.selected_files.is_empty() {
+                    format!(r#"<div class="action-toolbar">
+                        <div class="toolbar-label">{} APPS SELECTED</div>
+                        <div class="toolbar-actions">
+                            <button class="bezel-btn danger" onclick="window.ipc.postMessage('app_batch_kill')">KILL</button>
+                            <button class="bezel-btn" onclick="window.ipc.postMessage('app_batch_signal:INT')">SIGINT</button>
+                            <button class="bezel-btn" onclick="window.ipc.postMessage('dir_clear_select')">CLEAR</button>
+                        </div>
+                    </div>"#, hub.selected_files.len())
+                } else {
+                    String::new()
+                };
+
                 html.push_str(&format!(
                     r#"<div class="activity-view">
                         <div class="activity-section">
                             <div class="section-title">ACTIVE PROCESSES</div>
+                            {toolbar_html}
                             <div class="activity-grid">
                                 {apps_html}
                                 <div class="app-tile add-tile" onclick="window.ipc.postMessage('spawn_app')">
@@ -428,7 +448,9 @@ impl ViewRenderer for HubRenderer {
                             </div>
                         </div>
                     </div>"#,
+                    toolbar_html = toolbar_html,
                     apps_html = apps_html,
+                    modules_html = modules_html,
                     templates_html = {
                         let mut html = String::new();
                         for template in state.get_available_templates() {

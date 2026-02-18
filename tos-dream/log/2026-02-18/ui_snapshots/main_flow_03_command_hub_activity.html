@@ -10,8 +10,10 @@
             </div><div class="hub-tabs"><div class="hub-tab " onclick="window.ipc.postMessage('set_mode:Command')">COMMAND</div><div class="hub-tab " onclick="window.ipc.postMessage('set_mode:Directory')">DIRECTORY</div><div class="hub-tab active" onclick="window.ipc.postMessage('set_mode:Activity')">ACTIVITY</div></div><div class="hub-content"><div class="activity-view">
                         <div class="activity-section">
                             <div class="section-title">ACTIVE PROCESSES</div>
+                            
                             <div class="activity-grid">
-                                <div class="app-tile staging-item">
+                                <div class="app-tile staging-item ">
+                            <div class="file-selector" onclick="event.stopPropagation(); window.ipc.postMessage('app_toggle_select:4b0b55c4-ae45-40eb-bab0-3eaef31264d1')"></div>
                             <div class="app-tile-header" onclick="window.ipc.postMessage('stage_command:focus TERMINAL')">
                                 <div class="app-tile-icon">⌨️</div>
                                 <div class="app-tile-info">
@@ -25,8 +27,8 @@
                                 <div class="stat">MEM: <1MB</div>
                             </div>
                             <div class="app-tile-actions">
-                                <button class="tile-btn" onclick="window.ipc.postMessage('signal_app:b13c913d-b799-41e0-b198-e5450222734b;INT')">SIGINT</button>
-                                <button class="tile-btn danger" onclick="window.ipc.postMessage('kill_app:b13c913d-b799-41e0-b198-e5450222734b')">KILL</button>
+                                <button class="tile-btn" onclick="window.ipc.postMessage('signal_app:4b0b55c4-ae45-40eb-bab0-3eaef31264d1;INT')">SIGINT</button>
+                                <button class="tile-btn danger" onclick="window.ipc.postMessage('kill_app:4b0b55c4-ae45-40eb-bab0-3eaef31264d1')">KILL</button>
                             </div>
                         </div>
                                 <div class="app-tile add-tile" onclick="window.ipc.postMessage('spawn_app')">

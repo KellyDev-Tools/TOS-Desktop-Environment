@@ -111,6 +111,8 @@ impl RemoteManager {
                 active_app_index: None,
                 terminal_output: vec![format!("LINK ESTABLISHED TO {} via {:?}", node.address, conn.connection_type)],
                 confirmation_required: None,
+                current_directory: dirs::home_dir().unwrap_or_else(|| std::path::PathBuf::from("/")),
+                show_hidden_files: false,
             }],
             active_hub_index: 0,
             host: node.address.clone(),

@@ -110,6 +110,10 @@ pub struct CommandHub {
     pub active_app_index: Option<usize>,
     pub terminal_output: Vec<String>,
     pub confirmation_required: Option<String>,
+    /// Current working directory for Directory Mode (Section 3.2)
+    pub current_directory: std::path::PathBuf,
+    /// Whether to show hidden files (dotfiles) in Directory Mode
+    pub show_hidden_files: bool,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
@@ -327,6 +331,8 @@ impl TosState {
                 active_app_index: Some(0),
                 terminal_output: Vec::new(),
                 confirmation_required: None,
+                current_directory: dirs::home_dir().unwrap_or_else(|| std::path::PathBuf::from("/")),
+                show_hidden_files: false,
             }],
             active_hub_index: 0,
             host: "LOCAL".to_string(),
@@ -361,6 +367,8 @@ impl TosState {
                 active_app_index: Some(0),
                 terminal_output: Vec::new(),
                 confirmation_required: None,
+                current_directory: dirs::home_dir().unwrap_or_else(|| std::path::PathBuf::from("/")),
+                show_hidden_files: false,
             }],
             active_hub_index: 0,
             host: "LAB-SRV-01".to_string(),
@@ -391,6 +399,8 @@ impl TosState {
                 active_app_index: Some(0),
                 terminal_output: Vec::new(),
                 confirmation_required: None,
+                current_directory: dirs::home_dir().unwrap_or_else(|| std::path::PathBuf::from("/")),
+                show_hidden_files: false,
             }],
             active_hub_index: 0,
             host: "OBS-NODE-04".to_string(),

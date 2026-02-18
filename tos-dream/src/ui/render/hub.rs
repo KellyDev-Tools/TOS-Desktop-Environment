@@ -89,26 +89,109 @@ impl ViewRenderer for HubRenderer {
                 </div>"#, hub.id, output_html));
             }
             CommandHubMode::Directory => {
-                html.push_str(r#"<div class="directory-view">
-                    <div class="path-bar">/HOME/USER/SECTOR_PRIMARY</div>
-                    <div class="file-grid">
-                        <div class="file-item staging-item" onclick="window.ipc.postMessage('stage_command:ls ..')">
-                            <span class="file-icon folder"></span> ..
-                        </div>
-                        <div class="file-item staging-item" onclick="window.ipc.postMessage('stage_command:cd DOCUMENTS')">
-                            <span class="file-icon folder"></span> DOCUMENTS/
-                            <span class="file-meta">4 ITEMS // SECURE</span>
-                        </div>
-                        <div class="file-item staging-item" onclick="window.ipc.postMessage('stage_command:ls SYSTEM_CORE')">
-                            <span class="file-icon folder"></span> SYSTEM_CORE/
-                            <span class="file-meta">SYSTEM-MOUNT</span>
-                        </div>
-                        <div class="file-item staging-item" onclick="window.ipc.postMessage('stage_command:view CONFIG.TOS')">
-                            <span class="file-icon file"></span> CONFIG.TOS
-                            <span class="file-meta">2KB // TXT</span>
-                        </div>
-                    </div>
+                let cwd = &hub.current_directory;
+                let cwd_display = cwd.display().to_string().to_uppercase();
+
+                html.push_str(&format!(r#"<div class="directory-view">
+                    <div class="path-bar">{}</div>
+                    <div class="file-grid">"#, cwd_display));
+
+                // Always show parent directory entry
+                html.push_str(r#"<div class="file-item staging-item" onclick="window.ipc.postMessage('dir_navigate:..')">
+                    <span class="file-icon folder"></span> ..
                 </div>"#);
+
+                // Read actual filesystem
+                match std::fs::read_dir(cwd) {
+                    Ok(entries) => {
+                        let mut dirs: Vec<(String, std::fs::Metadata)> = Vec::new();
+                        let mut files: Vec<(String, std::fs::Metadata)> = Vec::new();
+
+                        for entry in entries.flatten() {
+                            let name = entry.file_name().to_string_lossy().to_string();
+
+                            // Skip hidden files unless enabled
+                            if !hub.show_hidden_files && name.starts_with('.') {
+                                continue;
+                            }
+
+                            if let Ok(meta) = entry.metadata() {
+                                if meta.is_dir() {
+                                    dirs.push((name, meta));
+                                } else {
+                                    files.push((name, meta));
+                                }
+                            }
+                        }
+
+                        // Sort alphabetically (case-insensitive)
+                        dirs.sort_by(|a, b| a.0.to_lowercase().cmp(&b.0.to_lowercase()));
+                        files.sort_by(|a, b| a.0.to_lowercase().cmp(&b.0.to_lowercase()));
+
+                        // Render directories first
+                        for (name, _meta) in &dirs {
+                            let display_name = name.to_uppercase();
+                            let escaped_name = name.replace('\'', "\\'");
+                            html.push_str(&format!(
+                                r#"<div class="file-item staging-item" onclick="window.ipc.postMessage('dir_navigate:{escaped}')">
+                                    <span class="file-icon folder"></span> {display}/
+                                </div>"#,
+                                escaped = escaped_name,
+                                display = display_name,
+                            ));
+                        }
+
+                        // Render files
+                        for (name, meta) in &files {
+                            let display_name = name.to_uppercase();
+                            let escaped_name = name.replace('\'', "\\'");
+                            let size = meta.len();
+                            let size_str = if size < 1024 {
+                                format!("{}B", size)
+                            } else if size < 1024 * 1024 {
+                                format!("{:.1}KB", size as f64 / 1024.0)
+                            } else {
+                                format!("{:.1}MB", size as f64 / (1024.0 * 1024.0))
+                            };
+
+                            // Determine file type from extension
+                            let ext = std::path::Path::new(&name)
+                                .extension()
+                                .map(|e| e.to_string_lossy().to_uppercase())
+                                .unwrap_or_else(|| "FILE".to_string());
+
+                            html.push_str(&format!(
+                                r#"<div class="file-item staging-item" onclick="window.ipc.postMessage('stage_command:view {escaped}')">
+                                    <span class="file-icon file"></span> {display}
+                                    <span class="file-meta">{size} // {ext}</span>
+                                </div>"#,
+                                escaped = escaped_name,
+                                display = display_name,
+                                size = size_str,
+                                ext = ext,
+                            ));
+                        }
+
+                        // Show hidden toggle
+                        let toggle_label = if hub.show_hidden_files { "HIDE HIDDEN" } else { "SHOW HIDDEN" };
+                        html.push_str(&format!(
+                            r#"<div class="file-item action-item" onclick="window.ipc.postMessage('dir_toggle_hidden')">
+                                <span class="file-icon"></span> {} FILES
+                            </div>"#,
+                            toggle_label
+                        ));
+                    }
+                    Err(e) => {
+                        html.push_str(&format!(
+                            r#"<div class="file-item error-item">
+                                <span class="file-icon"></span> ACCESS DENIED: {}
+                            </div>"#,
+                            e.to_string().to_uppercase()
+                        ));
+                    }
+                }
+
+                html.push_str("</div></div>");
             }
             CommandHubMode::Activity => {
                 let mut apps_html = String::new();

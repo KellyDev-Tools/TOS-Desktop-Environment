@@ -5,6 +5,10 @@ use tao::{
     window::WindowBuilder,
 };
 use wry::WebViewBuilder;
+#[cfg(target_os = "linux")]
+use wry::WebViewBuilderExtUnix;
+#[cfg(target_os = "linux")]
+use tao::platform::unix::WindowExtUnix;
 use tos_core::TosState;
 use tos_core::system::pty::PtyHandle;
 use tos_core::system::input::SemanticEvent;
@@ -51,8 +55,65 @@ fn main() -> anyhow::Result<()> {
         .with_inner_size(tao::dpi::LogicalSize::new(1280.0, 800.0))
         .build(&event_loop)?;
 
+    // Serve UI files via a custom "tos://" protocol.
+    // - with_html() breaks relative CSS/JS paths (no base URL).
+    // - file:// URLs crash wry's IPC handler (http::Uri doesn't support file:// scheme).
+    // - A custom protocol gives valid URIs for IPC AND resolves relative paths correctly.
+    let ui_base = concat!(env!("CARGO_MANIFEST_DIR"), "/ui");
+
+    let custom_protocol_handler = move |request: wry::http::Request<Vec<u8>>| {
+        let path = request.uri().path();
+        let path = if path.is_empty() || path == "/" { "/index.html" } else { path };
+
+        let file_path = format!("{}{}", ui_base, path);
+        let content = std::fs::read(&file_path).unwrap_or_else(|_| {
+            format!("<h1>404 Not Found</h1><p>{}</p>", file_path).into_bytes()
+        });
+
+        let mime_type = if path.ends_with(".html") {
+            "text/html"
+        } else if path.ends_with(".css") {
+            "text/css"
+        } else if path.ends_with(".js") {
+            "application/javascript"
+        } else if path.ends_with(".png") {
+            "image/png"
+        } else if path.ends_with(".svg") {
+            "image/svg+xml"
+        } else if path.ends_with(".woff2") {
+            "font/woff2"
+        } else {
+            "application/octet-stream"
+        };
+
+        wry::http::Response::builder()
+            .header("Content-Type", mime_type)
+            .body(std::borrow::Cow::Owned(content))
+            .unwrap()
+    };
+
+    // On Linux, use the GTK-specific builder to support both Wayland and X11.
+    // WebViewBuilder::new(&window) fails on Wayland because the raw window handle
+    // kind (GdkWayland) is not supported by wry. Using new_gtk() with the tao
+    // window's built-in GTK VBox container avoids this issue entirely.
+    #[cfg(target_os = "linux")]
+    let webview = {
+        let vbox = window.default_vbox().expect("tao window should have a default GTK VBox");
+        WebViewBuilder::new_gtk(vbox)
+            .with_custom_protocol("tos".into(), custom_protocol_handler)
+            .with_url("tos://localhost/index.html")
+            .with_ipc_handler({
+                let dispatcher = tos_core::system::ipc::IpcDispatcher::new(Arc::clone(&state), Arc::clone(&ptys));
+                move |request: wry::http::Request<String>| {
+                    dispatcher.handle_request(request.body());
+                }
+            })
+            .build()?
+    };
+    #[cfg(not(target_os = "linux"))]
     let webview = WebViewBuilder::new(&window)
-        .with_html(include_str!("../ui/index.html"))
+        .with_custom_protocol("tos".into(), custom_protocol_handler)
+        .with_url("tos://localhost/index.html")
         .with_ipc_handler({
             let dispatcher = tos_core::system::ipc::IpcDispatcher::new(Arc::clone(&state), Arc::clone(&ptys));
             move |request: wry::http::Request<String>| {

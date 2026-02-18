@@ -89,6 +89,32 @@ impl IpcDispatcher {
         } else if request.starts_with("play_audio:") {
             let event_str = &request[11..];
             self.handle_play_audio(&mut state, event_str);
+        } else if request == "collaboration_invite" {
+            // Default invite action
+            self.handle_invite_participant(&mut state, "Viewer");
+        } else if request.starts_with("dir_navigate:") {
+            let target = &request[13..];
+            let sector_idx = state.viewports[state.active_viewport_index].sector_index;
+            let hub_idx = state.viewports[state.active_viewport_index].hub_index;
+            let hub = &mut state.sectors[sector_idx].hubs[hub_idx];
+
+            if target == ".." {
+                // Go up one directory
+                if let Some(parent) = hub.current_directory.parent() {
+                    hub.current_directory = parent.to_path_buf();
+                }
+            } else {
+                // Navigate into subdirectory
+                let new_path = hub.current_directory.join(target);
+                if new_path.is_dir() {
+                    hub.current_directory = new_path;
+                }
+            }
+        } else if request == "dir_toggle_hidden" {
+            let sector_idx = state.viewports[state.active_viewport_index].sector_index;
+            let hub_idx = state.viewports[state.active_viewport_index].hub_index;
+            let hub = &mut state.sectors[sector_idx].hubs[hub_idx];
+            hub.show_hidden_files = !hub.show_hidden_files;
         } else {
             // Legacy/Direct zoom fallback
             match request {
@@ -303,6 +329,8 @@ impl IpcDispatcher {
             active_app_index: None,
             terminal_output: Vec::new(),
             confirmation_required: None,
+            current_directory: dirs::home_dir().unwrap_or_else(|| std::path::PathBuf::from("/")),
+            show_hidden_files: false,
         });
         
         let hub_idx = sector.hubs.len() - 1;

@@ -217,6 +217,8 @@ impl TacticalReset {
             active_app_index: None,
             terminal_output: vec![],
             confirmation_required: None,
+            current_directory: dirs::home_dir().unwrap_or_else(|| std::path::PathBuf::from("/")),
+            show_hidden_files: false,
         }];
         sector.active_hub_index = 0;
 

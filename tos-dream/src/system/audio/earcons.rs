@@ -260,24 +260,37 @@ pub struct EarconPlayer {
     active_sounds: Vec<EarconEvent>,
     /// Maximum concurrent sounds
     max_concurrent: usize,
-    /// Whether earcons are enabled globally
+    /// Whether spatial audio is enabled
     enabled: bool,
     /// Whether spatial audio is enabled
     spatial_audio_enabled: bool,
+    /// Audio output stream handle
+    #[serde(skip)]
+    stream_handle: Option<rodio::OutputStreamHandle>,
+    /// Background thread for audio (to keep stream alive)
+    #[serde(skip)]
+    _stream: Option<rodio::OutputStream>,
 }
 
 impl EarconPlayer {
     /// Create a new earcon player with default settings
     pub fn new() -> Self {
+        let (stream, handle) = match rodio::OutputStream::try_default() {
+            Ok((s, h)) => (Some(s), Some(h)),
+            Err(_) => (None, None),
+        };
+
         let mut player = Self {
             master_volume: 1.0,
             category_volumes: HashMap::new(),
             event_configs: HashMap::new(),
             last_played: HashMap::new(),
             active_sounds: Vec::new(),
-            max_concurrent: 4,
+            max_concurrent: 8,
             enabled: true,
-            spatial_audio_enabled: false,
+            spatial_audio_enabled: true,
+            stream_handle: handle,
+            _stream: stream,
         };
         
         // Initialize default category volumes
@@ -332,10 +345,40 @@ impl EarconPlayer {
         
         // Record playback
         self.last_played.insert(event, Instant::now());
-        self.active_sounds.push(event);
         
-        // In a real implementation, this would trigger actual audio playback
-        // For now, we just log and track
+        // Phase 16: Actual audio playback via rodio
+        if let Some(handle) = &self.stream_handle {
+            if let Ok(sink) = rodio::Sink::try_new(handle) {
+                sink.set_volume(volume);
+                
+                match event {
+                    EarconEvent::ZoomIn => {
+                        sink.append(rodio::source::SineWave::new(880.0).take_duration(Duration::from_millis(50)));
+                        sink.append(rodio::source::SineWave::new(1760.0).take_duration(Duration::from_millis(80)));
+                    }
+                    EarconEvent::ZoomOut => {
+                        sink.append(rodio::source::SineWave::new(1760.0).take_duration(Duration::from_millis(50)));
+                        sink.append(rodio::source::SineWave::new(880.0).take_duration(Duration::from_millis(80)));
+                    }
+                    EarconEvent::CommandAccepted | EarconEvent::CommandCompleted => {
+                        sink.append(rodio::source::SineWave::new(440.0).take_duration(Duration::from_millis(100)));
+                    }
+                    EarconEvent::CommandError | EarconEvent::DangerousCommandWarning => {
+                        sink.append(rodio::source::SineWave::new(110.0).take_duration(Duration::from_millis(200)));
+                        sink.append(rodio::source::SineWave::new(110.0).take_duration(Duration::from_millis(200)));
+                    }
+                    EarconEvent::TacticalAlert => {
+                        sink.append(rodio::source::SineWave::new(220.0).take_duration(Duration::from_millis(500)));
+                    }
+                    _ => {
+                        // Default blip
+                        sink.append(rodio::source::SineWave::new(660.0).take_duration(Duration::from_millis(30)));
+                    }
+                }
+                sink.detach();
+            }
+        }
+
         tracing::debug!(
             "Playing earcon: {:?} (category: {:?}, volume: {:.2}, pattern: {})",
             event,
@@ -343,9 +386,6 @@ impl EarconPlayer {
             volume,
             event.sound_pattern()
         );
-        
-        // Simulate sound completion (in real impl, this would be a callback)
-        // For now, we keep it simple
     }
     
     /// Calculate the final volume for an event considering all factors

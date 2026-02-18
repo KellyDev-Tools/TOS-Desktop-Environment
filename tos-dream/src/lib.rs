@@ -596,6 +596,7 @@ impl TosState {
     }
 
     pub fn tactical_reset(&mut self) {
+        self.earcon_player.tactical_alert();
         self.current_level = HierarchyLevel::GlobalOverview;
         for viewport in &mut self.viewports {
             viewport.current_level = HierarchyLevel::GlobalOverview;
@@ -761,6 +762,7 @@ impl TosState {
     }
 
     pub fn zoom_in(&mut self) {
+        self.earcon_player.zoom_in();
         let viewport = &mut self.viewports[self.active_viewport_index];
         match viewport.current_level {
             HierarchyLevel::GlobalOverview => {
@@ -789,6 +791,7 @@ impl TosState {
     }
 
     pub fn zoom_out(&mut self) {
+        self.earcon_player.zoom_out();
         let viewport = &mut self.viewports[self.active_viewport_index];
         match viewport.current_level {
             HierarchyLevel::GlobalOverview => {}
@@ -832,6 +835,7 @@ impl TosState {
     }
 
     pub fn toggle_mode(&mut self, mode: CommandHubMode) {
+        self.earcon_player.play(crate::system::audio::earcons::EarconEvent::ModeSwitch);
         let viewport = &self.viewports[self.active_viewport_index];
         if viewport.current_level == HierarchyLevel::CommandHub {
             let sector = &mut self.sectors[viewport.sector_index];

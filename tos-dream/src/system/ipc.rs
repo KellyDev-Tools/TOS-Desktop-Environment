@@ -252,6 +252,12 @@ impl IpcDispatcher {
             let sector_idx = state.viewports[state.active_viewport_index].sector_index;
             let hub_idx = state.viewports[state.active_viewport_index].hub_index;
             state.sectors[sector_idx].hubs[hub_idx].context_menu = None;
+        } else if request == "dir_clear_select" {
+            let sector_idx = state.viewports[state.active_viewport_index].sector_index;
+            let hub_idx = state.viewports[state.active_viewport_index].hub_index;
+            let hub = &mut state.sectors[sector_idx].hubs[hub_idx];
+            hub.selected_files.clear();
+            hub.context_menu = None;
         } else if request.starts_with("app_toggle_select:") {
             let id_str = &request[18..];
             let sector_idx = state.viewports[state.active_viewport_index].sector_index;

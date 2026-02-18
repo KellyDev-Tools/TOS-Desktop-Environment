@@ -423,7 +423,8 @@ pub struct TemplateInfo {
 impl TosState {
     pub fn get_available_templates(&self) -> Vec<TemplateInfo> {
         let mut templates = Vec::new();
-        let template_dir = format!("{}/.local/share/tos/templates", env!("HOME"));
+        let home = std::env::var("HOME").unwrap_or_else(|_| env!("HOME").to_string());
+        let template_dir = format!("{}/.local/share/tos/templates", home);
         
         if let Ok(entries) = std::fs::read_dir(template_dir) {
             for entry in entries.flatten() {
@@ -533,10 +534,22 @@ impl TosState {
         self.cloud_manager = Some(saas::CloudResourceManager::new(saas::CloudConfig::default()));
     }
 
+    /// Create a fresh TosState, bypassing any saved state.
+    /// This is useful for tests that need guaranteed clean state.
+    pub fn new_fresh() -> Self {
+        Self::new_impl()
+    }
+
     pub fn new() -> Self {
+        // Try to load saved state first
         if let Some(state) = Self::load() {
             return state;
         }
+        Self::new_impl()
+    }
+
+    /// Internal implementation - always creates new state without loading
+    fn new_impl() -> Self {
 
         // Initialize module registries
         let mut module_registry = ModuleRegistry::new();

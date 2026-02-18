@@ -13,7 +13,7 @@
                             
                             <div class="activity-grid">
                                 <div class="app-tile staging-item ">
-                            <div class="file-selector" onclick="event.stopPropagation(); window.ipc.postMessage('app_toggle_select:416e7ae3-1804-4829-b0be-b0d14587396f')"></div>
+                            <div class="file-selector" onclick="event.stopPropagation(); window.ipc.postMessage('app_toggle_select:b632119e-5be0-4a92-9254-f8c67239fb1f')"></div>
                             <div class="app-tile-header" onclick="window.ipc.postMessage('stage_command:focus TERMINAL')">
                                 <div class="app-tile-icon">⌨️</div>
                                 <div class="app-tile-info">
@@ -27,8 +27,8 @@
                                 <div class="stat">MEM: <1MB</div>
                             </div>
                             <div class="app-tile-actions">
-                                <button class="tile-btn" onclick="window.ipc.postMessage('signal_app:416e7ae3-1804-4829-b0be-b0d14587396f;INT')">SIGINT</button>
-                                <button class="tile-btn danger" onclick="window.ipc.postMessage('kill_app:416e7ae3-1804-4829-b0be-b0d14587396f')">KILL</button>
+                                <button class="tile-btn" onclick="window.ipc.postMessage('signal_app:b632119e-5be0-4a92-9254-f8c67239fb1f;INT')">SIGINT</button>
+                                <button class="tile-btn danger" onclick="window.ipc.postMessage('kill_app:b632119e-5be0-4a92-9254-f8c67239fb1f')">KILL</button>
                             </div>
                         </div>
                                 <div class="app-tile add-tile" onclick="window.ipc.postMessage('spawn_app')">
@@ -45,13 +45,7 @@
                         <div class="activity-section">
                             <div class="section-title">SECTOR TEMPLATES</div>
                             <div class="template-registry">
-                                <div class="template-item" onclick="window.ipc.postMessage('load_template:DEV-GRID')">
-                                    <div class="template-name">DEV-GRID</div>
-                                    <div class="template-meta">3 HUBS // 3 APPS</div>
-                                </div><div class="template-item" onclick="window.ipc.postMessage('load_template:SCIENCE-LAB')">
-                                    <div class="template-name">SCIENCE-LAB</div>
-                                    <div class="template-meta">1 HUBS // 2 APPS</div>
-                                </div>
+                                <div class="template-item empty">NO TEMPLATES FOUND</div>
                                 <div class="template-item action-item" onclick="window.ipc.postMessage('save_template:Current-Sector')">
                                     <div class="template-name">+ SAVE CURRENT AS TEMPLATE</div>
                                 </div>

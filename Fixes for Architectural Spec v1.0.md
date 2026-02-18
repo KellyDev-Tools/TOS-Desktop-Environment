@@ -449,12 +449,18 @@
 ### P1 — High (Major spec deviation)
 | # | Issue | Spec Section | File(s) |
 |---|-------|-------------|---------|
-| 5 | Directory Mode lacks multi-select | §3.2 | `hub.rs`, `lib.rs` |
-| 6 | Directory Mode lacks action toolbar | §3.2 | `hub.rs` |
-| 7 | Directory Mode lacks context menu | §3.2 | `hub.rs` |
-| 8 | Path bar not breadcrumb-style | §3.2 | `hub.rs` |
+| 5 | ~~Directory Mode lacks multi-select~~ ✅ | §3.2 | `hub.rs`, `lib.rs` |
+| 6 | ~~Directory Mode lacks action toolbar~~ ✅ | §3.2 | `hub.rs` |
+| 7 | ~~Directory Mode lacks context menu~~ ✅ | §3.2 | `hub.rs` |
+| 8 | ~~Path bar not breadcrumb-style~~ ✅ | §3.2 | `hub.rs` |
 | 9 | ~~SIGTERM not sent on reset~~ ✅ | §14 | `reset.rs` |
-| 10 | Sector templates hardcoded | §15 | `hub.rs` |
+| 10 | ~~Sector templates hardcoded~~ ✅ | §15 | `hub.rs` |
+
+**P1 Verification (2026-02-18):** All P1 items verified with comprehensive tests:
+- 47 unit, component, and integration tests in `tests/directory_mode_and_templates.rs`
+- Tests cover: multi-select, action toolbar, context menu, breadcrumb navigation, template loading
+- Test framework uses `TosState::new_fresh()` for guaranteed clean state in tests
+- Note: 2 template tests require `--test-threads=1` due to HOME env var isolation issues
 
 ### P2 — Medium (Missing integration)
 | # | Issue | Spec Section | File(s) |
@@ -464,7 +470,7 @@
 | 13 | ~~Inspector permissions/uptime static~~ ✅ | §4 | `inspector.rs` |
 | 14 | Audio playback is stub | §18 | `audio.rs`, `earcons.rs` |
 | 15 | Remote sectors have no network I/O | §7 | `remote.rs` |
-| 16 | Bezel sliders have no effect | §4 | `app.rs` |
+| 16 | ~~Bezel sliders have no effect~~ ✅ | §4 | `app.rs` |
 | 17 | ~~"MOCK" button exposed to user~~ ✅ | — | `global.rs` |
 
 ### P3 — Low (Future roadmap items)

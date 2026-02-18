@@ -101,13 +101,32 @@ impl IpcDispatcher {
             if target == ".." {
                 // Go up one directory
                 if let Some(parent) = hub.current_directory.parent() {
-                    hub.current_directory = parent.to_path_buf();
+                    let new_path = parent.to_path_buf();
+                    hub.current_directory = new_path.clone();
+                    
+                    // Sync with shell
+                    let hub_id = hub.id;
+                    if let Ok(ptys) = self.ptys.lock() {
+                        if let Some(pty) = ptys.get(&hub_id) {
+                            let cd_cmd = format!("cd {}\n", new_path.to_string_lossy());
+                            pty.write(&cd_cmd);
+                        }
+                    }
                 }
             } else {
                 // Navigate into subdirectory
                 let new_path = hub.current_directory.join(target);
                 if new_path.is_dir() {
-                    hub.current_directory = new_path;
+                    hub.current_directory = new_path.clone();
+
+                    // Sync with shell
+                    let hub_id = hub.id;
+                    if let Ok(ptys) = self.ptys.lock() {
+                        if let Some(pty) = ptys.get(&hub_id) {
+                            let cd_cmd = format!("cd {}\n", new_path.to_string_lossy());
+                            pty.write(&cd_cmd);
+                        }
+                    }
                 }
             }
         } else if request == "dir_toggle_hidden" {

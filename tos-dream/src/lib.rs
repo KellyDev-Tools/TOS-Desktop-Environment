@@ -160,6 +160,9 @@ pub struct Application {
     pub title: String,
     pub app_class: String,
     pub is_minimized: bool,
+    pub pid: Option<u32>,
+    pub icon: Option<String>,
+    pub is_dummy: bool, // Set true for sector default apps that aren't real OS processes
 }
 
 #[derive(Serialize, Deserialize)]
@@ -324,9 +327,12 @@ impl TosState {
                 prompt: String::new(),
                 applications: vec![Application {
                     id: uuid::Uuid::new_v4(),
-                    title: "Main Terminal".to_string(),
-                    app_class: "tos.terminal".to_string(),
+                    title: "Terminal".to_string(),
+                    app_class: "Shell".to_string(),
                     is_minimized: false,
+                    pid: None,
+                    icon: Some("⌨️".to_string()),
+                    is_dummy: true,
                 }],
                 active_app_index: Some(0),
                 terminal_output: Vec::new(),
@@ -353,15 +359,21 @@ impl TosState {
                 applications: vec![
                     Application {
                         id: uuid::Uuid::new_v4(),
-                        title: "Sensor Array".to_string(),
-                        app_class: "labs.sensors".to_string(),
+                        title: "Spectrometer".to_string(),
+                        app_class: "Science".to_string(),
                         is_minimized: false,
+                        pid: None,
+                        icon: Some("🔬".to_string()),
+                        is_dummy: true,
                     },
                     Application {
                         id: uuid::Uuid::new_v4(),
-                        title: "Stellar Cartography".to_string(),
-                        app_class: "labs.astro".to_string(),
+                        title: "DataFeed".to_string(),
+                        app_class: "Telemetry".to_string(),
                         is_minimized: false,
+                        pid: None,
+                        icon: Some("📡".to_string()),
+                        is_dummy: true,
                     }
                 ],
                 active_app_index: Some(0),
@@ -395,6 +407,9 @@ impl TosState {
                     title: "Remote Desktop".to_string(),
                     app_class: "tos.remote_desktop".to_string(),
                     is_minimized: false,
+                    pid: None,
+                    icon: Some("📡".to_string()),
+                    is_dummy: true,
                 }],
                 active_app_index: Some(0),
                 terminal_output: Vec::new(),
@@ -706,6 +721,18 @@ impl TosState {
                 self.current_level = HierarchyLevel::DetailInspector;
             }
         }
+    }
+
+    pub fn get_system_time(&self) -> String {
+        chrono::Local::now().format("%H:%M").to_string()
+    }
+
+    pub fn get_stardate(&self) -> String {
+        let now = chrono::Local::now();
+        let year = now.format("%y").to_string();
+        let day = now.format("%j").to_string();
+        let time = now.format("%H%M").to_string();
+        format!("{}-{} // {}-{}", year, day, year, time)
     }
 
     /// Process shell output and handle OSC sequences

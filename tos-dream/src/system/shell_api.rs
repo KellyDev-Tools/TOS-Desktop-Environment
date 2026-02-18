@@ -759,8 +759,10 @@ impl ShellApi {
                 }
             }
             OscSequence::Cwd(path) => {
-                // Could update state with current directory
-                tracing::debug!("Shell CWD: {}", path);
+                let viewport = &state.viewports[state.active_viewport_index];
+                let sector = &mut state.sectors[viewport.sector_index];
+                let hub = &mut sector.hubs[viewport.hub_index];
+                hub.current_directory = std::path::PathBuf::from(path);
             }
             OscSequence::Env { key, value } => {
                 // Update environment

@@ -196,18 +196,37 @@ impl ViewRenderer for HubRenderer {
             CommandHubMode::Activity => {
                 let mut apps_html = String::new();
                 for app in &hub.applications {
+                    let mut cpu_str = "CPU: ---".to_string();
+                    let mut mem_str = "MEM: ---".to_string();
+                    let mut pid_str = "PID: ---".to_string();
+
+                    if let Some(pid) = app.pid {
+                        pid_str = format!("PID: {}", pid);
+                        if let Ok(stats) = crate::system::proc::get_process_stats(pid) {
+                            cpu_str = format!("CPU: {:.1}%", stats.cpu_usage);
+                            mem_str = format!("MEM: {}MB", stats.memory_bytes / 1024 / 1024);
+                        }
+                    } else if app.is_dummy {
+                        cpu_str = "CPU: 0.0%".to_string();
+                        mem_str = "MEM: <1MB".to_string();
+                        pid_str = "PID: [TOS]".to_string();
+                    }
+
+                    let icon = app.icon.as_deref().unwrap_or("⚙️");
+
                     apps_html.push_str(&format!(
                         r#"<div class="app-tile staging-item">
                             <div class="app-tile-header" onclick="window.ipc.postMessage('stage_command:focus {title}')">
-                                <div class="app-tile-icon"></div>
+                                <div class="app-tile-icon">{icon}</div>
                                 <div class="app-tile-info">
                                     <div class="app-title">{title}</div>
                                     <div class="app-class">{class}</div>
+                                    <div class="app-pid" style="font-size: 0.7em; color: var(--tos-gold); opacity: 0.7;">{pid}</div>
                                 </div>
                             </div>
                             <div class="app-tile-stats">
-                                <div class="stat">CPU: 2.1%</div>
-                                <div class="stat">MEM: 82MB</div>
+                                <div class="stat">{cpu}</div>
+                                <div class="stat">{mem}</div>
                             </div>
                             <div class="app-tile-actions">
                                 <button class="tile-btn danger" onclick="window.ipc.postMessage('kill_app:{id}')">KILL</button>
@@ -215,6 +234,10 @@ impl ViewRenderer for HubRenderer {
                         </div>"#,
                         title = app.title.to_uppercase(),
                         class = app.app_class.to_uppercase(),
+                        icon = icon,
+                        pid = pid_str,
+                        cpu = cpu_str,
+                        mem = mem_str,
                         id = app.id
                     ));
                 }

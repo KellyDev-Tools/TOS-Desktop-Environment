@@ -50,10 +50,10 @@ fn render_global_overview_svg(svg: &mut String, state: &TosState) {
     // Title
     svg.push_str(r##"<text x="100" y="80" fill="url(#headerGrad)" font-size="48" font-weight="800">TOS COMMAND CENTER</text>"##);
     
-    // Telemetry Bar (Mock)
+    // Telemetry Bar
     svg.push_str(r##"<rect x="950" y="45" width="230" height="50" rx="15" fill="rgba(255,255,255,0.05)" stroke="rgba(255,255,255,0.1)" />"##);
     svg.push_str(r##"<text x="970" y="70" fill="#ff9900" font-size="10">STARDATE</text>"##);
-    svg.push_str(r##"<text x="970" y="85" fill="white" font-size="14" font-weight="700">02-33 // 02-1478</text>"##);
+    svg.push_str(&format!(r##"<text x="970" y="85" fill="white" font-size="14" font-weight="700">{}</text>"##, state.get_stardate()));
 
     // Sectors
     let mut x = 100;

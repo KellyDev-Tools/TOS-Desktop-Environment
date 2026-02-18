@@ -22,6 +22,7 @@ pub mod security;
 pub mod remote;
 pub mod collaboration;
 pub mod audio;
+pub mod proc;
 
 // Phase 15: Auditory Interface - Earcons and Themes
 pub use audio::earcons;

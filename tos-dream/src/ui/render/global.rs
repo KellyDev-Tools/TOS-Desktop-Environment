@@ -30,10 +30,10 @@ impl ViewRenderer for GlobalRenderer {
         </div>"##);
 
         // 3. Telemetry Bar
-        html.push_str(r#"<div class="telemetry-bar">
+        html.push_str(&format!(r#"<div class="telemetry-bar">
             <div class="telemetry-item">
                 <span class="label">System Time</span>
-                <span class="value">10:39</span>
+                <span class="value">{}</span>
             </div>
             <div class="telemetry-item">
                 <span class="label">Ambience</span>
@@ -44,9 +44,9 @@ impl ViewRenderer for GlobalRenderer {
             </div>
             <div class="telemetry-item">
                 <span class="label">Stardate</span>
-                <span class="value">02-33 // 02-1478</span>
+                <span class="value">{}</span>
             </div>
-        </div>"#);
+        </div>"#, state.get_system_time(), state.get_stardate()));
 
         // 4. Global Grid
         html.push_str(&format!(r#"<div class="global-grid mode-{:?}">"#, mode));

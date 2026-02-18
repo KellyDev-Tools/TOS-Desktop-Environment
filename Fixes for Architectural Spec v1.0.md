@@ -28,28 +28,23 @@
 
 ---
 
-## 1. Fix Applied: Directory Mode Filesystem (§3.2)
+## 1. Fixes Applied
 
-**Status: ✅ FIXED (this session)**
+### 1.1 Directory Mode Filesystem (§3.2)
+**Status: ✅ FIXED**
+- **Changes:** Added `current_directory` and `show_hidden_files` to `CommandHub`. Replaced hardcoded HTML with `std::fs::read_dir()`.
 
-### What was wrong
-Directory Mode rendered entirely hardcoded HTML with fake entries (`DOCUMENTS/`, `SYSTEM_CORE/`, `CONFIG.TOS`) instead of reading the actual filesystem.
+### 1.2 Shell API Integration (§13)
+**Status: ✅ FIXED (P0 Item 1)**
+- **Changes:** Wired `OscSequence::Cwd` to update `hub.current_directory`. Wired `dir_navigate` to send `cd` commands to the PTY.
 
-### What was fixed
-| Component | File | Change |
-|-----------|------|--------|
-| `CommandHub` struct | `src/lib.rs` | Added `current_directory: PathBuf` and `show_hidden_files: bool` |
-| Hub renderer | `src/ui/render/hub.rs` | Replaced hardcoded HTML with `std::fs::read_dir()` — dirs first, then files, sorted, with real size/ext metadata |
-| IPC handlers | `src/system/ipc.rs` | Added `dir_navigate:<path>` and `dir_toggle_hidden` message handlers |
-| All `CommandHub` constructors | `lib.rs`, `ipc.rs`, `remote.rs`, `reset.rs` | Initialize new fields with `dirs::home_dir()` |
+### 1.3 Activity Mode Process Tracking (§3.3)
+**Status: ✅ FIXED (P0 Item 3 & 4)**
+- **Changes:** Added `pid`, `icon`, and `is_dummy` fields to `Application` struct. Implemented `/proc` reader in `system/proc.rs` for real memory usage.
 
-### Spec requirements now met
-- ✅ Grid view of files and folders
-- ✅ Respects hidden-file conventions (dotfiles filtered)
-- ✅ "Show Hidden" toggle
-- ✅ Navigation into subdirectories and `..` to go up
-- ✅ Path bar showing current directory
-- ✅ Error handling for permission denied
+### 1.4 Global Telemetry (§10)
+**Status: ✅ FIXED (P2 Item 11)**
+- **Changes:** Implemented `get_system_time()` and `get_stardate()` in `TosState` using `chrono`. Updated Global Overview and SVG Engine with dynamic values.
 
 ---
 

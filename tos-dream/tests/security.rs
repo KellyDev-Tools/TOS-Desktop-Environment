@@ -6,7 +6,6 @@ use tos_core::system::security::{
     ConfirmationSession
 };
 use uuid::Uuid;
-use std::time::Duration;
 
 #[test]
 fn test_security_config_default() {
@@ -268,7 +267,7 @@ fn test_audit_log_limit() {
     let sector_id = Uuid::new_v4();
     
     // Add more events than limit
-    for i in 0..10 {
+    for _i in 0..10 {
         manager.start_confirmation("rm -rf /", "user", sector_id);
     }
     

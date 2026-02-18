@@ -31,10 +31,10 @@ fn test_parse_osc_cwd() {
     let mut parser = OscParser::new();
     let input = "\x1b]9003;/home/user/projects\x07";
     
-    let (sequences, remaining) = parser.parse(input);
+    let (sequences, _remaining) = parser.parse(input);
     
     assert_eq!(sequences.len(), 1);
-    assert!(remaining.is_empty());
+    assert!(_remaining.is_empty());
     
     if let OscSequence::Cwd(path) = &sequences[0] {
         assert_eq!(path, "/home/user/projects");
@@ -48,10 +48,10 @@ fn test_parse_osc_suggestions() {
     let mut parser = OscParser::new();
     let input = "\x1b]9000;ls;ls -la;List all files;files|cd;cd;Change directory;nav\x07";
     
-    let (sequences, remaining) = parser.parse(input);
+    let (sequences, _remaining) = parser.parse(input);
     
     assert_eq!(sequences.len(), 1);
-    assert!(remaining.is_empty());
+    assert!(_remaining.is_empty());
     
     if let OscSequence::Suggestions(suggestions) = &sequences[0] {
         assert_eq!(suggestions.len(), 2);
@@ -72,7 +72,7 @@ fn test_parse_osc_directory() {
     let mut parser = OscParser::new();
     let input = "\x1b]9001;/home/user;/home;3;1;0\nfile1.txt;f;1024;-rw-r--r--;2024-01-15\ndocuments;d;4096;drwxr-xr-x;2024-01-14\n.hidden;f;512;-rw-r--r--;2024-01-13\x07";
     
-    let (sequences, remaining) = parser.parse(input);
+    let (sequences, _remaining) = parser.parse(input);
     
     assert_eq!(sequences.len(), 1);
     
@@ -102,7 +102,7 @@ fn test_parse_osc_command_result() {
     let mut parser = OscParser::new();
     let input = "\x1b]9002;ls -la;0;total 128\x07";
     
-    let (sequences, remaining) = parser.parse(input);
+    let (sequences, _remaining) = parser.parse(input);
     
     assert_eq!(sequences.len(), 1);
     
@@ -120,7 +120,7 @@ fn test_parse_osc_env() {
     let mut parser = OscParser::new();
     let input = "\x1b]9004;PATH=/usr/bin:/bin\x07";
     
-    let (sequences, remaining) = parser.parse(input);
+    let (sequences, _remaining) = parser.parse(input);
     
     assert_eq!(sequences.len(), 1);
     
@@ -137,7 +137,7 @@ fn test_parse_osc_dangerous_command() {
     let mut parser = OscParser::new();
     let input = "\x1b]9005;critical;rm -rf /\x07";
     
-    let (sequences, remaining) = parser.parse(input);
+    let (sequences, _remaining) = parser.parse(input);
     
     assert_eq!(sequences.len(), 1);
     
@@ -154,7 +154,7 @@ fn test_parse_osc_shell_ready() {
     let mut parser = OscParser::new();
     let input = "\x1b]9006;fish;3.6.0\x07";
     
-    let (sequences, remaining) = parser.parse(input);
+    let (sequences, _remaining) = parser.parse(input);
     
     assert_eq!(sequences.len(), 1);
     
@@ -171,7 +171,7 @@ fn test_parse_osc_request_completion() {
     let mut parser = OscParser::new();
     let input = "\x1b]9007;git com;5\x07";
     
-    let (sequences, remaining) = parser.parse(input);
+    let (sequences, _remaining) = parser.parse(input);
     
     assert_eq!(sequences.len(), 1);
     
@@ -188,7 +188,7 @@ fn test_parse_multiple_sequences() {
     let mut parser = OscParser::new();
     let input = "\x1b]9003;/home/user\x07\x1b]9004;EDITOR=vim\x07";
     
-    let (sequences, remaining) = parser.parse(input);
+    let (sequences, _remaining) = parser.parse(input);
     
     assert_eq!(sequences.len(), 2);
     assert!(matches!(sequences[0], OscSequence::Cwd(_)));
@@ -200,10 +200,10 @@ fn test_parse_with_remaining_text() {
     let mut parser = OscParser::new();
     let input = "Hello \x1b]9003;/home/user\x07 World";
     
-    let (sequences, remaining) = parser.parse(input);
+    let (sequences, _remaining) = parser.parse(input);
     
     assert_eq!(sequences.len(), 1);
-    assert_eq!(remaining, "Hello  World");
+    assert_eq!(_remaining, "Hello  World");
 }
 
 #[test]
@@ -211,11 +211,11 @@ fn test_parse_unknown_osc() {
     let mut parser = OscParser::new();
     let input = "\x1b]9999;unknown data\x07";
     
-    let (sequences, remaining) = parser.parse(input);
+    let (sequences, _remaining) = parser.parse(input);
     
     // Unknown OSC codes should be ignored
     assert!(sequences.is_empty());
-    assert!(remaining.is_empty());
+    assert!(_remaining.is_empty());
 }
 
 #[test]
@@ -441,7 +441,7 @@ fn test_osc_with_st_terminator() {
     // ST (String Terminator) is ESC \
     let input = "\x1b]9003;/home/user\x1b\\";
     
-    let (sequences, remaining) = parser.parse(input);
+    let (sequences, _remaining) = parser.parse(input);
     
     assert_eq!(sequences.len(), 1);
     if let OscSequence::Cwd(path) = &sequences[0] {
@@ -456,11 +456,11 @@ fn test_empty_osc() {
     let mut parser = OscParser::new();
     let input = "\x1b]\x07";
     
-    let (sequences, remaining) = parser.parse(input);
+    let (sequences, _remaining) = parser.parse(input);
     
     // Empty OSC should be ignored
     assert!(sequences.is_empty());
-    assert!(remaining.is_empty());
+    assert!(_remaining.is_empty());
 }
 
 #[test]

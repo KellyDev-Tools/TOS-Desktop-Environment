@@ -77,6 +77,8 @@ fn test_tos_native_sync_packet() {
         participants: vec![],
         portal_active: false,
         portal_url: None,
+        description: "Remote monitoring station.".to_string(),
+        icon: "🛰️".to_string(),
     };
     
     let packet = SyncPacket::SectorState(remote_sector.clone());

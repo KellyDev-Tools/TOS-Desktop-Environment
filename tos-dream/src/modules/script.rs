@@ -28,7 +28,7 @@ pub struct ScriptEngine {
     /// Module manifest
     manifest: ModuleManifest,
     /// Script state (variables, functions)
-    state: HashMap<String, serde_json::Value>,
+    _state: HashMap<String, serde_json::Value>,
 }
 
 impl ScriptEngine {
@@ -38,7 +38,7 @@ impl ScriptEngine {
             language,
             source,
             manifest,
-            state: HashMap::new(),
+            _state: HashMap::new(),
         }
     }
     

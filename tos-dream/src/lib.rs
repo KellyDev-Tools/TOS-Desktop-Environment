@@ -321,8 +321,18 @@ impl TosModule for EngineeringModule {
 }
 
 impl TosState {
+    fn get_config_dir() -> std::path::PathBuf {
+        if std::env::var("CARGO_MANIFEST_DIR").is_ok() {
+            // Use a per-process temporary directory for tests to avoid cross-test contamination
+            let pid = std::process::id();
+            std::env::temp_dir().join(format!("tos-dream-test-{}", pid))
+        } else {
+            dirs::config_dir().map(|p| p.join("tos-dream")).unwrap_or_else(|| std::path::PathBuf::from(".tos_config"))
+        }
+    }
+
     pub fn save(&self) {
-        let config_dir = dirs::config_dir().map(|p| p.join("tos-dream")).unwrap_or_else(|| std::path::PathBuf::from(".tos_config"));
+        let config_dir = Self::get_config_dir();
         let _ = std::fs::create_dir_all(&config_dir);
         let session_path = config_dir.join("session.json");
         if let Ok(json) = serde_json::to_string_pretty(self) {
@@ -331,7 +341,7 @@ impl TosState {
     }
 
     pub fn load() -> Option<Self> {
-        let config_dir = dirs::config_dir().map(|p| p.join("tos-dream")).unwrap_or_else(|| std::path::PathBuf::from(".tos_config"));
+        let config_dir = Self::get_config_dir();
         let session_path = config_dir.join("session.json");
         if let Ok(json) = std::fs::read_to_string(session_path) {
             if let Ok(mut state) = serde_json::from_str::<Self>(&json) {
@@ -362,7 +372,7 @@ impl TosState {
         self.minimap = MiniMap::new();
         self.tactical_reset = TacticalReset::new();
         self.voice = VoiceCommandProcessor::new();
-        self.shell_api = ShellApi::new(ShellApiConfig::default());
+        self.shell_api = ShellApi::new();
         self.shell_registry = system::shell::ShellRegistry::new();
         self.security = SecurityManager::new();
         self.remote_manager = RemoteManager::new();
@@ -370,6 +380,14 @@ impl TosState {
         self.audio_manager = AudioManager::new();
         self.performance_monitor = PerformanceMonitor::new();
         self.earcon_player = EarconPlayer::new();
+        self.sound_theme_manager = ThemeManager::new();
+        self.advanced_input = AdvancedInputManager::new();
+        
+        // Phase 16 Managers
+        self.container_manager = None;
+        self.sector_container_manager = None;
+        self.sandbox_manager = None;
+        self.cloud_manager = Some(saas::CloudResourceManager::new(saas::CloudConfig::default()));
     }
 
     pub fn new() -> Self {
@@ -1253,7 +1271,7 @@ mod tests {
         let html = state.render_current_view();
         assert!(html.contains("NODE INSPECTOR"));
         assert!(html.contains("UPTIME"));
-        assert!(html.contains("tos.terminal")); // Check class name
+        assert!(html.contains("Shell")); // Check class name
 
         // Buffer Inspector
         state.zoom_in();

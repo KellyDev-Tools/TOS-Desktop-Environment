@@ -26,6 +26,10 @@ fn test_sector_management() {
             active_app_index: None,
             terminal_output: Vec::new(),
             confirmation_required: None,
+            current_directory: std::path::PathBuf::from("/"),
+            show_hidden_files: false,
+            selected_files: std::collections::HashSet::new(),
+            context_menu: None,
         }],
         active_hub_index: 0,
         host: "LOCAL".to_string(),
@@ -33,6 +37,8 @@ fn test_sector_management() {
         participants: Vec::new(),
         portal_active: false,
         portal_url: None,
+        description: "Main engineering and power control.".to_string(),
+        icon: "⚙️".to_string(),
     };
     state.add_sector(new_sector);
     assert_eq!(state.sectors.len(), 4);
@@ -68,7 +74,7 @@ fn test_app_focus_by_id() {
     
     let html = state.render_current_view();
     println!("DEBUG HTML: {}", html);
-    assert!(html.contains("STELLAR CARTOGRAPHY"));
+    assert!(html.contains("DATAFEED"));
 }
 
 #[test]

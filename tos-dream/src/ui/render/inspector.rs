@@ -28,6 +28,7 @@ impl ViewRenderer for DetailInspectorRenderer {
                     <div class="stat-row"><span>CLASS:</span> <span>{class}</span></div>
                     <div class="stat-row"><span>SECTOR:</span> <span>{sector}</span></div>
                     <div class="stat-row"><span>MEMORY:</span> <span>{mem}</span></div>
+                    <div class="stat-row"><span>UPTIME:</span> <span>02:14:05</span></div>
                 </div>
                 <div class="inspector-footer" onclick="window.ipc.postMessage('zoom_out')">BACK</div>
             </div>"#,

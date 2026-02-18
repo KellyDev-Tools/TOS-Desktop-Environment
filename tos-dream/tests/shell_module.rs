@@ -1,5 +1,3 @@
-use std::sync::{Arc, Mutex};
-use std::collections::HashMap;
 use tos_core::TosState;
 use tos_core::system::shell::ShellProvider;
 

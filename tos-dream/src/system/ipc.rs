@@ -435,6 +435,8 @@ impl IpcDispatcher {
             confirmation_required: None,
             current_directory: dirs::home_dir().unwrap_or_else(|| std::path::PathBuf::from("/")),
             show_hidden_files: false,
+            selected_files: std::collections::HashSet::new(),
+            context_menu: None,
         });
         
         let hub_idx = sector.hubs.len() - 1;

@@ -61,7 +61,7 @@ pub struct ImageConfig {
 /// Image manager handles image operations
 #[derive(Debug)]
 pub struct ImageManager {
-    runtime: Box<dyn ContainerRuntime>,
+    _runtime: Box<dyn ContainerRuntime>,
     cache: std::sync::Mutex<HashMap<String, ImageInfo>>,
 }
 
@@ -69,7 +69,7 @@ impl ImageManager {
     /// Create a new image manager
     pub fn new(runtime: Box<dyn ContainerRuntime>) -> Self {
         Self {
-            runtime,
+            _runtime: runtime,
             cache: std::sync::Mutex::new(HashMap::new()),
         }
     }

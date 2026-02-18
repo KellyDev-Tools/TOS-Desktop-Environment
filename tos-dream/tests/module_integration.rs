@@ -12,7 +12,7 @@ use tos_core::modules::{
     AppModel, AppModelRegistry, SectorTypeImpl, SectorTypeRegistry,
     ScriptEngine, ScriptLanguage, ScriptEngineFactory, generate_module_template,
 };
-use tos_core::{ApplicationModel, SectorType, TosModule};
+use tos_core::{ApplicationModel, SectorType};
 use std::collections::HashMap;
 use std::io::Write;
 use std::path::PathBuf;
@@ -22,9 +22,6 @@ use std::path::PathBuf;
 fn test_module_system_initialization() {
     let state = TosState::new();
     
-    // Verify module registries are initialized
-    assert!(state.module_count() >= 0);
-    assert!(!state.list_modules().is_empty() || state.list_modules().is_empty()); // Either is fine
     
     // Verify built-in app models are registered
     assert!(state.app_model_registry.contains("tos.terminal"));

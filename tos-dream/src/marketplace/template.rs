@@ -504,21 +504,7 @@ pub trait TemplateImporter {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use std::io::Read;
     
-    fn create_test_request() -> ExportRequest {
-        ExportRequest {
-            sector_id: "test-sector".to_string(),
-            name: "test-template".to_string(),
-            version: "1.0.0".to_string(),
-            output_path: PathBuf::from("/tmp/test-template.tos-template"),
-            description: "Test template".to_string(),
-            author: "Test Author".to_string(),
-            license: "MIT".to_string(),
-            include_state: false,
-            tags: vec!["test".to_string()],
-        }
-    }
     
     #[test]
     fn test_template_metadata() {

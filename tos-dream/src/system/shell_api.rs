@@ -392,9 +392,16 @@ impl OscParser {
                     output_preview: result.2,
                 })
             }
-            9003 => {
+            9003 | 7 => {
                 // CWD update
-                Some(OscSequence::Cwd(pt))
+                let mut path = pt;
+                if path.starts_with("file://") {
+                    // Strip file://hostname/ prefix
+                    if let Some(slash_idx) = path[7..].find('/') {
+                        path = path[7+slash_idx..].to_string();
+                    }
+                }
+                Some(OscSequence::Cwd(path))
             }
             9004 => {
                 // Environment variable
@@ -912,10 +919,10 @@ mod tests {
         let mut parser = OscParser::new();
         let input = "\x1b]9000;ls;ls -la;List all files;files|cd;cd;Change directory;nav\x07";
         
-        let (sequences, remaining) = parser.parse(input);
+        let (sequences, _remaining) = parser.parse(input);
         
         assert_eq!(sequences.len(), 1);
-        assert!(remaining.is_empty());
+        assert!(_remaining.is_empty());
         
         if let OscSequence::Suggestions(suggestions) = &sequences[0] {
             assert_eq!(suggestions.len(), 2);
@@ -931,7 +938,7 @@ mod tests {
         let mut parser = OscParser::new();
         let input = "\x1b]9003;/home/user/projects\x07";
         
-        let (sequences, remaining) = parser.parse(input);
+        let (sequences, _remaining) = parser.parse(input);
         
         assert_eq!(sequences.len(), 1);
         assert!(matches!(sequences[0], OscSequence::Cwd(ref path) if path == "/home/user/projects"));
@@ -942,7 +949,7 @@ mod tests {
         let mut parser = OscParser::new();
         let input = "\x1b]9002;ls -la;0;total 128\x07";
         
-        let (sequences, remaining) = parser.parse(input);
+        let (sequences, _remaining) = parser.parse(input);
         
         assert_eq!(sequences.len(), 1);
         if let OscSequence::CommandResult { command, exit_status, output_preview } = &sequences[0] {

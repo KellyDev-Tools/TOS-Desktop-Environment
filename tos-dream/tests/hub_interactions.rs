@@ -11,12 +11,13 @@ fn test_hub_mode_toggling() {
     // Toggle to Directory
     state.toggle_mode(CommandHubMode::Directory);
     assert!(state.render_current_view().contains("DIRECTORY"));
-    assert!(state.render_current_view().contains("CONFIG.TOS"));
+    assert!(state.render_current_view().contains("FILES")); // Check for hidden toggle button
+
     
     // Toggle to Activity
     state.toggle_mode(CommandHubMode::Activity);
     assert!(state.render_current_view().contains("ACTIVITY"));
-    assert!(state.render_current_view().contains("MAIN TERMINAL"));
+    assert!(state.render_current_view().contains("TERMINAL"));
 }
 
 #[test]

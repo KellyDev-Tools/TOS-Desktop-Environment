@@ -129,9 +129,7 @@ mod tests {
         manager.start_session(tenant_id.clone(), session_id.clone());
         manager.end_session(&session_id).unwrap();
 
-        let stats = manager.get_tenant_stats(&tenant_id);
-        // We can't guarantee exact duration in a fast test, but it should be recorded
-        assert!(stats.total_session_seconds >= 0);
+        let _stats = manager.get_tenant_stats(&tenant_id);
     }
 
     #[test]

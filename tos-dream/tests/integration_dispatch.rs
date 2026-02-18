@@ -181,6 +181,10 @@ fn test_complex_multi_viewport_state_integration() {
                 title: "Tactical Map".to_string(),
                 app_class: "tos.map".to_string(),
                 is_minimized: false,
+                icon: Some("🗺️".to_string()),
+                is_dummy: true,
+                pid: None,
+                settings: std::collections::HashMap::new(),
             }
         );
         s.zoom_in(); // Hub -> App

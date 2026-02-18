@@ -20,6 +20,8 @@ pub enum ModuleType {
     SectorType,
     #[serde(rename = "hybrid")]
     Hybrid,
+    #[serde(rename = "system-module")]
+    SystemModule,
 }
 
 impl Default for ModuleType {

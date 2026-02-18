@@ -1,0 +1,173 @@
+{
+  "current_level": "CommandHub",
+  "sectors": [
+    {
+      "id": "c3c55ce8-6025-4a44-bf45-b040ff2f9880",
+      "name": "Alpha Sector",
+      "color": "#ff9900",
+      "hubs": [
+        {
+          "id": "baec70a8-3657-416d-aa3a-83943ebbd34f",
+          "mode": "Command",
+          "prompt": "",
+          "applications": [
+            {
+              "id": "547d821c-c41e-41ee-8aaa-adebc173b605",
+              "title": "Terminal",
+              "app_class": "Shell",
+              "is_minimized": false,
+              "icon": "⌨️",
+              "is_dummy": true,
+              "settings": {}
+            }
+          ],
+          "active_app_index": 0,
+          "terminal_output": [],
+          "confirmation_required": "This will recursively delete the entire filesystem! (Risk: Critical)",
+          "current_directory": "/home/tim",
+          "show_hidden_files": false,
+          "selected_files": [],
+          "context_menu": null
+        }
+      ],
+      "active_hub_index": 0,
+      "host": "LOCAL",
+      "connection_type": "Local",
+      "participants": [
+        {
+          "name": "Host",
+          "color": "#ffcc00",
+          "role": "Co-owner"
+        }
+      ],
+      "portal_active": false,
+      "portal_url": null,
+      "description": "Primary coordination and terminal access.",
+      "icon": "⌨️"
+    },
+    {
+      "id": "6a3b6ad2-4add-437c-816c-7cb4ebbbf73b",
+      "name": "Science Labs",
+      "color": "#9999cc",
+      "hubs": [
+        {
+          "id": "0f8024a7-2eef-4e9c-bab2-dbbca674c283",
+          "mode": "Activity",
+          "prompt": "",
+          "applications": [
+            {
+              "id": "c023ec05-01a0-48f6-b89d-87db5dbbce8a",
+              "title": "Spectrometer",
+              "app_class": "Science",
+              "is_minimized": false,
+              "icon": "🔬",
+              "is_dummy": true,
+              "settings": {}
+            },
+            {
+              "id": "c0da5f20-aa73-4eaa-8776-f02d2258d5d2",
+              "title": "DataFeed",
+              "app_class": "Telemetry",
+              "is_minimized": false,
+              "icon": "📡",
+              "is_dummy": true,
+              "settings": {}
+            }
+          ],
+          "active_app_index": 0,
+          "terminal_output": [],
+          "confirmation_required": null,
+          "current_directory": "/home/tim",
+          "show_hidden_files": false,
+          "selected_files": [],
+          "context_menu": null
+        }
+      ],
+      "active_hub_index": 0,
+      "host": "LAB-SRV-01",
+      "connection_type": "TOSNative",
+      "participants": [
+        {
+          "name": "Commander",
+          "color": "#ffcc00",
+          "role": "Co-owner"
+        },
+        {
+          "name": "Ensign Kim",
+          "color": "#99ccff",
+          "role": "Operator"
+        },
+        {
+          "name": "Seven",
+          "color": "#cc99ff",
+          "role": "Viewer"
+        }
+      ],
+      "portal_active": false,
+      "portal_url": null,
+      "description": "Data analysis and sensor array telemetry.",
+      "icon": "🔬"
+    },
+    {
+      "id": "65353003-72f7-489f-85e3-3db3b6413383",
+      "name": "Engineering Hub",
+      "color": "#cc6666",
+      "hubs": [
+        {
+          "id": "59b9a0e2-6d1f-4f17-909b-937ce34136ab",
+          "mode": "Command",
+          "prompt": "",
+          "applications": [
+            {
+              "id": "b45cea3d-2eea-4ff6-be30-c40310057a74",
+              "title": "Core Monitor",
+              "app_class": "Engineering",
+              "is_minimized": false,
+              "icon": "📡",
+              "is_dummy": true,
+              "settings": {}
+            }
+          ],
+          "active_app_index": 0,
+          "terminal_output": [],
+          "confirmation_required": null,
+          "current_directory": "/home/tim",
+          "show_hidden_files": false,
+          "selected_files": [],
+          "context_menu": null
+        }
+      ],
+      "active_hub_index": 0,
+      "host": "OBS-NODE-04",
+      "connection_type": "HTTP",
+      "participants": [],
+      "portal_active": false,
+      "portal_url": null,
+      "description": "Core systems and power distribution telemetry.",
+      "icon": "⚙️"
+    }
+  ],
+  "viewports": [
+    {
+      "id": "6790c4aa-f06a-4b7b-bc96-d403a0574e4f",
+      "sector_index": 0,
+      "hub_index": 0,
+      "current_level": "CommandHub",
+      "active_app_index": null,
+      "bezel_expanded": false
+    }
+  ],
+  "comms_messages": [
+    {
+      "from": "STARFLEET",
+      "body": "Encryption protocols active. Welcome, Commander.",
+      "timestamp": "08:01"
+    }
+  ],
+  "active_viewport_index": 0,
+  "escape_count": 0,
+  "fps": 60.0,
+  "performance_alert": false,
+  "portal_security_bypass": false,
+  "approval_requested_sector": null
+}

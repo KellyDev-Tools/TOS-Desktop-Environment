@@ -1,21 +1,19 @@
 //! Phase 16: Container Strategy & Cloud Resource Architecture Integration Tests
 
-use tos_core::system::input::SemanticEvent;
-use tos_core::{TosState, HierarchyLevel, CommandHubMode};
+use tos_core::TosState;
 use tos_core::containers::{
     ContainerManager, ContainerBackend, ContainerConfig, 
-    ContainerStatus, ResourceLimits, SecurityPolicy
+    ContainerStatus, SecurityPolicy
 };
 use tos_core::saas::{
-    CloudResourceManager, CloudConfig, TenantConfig, TenantStatus, 
-    BillingManager, PersistenceManager, SecretsManager
+    CloudResourceManager, CloudConfig,
+    PersistenceManager, SecretsManager
 };
-use std::collections::HashMap;
 use tempfile::tempdir;
 
 #[tokio::test]
 async fn test_tos_state_saas_integration() {
-    let mut state = TosState::new();
+    let state = TosState::new();
     
     // Verify cloud manager is initialized
     assert!(state.cloud_manager.is_some());
@@ -59,7 +57,7 @@ async fn test_container_manager_lifecycle() {
 #[tokio::test]
 async fn test_saas_billing_and_persistence_integration() {
     let cloud_config = CloudConfig::default();
-    let mut cloud = CloudResourceManager::new(cloud_config);
+    let cloud = CloudResourceManager::new(cloud_config);
     
     let tenant = cloud.tenant_manager().create_tenant(
         "Usage Tenant".to_string(),
@@ -72,8 +70,7 @@ async fn test_saas_billing_and_persistence_integration() {
     cloud.billing().start_session(tenant.id.clone(), session_id.clone());
     cloud.billing().end_session(&session_id).unwrap();
     
-    let stats = cloud.billing().get_tenant_stats(&tenant.id);
-    assert!(stats.total_session_seconds >= 0);
+    let _stats = cloud.billing().get_tenant_stats(&tenant.id);
 
     // Test Persistence
     let temp = tempdir().unwrap();

@@ -9,16 +9,16 @@ use opentelemetry_sdk::propagation::TraceContextPropagator;
 /// Observability manager handles tracing initialization
 #[derive(Debug)]
 pub struct TracingManager {
-    service_name: String,
-    collector_endpoint: String,
+    _service_name: String,
+    _collector_endpoint: String,
 }
 
 impl TracingManager {
     /// Create a new tracing manager
     pub fn new(service_name: impl Into<String>, collector_endpoint: impl Into<String>) -> Self {
         Self {
-            service_name: service_name.into(),
-            collector_endpoint: collector_endpoint.into(),
+            _service_name: service_name.into(),
+            _collector_endpoint: collector_endpoint.into(),
         }
     }
 

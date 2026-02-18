@@ -574,7 +574,7 @@ mod tests {
         assert_eq!(event, SemanticEvent::ZoomIn);
         assert!(confidence > 0.8);
         
-        let (event, confidence) = processor.parse_command("go back");
+        let (event, _confidence) = processor.parse_command("go back");
         assert_eq!(event, SemanticEvent::ZoomOut);
         
         let (event, _) = processor.parse_command("show overview");

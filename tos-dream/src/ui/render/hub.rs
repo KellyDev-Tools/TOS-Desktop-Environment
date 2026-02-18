@@ -90,12 +90,12 @@ impl ViewRenderer for HubRenderer {
             }
             CommandHubMode::Directory => {
                 let cwd = &hub.current_directory;
-                let cwd_display = cwd.display().to_string().to_uppercase();
+                let _cwd_display = cwd.display().to_string().to_uppercase();
 
                 html.push_str(r#"<div class="directory-view">
                     <div class="path-bar breadcrumbs">"#);
                 
-                let path_str = hub.current_directory.to_string_lossy();
+                let _path_str = hub.current_directory.to_string_lossy();
                 let mut current_path = std::path::PathBuf::new();
                 
                 // Add Root /
@@ -234,6 +234,22 @@ impl ViewRenderer for HubRenderer {
                 }
 
                         html.push_str("</div>");
+
+                        // Render action toolbar if multiple files are selected
+                        if !hub.selected_files.is_empty() {
+                            let count = hub.selected_files.len();
+                            html.push_str(&format!(
+                                r#"<div class="action-toolbar">
+                                    <div class="toolbar-label">{} FILES SELECTED</div>
+                                    <div class="toolbar-actions">
+                                        <button class="bezel-btn" onclick="window.ipc.postMessage('dir_batch_copy')">REPLICATE</button>
+                                        <button class="bezel-btn danger" onclick="window.ipc.postMessage('dir_batch_delete')">PURGE</button>
+                                        <button class="bezel-btn" onclick="window.ipc.postMessage('dir_clear_select')">CLEAR</button>
+                                    </div>
+                                </div>"#,
+                                count
+                            ));
+                        }
 
                         // Render context menu if active
                         if let Some(menu) = &hub.context_menu {

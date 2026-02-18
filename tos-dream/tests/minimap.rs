@@ -133,6 +133,7 @@ fn test_minimap_render_levels() {
     
     // Level 1: Global Overview
     let html = minimap.render(&state);
+    println!("DEBUG MINIMAP HTML: {}", html);
     assert!(html.contains("TACTICAL MINI-MAP"));
     assert!(html.contains("minimap-sectors-grid"));
     assert!(html.contains("Alpha Sector"));
@@ -148,12 +149,12 @@ fn test_minimap_render_levels() {
     state.zoom_in();
     let html = minimap.render(&state);
     assert!(html.contains("minimap-app-focus"));
-    assert!(html.contains("Main Terminal"));
+    assert!(html.contains("Terminal"));
 }
 
 #[test]
 fn test_minimap_active_vs_passive_rendering() {
-    let mut state = TosState::new();
+    let state = TosState::new();
     let mut minimap = MiniMap::new();
     
     // Passive state
@@ -254,7 +255,7 @@ fn test_minimap_with_multiple_sectors() {
     // Should show all three default sectors
     assert!(html.contains("Alpha Sector"));
     assert!(html.contains("Science Labs"));
-    assert!(html.contains("Observation Hub"));
+    assert!(html.contains("Engineering Hub"));
 }
 
 #[test]

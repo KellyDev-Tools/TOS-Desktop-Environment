@@ -6,7 +6,6 @@ use tos_core::{TosState, HierarchyLevel, CommandHubMode};
 use tos_core::containers::sandbox::{SandboxManager, SandboxLevel};
 use tos_core::containers::ContainerManager;
 use std::fs;
-use std::path::Path;
 use std::sync::Arc;
 use chrono::Local;
 

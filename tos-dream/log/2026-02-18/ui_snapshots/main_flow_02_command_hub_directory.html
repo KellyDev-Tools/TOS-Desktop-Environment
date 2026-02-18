@@ -1,0 +1,40 @@
+<div class="command-hub mode-directory render-Full"><div class="hub-header">
+                <div class="hub-info">
+                    <span class="hub-sector-name">ALPHA SECTOR</span>
+                    <span class="hub-host">LINK: LOCAL</span>
+                </div>
+                <div class="hub-participants">
+                    <div class="participant-avatar" style="background-color: #ffcc00" title="Host (Co-owner)"></div>
+                    <div class="invite-btn" onclick="window.ipc.postMessage('collaboration_invite')">+</div>
+                </div>
+            </div><div class="hub-tabs"><div class="hub-tab " onclick="window.ipc.postMessage('set_mode:Command')">COMMAND</div><div class="hub-tab active" onclick="window.ipc.postMessage('set_mode:Directory')">DIRECTORY</div><div class="hub-tab " onclick="window.ipc.postMessage('set_mode:Activity')">ACTIVITY</div></div><div class="hub-content"><div class="directory-view">
+                    <div class="path-bar breadcrumbs"><span class="breadcrumb" onclick="window.ipc.postMessage('dir_navigate:/')">ROOT</span><span class="path-sep">/</span><span class="breadcrumb" onclick="window.ipc.postMessage('dir_navigate:home')">HOME</span><span class="path-sep">/</span><span class="breadcrumb" onclick="window.ipc.postMessage('dir_navigate:home/tim')">TIM</span></div><div class="directory-actions">
+                    <button class="bezel-btn" onclick="window.ipc.postMessage('stage_command:mkdir ')">NEW FOLDER</button>
+                    <button class="bezel-btn" onclick="window.ipc.postMessage('dir_navigate:.')">REFRESH</button>
+                    <button class="bezel-btn danger" onclick="window.ipc.postMessage('stage_command:rm ')">DELETE</button>
+                </div><div class="file-grid"><div class="file-item staging-item" onclick="window.ipc.postMessage('dir_navigate:..')">
+                    <span class="file-icon folder"></span> ..
+                </div><div class="file-item staging-item " 
+                                    onclick="window.ipc.postMessage('dir_navigate:snap')"
+                                    oncontextmenu="event.preventDefault(); window.ipc.postMessage('dir_context:snap;' + event.clientX + ';' + event.clientY)">
+                                    <div class="file-selector" onclick="event.stopPropagation(); window.ipc.postMessage('dir_toggle_select:snap')"></div>
+                                    <span class="file-icon folder"></span> SNAP/
+                                </div><div class="file-item staging-item " 
+                                    onclick="window.ipc.postMessage('dir_navigate:TOS-Desktop-Environment')"
+                                    oncontextmenu="event.preventDefault(); window.ipc.postMessage('dir_context:TOS-Desktop-Environment;' + event.clientX + ';' + event.clientY)">
+                                    <div class="file-selector" onclick="event.stopPropagation(); window.ipc.postMessage('dir_toggle_select:TOS-Desktop-Environment')"></div>
+                                    <span class="file-icon folder"></span> TOS-DESKTOP-ENVIRONMENT/
+                                </div><div class="file-item staging-item " 
+                                    onclick="window.ipc.postMessage('dir_navigate:TOS-Desktop-Environment.worktrees')"
+                                    oncontextmenu="event.preventDefault(); window.ipc.postMessage('dir_context:TOS-Desktop-Environment.worktrees;' + event.clientX + ';' + event.clientY)">
+                                    <div class="file-selector" onclick="event.stopPropagation(); window.ipc.postMessage('dir_toggle_select:TOS-Desktop-Environment.worktrees')"></div>
+                                    <span class="file-icon folder"></span> TOS-DESKTOP-ENVIRONMENT.WORKTREES/
+                                </div><div class="file-item action-item" onclick="window.ipc.postMessage('dir_toggle_hidden')">
+                                <span class="file-icon"></span> SHOW HIDDEN FILES
+                            </div></div></div></div><div class="unified-prompt">
+                <div class="voice-trigger" onclick="window.ipc.postMessage('semantic_event:VoiceCommandStart')">
+                    <span class="mic-icon"></span>
+                </div>
+                <div class="prompt-prefix">TOS@ALPHA SECTOR ></div>
+                <input type="text" id="terminal-input" value="" onkeydown="handlePromptKey(event)" autofocus>
+            </div></div>

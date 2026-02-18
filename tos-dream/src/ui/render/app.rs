@@ -123,7 +123,7 @@ impl ViewRenderer for AppRenderer {
             sensitivity = app.settings.get("sensitivity").cloned().unwrap_or(40.0),
             app_content = if app.app_class.contains("Shell") || app.app_class.contains("terminal") {
                 let lines = hub.terminal_output.join("\n");
-                format!(r#"<pre class="terminal-content">{}</pre>"#, lines)
+                format!(r#"<pre class="terminal-content">{}</pre>{}"#, lines, module_content)
             } else {
                 format!(
                     r#"<div class="app-mock-content">

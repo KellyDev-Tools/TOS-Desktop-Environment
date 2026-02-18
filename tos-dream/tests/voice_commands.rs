@@ -2,7 +2,7 @@
 
 use tos_core::system::voice::{
     VoiceCommandProcessor, VoiceConfig, VoiceState, ConfidenceLevel, 
-    VoiceCommand, VoiceError
+    VoiceError
 };
 use tos_core::system::input::SemanticEvent;
 

@@ -17,13 +17,13 @@ fn test_complex_navigation_flow() {
     state.toggle_mode(CommandHubMode::Activity);
     let html = state.render_current_view();
     assert!(html.contains("ACTIVITY"));
-    assert!(html.contains("SENSOR ARRAY"));
+    assert!(html.contains("SPECTROMETER"));
     
     // 4. Focus App
     state.zoom_in();
     assert_eq!(state.current_level, HierarchyLevel::ApplicationFocus);
     let html = state.render_current_view();
-    assert!(html.contains("APPLICATION DATA FEED: SENSOR ARRAY"));
+    assert!(html.contains("DATA FEED // SPECTROMETER"));
     
     // 5. Tactical Reset (Zoom all the way out)
     state.zoom_out(); // Focus -> Hub
@@ -90,13 +90,13 @@ fn test_command_staging_flow() {
     state.zoom_in(); // Hub
     
     // Simulator staging a command
-    state.stage_command("focus Stellar Cartography".to_string());
+    state.stage_command("focus SPECTROMETER".to_string());
     
     let sector = &state.sectors[state.viewports[0].sector_index];
     let hub = &sector.hubs[state.viewports[0].hub_index];
-    assert_eq!(hub.prompt, "focus Stellar Cartography");
+    assert_eq!(hub.prompt, "focus SPECTROMETER");
     
     // Verify it renders in the prompt
     let html = state.render_current_view();
-    assert!(html.contains("focus Stellar Cartography"));
+    assert!(html.contains("focus SPECTROMETER"));
 }

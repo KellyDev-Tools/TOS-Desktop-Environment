@@ -168,7 +168,7 @@ impl ModuleRegistry {
                                     match super::script::ScriptEngineFactory::from_file(&info.manifest, &entry_path) {
                                         Ok(engine) => {
                                             // Add to state's modules if it's an overlay/system module
-                                            Some(Box::new(engine.as_tos_module().to_owned_wrapper()))
+                                            Some(Box::new(engine.to_owned_wrapper()))
                                         }
                                         Err(e) => {
                                             info.error = Some(format!("Script error: {}", e));
@@ -469,6 +469,6 @@ mod tests {
         
         // Should have paths set (at least attempted)
         // Note: Paths may not exist in test environment, but they should be set
-        assert!(registry.loader.search_paths().len() >= 0);
+        assert!(!registry.loader.search_paths().is_empty());
     }
 }

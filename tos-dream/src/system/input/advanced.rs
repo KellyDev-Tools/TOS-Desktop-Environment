@@ -411,7 +411,7 @@ pub struct AdvancedInputManager {
     /// Whether advanced input is enabled
     enabled: bool,
     /// Gesture detection state
-    gesture_state: GestureDetectionState,
+    _gesture_state: GestureDetectionState,
     /// Eye tracking dwell state
     dwell_state: DwellState,
 }
@@ -429,11 +429,11 @@ struct DeviceState {
 #[derive(Debug, Default)]
 struct GestureDetectionState {
     /// Currently detected gestures
-    active_gestures: Vec<(HandGesture, Instant)>,
+    _active_gestures: Vec<(HandGesture, Instant)>,
     /// Pinch start position (for drag detection)
-    pinch_start: Option<(f32, f32, f32)>,
+    _pinch_start: Option<(f32, f32, f32)>,
     /// Two-hand spread start distance
-    spread_start_distance: Option<f32>,
+    _spread_start_distance: Option<f32>,
 }
 
 /// Dwell clicking state
@@ -458,7 +458,7 @@ impl AdvancedInputManager {
             device_priorities: HashMap::new(),
             last_active_device: None,
             enabled: true,
-            gesture_state: GestureDetectionState::default(),
+            _gesture_state: GestureDetectionState::default(),
             dwell_state: DwellState::default(),
         };
         

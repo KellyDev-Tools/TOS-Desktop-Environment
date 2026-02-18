@@ -282,7 +282,7 @@ fn test_template_handler() {
 /// Test template validation
 #[test]
 fn test_template_validation() {
-    let handler = TemplateHandler::new();
+    let _handler = TemplateHandler::new();
     
     let valid_template = Template {
         metadata: TemplateMetadata {
@@ -313,7 +313,7 @@ fn test_template_validation() {
     // Should validate successfully
     // Note: validate_template is private, tested through export/import
     
-    let invalid_template = Template {
+    let _invalid_template = Template {
         metadata: TemplateMetadata {
             name: "".to_string(), // Invalid: empty name
             version: "1.0.0".to_string(),
@@ -334,9 +334,9 @@ fn test_template_validation() {
     
     // Export should fail validation
     let temp_dir = tempfile::tempdir().unwrap();
-    let handler = TemplateHandler::with_cache_dir(temp_dir.path().to_path_buf());
+    let _handler = TemplateHandler::with_cache_dir(temp_dir.path().to_path_buf());
     
-    let request = ExportRequest {
+    let _request = ExportRequest {
         sector_id: "test".to_string(),
         name: "".to_string(), // Invalid
         version: "1.0.0".to_string(),

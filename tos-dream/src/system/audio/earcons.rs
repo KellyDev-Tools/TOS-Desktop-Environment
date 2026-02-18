@@ -265,9 +265,11 @@ pub struct EarconPlayer {
     /// Whether spatial audio is enabled
     spatial_audio_enabled: bool,
     /// Audio output stream handle
+    #[cfg(feature = "accessibility")]
     #[serde(skip)]
     stream_handle: Option<rodio::OutputStreamHandle>,
     /// Background thread for audio (to keep stream alive)
+    #[cfg(feature = "accessibility")]
     #[serde(skip)]
     _stream: Option<rodio::OutputStream>,
 }
@@ -275,6 +277,7 @@ pub struct EarconPlayer {
 impl EarconPlayer {
     /// Create a new earcon player with default settings
     pub fn new() -> Self {
+        #[cfg(feature = "accessibility")]
         let (stream, handle) = match rodio::OutputStream::try_default() {
             Ok((s, h)) => (Some(s), Some(h)),
             Err(_) => (None, None),
@@ -289,7 +292,9 @@ impl EarconPlayer {
             max_concurrent: 8,
             enabled: true,
             spatial_audio_enabled: true,
+            #[cfg(feature = "accessibility")]
             stream_handle: handle,
+            #[cfg(feature = "accessibility")]
             _stream: stream,
         };
         
@@ -347,6 +352,7 @@ impl EarconPlayer {
         self.last_played.insert(event, Instant::now());
         
         // Phase 16: Actual audio playback via rodio
+        #[cfg(feature = "accessibility")]
         if let Some(handle) = &self.stream_handle {
             if let Ok(sink) = rodio::Sink::try_new(handle) {
                 sink.set_volume(volume);

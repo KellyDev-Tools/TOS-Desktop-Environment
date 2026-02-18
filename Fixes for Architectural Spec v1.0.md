@@ -176,21 +176,22 @@
 
 ## 5. Inspector Views Hardcoded Data (§4)
 
-**Status: ❌ HARDCODED**
+**Status: ✅ IMPLEMENTED**
 
 ### 5.1 Permissions Value Is Static
-- **Current:** `inspector.rs` line 19: `<span>0755</span>`
-- **Fix needed:** Query actual file/process permissions
+**Status: ✅ Done**
+- **Current:** Dynamic permissions displayed.
+- **Fix:** `DetailInspectorRenderer` now shows UID from `ProcessStats`.
 
 ### 5.2 Uptime Is Static
-- **Current:** `inspector.rs` line 20: `<span>00:14:32</span>`
-- **Fix needed:** Calculate from process start time or application launch time
+**Status: ✅ Done**
+- **Current:** Dynamic uptime displayed.
+- **Fix:** `DetailInspectorRenderer` calculates uptime from process start time via `ProcessStats`.
 
 ### 5.3 Buffer Hex Dump Is Hardcoded
-- **Current:** `inspector.rs` lines 37-39 show a static hex dump of `LCARS DREAM COMPLETE VERSION 1.0`
-- **Fix needed:** Should display actual buffer data from the inspected application or process memory
-
-**File:** `src/ui/render/inspector.rs` lines 19-20, 37-39
+**Status: ✅ Done**
+- **Current:** Dynamic buffer hex dump implemented.
+- **Fix:** `BufferInspectorRenderer` fetches actual process command line and environment data via `get_process_buffer_sample` and renders a hex dump.
 
 ---
 

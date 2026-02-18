@@ -11,11 +11,21 @@ impl ViewRenderer for DetailInspectorRenderer {
 
         let mut mem_str = "--- MB".to_string();
         let mut pid_str = "N/A".to_string();
+        let mut uptime_str = "00:00:00".to_string();
+        let mut perm_str = "----".to_string();
 
         if let Some(pid) = app.pid {
             pid_str = pid.to_string();
             if let Ok(stats) = crate::system::proc::get_process_stats(pid) {
                 mem_str = format!("{} MB", stats.memory_bytes / 1024 / 1024);
+                
+                let total_seconds = stats.uptime_seconds as u64;
+                let hours = total_seconds / 3600;
+                let mins = (total_seconds % 3600) / 60;
+                let secs = total_seconds % 60;
+                uptime_str = format!("{:02}:{:02}:{:02}", hours, mins, secs);
+                
+                perm_str = format!("UID: {:04}", stats.uid);
             }
         }
 
@@ -28,7 +38,8 @@ impl ViewRenderer for DetailInspectorRenderer {
                     <div class="stat-row"><span>CLASS:</span> <span>{class}</span></div>
                     <div class="stat-row"><span>SECTOR:</span> <span>{sector}</span></div>
                     <div class="stat-row"><span>MEMORY:</span> <span>{mem}</span></div>
-                    <div class="stat-row"><span>UPTIME:</span> <span>02:14:05</span></div>
+                    <div class="stat-row"><span>UPTIME:</span> <span>{uptime}</span></div>
+                    <div class="stat-row"><span>PERMS:</span> <span>{perms}</span></div>
                 </div>
                 <div class="inspector-footer" onclick="window.ipc.postMessage('zoom_out')">BACK</div>
             </div>"#,
@@ -37,7 +48,9 @@ impl ViewRenderer for DetailInspectorRenderer {
             pid = pid_str,
             class = app.app_class, 
             sector = sector.name,
-            mem = mem_str
+            mem = mem_str,
+            uptime = uptime_str,
+            perms = perm_str
         )
     }
 }
@@ -45,15 +58,41 @@ impl ViewRenderer for DetailInspectorRenderer {
 pub struct BufferInspectorRenderer;
 
 impl ViewRenderer for BufferInspectorRenderer {
-    fn render(&self, _state: &TosState, _viewport: &Viewport, mode: RenderMode) -> String {
+    fn render(&self, state: &TosState, viewport: &Viewport, mode: RenderMode) -> String {
+        let sector = &state.sectors[viewport.sector_index];
+        let hub = &sector.hubs[viewport.hub_index];
+        let app = &hub.applications[viewport.active_app_index.unwrap_or(0)];
+        
+        // Get buffer data (cmdline + environ)
+        let buffer = if let Some(pid) = app.pid {
+            crate::system::proc::get_process_buffer_sample(pid)
+        } else {
+            // Mock buffer for dummy apps
+            let mut b = Vec::new();
+            b.extend_from_slice(format!("MOCK BUFFER FOR {}", app.title).as_bytes());
+            b.resize(512, 0);
+            b
+        };
+        
+        let mut hex_html = String::new();
+        // Show first 256 bytes (16 lines)
+        for (i, chunk) in buffer.iter().take(256).cloned().collect::<Vec<u8>>().chunks(16).enumerate() {
+            let offset = i * 16;
+            let hex_bytes: String = chunk.iter().map(|b| format!("{:02x} ", b)).collect();
+            let ascii: String = chunk.iter().map(|b| if *b >= 32 && *b <= 126 { *b as char } else { '.' }).collect();
+            
+            hex_html.push_str(&format!(
+                "{:04x}: {:48}  {}\n", 
+                offset, hex_bytes, ascii
+            ));
+        }
+        
         format!(r#"<div class="inspector-container buffer-inspector render-{mode:?}">
             <div class="inspector-header">BUFFER HEX DUMP // LEVEL 5</div>
             <div class="buffer-hex">
-                0000: 4c 43 41 52 53 20 44 52 45 41 4d 20 43 4f 4d 50  LCARS DREAM COMP
-                0010: 4c 45 54 45 20 56 45 52 53 49 4f 4e 20 31 2e 30  LETE VERSION 1.0
-                0020: 0a 01 02 03 04 05 06 07 08 09 0a 0b 0c 0d 0e 0f  ................
+{hex_dump}
             </div>
             <div class="inspector-footer" onclick="window.ipc.postMessage('zoom_out')">BACK</div>
-        </div>"#, mode = mode)
+        </div>"#, mode = mode, hex_dump = hex_html)
     }
 }

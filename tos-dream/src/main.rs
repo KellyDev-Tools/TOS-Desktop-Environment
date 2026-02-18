@@ -164,11 +164,8 @@ fn main() -> anyhow::Result<()> {
                 (s.render_current_view(), s.current_level)
             };
             
-            let js = format!(
-                r#"window.updateView(`{}`, "{:?}");
-                   document.querySelectorAll('.terminal-output').forEach(el => el.scrollTop = el.scrollHeight);"#,
-                html, current_level
-            );
+            // Use the tested helper to generate safe update script
+            let js = tos_core::ui::generate_view_update_script(&html, current_level);
             
             let _ = webview.evaluate_script(&js);
             last_update = std::time::Instant::now();

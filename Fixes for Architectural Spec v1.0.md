@@ -149,42 +149,28 @@
 
 ## 4. Global Overview Hardcoded Data (§2, §10)
 
-**Status: ❌ HARDCODED**
+**Status: ✅ IMPLEMENTED**
 
 ### 4.1 System Time Is Static
+**Status: ✅ Done**
 - **Spec:** Telemetry bar should show live system data
-- **Current:** `global.rs` line 36 renders:
-  ```html
-  <span class="value">10:39</span>
-  ```
-- **Fix needed:** Use JavaScript `setInterval` or IPC to push the current system time
-
-**File:** `src/ui/render/global.rs` line 36
+- **Current:** Live system time injected via JavaScript.
+- **Fix:** Added `setInterval` JS block to `src/ui/render/global.rs` that updates `#tos-sys-time` every second.
 
 ### 4.2 Stardate Is Static
-- **Current:** `global.rs` line 47 renders a hardcoded stardate: `02-33 // 02-1478`
-- **Fix needed:** Either calculate a stardate from current time via an algorithm, or show real date/time
-
-**File:** `src/ui/render/global.rs` line 47
+**Status: ✅ Done**
+- **Current:** Live stardate calculation injected via JavaScript.
+- **Fix:** Added JS logic to calculate and update `#tos-stardate` (YY-DDD // YY-HHMM) matching Rust implementation.
 
 ### 4.3 Sector Descriptions Are Name-Matched Strings
-- **Current:** `global.rs` lines 61-66 match sector names to hardcoded descriptions:
-  ```rust
-  "Alpha Sector" => ("Primary coordination and terminal access.", "⌨️"),
-  "Science Labs" => ("Data analysis and sensor array telemetry.", "🔬"),
-  "Engineering" => ("Core systems and resource management.", "⚙️"),
-  _ => ("Remote node established via TOS protocol.", "📡"),
-  ```
-- **Fix needed:** Descriptions and icons should be fields on the `Sector` struct, or derived from its `SectorType` (§12.2), not matched by name string
+**Status: ✅ Done**
+- **Current:** Descriptions are rendered dynamically from `Sector` struct fields.
+- **Fix:** `GlobalRenderer` uses `sector.description` and `sector.icon` instead of hardcoded match blocks.
 
 ### 4.4 "MOCK" Button on Remote Card
-- **Current:** `global.rs` line 135 has a `MOCK` button:
-  ```html
-  <button class="action-btn" onclick="...">MOCK</button>
-  ```
-- This exposes internal testing functionality to the user. Should be removed or gated behind a developer mode.
-
-**File:** `src/ui/render/global.rs` line 135
+**Status: ✅ Done**
+- **Current:** "MOCK" button removed.
+- **Fix:** Removed dev-only button from `GlobalRenderer` HTML output.
 
 ---
 

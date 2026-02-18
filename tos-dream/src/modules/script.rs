@@ -6,7 +6,7 @@
 //! This allows modules to be written in scripting languages
 //! rather than compiled Rust.
 //! 
-//! P3: Implemented actual script execution with variable state management
+//! Implemented actual script execution with variable state management
 
 use super::manifest::ModuleManifest;
 use crate::{TosModule, TosState, HierarchyLevel, ApplicationModel, SectorType, CommandHubMode};
@@ -82,7 +82,7 @@ pub struct ScriptEngine {
     source: String,
     /// Module manifest
     manifest: ModuleManifest,
-    /// Script execution context (P3 - now used)
+    /// Script execution context (now used)
     context: Arc<Mutex<ScriptContext>>,
 }
 
@@ -116,8 +116,8 @@ impl ScriptEngine {
         }
     }
     
-    /// Initialize JavaScript environment (P3: Real implementation with quickjs)
-    #[cfg(feature = "p3-script")]
+    /// Initialize JavaScript environment (Real implementation with quickjs)
+    #[cfg(feature = "script-engine")]
     fn init_javascript(&mut self) -> Result<(), ScriptError> {
         use rquickjs::{Context, Runtime};
         
@@ -140,16 +140,16 @@ impl ScriptEngine {
         Ok(())
     }
 
-    /// Stub implementation when p3-script feature is disabled
-    #[cfg(not(feature = "p3-script"))]
+    /// Stub implementation when script-engine feature is disabled
+    #[cfg(not(feature = "script-engine"))]
     fn init_javascript(&mut self) -> Result<(), ScriptError> {
         tracing::info!("Initializing JavaScript module (stub): {}", self.manifest.name);
         self.extract_js_exports()?;
         Ok(())
     }
     
-    /// Initialize Lua environment (P3: Real implementation with mlua)
-    #[cfg(feature = "p3-script")]
+    /// Initialize Lua environment (Real implementation with mlua)
+    #[cfg(feature = "script-engine")]
     fn init_lua(&mut self) -> Result<(), ScriptError> {
         use mlua::Lua;
         
@@ -170,8 +170,8 @@ impl ScriptEngine {
         Ok(())
     }
 
-    /// Stub implementation when p3-script feature is disabled
-    #[cfg(not(feature = "p3-script"))]
+    /// Stub implementation when script-engine feature is disabled
+    #[cfg(not(feature = "script-engine"))]
     fn init_lua(&mut self) -> Result<(), ScriptError> {
         tracing::info!("Initializing Lua module (stub): {}", self.manifest.name);
         self.extract_lua_exports()?;
@@ -241,8 +241,8 @@ impl ScriptEngine {
         }
     }
     
-    /// Execute JavaScript function (P3: Real implementation)
-    #[cfg(feature = "p3-script")]
+    /// Execute JavaScript function (Real implementation)
+    #[cfg(feature = "script-engine")]
     fn execute_js(&mut self, function: &str, args: &[serde_json::Value]) -> Result<serde_json::Value, ScriptError> {
         use rquickjs::Value;
         
@@ -288,8 +288,8 @@ impl ScriptEngine {
         Ok(result)
     }
 
-    /// Stub implementation when p3-script feature is disabled
-    #[cfg(not(feature = "p3-script"))]
+    /// Stub implementation when script-engine feature is disabled
+    #[cfg(not(feature = "script-engine"))]
     fn execute_js(&mut self, function: &str, _args: &[serde_json::Value]) -> Result<serde_json::Value, ScriptError> {
         tracing::debug!("Executing JS function (stub): {}", function);
         
@@ -306,8 +306,8 @@ impl ScriptEngine {
         Ok(result)
     }
     
-    /// Execute Lua function (P3: Real implementation)
-    #[cfg(feature = "p3-script")]
+    /// Execute Lua function (Real implementation)
+    #[cfg(feature = "script-engine")]
     fn execute_lua(&mut self, function: &str, args: &[serde_json::Value]) -> Result<serde_json::Value, ScriptError> {
         use mlua::{Value, MultiValue};
         
@@ -358,8 +358,8 @@ impl ScriptEngine {
         Ok(result_json)
     }
 
-    /// Stub implementation when p3-script feature is disabled
-    #[cfg(not(feature = "p3-script"))]
+    /// Stub implementation when script-engine feature is disabled
+    #[cfg(not(feature = "script-engine"))]
     fn execute_lua(&mut self, function: &str, _args: &[serde_json::Value]) -> Result<serde_json::Value, ScriptError> {
         tracing::debug!("Executing Lua function (stub): {}", function);
         

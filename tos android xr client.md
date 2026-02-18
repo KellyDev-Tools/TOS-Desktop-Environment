@@ -1,5 +1,7 @@
 ## Full Architecture for a Native Android XR Client for TOS (Option B)
 
+
+
 ### Overview
 The native Android XR client for TOS is an OpenXR‑based application built on the Android XR platform. It connects to a remote TOS instance via the TOS Remote Server protocol, delivering a fully immersive spatial computing experience across the Android XR ecosystem—from high‑performance VR headsets (e.g., Samsung’s “Project Moohan”) to lightweight AI‑driven smart glasses. The client leverages the platform’s native capabilities: gaze and hand tracking, the Gemini AI assistant, hardware‑accelerated video decoding, and advanced rendering features like foveation and space warp. It also provides bidirectional file synchronization between the remote host and the device’s local storage, adapting its behaviour to the capabilities of the specific XR form factor.
 

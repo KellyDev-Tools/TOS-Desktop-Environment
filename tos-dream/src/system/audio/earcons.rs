@@ -1,4 +1,4 @@
-//! Phase 15: Auditory Interface - Earcons System
+//! Auditory Interface - Earcons System
 //!
 //! Provides audio feedback for navigation, commands, system status,
 //! collaboration events, and UI interactions.
@@ -351,7 +351,7 @@ impl EarconPlayer {
         // Record playback
         self.last_played.insert(event, Instant::now());
         
-        // Phase 16: Actual audio playback via rodio
+        // Actual audio playback via rodio implementation
         #[cfg(feature = "accessibility")]
         if let Some(handle) = &self.stream_handle {
             if let Ok(sink) = rodio::Sink::try_new(handle) {

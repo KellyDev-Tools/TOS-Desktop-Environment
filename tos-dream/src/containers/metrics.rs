@@ -1,4 +1,4 @@
-//! Phase 16: Container Metrics
+//! Container Metrics Implementation
 //!
 //! Resource usage monitoring and metrics collection for containers.
 

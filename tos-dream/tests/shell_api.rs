@@ -1,4 +1,4 @@
-//! Tests for Shell API (Phase 11)
+//! Tests for Shell API implementation
 
 use tos_core::system::shell_api::{
     OscParser, OscSequence, ShellApi, ShellApiConfig, ShellCommand,

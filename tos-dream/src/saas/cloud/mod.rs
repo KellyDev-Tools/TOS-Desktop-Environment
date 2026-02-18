@@ -1,4 +1,4 @@
-//! Phase 16 Week 4: Cloud Integration Submodule
+//! Cloud Integration Submodule
 //!
 //! Submodule for different cloud provider integrations (AWS, GCP, Azure).
 

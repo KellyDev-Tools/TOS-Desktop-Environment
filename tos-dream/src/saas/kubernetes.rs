@@ -1,4 +1,4 @@
-//! Phase 16 Week 4: Kubernetes Integration & Operator
+//! Kubernetes Integration & Operator Implementation
 //!
 //! Custom Resource Definitions (CRDs) and operator logic for managing TOS sectors on K8s.
 

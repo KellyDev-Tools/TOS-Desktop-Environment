@@ -1,4 +1,4 @@
-//! Phase 16: Container Security
+//! Container Security Implementation
 //!
 //! Security policies, seccomp profiles, and capability management
 //! for containerized TOS components.

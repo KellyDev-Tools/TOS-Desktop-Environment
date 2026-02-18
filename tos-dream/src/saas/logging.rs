@@ -1,4 +1,4 @@
-//! Phase 16 Week 5: Centralized Logging
+//! Centralized Logging for enterprise services.
 //!
 //! Structured logging with tenant-aware context for SaaS platforms.
 

@@ -1,4 +1,4 @@
-//! Phase 16 Week 2: Tenant Management
+//! Tenant Management Implementation
 //!
 //! Multi-tenant support with tenant isolation, resource quotas, and lifecycle management.
 

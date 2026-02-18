@@ -1,4 +1,4 @@
-//! Tests for Remote Sectors (Phase 12)
+//! Tests for Remote Sectors implementation
 
 use tos_core::*;
 use tos_core::system::remote::{RemoteNodeInfo, RemoteStatus, SyncPacket};

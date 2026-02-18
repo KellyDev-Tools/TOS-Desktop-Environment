@@ -1,4 +1,4 @@
-//! Phase 15: Performance Monitoring & Tactical Alerts
+//! Performance Monitoring & Tactical Alerts Implementation
 //!
 //! Implements FPS monitoring with sustained threshold detection and
 //! non-intrusive performance alerts with corrective action suggestions.

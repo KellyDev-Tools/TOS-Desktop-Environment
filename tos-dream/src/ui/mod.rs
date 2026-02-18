@@ -1,6 +1,6 @@
 pub mod render;
 
-// Phase 11: Tactical Mini-Map
+// Tactical Mini-Map Implementation
 pub mod minimap;
 
 /// Generates the JavaScript code to update the UI view safely.

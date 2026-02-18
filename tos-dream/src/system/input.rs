@@ -1,4 +1,4 @@
-// Phase 15: Advanced Input submodules
+// Advanced Input submodules
 pub mod advanced;
 
 use serde::{Deserialize, Serialize};

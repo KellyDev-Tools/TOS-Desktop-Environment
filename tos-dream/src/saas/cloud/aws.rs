@@ -1,4 +1,4 @@
-//! Phase 16 Week 4: Cloud Infrastructure Integration
+//! Cloud Infrastructure Integration (AWS).
 //!
 //! AWS-specific integration for TOS SaaS deployments.
 

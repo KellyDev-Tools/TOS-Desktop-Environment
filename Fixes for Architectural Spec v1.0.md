@@ -1,7 +1,7 @@
 # Fixes for Architectural Spec v1.0
 
 ### Compliance Audit — tos-dream Codebase
-**Date:** 2026-02-17  
+**Date:** 2026-02-17 (validated 2026-02-18)  
 **Scope:** Full codebase audit against [TOS Architectural Specification v1.0](./TOS%20Architectural%20Specification%20v1.0.md)
 
 ---
@@ -321,17 +321,21 @@
 
 ## 11. Audio/Earcon Stubs (§18)
 
-**Status: ❌ STUB**
+**Status: ⚠️ PARTIAL**
 
-### 11.1 No Actual Audio Playback
+### 11.1 Earcon Playback — Implemented via Rodio
 - **Spec (§18.1):** Navigation earcons, command feedback, system status sounds
-- **Current:** `audio/earcons.rs` line 337:  
-  `"// In a real implementation, this would trigger actual audio playback"`
-- `audio.rs` line 68:  
-  `"// Real implementation would trigger rodio sinks here"`
-- **Fix needed:** Integrate `rodio` crate for actual `.wav`/`.ogg` playback
+- **Current:** `audio/earcons.rs` has real `rodio` integration:
+  - `rodio::OutputStream::try_default()` for audio output (L281)
+  - `rodio::Sink::try_new()` with `rodio::source::SineWave` tones per event type (L354-381)
+  - Distinct sine-wave patterns for each `EarconEvent` variant (Alert=880→1760Hz, Warning=1760→880Hz, etc.)
+- **Remaining stub:** The base `AudioManager` in `audio.rs` line 68 still says  
+  `"// Real implementation would trigger rodio sinks here"` — this is the higher-level mixer/spatial layer, not the earcon player itself
+- **Fix needed:** Wire `AudioManager` spatial mixing to actual rodio sinks; add `.wav`/`.ogg` file playback for custom sound packs
 
-**File:** `src/system/audio.rs`, `src/system/audio/earcons.rs`
+**File:** `src/system/audio.rs` (stub), `src/system/audio/earcons.rs` (implemented)
+
+**Validated 2026-02-18:** Earcon rodio playback confirmed in codebase. 34 audio/remote tests pass in `tests/audio_remote_integration.rs`.
 
 ---
 
@@ -388,20 +392,40 @@
 
 ## 14. Collaboration Cue Gaps (§8)
 
-**Status: ⚠️ PARTIAL
+**Status: ✅ IMPLEMENTED (logic layer) — network transport still stub**
 
-### 14.1 Participants Are Rendered But Not Real
-- Participants are added via mock `invite_participant` IPC handler which creates fake participant data with random colors
+### 14.1 Participants Are Rendered But Not Networked
+- Participants are added via mock `invite_participant` IPC handler which creates participant data with random colors
 - No actual network handshake, WebSocket connection, or token exchange occurs
 - **Spec (§8.1):** "Host invites guests via secure token or contact list"
+- **Implemented:** `CollaborationManager` has a full invitation system with `create_invitation()`, `redeem_invitation()`, token generation, and 24-hour expiry (`collaboration.rs` L246-269)
 
-### 14.2 No Following Mode
+### 14.2 Following Mode — ✅ Implemented
 - **Spec (§8.2):** "Optional following mode allows a guest to synchronise their view"
-- **Current:** Not implemented at all
+- **Implemented:** Full `FollowingMode` struct with `start_following()`, `stop_following()`, and `synchronize_followers()` (`collaboration.rs` L165-381)
+  - `ViewState` captures hierarchy level, sector/hub/viewport/app indices
+  - `ViewState::from_state()` snapshots current state; `apply_to_state()` applies it
+  - `synchronize_followers()` returns `Vec<(Uuid, ViewState)>` of pending updates
+  - 100ms sync interval with change detection (only syncs when host's view actually changes)
+- **Tests:** `test_start_stop_following`, `test_synchronize_followers` (5 external tests pass in `tests/collaboration.rs`)
+- **Known issue:** 2 inline unit tests (`test_following_mode`, `test_synchronize_followers`) have timing race conditions — `should_sync()` on a freshly created `FollowingMode` sometimes fails due to `Instant::now()` granularity
 
-### 14.3 No Role Enforcement  
+### 14.3 Role Enforcement — ✅ Implemented
 - **Spec (§8.3):** Viewer/Commenter/Operator/Co-owner with different permissions
-- **Current:** Roles are stored as strings but never enforced. Any participant can execute any command.
+- **Implemented:** Full RBAC system in `collaboration.rs` L11-127:
+  - `CollaborationRole` enum: `CoOwner`, `Operator`, `Viewer` with `can_interact()` and `can_manage()` methods
+  - `PermissionSet::for_role()` maps roles to 6 granular permissions: `allow_shell_input`, `allow_app_launch`, `allow_sector_reset`, `allow_participant_invite`, `allow_viewport_control`, `allow_mode_switch`
+  - `check_permission()` and `check_permission_with_details()` for access control
+  - `enforce_action()` logs denials via `tracing::warn!` and returns `false`
+  - `PermissionDeniedError` with `UnknownParticipant`, `NoSession`, and `ActionNotAllowed` variants
+- **Tests:** `test_rbac_permissions`, `test_enforce_action_logging`, `test_permission_set_check` all pass
+
+### 14.4 Remaining Gaps
+- No actual network transport (WebSocket/WebRTC) for real-time collaboration
+- Cursor position sharing is tracked (`cursor_position: Option<(f32, f32)>`) but not transmitted
+- No conflict resolution for simultaneous edits
+
+**Validated 2026-02-18:** Collaboration RBAC and following mode confirmed implemented. 5 external + 44 P3 integration tests pass.
 
 ---
 
@@ -468,7 +492,7 @@
 | 11 | ~~System time / stardate hardcoded~~ ✅ | §10 | `global.rs`, `svg_engine.rs` |
 | 12 | ~~Sector descriptions name-matched~~ ✅ | §12 | `global.rs` |
 | 13 | ~~Inspector permissions/uptime static~~ ✅ | §4 | `inspector.rs` |
-| 14 | Audio playback is stub (tests added) | §18 | `audio.rs`, `earcons.rs` |
+| 14 | ~~Audio playback is stub~~ ⚠️ earcons have rodio playback; AudioManager stub | §18 | `audio.rs`, `earcons.rs` |
 | 15 | Remote sectors have no network I/O (tests added) | §7 | `remote.rs` |
 | 16 | ~~Bezel sliders have no effect~~ ✅ | §4 | `app.rs` |
 | 17 | ~~"MOCK" button exposed to user~~ ✅ | — | `global.rs` |
@@ -476,18 +500,54 @@
 **P2 Verification (2026-02-18):** Audio and Remote systems verified with tests:
 - 34 new unit/component/integration tests in `tests/audio_remote_integration.rs`
 - Tests cover: AudioManager, EarconPlayer, spatial audio, RemoteManager, SyncPackets
-- Note: Audio playback is still stub (rodio integration requires `--features accessibility`)
+- Note: Earcon playback uses real `rodio::SineWave` tones; higher-level `AudioManager` spatial mixing is still stub
 
 ### P3 — Low (Future roadmap items)
 | # | Issue | Spec Section | File(s) |
 |---|-------|-------------|---------|
 | 18 | Voice/STT not implemented | §9 | `voice.rs` |
-| 19 | Collaboration role enforcement | §8 | `collaboration.rs` |
-| 20 | Following mode not implemented | §8 | — |
+| 19 | ~~Collaboration role enforcement~~ ✅ | §8 | `collaboration.rs` |
+| 20 | ~~Following mode not implemented~~ ✅ | §8 | `collaboration.rs` |
 | 21 | Script engine is dead code | §12 | `script.rs` |
 | 22 | Remote desktop shows mock windows | §7 | `remote.rs` |
 | 23 | Minimap uses placeholder geometry | §17 | `minimap.rs` |
 | 24 | ~~Buffer inspector hex is static~~ ✅ | §4 | `inspector.rs` |
+
+**P3 Verification (2026-02-18):** Collaboration and P3 systems verified:
+- 44 P3 integration tests pass in `tests/p3_integration.rs`
+- 5 external collaboration tests pass in `tests/collaboration.rs`
+- Role enforcement (RBAC) and following mode are fully implemented
+- 2 inline collaboration unit tests have timing race conditions (pre-existing)
+- 3 minimap geometry unit tests fail (pre-existing layout mismatch)
+- 1 voice unit test fails on systems without microphone (expected)
+
+---
+
+## Test Suite Status (2026-02-18)
+
+| Suite | Tests | Status |
+|-------|:-----:|:------:|
+| `tests/directory_mode_and_templates.rs` | 45 | ✅ 45 pass (2 ignored) |
+| `tests/shell_api_wiring.rs` | 21 | ✅ 21 pass |
+| `tests/tactical_reset_stubs.rs` | 27 | ✅ 27 pass |
+| `tests/app_surface_and_activity_mode.rs` | 36 | ✅ 36 pass |
+| `tests/audio_remote_integration.rs` | 34 | ✅ 34 pass |
+| `tests/svg_engine.rs` | 2 | ✅ 2 pass |
+| `tests/collaboration.rs` | 5 | ✅ 5 pass |
+| `tests/p3_integration.rs` | 44 | ✅ 44 pass |
+| `tests/app_model.rs` | — | ✅ pass |
+| Unit tests (lib) | 276 | ⚠️ 270 pass, 6 fail |
+| **Total** | **~490** | **6 failures (pre-existing)** |
+
+### Known Failing Unit Tests
+| Test | Cause |
+|------|-------|
+| `collaboration::test_following_mode` | Timing race: `should_sync()` on fresh `FollowingMode` |
+| `collaboration::test_synchronize_followers` | Same timing race as above |
+| `voice::test_status_text` | Requires microphone hardware |
+| `minimap::test_layout_geometry_calculation` | State has 3 sectors but test expects 1 |
+| `minimap::test_sector_geometry_at` | Geometry lookup fails with 3-sector state |
+| `minimap::test_click_target_with_geometry` | Depends on correct geometry from above |
 
 ---
 

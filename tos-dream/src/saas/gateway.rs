@@ -1,4 +1,4 @@
-//! Phase 16 Week 2: API Gateway
+//! API Gateway for cloud services.
 //!
 //! Request routing, rate limiting, authentication, and load balancing
 //! for multi-tenant SaaS deployments.

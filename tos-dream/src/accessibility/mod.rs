@@ -1,4 +1,4 @@
-//! TOS Accessibility Module - Phase 10 Implementation
+//! Accessibility Module Implementation
 //! 
 //! Provides comprehensive accessibility support including:
 //! - Screen reader integration (AT-SPI/Orca)

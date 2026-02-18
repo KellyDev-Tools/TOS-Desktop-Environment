@@ -1,4 +1,4 @@
-//! Phase 16 Week 2: Session Management
+//! Session Management for multi-user access.
 //!
 //! User session lifecycle management with authentication, authorization,
 //! and session state tracking.

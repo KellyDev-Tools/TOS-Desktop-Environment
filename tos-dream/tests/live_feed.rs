@@ -1,4 +1,4 @@
-//! Live Feed Tests - Phase 10
+//! Live Feed Tests Implementation
 //! 
 //! Tests for WebSocket streaming, test recording, and
 //! real-time state broadcasting to the TOS Web Portal.

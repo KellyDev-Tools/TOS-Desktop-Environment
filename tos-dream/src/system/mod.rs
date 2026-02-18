@@ -2,38 +2,38 @@ pub mod input;
 pub mod pty;
 pub mod ipc;
 
-// Phase 15: Performance Monitoring & Tactical Alerts
+// Performance Monitoring & Tactical Alerts features
 pub mod performance;
 
-// Phase 11: Enhanced Tactical Reset
+// Enhanced Tactical Reset features
 pub mod reset;
 
-// Phase 11: Voice Command System
+// Voice Command System implementation
 pub mod voice;
 
-// Phase 11: Shell API
+// Shell API implementation
 pub mod shell_api;
 pub mod shell;
 
-// Phase 11: Security and Dangerous Command Handling
+// Security and Dangerous Command Handling implementation
 pub mod security;
 
-// Phase 12: Remote Sectors & Collaboration
+// Remote Sectors & Collaboration implementation
 pub mod remote;
 pub mod collaboration;
 pub mod audio;
 pub mod proc;
 
-// Phase 15: Auditory Interface - Earcons and Themes
+// Auditory Interface - Earcons and Themes implementation
 pub use audio::earcons;
 pub use audio::themes;
 
-// Phase 15: Advanced Input (Game Controllers, VR/AR, Hand/Eye Tracking)
+// Advanced Input implementation
 pub use input::advanced;
 
 #[cfg(feature = "live-feed")]
 pub mod live_feed;
 
-// Phase 16: Container Strategy & SaaS Architecture
+// Container Strategy & SaaS Architecture implementation
 // Note: containers module is at crate root (src/containers/)
 // Re-exported in lib.rs

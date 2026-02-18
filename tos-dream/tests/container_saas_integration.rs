@@ -1,4 +1,4 @@
-//! Phase 16: Container Strategy & Cloud Resource Architecture Integration Tests
+//! Container Strategy & Cloud Resource Architecture Integration Tests
 
 use tos_core::TosState;
 use tos_core::containers::{

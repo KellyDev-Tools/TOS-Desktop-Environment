@@ -1,4 +1,4 @@
-//! Phase 16 Week 5: Distributed Tracing & Observability
+//! Distributed Tracing & Observability Implementation
 //!
 //! OpenTelemetry integration for multi-tenant request tracing across TOS services.
 

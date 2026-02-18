@@ -160,7 +160,7 @@ impl ViewRenderer for GlobalRenderer {
 
         html.push_str("</div>");
 
-        // 5. Comms Overlay (Phase 16)
+        // 5. Comms Overlay (Advanced Services)
         let mut comms_html = String::new();
         for msg in state.comms_messages.iter().rev().take(10).rev() {
             comms_html.push_str(&format!(

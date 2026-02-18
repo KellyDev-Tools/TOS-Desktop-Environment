@@ -1,9 +1,9 @@
-//! TOS Module System - Phase 8 & 9 Implementation
+//! Module System Implementation
 //! 
 //! Provides hot-loadable Application Models and Sector Types
 //! with optional containerization and scripting support.
 //! 
-//! Phase 9 adds Marketplace and Templates support for package
+//! Adds Marketplace and Templates support for package discovery.
 //! management, repository handling, and digital signatures.
 
 pub mod manifest;
@@ -13,7 +13,7 @@ pub mod app_model;
 pub mod sector_type;
 pub mod script;
 
-// Phase 9: Marketplace and Templates
+// Marketplace and Templates features
 pub use crate::marketplace::{
     Marketplace,
     MarketplaceConfig,

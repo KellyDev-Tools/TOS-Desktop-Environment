@@ -2,7 +2,7 @@
 //! 
 //! Handles background ambience, UI sounds, and sector-specific spatial audio.
 
-// Phase 15: Auditory Interface submodules
+// Auditory Interface submodules
 pub mod earcons;
 pub mod themes;
 

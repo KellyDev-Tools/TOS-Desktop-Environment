@@ -1,4 +1,4 @@
-//! Phase 15: Auditory Interface - Sound Themes
+//! Auditory Interface - Sound Themes
 //!
 //! Manages installable sound themes for the TOS auditory interface.
 //! Themes can be installed from the marketplace and customize all earcons.

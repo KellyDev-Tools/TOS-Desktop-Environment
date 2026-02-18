@@ -7,7 +7,7 @@ pub mod cli;
 #[cfg(feature = "accessibility")]
 pub mod accessibility;
 
-// Phase 16: Container Strategy & SaaS Architecture
+// Container Strategy & SaaS Architecture
 pub mod containers;
 pub mod saas;
 
@@ -15,36 +15,36 @@ use system::input::SemanticEvent;
 use modules::{ModuleRegistry, ModuleState, ModuleManifest};
 use serde::{Deserialize, Serialize};
 
-// Phase 11 imports
+// Tactical system imports
 use system::reset::TacticalReset;
 use system::voice::VoiceCommandProcessor;
 use system::shell_api::ShellApi;
 use system::security::SecurityManager;
 use ui::minimap::MiniMap;
 
-// Phase 12 imports
+// Remote & Collaboration imports
 use system::remote::RemoteManager;
 use system::collaboration::CollaborationManager;
 use system::audio::AudioManager;
 
-// Phase 15: Performance Monitoring
+// Performance Monitoring systems
 use system::performance::PerformanceMonitor;
 
-// Phase 15: Auditory Interface
+// Auditory Interface systems
 use system::audio::earcons::EarconPlayer;
 use system::audio::themes::ThemeManager;
 
-// Phase 15: Advanced Input
+// Advanced Input systems
 use system::input::advanced::AdvancedInputManager;
 
-// Phase 16: Container Infrastructure
+// Container Infrastructure systems
 use containers::{
     ContainerManager, ContainerBackend,
     sector::SectorContainerManager,
     sandbox::{SandboxManager, SandboxRegistry, SandboxInfo, SandboxLevel},
 };
 
-// Phase 16 Week 2: Cloud Resource Infrastructure
+// Cloud Resource Infrastructure systems
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum HierarchyLevel {
@@ -281,7 +281,7 @@ pub struct TosState {
     pub modules: Vec<Box<dyn TosModule>>,
     pub portal_security_bypass: bool,
     pub approval_requested_sector: Option<uuid::Uuid>,
-    /// Module registry for Phase 8
+    /// Module registry for package management
     #[serde(skip)]
     pub module_registry: ModuleRegistry,
     /// Application model registry
@@ -290,69 +290,69 @@ pub struct TosState {
     /// Sector type registry
     #[serde(skip)]
     pub sector_type_registry: modules::sector_type::SectorTypeRegistry,
-    /// Marketplace for Phase 9
+    /// Marketplace for module discovery
     #[serde(skip)]
     pub marketplace: marketplace::Marketplace,
-    /// Accessibility manager for Phase 10
+    /// Accessibility manager for system feedback
     #[serde(skip)]
     #[cfg(feature = "accessibility")]
     pub accessibility: Option<accessibility::AccessibilityManager>,
-    /// Live feed server for Phase 10
+    /// Live feed server for remote streaming
     #[serde(skip)]
     #[cfg(feature = "live-feed")]
     pub live_feed: Option<system::live_feed::LiveFeedServer>,
-    /// Phase 11: Tactical Mini-Map
+    /// Tactical Mini-Map viewport
     #[serde(skip)]
     pub minimap: MiniMap,
-    /// Phase 11: Tactical Reset
+    /// Tactical Reset manager
     #[serde(skip)]
     pub tactical_reset: TacticalReset,
-    /// Phase 11: Voice Command Processor
+    /// Voice Command Processor implementation
     #[serde(skip)]
     pub voice: VoiceCommandProcessor,
-    /// Phase 11: Shell API
+    /// Shell API and OSC handler
     #[serde(skip)]
     pub shell_api: ShellApi,
-    /// Phase 11: Modular Shell Registry
+    /// Modular Shell Registry for PTY spawning
     #[serde(skip)]
     pub shell_registry: system::shell::ShellRegistry,
-    /// Phase 11: Security Manager
+    /// Security Manager for dangerous commands
     #[serde(skip)]
     pub security: SecurityManager,
-    /// Phase 12: Remote Manager
+    /// Remote Manager for sector synchronization
     #[serde(skip)]
     pub remote_manager: RemoteManager,
-    /// Phase 12: Collaboration Manager
+    /// Collaboration Manager for multi-user sessions
     #[serde(skip)]
     pub collaboration_manager: CollaborationManager,
-    /// Phase 13: Audio Manager
+    /// Audio Manager for spatial sound management
     #[serde(skip)]
     pub audio_manager: AudioManager,
-    /// Phase 15: Performance Monitor
+    /// Performance Monitor and tactical alerts
     #[serde(skip)]
     pub performance_monitor: PerformanceMonitor,
-    /// Phase 15: Earcon Player
+    /// Earcon Player for audio feedback
     #[serde(skip)]
     pub earcon_player: EarconPlayer,
-    /// Phase 15: Sound Theme Manager
+    /// Sound Theme Manager for interface styling
     #[serde(skip)]
     pub sound_theme_manager: ThemeManager,
-    /// Phase 15: Advanced Input Manager
+    /// Advanced Input Manager for XR controllers
     #[serde(skip)]
     pub advanced_input: AdvancedInputManager,
-    /// Phase 16: Container Manager
+    /// Container Manager for sandboxed applications
     #[serde(skip)]
     pub container_manager: Option<ContainerManager>,
-    /// Phase 16: Sector Container Manager
+    /// Sector Container Manager for isolated environments
     #[serde(skip)]
     pub sector_container_manager: Option<SectorContainerManager>,
-    /// Phase 16: Local Sandbox Manager
+    /// Local Sandbox Manager for application security
     #[serde(skip)]
     pub sandbox_manager: Option<SandboxManager>,
-    /// Phase 16: Sandbox Registry
+    /// Sandbox Registry for secure execution profiles
     #[serde(skip)]
     pub sandbox_registry: SandboxRegistry,
-    /// Phase 16 Week 2: Cloud Resource Manager
+    /// Cloud Resource Manager for multi-tenant SaaS deployment
     #[serde(skip)]
     pub cloud_manager: Option<saas::CloudResourceManager>,
 }
@@ -527,7 +527,7 @@ impl TosState {
         self.sound_theme_manager = ThemeManager::new();
         self.advanced_input = AdvancedInputManager::new();
         
-        // Phase 16 Managers
+        // Container and Infrastructure Managers
         self.container_manager = None;
         self.sector_container_manager = None;
         self.sandbox_manager = None;
@@ -1145,7 +1145,7 @@ impl TosState {
             }
         }
         
-        // Phase 11: Handle voice activation
+        // Handle voice activation commands
         if let SemanticEvent::VoiceCommandStart = event {
             self.voice.simulate_wake_word();
             return;
@@ -1296,12 +1296,12 @@ impl TosState {
         }
     }
 
-    /// Phase 11: Toggle mini-map activation
+    /// Toggle mini-map activation state.
     pub fn toggle_minimap(&mut self) {
         self.minimap.toggle();
     }
 
-    /// Phase 11: Process voice text command
+    /// Process voice text command through the processor.
     pub fn process_voice_command(&mut self, text: &str) -> Option<system::voice::VoiceCommand> {
         if let Some(cmd) = self.voice.process_text(text) {
             let event = cmd.event.clone();
@@ -1313,13 +1313,13 @@ impl TosState {
         }
     }
 
-    /// Phase 11: Check if command is dangerous
+    /// Check if command is dangerous based on security policy.
     pub fn check_command_security(&self, command: &str) -> Option<(system::security::RiskLevel, String)> {
         self.security.check_command(command)
             .map(|(risk, pattern)| (risk, pattern.message.clone()))
     }
 
-    /// Phase 11: Start security confirmation for command
+    /// Start security confirmation for a sensitive command.
     pub fn start_security_confirmation(&mut self, command: &str) -> Option<uuid::Uuid> {
         let viewport = &self.viewports[self.active_viewport_index];
         let sector_id = self.sectors[viewport.sector_index].id;

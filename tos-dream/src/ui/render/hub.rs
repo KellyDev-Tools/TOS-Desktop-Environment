@@ -396,7 +396,7 @@ impl ViewRenderer for HubRenderer {
                         selected_class = selected_class
                     ));
                 }
-                // New: Module Data Feeds (Phase 16)
+                // Module Data Feeds Implementation
                 let mut modules_html = String::new();
                 for info in state.module_registry.modules.values() {
                     if let Some(ref module) = info.module {

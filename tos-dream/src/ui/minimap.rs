@@ -204,7 +204,7 @@ impl MiniMap {
 
     /// Update selection based on position (when active)
     fn update_selection(&mut self, _x: f32, _y: f32) {
-        // P3: Selection now uses actual geometry calculated in handle_click
+        // Selection now uses actual geometry calculated in handle_click
     }
 
     /// Handle click when active - returns selected navigation target
@@ -213,7 +213,7 @@ impl MiniMap {
         return None;
     }
 
-    // P3: Use actual layout geometry for accurate click detection
+    // Use actual layout geometry for accurate click detection
     let (sector_idx, viewport_idx) = self.calculate_click_target_with_geometry(x, y, state)?;
     
     Some(NavigationTarget {
@@ -222,7 +222,7 @@ impl MiniMap {
     })
 }
 
-/// P3: Calculate what was clicked using actual layout geometry
+/// Calculate what was clicked using actual layout geometry
 fn calculate_click_target_with_geometry(&self, x: f32, y: f32, state: &TosState) -> Option<(usize, Option<usize>)> {
     let mut geometry = LayoutGeometry::new();
     geometry.calculate_from_state(state);
@@ -484,7 +484,7 @@ fn calculate_click_target(&self, x: f32, y: f32, state: &TosState) -> Option<(us
     }
 }
 
-/// P3: Actual viewport geometry for accurate click detection
+/// Actual viewport geometry for accurate click detection
 #[derive(Debug, Clone)]
 pub struct ViewportGeometry {
     pub x: f32,
@@ -495,7 +495,7 @@ pub struct ViewportGeometry {
     pub viewport_index: usize,
 }
 
-/// P3: Layout geometry cache for accurate minimap interaction
+/// Layout geometry cache for accurate minimap interaction
 #[derive(Debug, Clone)]
 pub struct LayoutGeometry {
     pub viewports: Vec<ViewportGeometry>,
@@ -522,7 +522,7 @@ impl LayoutGeometry {
         }
     }
 
-    /// P3: Calculate actual geometry from state
+    /// Calculate actual geometry from state
     pub fn calculate_from_state(&mut self, state: &TosState) {
         self.viewports.clear();
         self.sectors.clear();
@@ -584,7 +584,7 @@ impl LayoutGeometry {
         self.last_updated = std::time::Instant::now();
     }
 
-    /// P3: Find viewport at given coordinates
+    /// Find viewport at given coordinates
     pub fn viewport_at(&self, x: f32, y: f32) -> Option<&ViewportGeometry> {
         self.viewports.iter().find(|vp| {
             x >= vp.x && x < vp.x + vp.width &&
@@ -592,7 +592,7 @@ impl LayoutGeometry {
         })
     }
 
-    /// P3: Find sector at given coordinates
+    /// Find sector at given coordinates
     pub fn sector_at(&self, x: f32, y: f32) -> Option<&ViewportGeometry> {
         self.sectors.iter().find(|s| {
             x >= s.x && x < s.x + s.width &&

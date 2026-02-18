@@ -1,4 +1,4 @@
-//! Phase 16 Week 3: SaaS Secrets Management
+//! SaaS Secrets Management Implementation
 //!
 //! Integration with Vault/Cloud KMS for tenant secrets and keys.
 

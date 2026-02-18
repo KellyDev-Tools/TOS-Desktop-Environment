@@ -1,23 +1,23 @@
-//! Phase 12: Remote Sectors Implementation
+//! Remote Sectors Implementation
 //! 
 //! Provides the core logic for establishing, managing, and synchronizing
 //! remote sectors via TOSNative, SSH, and HTTP-Fallback protocols.
 //! 
-//! P3: Implemented real network I/O, frame buffer, and command relay
+//! Implemented real network I/O, frame buffer, and command relay
 
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 use std::collections::HashMap;
 use crate::{Sector, ConnectionType, CommandHub};
 
-// P3: Async network support
-#[cfg(feature = "p3-remote")]
+// Async network support
+#[cfg(feature = "remote-desktop")]
 use tokio::net::TcpStream;
-#[cfg(feature = "p3-remote")]
+#[cfg(feature = "remote-desktop")]
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
-#[cfg(feature = "p3-remote")]
+#[cfg(feature = "remote-desktop")]
 use std::sync::Arc;
-#[cfg(feature = "p3-remote")]
+#[cfg(feature = "remote-desktop")]
 use tokio::sync::Mutex as TokioMutex;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -39,7 +39,7 @@ pub enum RemoteStatus {
     Error(String),
 }
 
-/// Phase 12: TOSNative Synchronization Protocol
+/// TOSNative Synchronization Protocol
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum SyncPacket {
     /// Full sector state synchronization
@@ -52,19 +52,19 @@ pub enum SyncPacket {
     CommandRelay { hub_id: Uuid, command: String },
     /// Keep-alive heartbeat
     Heartbeat,
-    /// Frame buffer update for remote desktop (P3)
+    /// Frame buffer update for remote desktop 
     FrameBufferUpdate { 
         width: u32, 
         height: u32, 
         data: Vec<u8>, // RGBA or compressed format
         timestamp: u64,
     },
-    /// Authentication request/response (P3)
+    /// Authentication request/response 
     AuthRequest { token: String },
     AuthResponse { success: bool, message: String },
 }
 
-/// Remote frame buffer for desktop streaming (P3)
+/// Remote frame buffer for desktop streaming 
 #[derive(Debug, Clone)]
 pub struct RemoteFrameBuffer {
     pub width: u32,
@@ -117,12 +117,12 @@ pub struct RemoteConnection {
     pub node_id: Uuid,
     pub connection_type: ConnectionType,
     pub last_sync: std::time::Instant,
-    /// Frame buffer for remote desktop (P3)
+    /// Frame buffer for remote desktop 
     pub frame_buffer: Option<RemoteFrameBuffer>,
-    /// Connection handle for async I/O (P3)
-    #[cfg(feature = "p3-remote")]
+    /// Connection handle for async I/O 
+    #[cfg(feature = "remote-desktop")]
     pub stream: Option<Arc<TokioMutex<TcpStream>>>,
-    /// Authentication state (P3)
+    /// Authentication state 
     pub authenticated: bool,
 }
 
@@ -133,7 +133,7 @@ impl RemoteConnection {
             connection_type,
             last_sync: std::time::Instant::now(),
             frame_buffer: None,
-            #[cfg(feature = "p3-remote")]
+            #[cfg(feature = "remote-desktop")]
             stream: None,
             authenticated: false,
         }
@@ -156,8 +156,8 @@ impl RemoteConnection {
         }
     }
 
-    /// Send a packet over the connection (P3: Real network I/O)
-    #[cfg(feature = "p3-remote")]
+    /// Send a packet over the connection (Real network I/O)
+    #[cfg(feature = "remote-desktop")]
     pub async fn send_packet(&self, packet: &SyncPacket) -> Result<(), String> {
         if let Some(ref stream) = self.stream {
             let data = serde_json::to_vec(packet)
@@ -175,8 +175,8 @@ impl RemoteConnection {
         }
     }
 
-    /// Receive a packet from the connection (P3: Real network I/O)
-    #[cfg(feature = "p3-remote")]
+    /// Receive a packet from the connection (Real network I/O)
+    #[cfg(feature = "remote-desktop")]
     pub async fn receive_packet(&self) -> Result<Option<SyncPacket>, String> {
         if let Some(ref stream) = self.stream {
             let mut guard = stream.lock().await;
@@ -223,9 +223,9 @@ pub struct RemoteManager {
     pub active_connections: HashMap<Uuid, RemoteConnection>,
     /// Authentication tokens/keys
     pub auth_store: HashMap<Uuid, String>,
-    /// Command relay queue (P3)
+    /// Command relay queue 
     pub command_queue: Vec<(Uuid, String)>,
-    /// Frame buffer update callbacks (P3)
+    /// Frame buffer update callbacks 
     pub frame_buffer_callbacks: Vec<Box<dyn Fn(Uuid, &RemoteFrameBuffer) + Send>>,
 }
 
@@ -245,7 +245,7 @@ impl RemoteManager {
         self.nodes.insert(info.id, info);
     }
 
-    /// Establish a link to a remote sector (P3: Real network connection)
+    /// Establish a link to a remote sector (Real network connection)
     pub fn connect(&mut self, node_id: Uuid, conn_type: ConnectionType) -> Result<RemoteConnection, String> {
         if !self.nodes.contains_key(&node_id) {
             return Err(format!("Node {} not found", node_id));
@@ -257,8 +257,8 @@ impl RemoteManager {
         Ok(connection)
     }
 
-    /// Establish async TCP connection (P3)
-    #[cfg(feature = "p3-remote")]
+    /// Establish async TCP connection 
+    #[cfg(feature = "remote-desktop")]
     pub async fn connect_tcp(&mut self, node_id: Uuid, addr: &str) -> Result<RemoteConnection, String> {
         if !self.nodes.contains_key(&node_id) {
             return Err(format!("Node {} not found", node_id));
@@ -315,12 +315,12 @@ impl RemoteManager {
         })
     }
 
-    /// Synchronize state with a remote node (P3: Real network I/O)
+    /// Synchronize state with a remote node (Real network I/O)
     pub fn sync_node(&mut self, node_id: Uuid) -> Result<(), String> {
         if let Some(conn) = self.active_connections.get_mut(&node_id) {
             conn.last_sync = std::time::Instant::now();
             
-            // P3: In a real implementation with async runtime, this would:
+            // In a real implementation with async runtime, this would:
             // 1. Send a sync request packet
             // 2. Wait for response
             // 3. Update local state
@@ -332,8 +332,8 @@ impl RemoteManager {
         }
     }
 
-    /// Async synchronization (P3)
-    #[cfg(feature = "p3-remote")]
+    /// Async synchronization 
+    #[cfg(feature = "remote-desktop")]
     pub async fn sync_node_async(&mut self, node_id: Uuid) -> Result<(), String> {
         if let Some(conn) = self.active_connections.get(&node_id) {
             // Send heartbeat
@@ -351,7 +351,7 @@ impl RemoteManager {
         }
     }
 
-    /// Process an incoming synchronization packet (P3: Real implementation)
+    /// Process an incoming synchronization packet (Real implementation)
     pub fn process_packet(&mut self, node_id: Uuid, packet: SyncPacket, sectors: &mut Vec<Sector>) -> Result<(), String> {
         // Update frame buffer if applicable
         if let Some(conn) = self.active_connections.get_mut(&node_id) {
@@ -389,7 +389,7 @@ impl RemoteManager {
                 }
             }
             SyncPacket::CommandRelay { hub_id, command } => {
-                // P3: Execute the command on the host
+                // Execute the command on the host
                 tracing::info!("Command relay received for hub {}: {}", hub_id, command);
                 self.command_queue.push((hub_id, command));
                 
@@ -410,7 +410,7 @@ impl RemoteManager {
                 // Already handled above
             }
             SyncPacket::AuthRequest { token } => {
-                // P3: Handle authentication
+                // Handle authentication
                 let valid = self.auth_store.get(&node_id)
                     .map(|stored| stored == &token)
                     .unwrap_or(false);
@@ -432,7 +432,7 @@ impl RemoteManager {
         Ok(())
     }
 
-    /// Execute a command relay (P3: Real implementation)
+    /// Execute a command relay (Real implementation)
     pub fn execute_command_relay(&mut self, hub_id: Uuid, command: &str) -> Result<String, String> {
         // Find the hub in the command queue and execute
         if let Some((_, cmd)) = self.command_queue.iter().find(|(id, _)| *id == hub_id) {
@@ -459,7 +459,7 @@ impl RemoteManager {
         SyncPacket::TerminalDelta { hub_id, line }
     }
 
-    /// Create a frame buffer update packet (P3)
+    /// Create a frame buffer update packet 
     pub fn create_frame_buffer_packet(&self, width: u32, height: u32, data: Vec<u8>) -> SyncPacket {
         SyncPacket::FrameBufferUpdate {
             width,
@@ -472,7 +472,7 @@ impl RemoteManager {
         }
     }
 
-    /// Register a frame buffer update callback (P3)
+    /// Register a frame buffer update callback 
     pub fn on_frame_buffer_update<F>(&mut self, callback: F)
     where
         F: Fn(Uuid, &RemoteFrameBuffer) + Send + 'static,
@@ -480,13 +480,13 @@ impl RemoteManager {
         self.frame_buffer_callbacks.push(Box::new(callback));
     }
 
-    /// Get frame buffer for a connection (P3)
+    /// Get frame buffer for a connection 
     pub fn get_frame_buffer(&self, node_id: Uuid) -> Option<&RemoteFrameBuffer> {
         self.active_connections.get(&node_id)
             .and_then(|conn| conn.frame_buffer.as_ref())
     }
 
-    /// Check if connection has stale frame buffer (P3)
+    /// Check if connection has stale frame buffer 
     pub fn is_frame_buffer_stale(&self, node_id: Uuid, threshold_ms: u64) -> bool {
         self.active_connections.get(&node_id)
             .and_then(|conn| conn.frame_buffer.as_ref())
@@ -505,7 +505,7 @@ impl std::fmt::Debug for RemoteManager {
     }
 }
 
-// Base64 encoding helper (P3)
+// Base64 encoding helper 
 mod base64 {
     pub fn encode(data: &[u8]) -> String {
         use std::io::Write;

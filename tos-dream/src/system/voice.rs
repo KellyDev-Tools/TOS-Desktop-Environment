@@ -29,14 +29,14 @@ use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
 use std::time::{Duration, Instant};
 
-// P3: Audio capture support
-#[cfg(feature = "p3-voice")]
+// Audio capture support implementation
+#[cfg(feature = "voice-system")]
 use cpal::traits::{DeviceTrait, HostTrait, StreamTrait};
-#[cfg(feature = "p3-voice")]
+#[cfg(feature = "voice-system")]
 use std::sync::mpsc;
 
 /// Audio capture buffer for voice processing
-#[cfg(feature = "p3-voice")]
+#[cfg(feature = "voice-system")]
 #[derive(Debug)]
 pub struct AudioCapture {
     /// Audio samples buffer
@@ -50,7 +50,7 @@ pub struct AudioCapture {
     receiver: mpsc::Receiver<Vec<f32>>,
 }
 
-#[cfg(feature = "p3-voice")]
+#[cfg(feature = "voice-system")]
 impl AudioCapture {
     /// Create a new audio capture instance
     pub fn new() -> Result<Self, VoiceError> {
@@ -135,12 +135,12 @@ impl AudioCapture {
     }
 }
 
-/// Stub implementation when p3-voice feature is disabled
-#[cfg(not(feature = "p3-voice"))]
+/// Stub implementation when voice-system feature is disabled
+#[cfg(not(feature = "voice-system"))]
 #[derive(Debug)]
 pub struct AudioCapture;
 
-#[cfg(not(feature = "p3-voice"))]
+#[cfg(not(feature = "voice-system"))]
 impl AudioCapture {
     pub fn new() -> Result<Self, VoiceError> {
         Ok(Self)
@@ -255,7 +255,7 @@ pub struct VoiceCommand {
 }
 
 /// Wake word detector using simple audio pattern matching
-#[cfg(feature = "p3-voice")]
+#[cfg(feature = "voice-system")]
 #[derive(Debug)]
 pub struct WakeWordDetector {
     /// Reference pattern for wake word (simplified energy-based detection)
@@ -270,7 +270,7 @@ pub struct WakeWordDetector {
     cooldown: Duration,
 }
 
-#[cfg(feature = "p3-voice")]
+#[cfg(feature = "voice-system")]
 impl WakeWordDetector {
     pub fn new() -> Self {
         Self {
@@ -318,11 +318,11 @@ impl WakeWordDetector {
     }
 }
 
-#[cfg(not(feature = "p3-voice"))]
+#[cfg(not(feature = "voice-system"))]
 #[derive(Debug)]
 pub struct WakeWordDetector;
 
-#[cfg(not(feature = "p3-voice"))]
+#[cfg(not(feature = "voice-system"))]
 impl WakeWordDetector {
     pub fn new() -> Self { Self }
     pub fn process_frame(&mut self, _samples: &[f32]) -> bool { false }
@@ -330,7 +330,7 @@ impl WakeWordDetector {
 }
 
 /// Speech-to-Text engine interface
-#[cfg(feature = "p3-voice")]
+#[cfg(feature = "voice-system")]
 #[derive(Debug)]
 pub struct SpeechToText {
     /// Model path (whisper model)
@@ -339,7 +339,7 @@ pub struct SpeechToText {
     language: String,
 }
 
-#[cfg(feature = "p3-voice")]
+#[cfg(feature = "voice-system")]
 impl SpeechToText {
     pub fn new(language: &str) -> Self {
         Self {
@@ -366,11 +366,11 @@ impl SpeechToText {
     }
 }
 
-#[cfg(not(feature = "p3-voice"))]
+#[cfg(not(feature = "voice-system"))]
 #[derive(Debug)]
 pub struct SpeechToText;
 
-#[cfg(not(feature = "p3-voice"))]
+#[cfg(not(feature = "voice-system"))]
 impl SpeechToText {
     pub fn new(_language: &str) -> Self { Self }
     pub fn transcribe(&self, _samples: &[f32], _sample_rate: u32) -> Option<(String, f32)> {
@@ -440,7 +440,7 @@ impl VoiceCommandProcessor {
         self.state = VoiceState::Idle;
         self.wake_word_active = true;
         
-        // P3: Initialize audio capture
+        // Audio capture implementation
         let mut capture = AudioCapture::new()?;
         capture.init_default()?;
         self.audio_capture = Some(capture);
@@ -455,7 +455,7 @@ impl VoiceCommandProcessor {
         self.wake_word_active = false;
         self.audio_buffer.clear();
         
-        // P3: Stop audio capture
+        // Stop audio capture implementation
         if let Some(mut capture) = self.audio_capture.take() {
             capture.stop();
         }
@@ -877,7 +877,7 @@ impl std::fmt::Display for VoiceError {
 impl std::error::Error for VoiceError {}
 
 /// Start voice command polling (for integration with main loop)
-/// P3: Real implementation with audio capture
+/// Real implementation with audio capture
 pub fn start_voice_polling(processor: Arc<Mutex<VoiceCommandProcessor>>) {
     std::thread::spawn(move || {
         // Initialize audio capture

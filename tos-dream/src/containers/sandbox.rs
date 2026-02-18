@@ -1,4 +1,4 @@
-//! Phase 16: Local Sandbox Security Manager
+//! Local Sandbox Security Manager Implementation
 //!
 //! Orchestrates various isolation vectors (Containers, Namespaces, 
 //! Filtered IPC, Display Isolation) to provide a unified secure 
@@ -115,7 +115,7 @@ impl SandboxManager {
     }
 }
 
-/// Phase 16: Sandbox Registry
+/// Sandbox Registry implementation
 /// Tracks active sandboxed sectors and enforces isolation boundaries
 #[derive(Debug, Default)]
 pub struct SandboxRegistry {

@@ -1,4 +1,4 @@
-//! Phase 12: SSH Shell Provider
+//! SSH Shell Provider Implementation
 //! 
 //! Provides PTY spawning for remote SSH connections.
 

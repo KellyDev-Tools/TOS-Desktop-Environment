@@ -1,7 +1,7 @@
-//! Phase 12: Collaboration & RBAC Implementation
+//! Collaboration & RBAC Implementation
 //! 
 //! Handles multi-user roles, permissions, and session synchronization logic.
-//! P3: Added role enforcement, following mode, and view synchronization.
+//! Added role enforcement, following mode, and view synchronization.
 
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;

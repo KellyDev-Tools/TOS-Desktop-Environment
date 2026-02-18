@@ -1,4 +1,4 @@
-//! Phase 16 Week 2: SaaS Billing & Usage Tracking
+//! SaaS Billing & Usage Tracking Implementation
 //!
 //! Resource usage metering, session time tracking, and analytics for SaaS tenants.
 

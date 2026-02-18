@@ -162,6 +162,10 @@ fn main() -> anyhow::Result<()> {
                 if let Ok(mut ptys_lock) = ptys_cleanup.lock() {
                     ptys_lock.clear(); // Drops all PtyHandles, triggering graceful shutdown
                 }
+                
+                // Save state on exit
+                state_update.lock().unwrap().save();
+
                 // Give PTY threads time to close their file descriptors
                 std::thread::sleep(std::time::Duration::from_millis(100));
                 std::process::exit(0);

@@ -174,6 +174,7 @@ pub struct Application {
     pub title: String,
     pub app_class: String,
     pub is_minimized: bool,
+    #[serde(skip)]
     pub pid: Option<u32>,
     pub icon: Option<String>,
     pub is_dummy: bool, // Set true for sector default apps that aren't real OS processes
@@ -312,7 +313,62 @@ impl TosModule for EngineeringModule {
 }
 
 impl TosState {
+    pub fn save(&self) {
+        let config_dir = dirs::config_dir().map(|p| p.join("tos-dream")).unwrap_or_else(|| std::path::PathBuf::from(".tos_config"));
+        let _ = std::fs::create_dir_all(&config_dir);
+        let session_path = config_dir.join("session.json");
+        if let Ok(json) = serde_json::to_string_pretty(self) {
+            let _ = std::fs::write(session_path, json);
+        }
+    }
+
+    pub fn load() -> Option<Self> {
+        let config_dir = dirs::config_dir().map(|p| p.join("tos-dream")).unwrap_or_else(|| std::path::PathBuf::from(".tos_config"));
+        let session_path = config_dir.join("session.json");
+        if let Ok(json) = std::fs::read_to_string(session_path) {
+            if let Ok(mut state) = serde_json::from_str::<Self>(&json) {
+                state.post_load_init();
+                return Some(state);
+            }
+        }
+        None
+    }
+
+    fn post_load_init(&mut self) {
+        // Re-initialize non-serializable managers
+        self.module_registry = ModuleRegistry::new();
+        self.module_registry.set_default_paths();
+        
+        self.app_model_registry = modules::app_model::AppModelRegistry::new();
+        self.app_model_registry.register_builtin_models();
+        
+        self.sector_type_registry = modules::sector_type::SectorTypeRegistry::new();
+        self.sector_type_registry.register_builtin_types();
+        
+        self.marketplace = marketplace::Marketplace::new();
+        let _ = self.marketplace.initialize();
+        
+        self.modules = Vec::new();
+        let _ = self.module_registry.scan_and_load();
+
+        self.minimap = MiniMap::new();
+        self.tactical_reset = TacticalReset::new();
+        self.voice = VoiceCommandProcessor::new();
+        self.shell_api = ShellApi::new(ShellApiConfig::default());
+        self.shell_registry = system::shell::ShellRegistry::new();
+        self.security = SecurityManager::new();
+        self.remote_manager = RemoteManager::new();
+        self.collaboration_manager = CollaborationManager::new();
+        self.audio_manager = AudioManager::new();
+        self.performance_monitor = PerformanceMonitor::new();
+        self.earcon_player = EarconPlayer::new();
+    }
+
     pub fn new() -> Self {
+        if let Some(state) = Self::load() {
+            return state;
+        }
+
         // Initialize module registries
         let mut module_registry = ModuleRegistry::new();
         module_registry.set_default_paths();

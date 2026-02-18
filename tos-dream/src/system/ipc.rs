@@ -188,6 +188,9 @@ impl IpcDispatcher {
                 _ => tracing::warn!("Unknown IPC request: {}", request),
             }
         }
+        
+        // Auto-save on every state modification
+        state.save();
     }
 
     fn handle_prompt_submit(&self, state: &mut TosState, cmd_full: &str) {

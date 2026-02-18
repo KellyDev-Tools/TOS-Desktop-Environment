@@ -36,3 +36,13 @@ pub fn get_process_stats(pid: u32) -> io::Result<ProcessStats> {
         memory_bytes,
     })
 }
+
+pub fn kill_process(pid: u32) {
+    send_signal(pid, libc::SIGKILL);
+}
+
+pub fn send_signal(pid: u32, signal: i32) {
+    unsafe {
+        libc::kill(pid as libc::pid_t, signal);
+    }
+}

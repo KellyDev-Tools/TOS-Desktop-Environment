@@ -89,6 +89,21 @@ impl IpcDispatcher {
         } else if request.starts_with("play_audio:") {
             let event_str = &request[11..];
             self.handle_play_audio(&mut state, event_str);
+        } else if request.starts_with("send_comms:") {
+            let body = &request[11..];
+            state.comms_messages.push(crate::CommsMessage {
+                from: "USER".to_string(),
+                body: body.to_string(),
+                timestamp: chrono::Local::now().format("%H:%M").to_string(),
+            });
+            state.earcon_player.play(crate::system::audio::earcons::EarconEvent::CommandAccepted);
+        } else if request.starts_with("signal_app:") {
+            let parts: Vec<&str> = request[11..].split(';').collect();
+            if parts.len() == 2 {
+                let id_str = parts[0];
+                let signal_type = parts[1];
+                self.handle_signal_app(&mut state, id_str, signal_type);
+            }
         } else if request == "collaboration_invite" {
             // Default invite action
             self.handle_invite_participant(&mut state, "Viewer");
@@ -359,12 +374,33 @@ impl IpcDispatcher {
     }
 
     fn handle_kill_app(&self, state: &mut TosState, id_str: &str) {
+        self.handle_signal_app(state, id_str, "KILL");
+    }
+
+    fn handle_signal_app(&self, state: &mut TosState, id_str: &str, signal_type: &str) {
         if let Ok(id) = Uuid::parse_str(id_str) {
             for sector in &mut state.sectors {
                 for hub in &mut sector.hubs {
                     if let Some(pos) = hub.applications.iter().position(|a| a.id == id) {
-                        let app = hub.applications.remove(pos);
-                        println!("TOS // KILLED APP: {}", app.title);
+                        let app = &hub.applications[pos];
+                        if let Some(pid) = app.pid {
+                            let sig = match signal_type {
+                                "INT" => libc::SIGINT,
+                                "TERM" => libc::SIGTERM,
+                                "KILL" => libc::SIGKILL,
+                                _ => libc::SIGTERM,
+                            };
+                            crate::system::proc::send_signal(pid, sig);
+                            
+                            if signal_type == "KILL" {
+                                hub.applications.remove(pos);
+                            }
+                        } else {
+                            // Dummy app just gets removed
+                            if signal_type == "KILL" {
+                                hub.applications.remove(pos);
+                            }
+                        }
                         return;
                     }
                 }

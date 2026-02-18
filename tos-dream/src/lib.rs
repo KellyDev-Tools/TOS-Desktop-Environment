@@ -169,6 +169,13 @@ pub trait TosModule: std::fmt::Debug + Send + Sync {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct CommsMessage {
+    pub from: String,
+    pub body: String,
+    pub timestamp: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Application {
     pub id: uuid::Uuid,
     pub title: String,
@@ -187,6 +194,7 @@ pub struct TosState {
     pub current_level: HierarchyLevel,
     pub sectors: Vec<Sector>,
     pub viewports: Vec<Viewport>,
+    pub comms_messages: Vec<CommsMessage>,
     pub active_viewport_index: usize,
     pub escape_count: usize, // For Tactical Reset
     pub fps: f32,
@@ -549,6 +557,13 @@ impl TosState {
         let state = Self {
             current_level: HierarchyLevel::GlobalOverview,
             sectors,
+            comms_messages: vec![
+                CommsMessage {
+                    from: "STARFLEET".to_string(),
+                    body: "Encryption protocols active. Welcome, Commander.".to_string(),
+                    timestamp: chrono::Local::now().format("%H:%M").to_string(),
+                }
+            ],
             viewports,
             active_viewport_index: 0,
             escape_count: 0,

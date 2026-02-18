@@ -301,6 +301,7 @@ impl ViewRenderer for HubRenderer {
                                 <div class="stat">{mem}</div>
                             </div>
                             <div class="app-tile-actions">
+                                <button class="tile-btn" onclick="window.ipc.postMessage('signal_app:{id};INT')">SIGINT</button>
                                 <button class="tile-btn danger" onclick="window.ipc.postMessage('kill_app:{id}')">KILL</button>
                             </div>
                         </div>"#,

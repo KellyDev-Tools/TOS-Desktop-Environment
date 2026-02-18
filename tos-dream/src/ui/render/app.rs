@@ -106,10 +106,7 @@ impl ViewRenderer for AppRenderer {
                 </div>
                 {portal_approval_html}
                 <div class="application-surface" onclick="window.ipc.postMessage('zoom_in')">
-                    <div class="app-mock-content">
-                        APPLICATION DATA FEED: {title}
-                        {module_content}
-                    </div>
+                    {app_content}
                 </div>
             </div>"#,
             mode = mode,
@@ -117,7 +114,26 @@ impl ViewRenderer for AppRenderer {
             title = app.title.to_uppercase(),
             class = app.app_class.to_uppercase(),
             participants_html = participants_html,
-            module_content = module_content,
+            app_content = if app.app_class.contains("Shell") || app.app_class.contains("terminal") {
+                let lines = hub.terminal_output.join("\n");
+                format!(r#"<pre class="terminal-content">{}</pre>"#, lines)
+            } else {
+                format!(
+                    r#"<div class="app-mock-content">
+                        <div class="data-header">DATA FEED // {title}</div>
+                        <div class="data-body">{module_content}</div>
+                        <div class="data-footer">PID: {pid} // MEM: {mem}</div>
+                    </div>"#,
+                    title = app.title.to_uppercase(),
+                    module_content = module_content,
+                    pid = app.pid.map(|p| p.to_string()).unwrap_or_else(|| "N/A".to_string()),
+                    mem = if let Some(pid) = app.pid {
+                        if let Ok(stats) = crate::system::proc::get_process_stats(pid) {
+                            format!("{}MB", stats.memory_bytes / 1024 / 1024)
+                        } else { "---MB".to_string() }
+                    } else { "---MB".to_string() }
+                )
+            },
             portal_active_class = portal_active_class,
             portal_label = portal_label,
             portal_info_html = portal_info_html,

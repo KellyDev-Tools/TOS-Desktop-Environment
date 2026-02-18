@@ -92,9 +92,36 @@ impl ViewRenderer for HubRenderer {
                 let cwd = &hub.current_directory;
                 let cwd_display = cwd.display().to_string().to_uppercase();
 
-                html.push_str(&format!(r#"<div class="directory-view">
-                    <div class="path-bar">{}</div>
-                    <div class="file-grid">"#, cwd_display));
+                html.push_str(r#"<div class="directory-view">
+                    <div class="path-bar breadcrumbs">"#);
+                
+                let path_str = hub.current_directory.to_string_lossy();
+                let mut current_path = std::path::PathBuf::new();
+                
+                // Add Root /
+                html.push_str(r#"<span class="breadcrumb" onclick="window.ipc.postMessage('dir_navigate:/')">ROOT</span>"#);
+                
+                for component in hub.current_directory.components() {
+                    if let std::path::Component::Normal(name) = component {
+                        let name_str = name.to_string_lossy();
+                        current_path.push(name);
+                        let full_path = current_path.to_string_lossy().replace('\'', "\\'");
+                        html.push_str(&format!(
+                            r#"<span class="path-sep">/</span><span class="breadcrumb" onclick="window.ipc.postMessage('dir_navigate:{}')">{}</span>"#,
+                            full_path, name_str.to_uppercase()
+                        ));
+                    }
+                }
+                html.push_str("</div>");
+
+                // Action Bar (§3.2 Action toolbar)
+                html.push_str(r#"<div class="directory-actions">
+                    <button class="bezel-btn" onclick="window.ipc.postMessage('stage_command:mkdir ')">NEW FOLDER</button>
+                    <button class="bezel-btn" onclick="window.ipc.postMessage('dir_navigate:.')">REFRESH</button>
+                    <button class="bezel-btn danger" onclick="window.ipc.postMessage('stage_command:rm ')">DELETE</button>
+                </div>"#);
+
+                html.push_str(r#"<div class="file-grid">"#);
 
                 // Always show parent directory entry
                 html.push_str(r#"<div class="file-item staging-item" onclick="window.ipc.postMessage('dir_navigate:..')">
@@ -132,12 +159,19 @@ impl ViewRenderer for HubRenderer {
                         for (name, _meta) in &dirs {
                             let display_name = name.to_uppercase();
                             let escaped_name = name.replace('\'', "\\'");
+                            let is_selected = hub.selected_files.contains(name);
+                            let selected_class = if is_selected { "selected" } else { "" };
+                            
                             html.push_str(&format!(
-                                r#"<div class="file-item staging-item" onclick="window.ipc.postMessage('dir_navigate:{escaped}')">
+                                r#"<div class="file-item staging-item {selected_class}" 
+                                    onclick="window.ipc.postMessage('dir_navigate:{escaped}')"
+                                    oncontextmenu="event.preventDefault(); window.ipc.postMessage('dir_context:{escaped};' + event.clientX + ';' + event.clientY)">
+                                    <div class="file-selector" onclick="event.stopPropagation(); window.ipc.postMessage('dir_toggle_select:{escaped}')"></div>
                                     <span class="file-icon folder"></span> {display}/
                                 </div>"#,
                                 escaped = escaped_name,
                                 display = display_name,
+                                selected_class = selected_class,
                             ));
                         }
 
@@ -146,29 +180,37 @@ impl ViewRenderer for HubRenderer {
                             let display_name = name.to_uppercase();
                             let escaped_name = name.replace('\'', "\\'");
                             let size = meta.len();
-                            let size_str = if size < 1024 {
-                                format!("{}B", size)
-                            } else if size < 1024 * 1024 {
-                                format!("{:.1}KB", size as f64 / 1024.0)
+                            let size_str = if size > 1024 * 1024 {
+                                format!("{:.1}MB", size as f32 / (1024.1 * 1024.1))
                             } else {
-                                format!("{:.1}MB", size as f64 / (1024.0 * 1024.0))
+                                format!("{}KB", size / 1024)
                             };
-
-                            // Determine file type from extension
-                            let ext = std::path::Path::new(&name)
+                            let ext = std::path::Path::new(name)
                                 .extension()
-                                .map(|e| e.to_string_lossy().to_uppercase())
-                                .unwrap_or_else(|| "FILE".to_string());
+                                .and_then(|s| s.to_str())
+                                .unwrap_or("FILE")
+                                .to_uppercase();
+
+                            let is_selected = hub.selected_files.contains(name);
+                            let selected_class = if is_selected { "selected" } else { "" };
 
                             html.push_str(&format!(
-                                r#"<div class="file-item staging-item" onclick="window.ipc.postMessage('stage_command:view {escaped}')">
-                                    <span class="file-icon file"></span> {display}
-                                    <span class="file-meta">{size} // {ext}</span>
+                                r#"<div class="file-item staging-item {selected_class}" 
+                                    onclick="window.ipc.postMessage('stage_command:view {escaped}')"
+                                    oncontextmenu="event.preventDefault(); window.ipc.postMessage('dir_context:{escaped};' + event.clientX + ';' + event.clientY)">
+                                    <div class="file-selector" onclick="event.stopPropagation(); window.ipc.postMessage('dir_toggle_select:{escaped}')"></div>
+                                    <span class="file-icon {ext_class}"></span>
+                                    <div class="file-info">
+                                        <div class="file-name">{display}</div>
+                                        <div class="file-meta">{size} // {ext}</div>
+                                    </div>
                                 </div>"#,
                                 escaped = escaped_name,
                                 display = display_name,
                                 size = size_str,
                                 ext = ext,
+                                ext_class = ext.to_lowercase(),
+                                selected_class = selected_class,
                             ));
                         }
 
@@ -191,8 +233,38 @@ impl ViewRenderer for HubRenderer {
                     }
                 }
 
-                html.push_str("</div></div>");
-            }
+                        html.push_str("</div>");
+
+                        // Render context menu if active
+                        if let Some(menu) = &hub.context_menu {
+                            let mut actions_html = String::new();
+                            for action in &menu.actions {
+                                let cmd = match action.as_str() {
+                                    "OPEN" => format!("view {}", menu.target),
+                                    "COPY" => format!("cp {} ", menu.target),
+                                    "DELETE" => format!("rm {}", menu.target),
+                                    "RENAME" => format!("mv {} ", menu.target),
+                                    _ => action.clone(),
+                                };
+                                actions_html.push_str(&format!(
+                                    r#"<div class="menu-item" onclick="window.ipc.postMessage('stage_command:{}'); window.ipc.postMessage('dir_close_context')">{}</div>"#,
+                                    cmd.replace('\'', "\\'"), action
+                                ));
+                            }
+
+                            html.push_str(&format!(
+                                r#"<div class="context-menu-overlay" onclick="window.ipc.postMessage('dir_close_context')">
+                                    <div class="context-menu" style="left: {}px; top: {}px;" onclick="event.stopPropagation()">
+                                        <div class="menu-header">{}</div>
+                                        {}
+                                    </div>
+                                </div>"#,
+                                menu.x, menu.y, menu.target.to_uppercase(), actions_html
+                            ));
+                        }
+
+                        html.push_str("</div>");
+                    }
             CommandHubMode::Activity => {
                 let mut apps_html = String::new();
                 for app in &hub.applications {

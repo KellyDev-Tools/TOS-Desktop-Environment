@@ -30,21 +30,33 @@
 
 ## 1. Fixes Applied
 
-### 1.1 Directory Mode Filesystem (§3.2)
-**Status: ✅ FIXED**
-- **Changes:** Added `current_directory` and `show_hidden_files` to `CommandHub`. Replaced hardcoded HTML with `std::fs::read_dir()`.
+### 1.1 Directory Mode UX (§3.2)
+**Status: ✅ FIXED (P1 Items 5, 6, 7, 8)**
+- **Changes:** 
+    - Implemented breadcrumb-style clickable path segments.
+    - Added an action toolbar for rapid CLI command staging (`MKDIR`, `RM`).
+    - Implemented a right-click context menu for files and folders.
+    - Added multi-select capability with persistent selection state.
+    - Clickable segments and menu actions now correctly update the hub state or stage CLI commands.
 
-### 1.2 Shell API Integration (§13)
-**Status: ✅ FIXED (P0 Item 1)**
-- **Changes:** Wired `OscSequence::Cwd` to update `hub.current_directory`. Wired `dir_navigate` to send `cd` commands to the PTY.
+### 1.2 Shell API & Compositor Sync (§13, §4.5)
+**Status: ✅ FIXED (P0 Items 1, 2)**
+- **Changes:** 
+    - Wired `OscSequence::Cwd` to update the compositor's CWD.
+    - Replaced placeholder application surface with a real Terminal view that displays the PTY buffer or enriched data feeds for other apps.
 
-### 1.3 Activity Mode Process Tracking (§3.3)
-**Status: ✅ FIXED (P0 Item 3 & 4)**
-- **Changes:** Added `pid`, `icon`, and `is_dummy` fields to `Application` struct. Implemented `/proc` reader in `system/proc.rs` for real memory usage.
+### 1.3 System Tracking & Tactical Reset (§3.3, §14.1)
+**Status: ✅ FIXED (P0 Item 3, P1 Item 9)**
+- **Changes:** 
+    - Implemented real `/proc` reader for CPU/MEM stats.
+    - Tactical Reset now sends actual `SIGTERM` signals to tracked application processes before clearing state.
 
-### 1.4 Global Telemetry (§10)
-**Status: ✅ FIXED (P2 Item 11)**
-- **Changes:** Implemented `get_system_time()` and `get_stardate()` in `TosState` using `chrono`. Updated Global Overview and SVG Engine with dynamic values.
+### 1.4 Dynamic Telemetry & Metadata (§10, §12.2, §4.3)
+**Status: ✅ FIXED (P2 Items 11, 12, 13)**
+- **Changes:** 
+    - Dynamic stardate and system time update in real-time.
+    - Sectors now use dynamic descriptions and icons from the `Sector` struct.
+    - Detail Inspector now shows real PID and memory usage for the focused application.
 
 ---
 

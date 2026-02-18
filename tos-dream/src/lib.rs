@@ -99,6 +99,8 @@ pub struct Sector {
     pub participants: Vec<Participant>,
     pub portal_active: bool,
     pub portal_url: Option<String>,
+    pub description: String,
+    pub icon: String,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -114,6 +116,18 @@ pub struct CommandHub {
     pub current_directory: std::path::PathBuf,
     /// Whether to show hidden files (dotfiles) in Directory Mode
     pub show_hidden_files: bool,
+    /// Selected files in Directory Mode for batch operations
+    pub selected_files: std::collections::HashSet<String>,
+    /// Active context menu in Directory Mode
+    pub context_menu: Option<ContextMenu>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ContextMenu {
+    pub target: String,
+    pub x: i32,
+    pub y: i32,
+    pub actions: Vec<String>,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
@@ -339,6 +353,8 @@ impl TosState {
                 confirmation_required: None,
                 current_directory: dirs::home_dir().unwrap_or_else(|| std::path::PathBuf::from("/")),
                 show_hidden_files: false,
+                selected_files: std::collections::HashSet::new(),
+                context_menu: None,
             }],
             active_hub_index: 0,
             host: "LOCAL".to_string(),
@@ -346,6 +362,8 @@ impl TosState {
             participants: vec![Participant { name: "Host".to_string(), color: "#ffcc00".to_string(), role: "Co-owner".to_string() }],
             portal_active: false,
             portal_url: None,
+            description: "Primary coordination and terminal access.".to_string(),
+            icon: "⌨️".to_string(),
         };
 
         let second_sector = Sector {
@@ -381,6 +399,8 @@ impl TosState {
                 confirmation_required: None,
                 current_directory: dirs::home_dir().unwrap_or_else(|| std::path::PathBuf::from("/")),
                 show_hidden_files: false,
+                selected_files: std::collections::HashSet::new(),
+                context_menu: None,
             }],
             active_hub_index: 0,
             host: "LAB-SRV-01".to_string(),
@@ -392,6 +412,8 @@ impl TosState {
             ],
             portal_active: false,
             portal_url: None,
+            description: "Data analysis and sensor array telemetry.".to_string(),
+            icon: "🔬".to_string(),
         };
 
         let third_sector = Sector {
@@ -416,6 +438,8 @@ impl TosState {
                 confirmation_required: None,
                 current_directory: dirs::home_dir().unwrap_or_else(|| std::path::PathBuf::from("/")),
                 show_hidden_files: false,
+                selected_files: std::collections::HashSet::new(),
+                context_menu: None,
             }],
             active_hub_index: 0,
             host: "OBS-NODE-04".to_string(),
@@ -423,6 +447,8 @@ impl TosState {
             participants: Vec::new(),
             portal_active: false,
             portal_url: None,
+            description: "Remote node established via TOS protocol.".to_string(),
+            icon: "📡".to_string(),
         };
 
         let initial_viewport = Viewport {

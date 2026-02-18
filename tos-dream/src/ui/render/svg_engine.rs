@@ -70,7 +70,7 @@ fn render_global_overview_svg(svg: &mut String, state: &TosState) {
         
         // Icon
         svg.push_str(&format!(r##"<circle cx="{}" cy="{}" r="30" fill="rgba(0,0,0,0.2)" />"##, x+50, y+100));
-        svg.push_str(&format!(r##"<text x="{}" y="{}" fill="{}" font-size="40" text-anchor="middle" filter="url(#glow)">⌨️</text>"##, x+50, y+115, color));
+        svg.push_str(&format!(r##"<text x="{}" y="{}" fill="{}" font-size="40" text-anchor="middle" filter="url(#glow)">{}</text>"##, x+50, y+115, color, sector.icon));
         
         // Name
         svg.push_str(&format!(r##"<text x="{}" y="{}" fill="white" font-size="24" font-weight="800">{}</text>"##, x+20, y+170, sector.name.to_uppercase()));

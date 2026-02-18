@@ -103,6 +103,8 @@ impl IpcDispatcher {
                 if let Some(parent) = hub.current_directory.parent() {
                     let new_path = parent.to_path_buf();
                     hub.current_directory = new_path.clone();
+                    hub.selected_files.clear();
+                    hub.context_menu = None;
                     
                     // Sync with shell
                     let hub_id = hub.id;
@@ -118,6 +120,8 @@ impl IpcDispatcher {
                 let new_path = hub.current_directory.join(target);
                 if new_path.is_dir() {
                     hub.current_directory = new_path.clone();
+                    hub.selected_files.clear();
+                    hub.context_menu = None;
 
                     // Sync with shell
                     let hub_id = hub.id;
@@ -134,6 +138,33 @@ impl IpcDispatcher {
             let hub_idx = state.viewports[state.active_viewport_index].hub_index;
             let hub = &mut state.sectors[sector_idx].hubs[hub_idx];
             hub.show_hidden_files = !hub.show_hidden_files;
+        } else if request.starts_with("dir_toggle_select:") {
+            let name = &request[18..].replace("\\'", "'");
+            let sector_idx = state.viewports[state.active_viewport_index].sector_index;
+            let hub_idx = state.viewports[state.active_viewport_index].hub_index;
+            let hub = &mut state.sectors[sector_idx].hubs[hub_idx];
+            if !hub.selected_files.remove(name) {
+                hub.selected_files.insert(name.to_string());
+            }
+        } else if request.starts_with("dir_context:") {
+            let parts: Vec<&str> = request[12..].split(';').collect();
+            if parts.len() >= 3 {
+                let target = parts[0].replace("\\'", "'");
+                let x = parts[1].parse::<i32>().unwrap_or(0);
+                let y = parts[2].parse::<i32>().unwrap_or(0);
+                let sector_idx = state.viewports[state.active_viewport_index].sector_index;
+                let hub_idx = state.viewports[state.active_viewport_index].hub_index;
+                let hub = &mut state.sectors[sector_idx].hubs[hub_idx];
+                hub.context_menu = Some(crate::ContextMenu {
+                    target: target.to_string(),
+                    x, y,
+                    actions: vec!["OPEN".to_string(), "COPY".to_string(), "RENAME".to_string(), "DELETE".to_string()],
+                });
+            }
+        } else if request == "dir_close_context" {
+            let sector_idx = state.viewports[state.active_viewport_index].sector_index;
+            let hub_idx = state.viewports[state.active_viewport_index].hub_index;
+            state.sectors[sector_idx].hubs[hub_idx].context_menu = None;
         } else {
             // Legacy/Direct zoom fallback
             match request {

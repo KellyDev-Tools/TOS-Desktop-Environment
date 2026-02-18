@@ -198,10 +198,15 @@ impl TacticalReset {
         // Get the sector
         let sector = &mut state.sectors[sector_index];
         
-        // Send SIGTERM to all applications (in real implementation)
-        // For now, just clear the applications
+        // Send SIGTERM to all application processes in the sector
         for hub in &mut sector.hubs {
-            // In a real implementation, this would send SIGTERM to PIDs
+            for app in &hub.applications {
+                if let Some(pid) = app.pid {
+                    unsafe {
+                        libc::kill(pid as i32, libc::SIGTERM);
+                    }
+                }
+            }
             hub.applications.clear();
             hub.active_app_index = None;
             hub.prompt.clear();
@@ -219,6 +224,8 @@ impl TacticalReset {
             confirmation_required: None,
             current_directory: dirs::home_dir().unwrap_or_else(|| std::path::PathBuf::from("/")),
             show_hidden_files: false,
+            selected_files: std::collections::HashSet::new(),
+            context_menu: None,
         }];
         sector.active_hub_index = 0;
 

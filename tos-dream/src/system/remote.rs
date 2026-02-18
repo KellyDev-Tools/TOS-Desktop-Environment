@@ -113,6 +113,8 @@ impl RemoteManager {
                 confirmation_required: None,
                 current_directory: dirs::home_dir().unwrap_or_else(|| std::path::PathBuf::from("/")),
                 show_hidden_files: false,
+                selected_files: std::collections::HashSet::new(),
+                context_menu: None,
             }],
             active_hub_index: 0,
             host: node.address.clone(),
@@ -120,6 +122,8 @@ impl RemoteManager {
             participants: Vec::new(),
             portal_active: false,
             portal_url: None,
+            description: format!("Remote session on {}", node.hostname),
+            icon: "🌐".to_string(),
         })
     }
 

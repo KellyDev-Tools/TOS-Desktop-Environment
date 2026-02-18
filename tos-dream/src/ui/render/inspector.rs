@@ -9,20 +9,34 @@ impl ViewRenderer for DetailInspectorRenderer {
         let hub = &sector.hubs[viewport.hub_index];
         let app = &hub.applications[viewport.active_app_index.unwrap_or(0)];
 
+        let mut mem_str = "--- MB".to_string();
+        let mut pid_str = "N/A".to_string();
+
+        if let Some(pid) = app.pid {
+            pid_str = pid.to_string();
+            if let Ok(stats) = crate::system::proc::get_process_stats(pid) {
+                mem_str = format!("{} MB", stats.memory_bytes / 1024 / 1024);
+            }
+        }
+
         format!(
             r#"<div class="inspector-container detail-inspector render-{mode:?}">
                 <div class="inspector-header">NODE INSPECTOR // LEVEL 4</div>
                 <div class="inspector-content">
                     <div class="stat-row"><span>ID:</span> <span>{id}</span></div>
+                    <div class="stat-row"><span>PID:</span> <span>{pid}</span></div>
                     <div class="stat-row"><span>CLASS:</span> <span>{class}</span></div>
                     <div class="stat-row"><span>SECTOR:</span> <span>{sector}</span></div>
-                    <div class="stat-row"><span>PERMISSIONS:</span> <span>0755</span></div>
-                    <div class="stat-row"><span>UPTIME:</span> <span>00:14:32</span></div>
+                    <div class="stat-row"><span>MEMORY:</span> <span>{mem}</span></div>
                 </div>
                 <div class="inspector-footer" onclick="window.ipc.postMessage('zoom_out')">BACK</div>
             </div>"#,
             mode = mode,
-            id = app.id, class = app.app_class, sector = sector.name
+            id = app.id, 
+            pid = pid_str,
+            class = app.app_class, 
+            sector = sector.name,
+            mem = mem_str
         )
     }
 }

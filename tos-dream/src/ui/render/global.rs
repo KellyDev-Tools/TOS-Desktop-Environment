@@ -58,12 +58,8 @@ impl ViewRenderer for GlobalRenderer {
                 _ => "green",
             };
 
-            let (desc, icon) = match sector.name.as_str() {
-                "Alpha Sector" => ("Primary coordination and terminal access.", "⌨️"),
-                "Science Labs" => ("Data analysis and sensor array telemetry.", "🔬"),
-                "Engineering" => ("Core systems and resource management.", "⚙️"),
-                _ => ("Remote node established via TOS protocol.", "📡"),
-            };
+            let desc = &sector.description;
+            let icon = &sector.icon;
 
             let remote_indicator = match sector.connection_type {
                 ConnectionType::Local => String::new(),

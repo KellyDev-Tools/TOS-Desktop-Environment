@@ -468,10 +468,15 @@
 | 11 | ~~System time / stardate hardcoded~~ ✅ | §10 | `global.rs`, `svg_engine.rs` |
 | 12 | ~~Sector descriptions name-matched~~ ✅ | §12 | `global.rs` |
 | 13 | ~~Inspector permissions/uptime static~~ ✅ | §4 | `inspector.rs` |
-| 14 | Audio playback is stub | §18 | `audio.rs`, `earcons.rs` |
-| 15 | Remote sectors have no network I/O | §7 | `remote.rs` |
+| 14 | Audio playback is stub (tests added) | §18 | `audio.rs`, `earcons.rs` |
+| 15 | Remote sectors have no network I/O (tests added) | §7 | `remote.rs` |
 | 16 | ~~Bezel sliders have no effect~~ ✅ | §4 | `app.rs` |
 | 17 | ~~"MOCK" button exposed to user~~ ✅ | — | `global.rs` |
+
+**P2 Verification (2026-02-18):** Audio and Remote systems verified with tests:
+- 34 new unit/component/integration tests in `tests/audio_remote_integration.rs`
+- Tests cover: AudioManager, EarconPlayer, spatial audio, RemoteManager, SyncPackets
+- Note: Audio playback is still stub (rodio integration requires `--features accessibility`)
 
 ### P3 — Low (Future roadmap items)
 | # | Issue | Spec Section | File(s) |

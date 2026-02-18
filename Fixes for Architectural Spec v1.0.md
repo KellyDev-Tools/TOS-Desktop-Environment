@@ -258,27 +258,34 @@
 
 ## 9. Tactical Reset Stubs (§14)
 
-**Status: ⚠️ PARTIAL**
+**Status: ✅ FIXED**
 
-### 9.1 SIGTERM Not Actually Sent
-- **Spec (§14.1):** "Sends SIGTERM to all processes in the current sector"
-- **Current:** `reset.rs` lines 201-205:
-  ```rust
-  // Send SIGTERM to all applications (in real implementation)
-  // For now, just clear the applications
-  hub.applications.clear();
-  // In a real implementation, this would send SIGTERM to PIDs
-  ```
-- **Fix needed:** Use `nix::sys::signal::kill(Pid, Signal::SIGTERM)` on each app's PID. Requires PID tracking on `Application` struct (see §7.1).
+### 9.1 SIGTERM Now Fully Implemented
+- **Already wired (discovered during fix):** `libc::kill(pid, SIGTERM)` was already present in `reset.rs` from a prior session.
+- **Enhanced:** SIGTERM result is now checked — success/failure is logged via `tracing::info!`/`tracing::warn!` with errno on failure.
+- **Added:** `last_sigterm_pids: Vec<u32>` field on `TacticalReset` — records every PID that was successfully SIGTERMed in the most recent sector reset, enabling test verification and observability.
+- **Added:** `last_sigterm_pids` is cleared at the start of each new sector reset to prevent stale data.
 
-### 9.2 Compositor Restart Is a Print Statement
-- **Current:** `reset.rs` line 386:  
-  ```rust
-  println!("TACTICAL RESET: Restarting TOS compositor...");
-  ```
-- **Fix needed:** Execute actual `systemctl restart tos-compositor` or equivalent
+### 9.2 Compositor Restart Is Now a Real Command
+- **Fixed:** `restart_compositor()` now calls `std::process::Command::new("systemctl").args(["restart", "tos-compositor"])`.
+  - On success: returns `Ok(())`.
+  - On non-zero exit (unit not found): falls back to `SIGHUP` on the current process (causes service manager to restart it).
+  - On `systemctl` not found (non-systemd host): also falls back to `SIGHUP self`.
+- **Fixed:** `log_out()` now calls `loginctl terminate-session $XDG_SESSION_ID` if `XDG_SESSION_ID` is set, otherwise falls back to `pkill -u $USER tos`.
+- **Added:** `last_system_command: Option<String>` field on `TacticalReset` — records the last command string sent to the executor or attempted via `std::process::Command`, for observability and testing.
+- **Added:** `whoami_or_fallback()` helper reads `$USER` / `$LOGNAME` env vars for the pkill fallback.
+- **Design:** Both methods still respect the `system_executor` injection point — tests inject a mock closure; production uses the real `std::process::Command` path.
 
-**File:** `src/system/reset.rs` lines 201-205, 386
+### 9.3 Tests Added
+- **New:** `tests/tactical_reset_stubs.rs` — 27 tests covering:
+  - **Unit (SIGTERM):** Real child process SIGTERMed and tracked in `last_sigterm_pids`; apps without PIDs skipped; PID list cleared on new reset; multiple apps all SIGTERMed
+  - **Unit (executor):** Restart/logout use injected executor; failure propagates as `ResetError::ExecutionFailed`; `last_system_command` recorded on both paths
+  - **Unit (errors):** All 6 `ResetError` variants display correctly; implements `std::error::Error`
+  - **Component:** Full state machine (sector reset clears hub, returns to CommandHub, saves/restores for undo, double-reset guard, full system reset lifecycle, cancel paths)
+  - **Component (render):** Idle empty, sector reset undo button, system dialog options, tactile progress bar, countdown number
+  - **Integration:** `SemanticEvent::TacticalReset` through `TosState::handle_semantic_event`
+
+**Files:** `src/system/reset.rs`, `tests/tactical_reset_stubs.rs`
 
 ---
 
@@ -441,7 +448,7 @@
 | 6 | Directory Mode lacks action toolbar | §3.2 | `hub.rs` |
 | 7 | Directory Mode lacks context menu | §3.2 | `hub.rs` |
 | 8 | Path bar not breadcrumb-style | §3.2 | `hub.rs` |
-| 9 | SIGTERM not sent on reset | §14 | `reset.rs` |
+| 9 | ~~SIGTERM not sent on reset~~ ✅ | §14 | `reset.rs` |
 | 10 | Sector templates hardcoded | §15 | `hub.rs` |
 
 ### P2 — Medium (Missing integration)

@@ -117,8 +117,12 @@ pub struct TacticalReset {
     pub state: ResetOperationState,
     /// Saved sector state for potential restoration
     pub saved_sector: Option<Sector>,
-    /// Callback for executing system commands
+    /// Callback for executing system commands (overrides default behaviour)
     system_executor: Option<Box<dyn Fn(&str) -> Result<(), String> + Send>>,
+    /// Last system command attempted (for observability / testing)
+    pub last_system_command: Option<String>,
+    /// PIDs that were sent SIGTERM in the most recent sector reset
+    pub last_sigterm_pids: Vec<u32>,
 }
 
 impl std::fmt::Debug for TacticalReset {
@@ -138,6 +142,13 @@ impl Default for TacticalReset {
     }
 }
 
+/// Get the current username for use in system commands, falling back to "user"
+fn whoami_or_fallback() -> String {
+    std::env::var("USER")
+        .or_else(|_| std::env::var("LOGNAME"))
+        .unwrap_or_else(|_| "user".to_string())
+}
+
 impl TacticalReset {
     /// Create a new tactical reset manager with default config
     pub fn new() -> Self {
@@ -151,6 +162,8 @@ impl TacticalReset {
             state: ResetOperationState::Idle,
             saved_sector: None,
             system_executor: None,
+            last_system_command: None,
+            last_sigterm_pids: Vec::new(),
         }
     }
 
@@ -201,12 +214,18 @@ impl TacticalReset {
         // Get the sector
         let sector = &mut state.sectors[sector_index];
         
-        // Send SIGTERM to all application processes in the sector
+        // Send SIGTERM to all application processes in the sector (§14.1)
+        self.last_sigterm_pids.clear();
         for hub in &mut sector.hubs {
             for app in &hub.applications {
                 if let Some(pid) = app.pid {
-                    unsafe {
-                        libc::kill(pid as i32, libc::SIGTERM);
+                    let result = unsafe { libc::kill(pid as i32, libc::SIGTERM) };
+                    if result == 0 {
+                        self.last_sigterm_pids.push(pid);
+                        tracing::info!("SIGTERM sent to PID {}", pid);
+                    } else {
+                        let errno = unsafe { *libc::__errno_location() };
+                        tracing::warn!("SIGTERM to PID {} failed: errno {}", pid, errno);
                     }
                 }
             }
@@ -389,27 +408,83 @@ impl TacticalReset {
         }
     }
 
-    /// Restart the TOS compositor
-    fn restart_compositor(&self) -> Result<(), ResetError> {
+    /// Restart the TOS compositor (§14.2)
+    fn restart_compositor(&mut self) -> Result<(), ResetError> {
         if let Some(ref executor) = self.system_executor {
-            executor("systemctl restart tos-compositor")
-                .map_err(|e| ResetError::ExecutionFailed(e))
+            let cmd = "systemctl restart tos-compositor";
+            self.last_system_command = Some(cmd.to_string());
+            executor(cmd).map_err(ResetError::ExecutionFailed)
         } else {
-            // Default implementation - in real system would restart
-            println!("TACTICAL RESET: Restarting TOS compositor...");
-            Ok(())
+            // Real implementation: try systemctl first, then SIGHUP self as fallback
+            let cmd = "systemctl restart tos-compositor";
+            self.last_system_command = Some(cmd.to_string());
+            tracing::info!("TACTICAL RESET: Restarting TOS compositor via systemctl");
+            match std::process::Command::new("systemctl")
+                .args(["restart", "tos-compositor"])
+                .status()
+            {
+                Ok(status) if status.success() => Ok(()),
+                Ok(status) => {
+                    // systemctl ran but compositor unit may not exist — try SIGHUP on self
+                    tracing::warn!(
+                        "systemctl restart tos-compositor exited with {}, sending SIGHUP to self",
+                        status
+                    );
+                    let self_pid = std::process::id();
+                    let result = unsafe { libc::kill(self_pid as i32, libc::SIGHUP) };
+                    if result == 0 {
+                        Ok(())
+                    } else {
+                        Err(ResetError::ExecutionFailed(
+                            format!("systemctl failed ({}) and SIGHUP self failed", status)
+                        ))
+                    }
+                }
+                Err(e) => {
+                    // systemctl not available (e.g. non-systemd host) — SIGHUP self
+                    tracing::warn!("systemctl not available ({}), sending SIGHUP to self", e);
+                    let self_pid = std::process::id();
+                    let result = unsafe { libc::kill(self_pid as i32, libc::SIGHUP) };
+                    if result == 0 {
+                        Ok(())
+                    } else {
+                        Err(ResetError::ExecutionFailed(
+                            format!("systemctl unavailable and SIGHUP self failed: {}", e)
+                        ))
+                    }
+                }
+            }
         }
     }
 
-    /// Log out and return to login manager
-    fn log_out(&self) -> Result<(), ResetError> {
+    /// Log out and return to login manager (§14.2)
+    fn log_out(&mut self) -> Result<(), ResetError> {
         if let Some(ref executor) = self.system_executor {
-            executor("pkill -u $USER tos")
-                .map_err(|e| ResetError::ExecutionFailed(e))
+            let cmd = "loginctl terminate-session $XDG_SESSION_ID";
+            self.last_system_command = Some(cmd.to_string());
+            executor(cmd).map_err(ResetError::ExecutionFailed)
         } else {
-            // Default implementation
-            println!("TACTICAL RESET: Logging out...");
-            Ok(())
+            // Real implementation: try loginctl with session ID, then pkill fallback
+            let session_id = std::env::var("XDG_SESSION_ID").unwrap_or_default();
+            let username = whoami_or_fallback(); // bind to local to extend lifetime
+            let (cmd, args): (&str, Vec<&str>) = if !session_id.is_empty() {
+                ("loginctl", vec!["terminate-session", &session_id])
+            } else {
+                // Fallback: kill all tos processes for current user
+                ("pkill", vec!["-u", &username, "tos"])
+            };
+            let cmd_str = format!("{} {}", cmd, args.join(" "));
+            self.last_system_command = Some(cmd_str.clone());
+            tracing::info!("TACTICAL RESET: Logging out via: {}", cmd_str);
+            match std::process::Command::new(cmd).args(&args).status() {
+                Ok(status) if status.success() => Ok(()),
+                Ok(status) => Err(ResetError::ExecutionFailed(
+                    format!("{} exited with {}", cmd_str, status)
+                )),
+                Err(e) => Err(ResetError::ExecutionFailed(
+                    format!("{} failed: {}", cmd_str, e)
+                )),
+            }
         }
     }
 

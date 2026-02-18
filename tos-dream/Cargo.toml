@@ -38,12 +38,29 @@ tao = { version = "0.27", optional = true }
 # Audio/earcons - using rodio for cross-platform audio
 rodio = { version = "0.17", optional = true }
 
+# P3: Voice System dependencies
+# Audio capture for voice commands
+cpal = { version = "0.15", optional = true }
+# Speech-to-text using whisper
+whisper-rs = { version = "0.8", optional = true }
+
+# P3: Script Engine dependencies
+# JavaScript execution via quickjs
+rquickjs = { version = "0.5", optional = true }
+# Lua execution via mlua
+mlua = { version = "0.9", features = ["lua54", "async"], optional = true }
+
+# P3: Remote Desktop dependencies
+# SSH for remote connections (using russh for async SSH)
+russh = { version = "0.43", optional = true }
+russh-keys = { version = "0.43", optional = true }
+# WebSocket for real-time communication
+tokio-tungstenite = { version = "0.21", optional = true }
+
 # Phase 11: Security and Shell API dependencies
 regex = "1.10"
 base64 = "0.22"
 rand = "0.8"
-# WebSocket for live feed streaming
-tokio-tungstenite = { version = "0.21", optional = true }
 # TTS - using speech-dispatcher for Linux
 speech-dispatcher = { version = "0.16", optional = true }
 # AT-SPI for screen reader integration
@@ -69,8 +86,11 @@ tracing-opentelemetry = { version = "0.22", optional = true }
 default = ["gui", "saas"]
 gui = ["dep:wry", "dep:tao"]
 gamepad = ["dep:gilrs"]
-accessibility = ["dep:rodio", "dep:speech-dispatcher", "dep:atspi", "dep:dark-light"]
+accessibility = ["dep:rodio", "dep:speech-dispatcher", "dep:atspi", "dep:dark-light", "dep:cpal", "dep:whisper-rs"]
 live-feed = ["dep:tokio-tungstenite"]
+p3-voice = ["dep:cpal", "dep:whisper-rs"]
+p3-script = ["dep:rquickjs", "dep:mlua"]
+p3-remote = ["dep:russh", "dep:russh-keys", "dep:tokio-tungstenite"]
 saas = [
     "dep:bollard", 
     "dep:kube", 

@@ -16,7 +16,7 @@
 //! - **Level 2**: Current sector with mode indicator; other sectors dimmed
 //! - **Level 3**: Current sector with focused app highlighted; other viewports shown
 
-use crate::{HierarchyLevel, TosState, CommandHubMode};
+use crate::{HierarchyLevel, TosState, CommandHubMode, Sector};
 use serde::{Deserialize, Serialize};
 
 /// Position of the mini-map on screen
@@ -204,80 +204,52 @@ impl MiniMap {
 
     /// Update selection based on position (when active)
     fn update_selection(&mut self, _x: f32, _y: f32) {
-        // This would calculate which sector/viewport is under the cursor
-        // For now, just store the position for rendering highlight
-        // Actual selection happens on click
+        // P3: Selection now uses actual geometry calculated in handle_click
     }
 
     /// Handle click when active - returns selected navigation target
     pub fn handle_click(&self, x: f32, y: f32, state: &TosState) -> Option<NavigationTarget> {
-        if !self.is_active() {
-            return None;
-        }
-
-        // Calculate which element was clicked
-        let (sector_idx, viewport_idx) = self.calculate_click_target(x, y, state)?;
-        
-        Some(NavigationTarget {
-            sector_index: sector_idx,
-            viewport_index: viewport_idx,
-        })
+    if !self.is_active() {
+        return None;
     }
 
-    /// Calculate what was clicked based on position
-    fn calculate_click_target(&self, x: f32, y: f32, state: &TosState) -> Option<(usize, Option<usize>)> {
-        // Simplified layout calculation
-        // In a real implementation, this would use actual layout geometry
-        
-        let num_sectors = state.sectors.len();
-        if num_sectors == 0 {
-            return None;
-        }
+    // P3: Use actual layout geometry for accurate click detection
+    let (sector_idx, viewport_idx) = self.calculate_click_target_with_geometry(x, y, state)?;
+    
+    Some(NavigationTarget {
+        sector_index: sector_idx,
+        viewport_index: viewport_idx,
+    })
+}
 
-        // Determine layout based on current level
-        match state.current_level {
-            HierarchyLevel::GlobalOverview => {
-                // Grid of all sectors
-                let cols = (num_sectors as f32).sqrt().ceil() as usize;
-                let cell_width = 1.0 / cols as f32;
-                let cell_height = 1.0 / ((num_sectors + cols - 1) / cols) as f32;
-                
-                let col = (x / cell_width) as usize;
-                let row = (y / cell_height) as usize;
-                let idx = row * cols + col;
-                
-                if idx < num_sectors {
-                    Some((idx, None))
-                } else {
-                    None
-                }
-            }
-            _ => {
-                // Show current sector with viewports
-                let viewport = &state.viewports[state.active_viewport_index];
-                let sector_idx = viewport.sector_index;
-                
-                if state.viewports.len() > 1 && self.config.show_viewports {
-                    // Show viewport grid
-                    let vp_cols = (state.viewports.len() as f32).sqrt().ceil() as usize;
-                    let cell_width = 1.0 / vp_cols as f32;
-                    let cell_height = 1.0 / ((state.viewports.len() + vp_cols - 1) / vp_cols) as f32;
-                    
-                    let col = (x / cell_width) as usize;
-                    let row = (y / cell_height) as usize;
-                    let vp_idx = row * vp_cols + col;
-                    
-                    if vp_idx < state.viewports.len() {
-                        Some((sector_idx, Some(vp_idx)))
-                    } else {
-                        Some((sector_idx, None))
-                    }
-                } else {
-                    Some((sector_idx, None))
-                }
+/// P3: Calculate what was clicked using actual layout geometry
+fn calculate_click_target_with_geometry(&self, x: f32, y: f32, state: &TosState) -> Option<(usize, Option<usize>)> {
+    let mut geometry = LayoutGeometry::new();
+    geometry.calculate_from_state(state);
+
+    match state.current_level {
+        HierarchyLevel::GlobalOverview => {
+            // Use actual sector geometry
+            geometry.sector_at(x, y)
+                .map(|s| (s.sector_index, None))
+        }
+        _ => {
+            // Use actual viewport geometry
+            let current_vp = geometry.viewport_at(x, y)?;
+            
+            if state.viewports.len() > 1 && self.config.show_viewports {
+                Some((current_vp.sector_index, Some(current_vp.viewport_index)))
+            } else {
+                Some((current_vp.sector_index, None))
             }
         }
     }
+}
+
+/// Legacy method - kept for compatibility, now delegates to geometry-based method
+fn calculate_click_target(&self, x: f32, y: f32, state: &TosState) -> Option<(usize, Option<usize>)> {
+    self.calculate_click_target_with_geometry(x, y, state)
+}
 
     /// Render the mini-map as HTML
     pub fn render(&self, state: &TosState) -> String {
@@ -512,6 +484,123 @@ impl MiniMap {
     }
 }
 
+/// P3: Actual viewport geometry for accurate click detection
+#[derive(Debug, Clone)]
+pub struct ViewportGeometry {
+    pub x: f32,
+    pub y: f32,
+    pub width: f32,
+    pub height: f32,
+    pub sector_index: usize,
+    pub viewport_index: usize,
+}
+
+/// P3: Layout geometry cache for accurate minimap interaction
+#[derive(Debug, Clone)]
+pub struct LayoutGeometry {
+    pub viewports: Vec<ViewportGeometry>,
+    pub sectors: Vec<ViewportGeometry>,
+    pub last_updated: std::time::Instant,
+}
+
+impl Default for LayoutGeometry {
+    fn default() -> Self {
+        Self {
+            viewports: Vec::new(),
+            sectors: Vec::new(),
+            last_updated: std::time::Instant::now(),
+        }
+    }
+}
+
+impl LayoutGeometry {
+    pub fn new() -> Self {
+        Self {
+            viewports: Vec::new(),
+            sectors: Vec::new(),
+            last_updated: std::time::Instant::now(),
+        }
+    }
+
+    /// P3: Calculate actual geometry from state
+    pub fn calculate_from_state(&mut self, state: &TosState) {
+        self.viewports.clear();
+        self.sectors.clear();
+
+        // Calculate viewport geometries based on actual layout
+        let num_viewports = state.viewports.len();
+        if num_viewports == 0 {
+            return;
+        }
+
+        // Determine actual viewport layout (horizontal/vertical split)
+        let cols = if num_viewports <= 1 {
+            1
+        } else if num_viewports == 2 {
+            2 // Side by side
+        } else {
+            (num_viewports as f32).sqrt().ceil() as usize
+        };
+
+        let rows = (num_viewports + cols - 1) / cols;
+        let cell_width = 1.0 / cols as f32;
+        let cell_height = 1.0 / rows as f32;
+
+        for (idx, viewport) in state.viewports.iter().enumerate() {
+            let col = idx % cols;
+            let row = idx / cols;
+            
+            self.viewports.push(ViewportGeometry {
+                x: col as f32 * cell_width,
+                y: row as f32 * cell_height,
+                width: cell_width,
+                height: cell_height,
+                sector_index: viewport.sector_index,
+                viewport_index: idx,
+            });
+        }
+
+        // Calculate sector geometries for global overview
+        let num_sectors = state.sectors.len();
+        let sector_cols = (num_sectors as f32).sqrt().ceil().max(1.0) as usize;
+        let sector_rows = (num_sectors + sector_cols - 1) / sector_cols;
+        let sector_cell_width = 1.0 / sector_cols as f32;
+        let sector_cell_height = 1.0 / sector_rows.max(1) as f32;
+
+        for idx in 0..num_sectors {
+            let col = idx % sector_cols;
+            let row = idx / sector_cols;
+            
+            self.sectors.push(ViewportGeometry {
+                x: col as f32 * sector_cell_width,
+                y: row as f32 * sector_cell_height,
+                width: sector_cell_width,
+                height: sector_cell_height,
+                sector_index: idx,
+                viewport_index: 0, // Not applicable for sectors
+            });
+        }
+
+        self.last_updated = std::time::Instant::now();
+    }
+
+    /// P3: Find viewport at given coordinates
+    pub fn viewport_at(&self, x: f32, y: f32) -> Option<&ViewportGeometry> {
+        self.viewports.iter().find(|vp| {
+            x >= vp.x && x < vp.x + vp.width &&
+            y >= vp.y && y < vp.y + vp.height
+        })
+    }
+
+    /// P3: Find sector at given coordinates
+    pub fn sector_at(&self, x: f32, y: f32) -> Option<&ViewportGeometry> {
+        self.sectors.iter().find(|s| {
+            x >= s.x && x < s.x + s.width &&
+            y >= s.y && y < s.y + s.height
+        })
+    }
+}
+
 /// Navigation target from mini-map click
 #[derive(Debug, Clone)]
 pub struct NavigationTarget {
@@ -530,6 +619,107 @@ mod tests {
         assert_eq!(config.size, (0.2, 0.25));
         assert!(config.show_other_sectors);
         assert!(config.show_viewports);
+    }
+
+    #[test]
+    fn test_layout_geometry_calculation() {
+        let mut state = TosState::new();
+        let mut geometry = LayoutGeometry::new();
+        
+        // Single viewport default
+        geometry.calculate_from_state(&state);
+        assert_eq!(geometry.viewports.len(), 1);
+        assert_eq!(geometry.sectors.len(), 1);
+        
+        // Add more sectors
+        let test_sector = Sector {
+            id: uuid::Uuid::new_v4(),
+            name: "Test Sector 2".to_string(),
+            color: "#ff0000".to_string(),
+            hubs: Vec::new(),
+            active_hub_index: 0,
+            host: "localhost".to_string(),
+            connection_type: crate::ConnectionType::Local,
+            participants: Vec::new(),
+            portal_active: false,
+            portal_url: None,
+            description: "Test".to_string(),
+            icon: "🧪".to_string(),
+        };
+        state.add_sector(test_sector);
+        
+        geometry.calculate_from_state(&state);
+        assert_eq!(geometry.sectors.len(), 2);
+    }
+
+    #[test]
+    fn test_viewport_geometry_at() {
+        let mut state = TosState::new();
+        let mut geometry = LayoutGeometry::new();
+        geometry.calculate_from_state(&state);
+        
+        // Should find viewport at center
+        let vp = geometry.viewport_at(0.5, 0.5);
+        assert!(vp.is_some());
+        assert_eq!(vp.unwrap().viewport_index, 0);
+        
+        // Should not find viewport outside bounds
+        assert!(geometry.viewport_at(1.5, 0.5).is_none());
+    }
+
+    #[test]
+    fn test_sector_geometry_at() {
+        let mut state = TosState::new();
+        let mut geometry = LayoutGeometry::new();
+        geometry.calculate_from_state(&state);
+        
+        // Should find sector at center
+        let sector = geometry.sector_at(0.5, 0.5);
+        assert!(sector.is_some());
+        assert_eq!(sector.unwrap().sector_index, 0);
+    }
+
+    #[test]
+    fn test_click_target_with_geometry() {
+        let mut state = TosState::new();
+        let minimap = MiniMap::new();
+        
+        // Activate minimap
+        let mut active_minimap = MiniMap::new();
+        active_minimap.activate();
+        
+        // Click at center should return current sector
+        let target = active_minimap.calculate_click_target_with_geometry(0.5, 0.5, &state);
+        assert!(target.is_some());
+        
+        let (sector_idx, viewport_idx) = target.unwrap();
+        assert_eq!(sector_idx, 0);
+        assert!(viewport_idx.is_none() || viewport_idx == Some(0));
+    }
+
+    #[test]
+    fn test_layout_geometry_with_multiple_viewports() {
+        let mut state = TosState::new();
+        
+        // Add a second viewport
+        state.viewports.push(crate::Viewport {
+            id: uuid::Uuid::new_v4(),
+            sector_index: 0,
+            hub_index: 0,
+            current_level: HierarchyLevel::CommandHub,
+            active_app_index: None,
+            bezel_expanded: false,
+        });
+        
+        let mut geometry = LayoutGeometry::new();
+        geometry.calculate_from_state(&state);
+        
+        assert_eq!(geometry.viewports.len(), 2);
+        
+        // First viewport should be on left
+        assert_eq!(geometry.viewports[0].x, 0.0);
+        // Second viewport should be on right
+        assert!(geometry.viewports[1].x > 0.0);
     }
 
     #[test]

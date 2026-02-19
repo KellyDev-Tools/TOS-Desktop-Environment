@@ -101,9 +101,8 @@ impl RemoteFrameBuffer {
 
     /// Get frame buffer as base64 encoded image (for HTML rendering)
     pub fn to_base64(&self) -> String {
-        // In a real implementation, this would encode as PNG/JPEG
-        // For now, return placeholder
-        base64::encode(&self.data)
+        use base64::{Engine as _, engine::general_purpose};
+        general_purpose::STANDARD.encode(&self.data)
     }
 
     /// Check if frame buffer is stale (needs refresh)
@@ -334,7 +333,7 @@ impl RemoteManager {
 
     /// Async synchronization 
     #[cfg(feature = "remote-desktop")]
-    pub async fn sync_node_async(&mut self, node_id: Uuid) -> Result<(), String> {
+    pub async fn sync_node_async(&mut self, node_id: Uuid) -> Result<Vec<SyncPacket>, String> {
         let conn = self.active_connections.get(&node_id)
             .ok_or_else(|| "Not connected".to_string())?;
         
@@ -342,14 +341,13 @@ impl RemoteManager {
         let packet = SyncPacket::Heartbeat;
         conn.send_packet(&packet).await?;
         
+        let mut packets = Vec::new();
         // Try to receive and process packets for a short duration
-        // In a real system this would be handled by a background task per connection
-        for _ in 0..5 {
+        for _ in 0..10 {
             match conn.receive_packet().await {
                 Ok(Some(response)) => {
                     tracing::debug!("Sync packet from {}: {:?}", node_id, response);
-                    // Note: In real app, we'd need a way to pass &mut sectors here
-                    // For now, we just log and update the connection status
+                    packets.push(response);
                 }
                 Ok(None) => break,
                 Err(e) => return Err(e),
@@ -360,7 +358,7 @@ impl RemoteManager {
             conn_mut.last_sync = std::time::Instant::now();
         }
         
-        Ok(())
+        Ok(packets)
     }
 
     /// Process an incoming synchronization packet (Real implementation)
@@ -517,16 +515,6 @@ impl std::fmt::Debug for RemoteManager {
     }
 }
 
-// Base64 encoding helper 
-mod base64 {
-    pub fn encode(data: &[u8]) -> String {
-        use std::io::Write;
-        let mut result = Vec::new();
-        write!(&mut result, "{}", data.len()).unwrap();
-        result.extend_from_slice(data);
-        String::from_utf8_lossy(&result).to_string()
-    }
-}
 
 #[cfg(test)]
 mod tests {

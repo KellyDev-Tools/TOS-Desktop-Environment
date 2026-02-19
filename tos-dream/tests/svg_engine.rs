@@ -1,4 +1,5 @@
-use tos_core::{TosState, HierarchyLevel, Sector, CommandHub, ConnectionType, Participant};
+use tos_core::{TosState, HierarchyLevel, Sector, CommandHub, ConnectionType};
+use tos_core::system::collaboration::Participant;
 use tos_core::ui::render::svg_engine::render_state_to_svg;
 
 #[test]

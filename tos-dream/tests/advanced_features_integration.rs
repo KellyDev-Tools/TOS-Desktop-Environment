@@ -205,7 +205,7 @@ fn test_collaboration_add_participant() {
     let mut state = TosState::new();
     let sector_idx = 0;
     
-    state.add_participant(sector_idx, "TestUser".to_string(), "#ff0000".to_string(), "Operator".to_string());
+    state.add_participant(sector_idx, "TestUser".to_string(), "#ff0000".to_string(), "Operator");
     
     let participants = &state.sectors[sector_idx].participants;
     assert!(participants.iter().any(|p| p.name == "TestUser"));
@@ -439,7 +439,7 @@ fn test_collaboration_with_sectors_integration() {
     let mut state = TosState::new();
     
     // Add a participant to a sector
-    state.add_participant(0, "GuestUser".to_string(), "#00ff00".to_string(), "Viewer".to_string());
+    state.add_participant(0, "GuestUser".to_string(), "#00ff00".to_string(), "Viewer");
     
     // Verify participant was added
     assert_eq!(state.sectors[0].participants.len(), 2); // Host + GuestUser

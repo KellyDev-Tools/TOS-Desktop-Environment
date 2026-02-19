@@ -22,6 +22,30 @@ impl ViewRenderer for RemoteDesktopRenderer {
                 p.color, p.name, p.role)
         }).collect::<String>();
 
+        // Fetch actual frame buffer if available (Section 7.3)
+        let stream_content = if let Some(fb) = state.remote_manager.get_frame_buffer(sector.id) {
+            format!(
+                r#"<div class="remote-frame-buffer">
+                    <img src="data:image/png;base64,{}" style="width: 100%; height: 100%; object-fit: contain;" />
+                </div>"#,
+                fb.to_base64()
+            )
+        } else {
+            format!(
+                r#"<div class="remote-desktop-placeholder">
+                    <div class="status-indicator ripple"></div>
+                    <div class="link-label">RECEIVING STREAM: {}</div>
+                    <div class="link-sub">PROTOCOL: {} // SYNC-ACTIVE</div>
+                    
+                    <div class="desktop-mock-ui">
+                        <div class="mock-window"></div>
+                        <div class="mock-window"></div>
+                    </div>
+                </div>"#,
+                sector.host, protocol_str
+            )
+        };
+
         format!(
             r#"<div class="application-container remote-desktop-view render-{mode:?}">
                 <div class="tactical-bezel {bezel_class}">
@@ -55,16 +79,7 @@ impl ViewRenderer for RemoteDesktopRenderer {
                     </div>
                 </div>
                 <div class="application-surface remote-stream-surface">
-                    <div class="remote-desktop-placeholder">
-                        <div class="status-indicator ripple"></div>
-                        <div class="link-label">RECEIVING STREAM: {host}</div>
-                        <div class="link-sub">PROTOCOL: {protocol} // SYNC-ACTIVE</div>
-                        
-                        <div class="desktop-mock-ui">
-                            <div class="mock-window"></div>
-                            <div class="mock-window"></div>
-                        </div>
-                    </div>
+                    {stream_content}
                 </div>
             </div>"#,
             mode = mode,
@@ -72,7 +87,8 @@ impl ViewRenderer for RemoteDesktopRenderer {
             title = app.title.to_uppercase(),
             host = sector.host,
             protocol = protocol_str,
-            participants_html = participants_html
+            participants_html = participants_html,
+            stream_content = stream_content
         )
     }
 }

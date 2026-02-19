@@ -73,13 +73,6 @@ pub enum CommandHubMode {
     Activity,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct Participant {
-    pub name: String,
-    pub color: String,
-    pub role: String,
-}
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum ConnectionType {
     Local,
@@ -97,7 +90,7 @@ pub struct Sector {
     pub active_hub_index: usize,
     pub host: String,
     pub connection_type: ConnectionType,
-    pub participants: Vec<Participant>,
+    pub participants: Vec<system::collaboration::Participant>,
     pub portal_active: bool,
     pub portal_url: Option<String>,
     pub description: String,
@@ -458,6 +451,10 @@ impl TosState {
         
         templates
     }
+
+    pub fn is_bezel_active(&self) -> bool {
+        self.viewports.iter().any(|v| v.bezel_expanded)
+    }
 }
 
 impl TosState {
@@ -605,7 +602,14 @@ impl TosState {
             active_hub_index: 0,
             host: "LOCAL".to_string(),
             connection_type: ConnectionType::Local,
-            participants: vec![Participant { name: "Host".to_string(), color: "#ffcc00".to_string(), role: "Co-owner".to_string() }],
+            participants: vec![system::collaboration::Participant { 
+                id: uuid::Uuid::new_v4(),
+                name: "Host".to_string(), 
+                color: "#ffcc00".to_string(), 
+                role: system::collaboration::CollaborationRole::CoOwner,
+                cursor_position: None,
+                following_host_id: None,
+            }],
             portal_active: false,
             portal_url: None,
             description: "Primary coordination and terminal access.".to_string(),
@@ -665,9 +669,30 @@ impl TosState {
             host: "LAB-SRV-01".to_string(),
             connection_type: ConnectionType::TOSNative,
             participants: vec![
-                Participant { name: "Commander".to_string(), color: "#ffcc00".to_string(), role: "Co-owner".to_string() },
-                Participant { name: "Ensign Kim".to_string(), color: "#99ccff".to_string(), role: "Operator".to_string() },
-                Participant { name: "Seven".to_string(), color: "#cc99ff".to_string(), role: "Viewer".to_string() },
+                system::collaboration::Participant { 
+                    id: uuid::Uuid::new_v4(),
+                    name: "Commander".to_string(), 
+                    color: "#ffcc00".to_string(), 
+                    role: system::collaboration::CollaborationRole::CoOwner,
+                    cursor_position: None,
+                    following_host_id: None,
+                },
+                system::collaboration::Participant { 
+                    id: uuid::Uuid::new_v4(),
+                    name: "Ensign Kim".to_string(), 
+                    color: "#99ccff".to_string(), 
+                    role: system::collaboration::CollaborationRole::Operator,
+                    cursor_position: None,
+                    following_host_id: None,
+                },
+                system::collaboration::Participant { 
+                    id: uuid::Uuid::new_v4(),
+                    name: "Seven".to_string(), 
+                    color: "#cc99ff".to_string(), 
+                    role: system::collaboration::CollaborationRole::Viewer,
+                    cursor_position: None,
+                    following_host_id: None,
+                },
             ],
             portal_active: false,
             portal_url: None,
@@ -1113,10 +1138,25 @@ impl TosState {
         }
     }
 
-    pub fn add_participant(&mut self, sector_index: usize, name: String, color: String, role: String) {
+    pub fn add_participant(&mut self, sector_index: usize, name: String, color: String, role: &str) {
+        use std::str::FromStr;
+        let role_enum = system::collaboration::CollaborationRole::from_str(role).unwrap_or(system::collaboration::CollaborationRole::Viewer);
+        let id = uuid::Uuid::new_v4();
+        
+        let participant = system::collaboration::Participant {
+            id,
+            name: name.clone(),
+            color: color.clone(),
+            role: role_enum,
+            cursor_position: None,
+            following_host_id: None,
+        };
+
         if let Some(sector) = self.sectors.get_mut(sector_index) {
-            sector.participants.push(Participant { name, color, role });
+            sector.participants.push(participant.clone());
         }
+        
+        self.collaboration_manager.add_participant(participant, None);
     }
 
     pub fn update_performance_metrics(&mut self, current_fps: f32) {

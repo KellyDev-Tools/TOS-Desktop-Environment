@@ -4,7 +4,8 @@ use uuid::Uuid;
 use crate::system::pty::PtyHandle;
 use crate::system::remote::{RemoteNodeInfo, RemoteStatus};
 use crate::system::collaboration::{CollaborationRole, PermissionSet};
-use crate::{TosState, CommandHubMode, HierarchyLevel, system::input::SemanticEvent, CommandHub, Viewport, ConnectionType, Participant};
+use crate::{TosState, CommandHubMode, HierarchyLevel, system::input::SemanticEvent, CommandHub, Viewport, ConnectionType};
+use crate::system::collaboration::Participant;
 
 pub struct IpcDispatcher {
     pub state: Arc<Mutex<TosState>>,
@@ -533,9 +534,12 @@ impl IpcDispatcher {
         // Mock: Automatically add the participant for demo purposes
         let p_id = Uuid::new_v4();
         state.sectors[sector_idx].participants.push(Participant {
+            id: p_id,
             name: format!("Guest-{}", &token[..4]),
             color: "#00ffcc".to_string(),
-            role: role.as_str().to_string(),
+            role: role,
+            cursor_position: None,
+            following_host_id: None,
         });
         
         state.collaboration_manager.sessions.insert(p_id, PermissionSet::for_role(role));

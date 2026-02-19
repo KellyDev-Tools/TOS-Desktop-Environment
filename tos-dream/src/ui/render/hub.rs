@@ -476,15 +476,26 @@ impl ViewRenderer for HubRenderer {
         html.push_str(&format!(
             r#"<div class="unified-prompt">
                 <div class="voice-trigger" onclick="window.ipc.postMessage('semantic_event:VoiceCommandStart')">
-                    <span class="mic-icon"></span>
+                    {voice_indicator}
                 </div>
                 <div class="prompt-prefix">TOS@{} ></div>
                 <input type="text" id="terminal-input" value="{}" onkeydown="handlePromptKey(event)" autofocus>
             </div>"#,
-            sector.name.to_uppercase(), hub.prompt
+            sector.name.to_uppercase(), hub.prompt,
+            voice_indicator = state.voice.render_indicator()
         ));
 
         html.push_str("</div>");
+        
+        if state.voice.is_listening() {
+            html.push_str(&format!(
+                r#"<div class="voice-overlay">
+                    {}
+                </div>"#,
+                state.voice.render_help()
+            ));
+        }
+
         html
     }
 }

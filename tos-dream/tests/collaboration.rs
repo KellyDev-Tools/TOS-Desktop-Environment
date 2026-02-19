@@ -52,7 +52,7 @@ fn test_collaboration_participants() {
     let mut state = TosState::new();
     
     // Add participant to first sector
-    state.add_participant(0, "Geordi".to_string(), "#ffcc00".to_string(), "Engineer".to_string());
+    state.add_participant(0, "Geordi".to_string(), "#ffcc00".to_string(), "Operator");
     
     assert_eq!(state.sectors[0].participants.len(), 2); // Host + Geordi
     assert_eq!(state.sectors[0].participants[1].name, "Geordi");

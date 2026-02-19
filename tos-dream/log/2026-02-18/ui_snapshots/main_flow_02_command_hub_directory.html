@@ -4,7 +4,7 @@
                     <span class="hub-host">LINK: LOCAL</span>
                 </div>
                 <div class="hub-participants">
-                    <div class="participant-avatar" style="background-color: #ffcc00" title="Host (Co-owner)"></div>
+                    <div class="participant-avatar" style="background-color: #ffcc00" title="Host (Co-Owner)"></div>
                     <div class="invite-btn" onclick="window.ipc.postMessage('collaboration_invite')">+</div>
                 </div>
             </div><div class="hub-tabs"><div class="hub-tab " onclick="window.ipc.postMessage('set_mode:Command')">COMMAND</div><div class="hub-tab active" onclick="window.ipc.postMessage('set_mode:Directory')">DIRECTORY</div><div class="hub-tab " onclick="window.ipc.postMessage('set_mode:Activity')">ACTIVITY</div></div><div class="hub-content"><div class="directory-view">
@@ -36,7 +36,11 @@
                                 <span class="file-icon"></span> SHOW HIDDEN FILES
                             </div></div></div></div><div class="unified-prompt">
                 <div class="voice-trigger" onclick="window.ipc.postMessage('semantic_event:VoiceCommandStart')">
-                    <span class="mic-icon"></span>
+                    <div class="voice-indicator voice-idle">
+                <div class="voice-icon">🎤</div>
+                <div class="voice-status">Voice commands disabled</div>
+                
+            </div>
                 </div>
                 <div class="prompt-prefix">TOS@ALPHA SECTOR ></div>
                 <input type="text" id="terminal-input" value="" onkeydown="handlePromptKey(event)" autofocus>

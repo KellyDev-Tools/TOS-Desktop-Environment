@@ -6,6 +6,7 @@
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 use std::collections::HashMap;
+use async_trait::async_trait;
 use crate::{HierarchyLevel, TosState, Viewport};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
@@ -13,6 +14,28 @@ pub enum CollaborationRole {
     CoOwner,    // Full control, can manage participants and settings
     Operator,   // Can interact with apps and shells, but not manage sector settings
     Viewer,     // Read-only access to viewports and state
+}
+
+impl std::fmt::Display for CollaborationRole {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            CollaborationRole::CoOwner => write!(f, "Co-Owner"),
+            CollaborationRole::Operator => write!(f, "Operator"),
+            CollaborationRole::Viewer => write!(f, "Viewer"),
+        }
+    }
+}
+
+impl std::str::FromStr for CollaborationRole {
+    type Err = ();
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s.to_lowercase().replace("-", "").as_str() {
+            "coowner" | "owner" => Ok(CollaborationRole::CoOwner),
+            "operator" => Ok(CollaborationRole::Operator),
+            "viewer" => Ok(CollaborationRole::Viewer),
+            _ => Err(()),
+        }
+    }
 }
 
 impl CollaborationRole {
@@ -36,18 +59,6 @@ impl CollaborationRole {
     }
 }
 
-impl std::str::FromStr for CollaborationRole {
-    type Err = String;
-
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        match s.to_lowercase().as_str() {
-            "co-owner" | "coowner" | "owner" => Ok(CollaborationRole::CoOwner),
-            "operator" => Ok(CollaborationRole::Operator),
-            "viewer" => Ok(CollaborationRole::Viewer),
-            _ => Err(format!("Unknown role: {}", s)),
-        }
-    }
-}
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct PermissionSet {
@@ -235,6 +246,8 @@ pub struct CollaborationManager {
     pub following_modes: HashMap<Uuid, FollowingMode>,
     /// View state history for synchronization (participant_id -> ViewState)
     pub view_states: HashMap<Uuid, ViewState>,
+    /// Active network transports for participants
+    pub transports: HashMap<Uuid, Box<dyn CollaborationTransport>>,
 }
 
 impl CollaborationManager {
@@ -269,10 +282,13 @@ impl CollaborationManager {
     }
 
     /// Add a participant to the session
-    pub fn add_participant(&mut self, participant: Participant) {
+    pub fn add_participant(&mut self, participant: Participant, transport: Option<Box<dyn CollaborationTransport>>) {
         let permissions = PermissionSet::for_role(participant.role);
         self.sessions.insert(participant.id, permissions);
-        self.participants.insert(participant.id, participant);
+        self.participants.insert(participant.id, participant.clone());
+        if let Some(t) = transport {
+            self.transports.insert(participant.id, t);
+        }
     }
 
     /// Remove a participant
@@ -281,6 +297,7 @@ impl CollaborationManager {
         self.participants.remove(&participant_id);
         self.following_modes.remove(&participant_id);
         self.view_states.remove(&participant_id);
+        self.transports.remove(&participant_id);
     }
 
     /// Perform a security check for an action
@@ -416,6 +433,26 @@ impl CollaborationManager {
             }
         }
     }
+
+    /// Poll all transports for new packets
+    pub async fn poll_transports(&self) -> Vec<(Uuid, crate::system::remote::SyncPacket)> {
+        let mut updates = Vec::new();
+        for (id, transport) in &self.transports {
+            if let Ok(Some(packet)) = transport.receive_packet().await {
+                updates.push((*id, packet));
+            }
+        }
+        updates
+    }
+
+    /// Broadcast a packet to all other participants
+    pub async fn broadcast_packet(&self, sender_id: Uuid, packet: &crate::system::remote::SyncPacket) {
+        for (id, transport) in &self.transports {
+            if *id != sender_id {
+                let _ = transport.send_packet(packet).await;
+            }
+        }
+    }
 }
 
 /// Detailed permission denial errors
@@ -448,6 +485,35 @@ impl std::fmt::Display for PermissionDeniedError {
 }
 
 impl std::error::Error for PermissionDeniedError {}
+
+/// Trait for collaboration transport (WebSocket, WebRTC, or TCP)
+#[async_trait::async_trait]
+pub trait CollaborationTransport: std::fmt::Debug + Send + Sync {
+    async fn send_packet(&self, packet: &crate::system::remote::SyncPacket) -> Result<(), String>;
+    async fn receive_packet(&self) -> Result<Option<crate::system::remote::SyncPacket>, String>;
+}
+
+#[derive(Debug)]
+pub struct MockTransport {
+    pub packets: std::sync::Arc<std::sync::Mutex<Vec<crate::system::remote::SyncPacket>>>,
+}
+
+#[async_trait::async_trait]
+impl CollaborationTransport for MockTransport {
+    async fn send_packet(&self, packet: &crate::system::remote::SyncPacket) -> Result<(), String> {
+        self.packets.lock().unwrap().push(packet.clone());
+        Ok(())
+    }
+    
+    async fn receive_packet(&self) -> Result<Option<crate::system::remote::SyncPacket>, String> {
+        let mut guard = self.packets.lock().unwrap();
+        if guard.is_empty() {
+            Ok(None)
+        } else {
+            Ok(Some(guard.remove(0)))
+        }
+    }
+}
 
 impl std::fmt::Debug for CollaborationManager {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
@@ -543,7 +609,7 @@ mod tests {
             following_host_id: None,
         };
         
-        manager.add_participant(participant.clone());
+        manager.add_participant(participant.clone(), None);
         assert!(manager.participants.contains_key(&participant.id));
         assert!(manager.sessions.contains_key(&participant.id));
         
@@ -566,7 +632,7 @@ mod tests {
             role: CollaborationRole::CoOwner,
             cursor_position: None,
             following_host_id: None,
-        });
+        }, None);
         manager.add_participant(Participant {
             id: guest_id,
             name: "Guest".to_string(),
@@ -574,7 +640,7 @@ mod tests {
             role: CollaborationRole::Viewer,
             cursor_position: None,
             following_host_id: None,
-        });
+        }, None);
         
         // Start following
         assert!(manager.start_following(guest_id, host_id).is_ok());
@@ -601,7 +667,7 @@ mod tests {
             role: CollaborationRole::CoOwner,
             cursor_position: None,
             following_host_id: None,
-        });
+        }, None);
         manager.add_participant(Participant {
             id: guest_id,
             name: "Guest".to_string(),
@@ -609,7 +675,7 @@ mod tests {
             role: CollaborationRole::Viewer,
             cursor_position: None,
             following_host_id: None,
-        });
+        }, None);
         
         // Set up following
         manager.start_following(guest_id, host_id).unwrap();
@@ -644,7 +710,7 @@ mod tests {
             role: CollaborationRole::Viewer,
             cursor_position: None,
             following_host_id: None,
-        });
+        }, None);
         
         // Should deny shell input
         assert!(!manager.enforce_action(participant_id, PermissionAction::ShellInput));
@@ -658,7 +724,7 @@ mod tests {
             role: CollaborationRole::CoOwner,
             cursor_position: None,
             following_host_id: None,
-        });
+        }, None);
         assert!(manager.enforce_action(co_owner_id, PermissionAction::ShellInput));
     }
 }

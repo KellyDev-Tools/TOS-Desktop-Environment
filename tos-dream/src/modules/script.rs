@@ -74,7 +74,7 @@ impl ScriptContext {
 }
 
 /// A script-based module
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct ScriptEngine {
     /// Script language
     language: ScriptLanguage,
@@ -233,7 +233,7 @@ impl ScriptEngine {
     }
     
     /// Execute a script function
-    pub fn execute(&mut self, function: &str, args: &[serde_json::Value]) -> Result<serde_json::Value, ScriptError> {
+    pub fn execute(&self, function: &str, args: &[serde_json::Value]) -> Result<serde_json::Value, ScriptError> {
         match self.language {
             ScriptLanguage::JavaScript => self.execute_js(function, args),
             ScriptLanguage::Lua => self.execute_lua(function, args),
@@ -243,7 +243,7 @@ impl ScriptEngine {
     
     /// Execute JavaScript function (Real implementation)
     #[cfg(feature = "script-engine")]
-    fn execute_js(&mut self, function: &str, args: &[serde_json::Value]) -> Result<serde_json::Value, ScriptError> {
+    fn execute_js(&self, function: &str, args: &[serde_json::Value]) -> Result<serde_json::Value, ScriptError> {
         use rquickjs::Value;
         
         tracing::debug!("Executing JS function: {} with {} args", function, args.len());
@@ -290,7 +290,7 @@ impl ScriptEngine {
 
     /// Stub implementation when script-engine feature is disabled
     #[cfg(not(feature = "script-engine"))]
-    fn execute_js(&mut self, function: &str, _args: &[serde_json::Value]) -> Result<serde_json::Value, ScriptError> {
+    fn execute_js(&self, function: &str, _args: &[serde_json::Value]) -> Result<serde_json::Value, ScriptError> {
         tracing::debug!("Executing JS function (stub): {}", function);
         
         let result = serde_json::json!({
@@ -308,7 +308,7 @@ impl ScriptEngine {
     
     /// Execute Lua function (Real implementation)
     #[cfg(feature = "script-engine")]
-    fn execute_lua(&mut self, function: &str, args: &[serde_json::Value]) -> Result<serde_json::Value, ScriptError> {
+    fn execute_lua(&self, function: &str, args: &[serde_json::Value]) -> Result<serde_json::Value, ScriptError> {
         use mlua::{Value, MultiValue};
         
         tracing::debug!("Executing Lua function: {} with {} args", function, args.len());
@@ -360,7 +360,7 @@ impl ScriptEngine {
 
     /// Stub implementation when script-engine feature is disabled
     #[cfg(not(feature = "script-engine"))]
-    fn execute_lua(&mut self, function: &str, _args: &[serde_json::Value]) -> Result<serde_json::Value, ScriptError> {
+    fn execute_lua(&self, function: &str, _args: &[serde_json::Value]) -> Result<serde_json::Value, ScriptError> {
         tracing::debug!("Executing Lua function (stub): {}", function);
         
         let result = serde_json::json!({
@@ -409,9 +409,29 @@ pub struct OwnedScriptModule {
 impl TosModule for OwnedScriptModule {
     fn name(&self) -> String { self.engine.as_tos_module().name() }
     fn version(&self) -> String { self.engine.as_tos_module().version() }
-    fn on_load(&mut self, state: &mut TosState) { self.engine.as_tos_module_mut().on_load(state) }
-    fn on_unload(&mut self, state: &mut TosState) { self.engine.as_tos_module_mut().on_unload(state) }
-    fn render_override(&self, level: HierarchyLevel) -> Option<String> { self.engine.as_tos_module().render_override(level) }
+    
+    fn on_load(&mut self, state: &mut TosState) {
+        let _ = self.engine.execute("onLoad", &[serde_json::to_value(state.is_bezel_active()).unwrap_or(serde_json::Value::Null)]);
+        tracing::info!("Script module loaded: {}", self.engine.manifest.name);
+    }
+    
+    fn on_unload(&mut self, _state: &mut TosState) {
+        let _ = self.engine.execute("onUnload", &[]);
+        tracing::info!("Script module unloaded: {}", self.engine.manifest.name);
+    }
+    
+    fn render_override(&self, level: HierarchyLevel) -> Option<String> {
+        // Execute render function in script if it exists
+        let level_str = format!("{:?}", level);
+        if let Ok(result) = self.engine.execute("render", &[serde_json::Value::String(level_str)]) {
+            if let Some(s) = result.as_str() {
+                if !s.is_empty() && s != "null" {
+                    return Some(s.to_string());
+                }
+            }
+        }
+        None
+    }
 }
 
 impl ScriptEngine {
@@ -456,21 +476,30 @@ impl<'a> TosModule for ScriptModuleWrapper<'a> {
         self.engine.manifest.version.clone()
     }
     
-    fn on_load(&mut self, _state: &mut TosState) {
+    fn on_load(&mut self, state: &mut TosState) {
+        let _ = self.engine.execute("onLoad", &[serde_json::to_value(state.is_bezel_active()).unwrap_or(serde_json::Value::Null)]);
         tracing::info!("Script module loaded: {}", self.engine.manifest.name);
     }
     
     fn on_unload(&mut self, _state: &mut TosState) {
+        let _ = self.engine.execute("onUnload", &[]);
         tracing::info!("Script module unloaded: {}", self.engine.manifest.name);
     }
     
-    fn render_override(&self, _level: HierarchyLevel) -> Option<String> {
+    fn render_override(&self, level: HierarchyLevel) -> Option<String> {
         // Try to call a render function in the script
-        // This is a placeholder - real implementation would
-        // actually execute the script function
+        let level_str = format!("{:?}", level);
+        if let Ok(result) = self.engine.execute("render", &[serde_json::Value::String(level_str)]) {
+            if let Some(s) = result.as_str() {
+                if !s.is_empty() && s != "null" {
+                    return Some(s.to_string());
+                }
+            }
+        }
         
-        if self.engine.source.contains("render") {
-            Some(format!(
+        // Fallback to basic overlay if render function not found but source looks like a module
+        if self.engine.source.contains("render") || self.engine.source.contains("module.exports") {
+            return Some(format!(
                 r#"<div class="script-overlay {}-overlay">
                     <div class="script-badge">{}</div>
                 </div>"#,
@@ -480,10 +509,9 @@ impl<'a> TosModule for ScriptModuleWrapper<'a> {
                     ScriptLanguage::Lua => "LUA",
                     ScriptLanguage::Python => "PY",
                 }
-            ))
-        } else {
-            None
+            ));
         }
+        None
     }
 }
 
@@ -529,6 +557,15 @@ impl ApplicationModel for ScriptAppModel {
     
     fn handle_command(&self, cmd: &str) -> Option<String> {
         // Try to execute a command handler in the script
+        if let Ok(result) = self.engine.execute("handleCommand", &[serde_json::Value::String(cmd.to_string())]) {
+            if let Some(s) = result.as_str() {
+                if !s.is_empty() && s != "null" {
+                    return Some(s.to_string());
+                }
+            }
+        }
+        
+        // Fallback for demonstration/legacy
         if self.engine.source.contains(&format!("function {}(", cmd)) ||
            self.engine.source.contains(&format!("{} = function", cmd)) {
             Some(format!("Script handler for: {}", cmd))

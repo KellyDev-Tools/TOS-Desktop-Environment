@@ -145,19 +145,49 @@ impl AudioManager {
             // Base layer
             if let Ok(sink) = Sink::try_new(handle) {
                 sink.set_volume(profile.volume * self.volume);
-                let freq = match profile.base_loop {
-                    AudioEvent::AmbientHum => 55.0,
-                    _ => 60.0,
-                };
-                let source = rodio::source::SineWave::new(freq).repeat_infinite();
-                sink.append(source);
-                sinks.push(sink);
+                
+                // Try to load custom sound pack if available
+                let home = std::env::var("HOME").unwrap_or_else(|_| ".".to_string());
+                let sound_path = format!("{}/.local/share/tos/audio/{:?}.wav", home, profile.base_loop).to_lowercase();
+                
+                if std::path::Path::new(&sound_path).exists() {
+                    if let Ok(file) = std::fs::File::open(&sound_path) {
+                        if let Ok(source) = rodio::Decoder::new(std::io::BufReader::new(file)) {
+                            sink.append(source.repeat_infinite());
+                            sinks.push(sink);
+                        }
+                    }
+                } else {
+                    // Fallback to sine wave
+                    let freq = match profile.base_loop {
+                        AudioEvent::AmbientHum => 55.0,
+                        _ => 60.0,
+                    };
+                    let source = rodio::source::SineWave::new(freq).repeat_infinite();
+                    sink.append(source);
+                    sinks.push(sink);
+                }
             }
 
             // Secondary layers
             for layer in profile.secondary_layers {
                 if let Ok(sink) = Sink::try_new(handle) {
                     sink.set_volume(profile.volume * self.volume * 0.5);
+                    
+                    let home = std::env::var("HOME").unwrap_or_else(|_| ".".to_string());
+                    let sound_path = format!("{}/.local/share/tos/audio/{:?}.wav", home, layer).to_lowercase();
+                    
+                    if std::path::Path::new(&sound_path).exists() {
+                        if let Ok(file) = std::fs::File::open(&sound_path) {
+                            if let Ok(source) = rodio::Decoder::new(std::io::BufReader::new(file)) {
+                                sink.append(source.repeat_infinite());
+                                sinks.push(sink);
+                                continue;
+                            }
+                        }
+                    }
+
+                    // Fallback
                     let freq = match layer {
                         AudioEvent::BridgeChirps => 2500.0,
                         _ => 1000.0,
@@ -170,5 +200,13 @@ impl AudioManager {
         }
         
         self.ambience_sinks.insert(sector_id, sinks);
+    }
+
+    /// Play a spatial earcon (higher-level mixer layer)
+    pub fn play_spatial_earcon(&self, event: AudioEvent, _x: f32, _y: f32, _z: f32) {
+        // In a full implementation, this would use rodio's spatial sinks or HRTF
+        // For now we wire it to standard play_event but log the spatial intent
+        tracing::debug!("TOS // SPATIAL AUDIO: {:?} at ({}, {}, {})", event, _x, _y, _z);
+        self.play_event(event);
     }
 }

@@ -35,13 +35,14 @@
 
         let lastLevel = null;
         let isTransitioning = false;
+        let lastHtml = null;
 
-        function handlePromptKey(e) {
+        window.handlePromptKey = function (e) {
             if (e.key === 'Enter') {
                 window.ipc.postMessage('prompt_submit:' + e.target.value);
                 e.target.value = '';
             }
-        }
+        };
 
         window.addEventListener('keydown', (e) => {
             if (e.key === 'Enter' && e.ctrlKey) window.ipc.postMessage('zoom_in');
@@ -51,16 +52,24 @@
         // The update function called from Rust (indirectly via evaluate_script)
         window.updateView = function (html, currentLevelStr) {
             const container = document.getElementById('main-content');
-            const cleanLevel = currentLevelStr.replace('"', '').replace('"', ''); // Strip quotes if any
+            const cleanLevel = currentLevelStr.replace(/"/g, ''); // Strip quotes correctly
 
             // Preserve terminal input state across DOM refresh.
-            // Without this, the 100ms update cycle destroys the <input> element,
-            // losing focus, typed text, and cursor position.
             const oldInput = document.getElementById('terminal-input');
             const inputWasFocused = oldInput && document.activeElement === oldInput;
             const savedValue = oldInput ? oldInput.value : null;
             const savedSelStart = oldInput ? oldInput.selectionStart : 0;
             const savedSelEnd = oldInput ? oldInput.selectionEnd : 0;
+
+            // Optimization: Skip if HTML hasn't changed to prevent flickering
+            if (html === lastHtml && cleanLevel === lastLevel) {
+                // Still restore input state though, in case focus was lost or value changed externally
+                const newInput = document.getElementById('terminal-input');
+                if (newInput && savedValue !== null && document.activeElement !== newInput && inputWasFocused) {
+                    newInput.focus();
+                }
+                return;
+            }
 
             // Check if we need to transition
             if (lastLevel && lastLevel !== cleanLevel && !isTransitioning) {
@@ -82,6 +91,7 @@
             }
 
             lastLevel = cleanLevel;
+            lastHtml = html;
             document.body.className = 'level-' + cleanLevel;
             document.getElementById('current-location').innerText = cleanLevel.toUpperCase();
         };

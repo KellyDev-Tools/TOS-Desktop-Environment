@@ -79,6 +79,7 @@ fn test_tos_native_sync_packet() {
         portal_url: None,
         description: "Remote monitoring station.".to_string(),
         icon: "🛰️".to_string(),
+        sector_type_name: "operations".to_string(),
     };
     
     let packet = SyncPacket::SectorState(remote_sector.clone());

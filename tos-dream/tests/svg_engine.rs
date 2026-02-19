@@ -1,5 +1,4 @@
-use tos_core::{TosState, HierarchyLevel, Sector, CommandHub, ConnectionType};
-use tos_core::system::collaboration::Participant;
+use tos_core::{TosState, HierarchyLevel, Sector, ConnectionType};
 use tos_core::ui::render::svg_engine::render_state_to_svg;
 
 #[test]
@@ -42,6 +41,7 @@ fn test_svg_dynamic_sector_icon() {
         portal_url: None,
         description: "Test Custom Icon".to_string(),
         icon: unique_icon.to_string(),
+        sector_type_name: "operations".to_string(),
     };
     state.sectors.push(sector);
     

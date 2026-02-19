@@ -645,6 +645,7 @@ mod tests {
             portal_url: None,
             description: "Test".to_string(),
             icon: "🧪".to_string(),
+            sector_type_name: "science".to_string(),
         };
         state.add_sector(test_sector);
         
@@ -654,7 +655,7 @@ mod tests {
 
     #[test]
     fn test_viewport_geometry_at() {
-        let mut state = TosState::new();
+        let state = TosState::new();
         let mut geometry = LayoutGeometry::new();
         geometry.calculate_from_state(&state);
         
@@ -669,7 +670,7 @@ mod tests {
 
     #[test]
     fn test_sector_geometry_at() {
-        let mut state = TosState::new();
+        let state = TosState::new();
         let mut geometry = LayoutGeometry::new();
         geometry.calculate_from_state(&state);
         
@@ -687,7 +688,7 @@ mod tests {
 
     #[test]
     fn test_click_target_with_geometry() {
-        let mut state = TosState::new();
+        let state = TosState::new();
         
         // Activate minimap
         let mut active_minimap = MiniMap::new();

@@ -1,6 +1,6 @@
 use tos_core::*;
 use std::sync::{Arc, Mutex};
-use std::collections::{HashMap, HashSet};
+use std::collections::HashMap;
 use uuid::Uuid;
 
 fn create_test_state_with_apps() -> TosState {
@@ -51,7 +51,7 @@ fn create_test_state_with_apps() -> TosState {
 
 #[test]
 fn test_app_toggle_select() {
-    let mut state = create_test_state_with_apps();
+    let state = create_test_state_with_apps();
     let app1_id = state.sectors[0].hubs[0].applications[0].id.to_string();
     let app2_id = state.sectors[0].hubs[0].applications[1].id.to_string();
     
@@ -95,7 +95,7 @@ fn test_app_toggle_select() {
 
 #[test]
 fn test_app_batch_kill_clears_selection() {
-    let mut state = create_test_state_with_apps();
+    let state = create_test_state_with_apps();
     let app1_id = state.sectors[0].hubs[0].applications[0].id.to_string();
     
     let state_arc = Arc::new(Mutex::new(state));

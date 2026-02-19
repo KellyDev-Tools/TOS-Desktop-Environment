@@ -464,10 +464,10 @@ fn test_minimap_with_zoom_integration() {
 
 #[test]
 fn test_script_module_in_state_integration() {
-    let mut state = TosState::new();
+    let state = TosState::new();
     
     // Verify module registry exists
-    assert!(state.module_count() >= 0);
+    let _ = state.module_count();
     
     // List modules
     let _modules = state.list_modules();

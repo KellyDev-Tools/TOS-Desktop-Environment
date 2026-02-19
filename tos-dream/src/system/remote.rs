@@ -311,6 +311,7 @@ impl RemoteManager {
             portal_url: None,
             description: format!("Remote session on {}", node.hostname),
             icon: "🌐".to_string(),
+            sector_type_name: "operations".to_string(),
         })
     }
 
@@ -519,12 +520,11 @@ impl std::fmt::Debug for RemoteManager {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use std::sync::Arc;
     use std::sync::atomic::{AtomicBool, Ordering};
 
     #[test]
     fn test_remote_frame_buffer() {
-        let mut fb = RemoteFrameBuffer::new(1920, 1080);
+        let fb = RemoteFrameBuffer::new(1920, 1080);
         assert_eq!(fb.width, 1920);
         assert_eq!(fb.height, 1080);
         assert!(!fb.is_stale(1000));

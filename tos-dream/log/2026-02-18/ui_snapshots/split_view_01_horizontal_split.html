@@ -7,23 +7,33 @@
                     <div class="participant-avatar" style="background-color: #ffcc00" title="Host (Co-Owner)"></div>
                     <div class="invite-btn" onclick="window.ipc.postMessage('collaboration_invite')">+</div>
                 </div>
-            </div><div class="hub-tabs"><div class="hub-tab active" onclick="window.ipc.postMessage('set_mode:Command')">COMMAND</div><div class="hub-tab " onclick="window.ipc.postMessage('set_mode:Directory')">DIRECTORY</div><div class="hub-tab " onclick="window.ipc.postMessage('set_mode:Activity')">ACTIVITY</div><div class="hub-tab " onclick="window.ipc.postMessage('set_mode:Search')">SEARCH</div><div class="hub-tab " onclick="window.ipc.postMessage('set_mode:Ai')">AI</div></div><div class="hub-content"><div class="command-view">
-                    <div class="terminal-output" id="hub-term-7c97d25c-af0e-4040-9e1e-a31b7264e685">
+            </div><div class="hub-tabs"><div class="hub-tab active" onclick="window.ipc.postMessage('set_mode:Command')">COMMAND</div><div class="hub-tab " onclick="window.ipc.postMessage('set_mode:Directory')">DIRECTORY</div><div class="hub-tab " onclick="window.ipc.postMessage('set_mode:Activity')">ACTIVITY</div></div><div class="hub-content"><div class="command-view">
+                    <div class="terminal-output" id="hub-term-d6738a26-29dc-4264-bc77-f2ac3191480c">
                         
                     </div>
+                    <div class="command-helpers">
+                        <button class="bezel-btn mini" onclick="window.ipc.postMessage('stage_command:git status ')">GIT STATUS</button><button class="bezel-btn mini" onclick="window.ipc.postMessage('stage_command:cargo build ')">BUILD</button><button class="bezel-btn mini" onclick="window.ipc.postMessage('stage_command:cargo test ')">TEST</button>
+                    </div>
                 </div></div><div class="unified-prompt">
-                <div class="voice-trigger" onclick="window.ipc.postMessage('semantic_event:VoiceCommandStart')">
-                    <div class="voice-indicator voice-idle">
+                <div class="input-mode-tabs">
+                    <div class="mode-tab active" onclick="window.ipc.postMessage('set_mode:Command')">CMD</div>
+                    <div class="mode-tab " onclick="window.ipc.postMessage('set_mode:Search')">SEARCH</div>
+                    <div class="mode-tab " onclick="window.ipc.postMessage('set_mode:Ai')">AI</div>
+                </div>
+                <div class="prompt-container">
+                    <div class="voice-trigger" onclick="window.ipc.postMessage('semantic_event:VoiceCommandStart')">
+                        <div class="voice-indicator voice-idle">
                 <div class="voice-icon">🎤</div>
                 <div class="voice-status">Voice commands disabled</div>
                 
             </div>
-                </div>
-                <div class="prompt-prefix">TOS@ALPHA SECTOR ></div>
-                <input type="text" id="terminal-input" value="" onkeydown="handlePromptKey(event)" autofocus>
-                <div class="prompt-controls">
-                    
-                    <div class="stop-btn" onclick="window.ipc.postMessage('semantic_event:StopOperation')" title="STOP (Ctrl+Shift+C)">⏹️</div>
+                    </div>
+                    <div class="prompt-prefix">TOS@ALPHA SECTOR ></div>
+                    <input type="text" id="terminal-input" value="" onkeydown="window.handlePromptKey(event)" autofocus>
+                    <div class="prompt-controls">
+                        
+                        <div class="stop-btn" onclick="window.ipc.postMessage('semantic_event:StopOperation')" title="STOP (Ctrl+Shift+C)">⏹️</div>
+                    </div>
                 </div>
             </div></div></div><div class="viewport-cell"><div class="command-hub mode-activity render-Throttled"><div class="hub-header">
                 <div class="hub-info">
@@ -34,13 +44,13 @@
                     <div class="participant-avatar" style="background-color: #ffcc00" title="Commander (Co-Owner)"></div><div class="participant-avatar" style="background-color: #99ccff" title="Ensign Kim (Operator)"></div><div class="participant-avatar" style="background-color: #cc99ff" title="Seven (Viewer)"></div>
                     <div class="invite-btn" onclick="window.ipc.postMessage('collaboration_invite')">+</div>
                 </div>
-            </div><div class="hub-tabs"><div class="hub-tab " onclick="window.ipc.postMessage('set_mode:Command')">COMMAND</div><div class="hub-tab " onclick="window.ipc.postMessage('set_mode:Directory')">DIRECTORY</div><div class="hub-tab active" onclick="window.ipc.postMessage('set_mode:Activity')">ACTIVITY</div><div class="hub-tab " onclick="window.ipc.postMessage('set_mode:Search')">SEARCH</div><div class="hub-tab " onclick="window.ipc.postMessage('set_mode:Ai')">AI</div></div><div class="hub-content"><div class="activity-view">
+            </div><div class="hub-tabs"><div class="hub-tab " onclick="window.ipc.postMessage('set_mode:Command')">COMMAND</div><div class="hub-tab " onclick="window.ipc.postMessage('set_mode:Directory')">DIRECTORY</div><div class="hub-tab active" onclick="window.ipc.postMessage('set_mode:Activity')">ACTIVITY</div></div><div class="hub-content"><div class="activity-view">
                         <div class="activity-section">
                             <div class="section-title">ACTIVE PROCESSES</div>
                             
                             <div class="activity-grid">
                                 <div class="app-tile staging-item ">
-                            <div class="file-selector" onclick="event.stopPropagation(); window.ipc.postMessage('app_toggle_select:2602fd5d-ea79-4298-987d-8c5da72708ea')"></div>
+                            <div class="file-selector" onclick="event.stopPropagation(); window.ipc.postMessage('app_toggle_select:dd2a881d-b273-485c-9faa-a3c75bc8bd35')"></div>
                             <div class="app-tile-header" onclick="window.ipc.postMessage('stage_command:focus SPECTROMETER')">
                                 <div class="app-tile-icon">🔬</div>
                                 <div class="app-tile-info">
@@ -54,11 +64,11 @@
                                 <div class="stat">MEM: <1MB</div>
                             </div>
                             <div class="app-tile-actions">
-                                <button class="tile-btn" onclick="window.ipc.postMessage('signal_app:2602fd5d-ea79-4298-987d-8c5da72708ea;INT')">SIGINT</button>
-                                <button class="tile-btn danger" onclick="window.ipc.postMessage('kill_app:2602fd5d-ea79-4298-987d-8c5da72708ea')">KILL</button>
+                                <button class="tile-btn" onclick="window.ipc.postMessage('signal_app:dd2a881d-b273-485c-9faa-a3c75bc8bd35;INT')">SIGINT</button>
+                                <button class="tile-btn danger" onclick="window.ipc.postMessage('kill_app:dd2a881d-b273-485c-9faa-a3c75bc8bd35')">KILL</button>
                             </div>
                         </div><div class="app-tile staging-item ">
-                            <div class="file-selector" onclick="event.stopPropagation(); window.ipc.postMessage('app_toggle_select:971d9d34-4b8c-4033-8bbc-4acaa50e6c27')"></div>
+                            <div class="file-selector" onclick="event.stopPropagation(); window.ipc.postMessage('app_toggle_select:2f4ea591-030a-40a7-88a4-1957dcb26532')"></div>
                             <div class="app-tile-header" onclick="window.ipc.postMessage('stage_command:focus DATAFEED')">
                                 <div class="app-tile-icon">📡</div>
                                 <div class="app-tile-info">
@@ -72,8 +82,8 @@
                                 <div class="stat">MEM: <1MB</div>
                             </div>
                             <div class="app-tile-actions">
-                                <button class="tile-btn" onclick="window.ipc.postMessage('signal_app:971d9d34-4b8c-4033-8bbc-4acaa50e6c27;INT')">SIGINT</button>
-                                <button class="tile-btn danger" onclick="window.ipc.postMessage('kill_app:971d9d34-4b8c-4033-8bbc-4acaa50e6c27')">KILL</button>
+                                <button class="tile-btn" onclick="window.ipc.postMessage('signal_app:2f4ea591-030a-40a7-88a4-1957dcb26532;INT')">SIGINT</button>
+                                <button class="tile-btn danger" onclick="window.ipc.postMessage('kill_app:2f4ea591-030a-40a7-88a4-1957dcb26532')">KILL</button>
                             </div>
                         </div>
                                 <div class="app-tile add-tile" onclick="window.ipc.postMessage('spawn_app')">
@@ -97,17 +107,24 @@
                             </div>
                         </div>
                     </div></div><div class="unified-prompt">
-                <div class="voice-trigger" onclick="window.ipc.postMessage('semantic_event:VoiceCommandStart')">
-                    <div class="voice-indicator voice-idle">
+                <div class="input-mode-tabs">
+                    <div class="mode-tab active" onclick="window.ipc.postMessage('set_mode:Command')">CMD</div>
+                    <div class="mode-tab " onclick="window.ipc.postMessage('set_mode:Search')">SEARCH</div>
+                    <div class="mode-tab " onclick="window.ipc.postMessage('set_mode:Ai')">AI</div>
+                </div>
+                <div class="prompt-container">
+                    <div class="voice-trigger" onclick="window.ipc.postMessage('semantic_event:VoiceCommandStart')">
+                        <div class="voice-indicator voice-idle">
                 <div class="voice-icon">🎤</div>
                 <div class="voice-status">Voice commands disabled</div>
                 
             </div>
-                </div>
-                <div class="prompt-prefix">TOS@SCIENCE LABS ></div>
-                <input type="text" id="terminal-input" value="" onkeydown="handlePromptKey(event)" autofocus>
-                <div class="prompt-controls">
-                    
-                    <div class="stop-btn" onclick="window.ipc.postMessage('semantic_event:StopOperation')" title="STOP (Ctrl+Shift+C)">⏹️</div>
+                    </div>
+                    <div class="prompt-prefix">TOS@SCIENCE LABS ></div>
+                    <input type="text" id="terminal-input" value="" onkeydown="window.handlePromptKey(event)" autofocus>
+                    <div class="prompt-controls">
+                        
+                        <div class="stop-btn" onclick="window.ipc.postMessage('semantic_event:StopOperation')" title="STOP (Ctrl+Shift+C)">⏹️</div>
+                    </div>
                 </div>
             </div></div></div></div>

@@ -1,4 +1,4 @@
-use crate::{TosState, Viewport, RenderMode, CommandHubMode};
+use crate::{TosState, Viewport, RenderMode, CommandHubMode, SectorType};
 use super::ViewRenderer;
 
 pub struct HubRenderer;
@@ -43,20 +43,28 @@ impl ViewRenderer for HubRenderer {
         ));
         
         html.push_str(r#"<div class="hub-tabs">"#);
-        let modes = [
+        let views = [
             (CommandHubMode::Command, "COMMAND"),
             (CommandHubMode::Directory, "DIRECTORY"),
             (CommandHubMode::Activity, "ACTIVITY"),
-            (CommandHubMode::Search, "SEARCH"),
-            (CommandHubMode::Ai, "AI"),
         ];
-        for (m, label) in modes {
+        
+        let _current_view_active = match hub.mode {
+            CommandHubMode::Command | CommandHubMode::Directory | CommandHubMode::Activity => true,
+            _ => false
+        };
+
+        for (m, label) in views {
             let active = if hub.mode == m { "active" } else { "" };
             html.push_str(&format!(
                 r#"<div class="hub-tab {active}" onclick="window.ipc.postMessage('set_mode:{mode:?}')">{label}</div>"#,
                 mode = m
             ));
         }
+        
+        // If we are in Search or AI, maybe we want to show that? 
+        // But the user requested "bottom cmd|search|ai modes".
+        // So we won't show them as top tabs.
         html.push_str("</div>");
 
         html.push_str(r#"<div class="hub-content">"#);
@@ -86,11 +94,57 @@ impl ViewRenderer for HubRenderer {
                     output_html.push_str(&format!(r#"<div class="log-line">{}</div>"#, line));
                 }
 
+                // High Frequency Command Helpers
+                let mut helpers_html = String::new();
+                
+                // 1. Sector-specific favorites
+                if let Some(sector_type) = state.sector_type_registry.get(&sector.sector_type_name) {
+                    for fav_str in sector_type.command_favourites() {
+                        let fav_str: String = fav_str;
+                        if let Some((label, cmd)) = fav_str.split_once(':') {
+                            helpers_html.push_str(&format!(
+                                r#"<button class="bezel-btn mini" onclick="window.ipc.postMessage('stage_command:{} ')">{}</button>"#,
+                                cmd.replace('\'', "\\'"),
+                                label.to_uppercase()
+                            ));
+                        }
+                    }
+                }
+
+                // 2. Shell provided suggestions
+                for sug in &hub.suggestions {
+                    helpers_html.push_str(&format!(
+                        r#"<button class="bezel-btn mini" onclick="window.ipc.postMessage('stage_command:{}')" title="{}">{}</button>"#,
+                        sug.command.replace('\'', "\\'"),
+                        sug.description.replace('\'', "\\'"),
+                        sug.text.to_uppercase()
+                    ));
+                }
+                
+                // 3. System defaults if empty
+                if helpers_html.is_empty() {
+                    let defaults = [
+                        ("LS", "ls -F"),
+                        ("GIT STATUS", "git status"),
+                        ("PROCESSES", "ps aux"),
+                        ("RELOAD", "source ~/.config/fish/config.fish"),
+                    ];
+                    for (label, cmd) in defaults {
+                        helpers_html.push_str(&format!(
+                            r#"<button class="bezel-btn mini" onclick="window.ipc.postMessage('stage_command:{} ')">{}</button>"#,
+                            cmd, label
+                        ));
+                    }
+                }
+
                 html.push_str(&format!(r#"<div class="command-view">
                     <div class="terminal-output" id="hub-term-{}">
                         {}
                     </div>
-                </div>"#, hub.id, output_html));
+                    <div class="command-helpers">
+                        {}
+                    </div>
+                </div>"#, hub.id, output_html, helpers_html));
             }
             CommandHubMode::Directory => {
                 let cwd = &hub.current_directory;
@@ -564,21 +618,31 @@ impl ViewRenderer for HubRenderer {
 
         html.push_str(&format!(
             r#"<div class="unified-prompt">
-                <div class="voice-trigger" onclick="window.ipc.postMessage('semantic_event:VoiceCommandStart')">
-                    {voice_indicator}
+                <div class="input-mode-tabs">
+                    <div class="mode-tab {cmd_active}" onclick="window.ipc.postMessage('set_mode:Command')">CMD</div>
+                    <div class="mode-tab {search_active}" onclick="window.ipc.postMessage('set_mode:Search')">SEARCH</div>
+                    <div class="mode-tab {ai_active}" onclick="window.ipc.postMessage('set_mode:Ai')">AI</div>
                 </div>
-                <div class="prompt-prefix">TOS@{} ></div>
-                <input type="text" id="terminal-input" value="{}" onkeydown="handlePromptKey(event)" autofocus>
-                <div class="prompt-controls">
-                    {ai_control}
-                    <div class="stop-btn" onclick="window.ipc.postMessage('semantic_event:StopOperation')" title="STOP (Ctrl+Shift+C)">⏹️</div>
+                <div class="prompt-container">
+                    <div class="voice-trigger" onclick="window.ipc.postMessage('semantic_event:VoiceCommandStart')">
+                        {voice_indicator}
+                    </div>
+                    <div class="prompt-prefix">TOS@{} ></div>
+                    <input type="text" id="terminal-input" value="{}" onkeydown="window.handlePromptKey(event)" autofocus>
+                    <div class="prompt-controls">
+                        {ai_control}
+                        <div class="stop-btn" onclick="window.ipc.postMessage('semantic_event:StopOperation')" title="STOP (Ctrl+Shift+C)">⏹️</div>
+                    </div>
                 </div>
             </div>"#,
             sector.name.to_uppercase(), hub.prompt,
             voice_indicator = state.voice.render_indicator(),
             ai_control = if hub.mode == CommandHubMode::Ai { 
                 r#"<div class="ai-submit-btn" onclick="window.ipc.postMessage('semantic_event:AiSubmit')">↑</div>"# 
-            } else { "" }
+            } else { "" },
+            cmd_active = if matches!(hub.mode, CommandHubMode::Command | CommandHubMode::Directory | CommandHubMode::Activity) { "active" } else { "" },
+            search_active = if hub.mode == CommandHubMode::Search { "active" } else { "" },
+            ai_active = if hub.mode == CommandHubMode::Ai { "active" } else { "" }
         ));
 
         html.push_str("</div>");

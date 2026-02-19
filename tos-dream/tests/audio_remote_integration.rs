@@ -285,6 +285,7 @@ fn test_sync_packet_sector_state() {
         portal_url: None,
         description: "Test description".to_string(),
         icon: "🧪".to_string(),
+        sector_type_name: "development".to_string(),
     };
     
     let packet = SyncPacket::SectorState(sector.clone());
@@ -426,6 +427,7 @@ fn test_remote_process_sector_state_packet() {
         portal_url: None,
         description: "Processed via packet".to_string(),
         icon: "📦".to_string(),
+        sector_type_name: "operations".to_string(),
     };
     
     let packet = SyncPacket::SectorState(remote_sector);

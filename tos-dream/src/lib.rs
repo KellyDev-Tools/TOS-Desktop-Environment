@@ -98,6 +98,7 @@ pub struct Sector {
     pub portal_url: Option<String>,
     pub description: String,
     pub icon: String,
+    pub sector_type_name: String,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -627,6 +628,7 @@ impl TosState {
             portal_url: None,
             description: "Primary coordination and terminal access.".to_string(),
             icon: "⌨️".to_string(),
+            sector_type_name: "development".to_string(),
         };
 
         let second_sector = Sector {
@@ -711,6 +713,7 @@ impl TosState {
             portal_url: None,
             description: "Data analysis and sensor array telemetry.".to_string(),
             icon: "🔬".to_string(),
+            sector_type_name: "science".to_string(),
         };
 
         let third_sector = Sector {
@@ -752,6 +755,7 @@ impl TosState {
             portal_url: None,
             description: "Core systems and power distribution telemetry.".to_string(),
             icon: "⚙️".to_string(),
+            sector_type_name: "operations".to_string(),
         };
 
         let initial_viewport = Viewport {
@@ -1606,6 +1610,7 @@ mod tests {
         state.viewports[0].current_level = HierarchyLevel::GlobalOverview;
         state.viewports[0].sector_index = 0;
         state.viewports[0].hub_index = 0;
+        state.security.deep_inspection_active = true;
         state.zoom_in(); // Hub
         state.zoom_in(); // Focus
         

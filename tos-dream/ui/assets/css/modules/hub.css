@@ -10,10 +10,34 @@
 
 .command-hub {
     display: grid;
-    grid-template-rows: auto 50px 1fr 60px;
+    grid-template-rows: auto 50px 1fr auto;
     height: 100%;
     width: 100%;
     gap: 15px;
+    overflow: hidden;
+}
+
+.command-view {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    gap: 15px;
+}
+
+.command-helpers {
+    display: flex;
+    gap: 10px;
+    padding: 10px 20px;
+    background: rgba(0, 0, 0, 0.4);
+    border-radius: 15px;
+    margin-top: 10px;
+    overflow-x: auto;
+    flex-shrink: 0;
+    scrollbar-width: none;
+}
+
+.command-helpers::-webkit-scrollbar {
+    display: none;
 }
 
 .hub-header {
@@ -86,13 +110,15 @@
 .hub-content {
     background: rgba(255, 255, 255, 0.03);
     border-radius: 20px;
-    padding: 30px;
-    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    padding: 20px;
+    overflow: hidden;
     position: relative;
 }
 
 .terminal-output {
-    height: 100%;
+    flex: 1;
     overflow-y: auto;
     font-family: var(--font-mono);
     font-size: 0.9rem;
@@ -110,12 +136,50 @@
 
 .unified-prompt {
     display: flex;
-    align-items: center;
+    flex-direction: column;
+    justify-content: center;
     background: var(--lcars-panel);
     border-left: 20px solid var(--lcars-orange);
     border-radius: 0 30px 30px 0;
-    padding: 0 20px;
-    height: 60px;
+    padding: 10px 20px 0 20px;
+    min-height: 90px;
+    position: relative;
+}
+
+.input-mode-tabs {
+    display: flex;
+    gap: 15px;
+    margin-bottom: 5px;
+    padding-left: 5px;
+}
+
+.mode-tab {
+    font-size: 0.7rem;
+    font-weight: 800;
+    color: var(--lcars-blue);
+    cursor: pointer;
+    text-transform: uppercase;
+    padding-bottom: 2px;
+    border-bottom: 2px solid transparent;
+    opacity: 0.6;
+    transition: all 0.2s;
+}
+
+.mode-tab:hover {
+    opacity: 1;
+    color: var(--lcars-orange);
+}
+
+.mode-tab.active {
+    opacity: 1;
+    color: var(--lcars-orange);
+    border-bottom: 2px solid var(--lcars-orange);
+}
+
+.prompt-container {
+    display: flex;
+    align-items: center;
+    width: 100%;
 }
 
 .prompt-prefix {

@@ -24,6 +24,7 @@ fn test_global_view_content() {
         portal_url: None,
         description: description.to_string(),
         icon: icon.to_string(),
+        sector_type_name: "science".to_string(),
     };
     state.sectors.push(sector);
     
@@ -33,10 +34,9 @@ fn test_global_view_content() {
     assert!(html.contains(description), "Global view should render dynamic sector description");
     assert!(html.contains(icon), "Global view should render dynamic sector icon");
     
-    // 4.1 & 4.2 Verify JS Injection for System Time and Stardate
+    // 4.1 & 4.2 Verify elements for System Time and Stardate
     assert!(html.contains("tos-sys-time"), "Should contain system time element ID");
     assert!(html.contains("tos-stardate"), "Should contain stardate element ID");
-    assert!(html.contains("setInterval(updateTime, 1000)"), "Should contain update interval script");
     
     // 4.4 Verify no dev/mock buttons
     if html.contains(">MOCK<") {

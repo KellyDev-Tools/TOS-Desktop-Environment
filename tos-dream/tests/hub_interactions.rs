@@ -20,11 +20,13 @@ fn test_hub_mode_toggling() {
     
     // Toggle to Search
     state.toggle_mode(CommandHubMode::Search);
-    assert!(state.render_current_view().contains("SEARCH"));
+    let html = state.render_current_view();
+    assert!(html.contains(r#"class="mode-tab active" onclick="window.ipc.postMessage('set_mode:Search')">SEARCH</div>"#));
 
     // Toggle to Ai
     state.toggle_mode(CommandHubMode::Ai);
-    assert!(state.render_current_view().contains("AI"));
+    let html = state.render_current_view();
+    assert!(html.contains(r#"class="mode-tab active" onclick="window.ipc.postMessage('set_mode:Ai')">AI</div>"#));
 }
 
 #[test]

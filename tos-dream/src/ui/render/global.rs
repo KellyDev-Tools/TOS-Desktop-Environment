@@ -46,34 +46,7 @@ impl ViewRenderer for GlobalRenderer {
                 <span class="label">Stardate</span>
                 <span class="value" id="tos-stardate">{}</span>
             </div>
-        </div>
-        <script>
-            (function() {{
-                function updateTime() {{
-                    const now = new Date();
-                    const hours = String(now.getHours()).padStart(2, '0');
-                    const minutes = String(now.getMinutes()).padStart(2, '0');
-                    const timeStr = `${{hours}}:${{minutes}}`;
-                    
-                    const elTime = document.getElementById('tos-sys-time');
-                    if(elTime) elTime.textContent = timeStr;
-
-                    // Stardate Calc: YY-DDD // YY-HHMM
-                    const start = new Date(now.getFullYear(), 0, 0);
-                    const diff = now - start;
-                    const oneDay = 1000 * 60 * 60 * 24;
-                    const day = Math.floor(diff / oneDay);
-                    const year = String(now.getFullYear()).slice(-2);
-                    const dayStr = String(day).padStart(3, '0');
-                    const timeFull = hours + minutes;
-                    
-                    const stardate = `${{year}}-${{dayStr}} // ${{year}}-${{timeFull}}`;
-                    const elStardate = document.getElementById('tos-stardate');
-                    if(elStardate) elStardate.textContent = stardate;
-                }}
-                setInterval(updateTime, 1000);
-            }})();
-        </script>"#, state.get_system_time(), state.get_stardate()));
+        </div>"#, state.get_system_time(), state.get_stardate()));
 
         // 4. Global Grid
         html.push_str(&format!(r#"<div class="global-grid mode-{:?}">"#, mode));

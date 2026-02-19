@@ -764,6 +764,7 @@ mod tests {
             portal_url: None,
             description: "Test".to_string(),
             icon: "T".to_string(),
+            sector_type_name: "development".to_string(),
         };
 
         let viewport = Viewport {

@@ -41,6 +41,7 @@ fn test_sector_management() {
         portal_url: None,
         description: "Main engineering and power control.".to_string(),
         icon: "⚙️".to_string(),
+        sector_type_name: "operations".to_string(),
     };
     state.add_sector(new_sector);
     assert_eq!(state.sectors.len(), 4);

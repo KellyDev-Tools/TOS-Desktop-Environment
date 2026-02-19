@@ -1145,10 +1145,10 @@ mod tests {
         
         // Loud audio should eventually trigger (after enough frames)
         let loud = vec![0.5f32; 1024];
-        let mut triggered = false;
+        let mut _triggered = false;
         for _ in 0..20 {
             if detector.process_frame(&loud) {
-                triggered = true;
+                _triggered = true;
                 break;
             }
         }

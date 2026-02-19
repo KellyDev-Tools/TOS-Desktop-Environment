@@ -114,10 +114,12 @@ fn render_command_hub_svg(svg: &mut String, state: &TosState) {
     svg.push_str(r##"<path d="M 0 100 h 150 a 30 30 0 0 1 30 30 v 400 a 30 30 0 0 1 -30 30 h -150 v -100 h 100 a 10 10 0 0 0 10 -10 v -260 a 10 10 0 0 0 -10 -10 h -100 z" fill="#9999cc" />"##);
     
     // Mode Indicators
-    let (c1, c2, c3) = match hub.mode {
-        CommandHubMode::Command => ("#ff9900", "#444", "#444"),
-        CommandHubMode::Directory => ("#444", "#9999cc", "#444"),
-        CommandHubMode::Activity => ("#444", "#444", "#cc99cc"),
+    let (c1, c2, c3, c4, c5) = match hub.mode {
+        CommandHubMode::Command => ("#ff9900", "#444", "#444", "#444", "#444"),
+        CommandHubMode::Directory => ("#444", "#9999cc", "#444", "#444", "#444"),
+        CommandHubMode::Activity => ("#444", "#444", "#cc99cc", "#444", "#444"),
+        CommandHubMode::Search => ("#444", "#444", "#444", "#99ccff", "#444"),
+        CommandHubMode::Ai => ("#444", "#444", "#444", "#444", "#ffcc00"),
     };
     
     svg.push_str(&format!(r##"<rect x="10" y="140" width="120" height="40" rx="20" fill="{}" />"##, c1));
@@ -128,6 +130,12 @@ fn render_command_hub_svg(svg: &mut String, state: &TosState) {
     
     svg.push_str(&format!(r##"<rect x="10" y="240" width="120" height="40" rx="20" fill="{}" />"##, c3));
     svg.push_str(r##"<text x="70" y="265" fill="black" text-anchor="middle" font-size="14">ACTIVITY</text>"##);
+
+    svg.push_str(&format!(r##"<rect x="10" y="290" width="120" height="40" rx="20" fill="{}" />"##, c4));
+    svg.push_str(r##"<text x="70" y="315" fill="black" text-anchor="middle" font-size="14">SEARCH</text>"##);
+
+    svg.push_str(&format!(r##"<rect x="10" y="340" width="120" height="40" rx="20" fill="{}" />"##, c5));
+    svg.push_str(r##"<text x="70" y="365" fill="black" text-anchor="middle" font-size="14">AI</text>"##);
     
     // Main Content Area
     svg.push_str(r##"<rect x="200" y="100" width="1000" height="500" rx="10" fill="#080808" stroke="#333" stroke-width="1" />"##);

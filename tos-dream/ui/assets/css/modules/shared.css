@@ -269,7 +269,7 @@
     }
 }
 
-/* Comms Overlay (Phase 16) */
+/* Comms Overlay (§8.4) */
 .comms-overlay {
     position: fixed;
     bottom: 40px;
@@ -351,7 +351,7 @@
     color: rgba(255, 153, 0, 0.4);
 }
 
-/* Action Toolbar (Phase 1) */
+/* Action Toolbar (§3.2) */
 .action-toolbar {
     position: absolute;
     bottom: 30px;

@@ -1,4 +1,4 @@
-# Addendum A to TOS Unified Architectural Specification v1.0
+# TOS Architectural Specification v1.2 - Extensions
 
 This addendum documents features, refinements, and structural changes introduced during development of the TOS application, relative to the original v1.0 document. It is organized to mirror the original section numbering, with new sections added where appropriate. All details from the later versions are preserved and consolidated here.
 

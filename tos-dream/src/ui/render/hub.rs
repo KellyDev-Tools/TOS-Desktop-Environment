@@ -12,6 +12,8 @@ impl ViewRenderer for HubRenderer {
             CommandHubMode::Command => "mode-command",
             CommandHubMode::Directory => "mode-directory",
             CommandHubMode::Activity => "mode-activity",
+            CommandHubMode::Search => "mode-search",
+            CommandHubMode::Ai => "mode-ai",
         };
 
         let mut html = format!(r#"<div class="command-hub {mode_type_class} render-{mode:?}">"#, mode = mode);
@@ -45,6 +47,8 @@ impl ViewRenderer for HubRenderer {
             (CommandHubMode::Command, "COMMAND"),
             (CommandHubMode::Directory, "DIRECTORY"),
             (CommandHubMode::Activity, "ACTIVITY"),
+            (CommandHubMode::Search, "SEARCH"),
+            (CommandHubMode::Ai, "AI"),
         ];
         for (m, label) in modes {
             let active = if hub.mode == m { "active" } else { "" };
@@ -470,6 +474,74 @@ impl ViewRenderer for HubRenderer {
                     }
                 ));
             }
+            CommandHubMode::Ai => {
+                let mut history_html = String::new();
+                for msg in &state.ai_manager.history {
+                    let role_class = match msg.role.as_str() {
+                        "assistant" => "ai-msg-assistant",
+                        "user" => "ai-msg-user",
+                        _ => "ai-msg-system",
+                    };
+                    history_html.push_str(&format!(
+                        r#"<div class="ai-msg {role_class}">
+                            <div class="ai-role">{}</div>
+                            <div class="ai-content">{}</div>
+                        </div>"#,
+                        msg.role.to_uppercase(),
+                        msg.content
+                    ));
+                }
+                
+                let status_html = if state.ai_manager.is_generating {
+                    r#"<div class="ai-status">PROCESSING... <span class="scanning"></span></div>"#
+                } else {
+                    ""
+                };
+
+                html.push_str(&format!(
+                    r#"<div class="ai-view">
+                        <div class="ai-history">
+                            {}
+                            {}
+                        </div>
+                    </div>"#,
+                    history_html,
+                    status_html
+                ));
+            }
+            CommandHubMode::Search => {
+                let mut results_html = String::new();
+                for res in &state.search_manager.results {
+                    results_html.push_str(&format!(
+                        r#"<div class="search-result staging-item" onclick="window.ipc.postMessage('search_select:{}')">
+                            <div class="search-meta">
+                                <span class="search-domain">{:?}</span>
+                                <span class="search-relevance">{}%</span>
+                            </div>
+                            <div class="search-title">{}</div>
+                            <div class="search-desc">{}</div>
+                        </div>"#,
+                        res.id,
+                        res.domain,
+                        (res.relevance * 100.0) as u32,
+                        res.title,
+                        res.description
+                    ));
+                }
+
+                if results_html.is_empty() {
+                    results_html = r#"<div class="search-empty">ENTER QUERY TO SEARCH DOMAINS...</div>"#.to_string();
+                }
+
+                html.push_str(&format!(
+                    r#"<div class="search-view">
+                        <div class="search-grid">
+                            {}
+                        </div>
+                    </div>"#,
+                    results_html
+                ));
+            }
         }
         html.push_str("</div>");
 
@@ -480,9 +552,16 @@ impl ViewRenderer for HubRenderer {
                 </div>
                 <div class="prompt-prefix">TOS@{} ></div>
                 <input type="text" id="terminal-input" value="{}" onkeydown="handlePromptKey(event)" autofocus>
+                <div class="prompt-controls">
+                    {ai_control}
+                    <div class="stop-btn" onclick="window.ipc.postMessage('semantic_event:StopOperation')" title="STOP (Ctrl+Shift+C)">⏹️</div>
+                </div>
             </div>"#,
             sector.name.to_uppercase(), hub.prompt,
-            voice_indicator = state.voice.render_indicator()
+            voice_indicator = state.voice.render_indicator(),
+            ai_control = if hub.mode == CommandHubMode::Ai { 
+                r#"<div class="ai-submit-btn" onclick="window.ipc.postMessage('semantic_event:AiSubmit')">↑</div>"# 
+            } else { "" }
         ));
 
         html.push_str("</div>");

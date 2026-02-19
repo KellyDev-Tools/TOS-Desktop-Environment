@@ -10,6 +10,7 @@ pub mod accessibility;
 // Container Strategy & SaaS Architecture
 pub mod containers;
 pub mod saas;
+pub mod platform;
 
 use system::input::SemanticEvent;
 use modules::{ModuleRegistry, ModuleState, ModuleManifest};
@@ -71,6 +72,8 @@ pub enum CommandHubMode {
     Command,
     Directory,
     Activity,
+    Search,
+    Ai,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
@@ -348,6 +351,12 @@ pub struct TosState {
     /// Cloud Resource Manager for multi-tenant SaaS deployment
     #[serde(skip)]
     pub cloud_manager: Option<saas::CloudResourceManager>,
+    /// AI Assistant Manager (§3.5, §11)
+    #[serde(skip)]
+    pub ai_manager: system::ai::AiManager,
+    /// Unified Search Manager (§3.4)
+    #[serde(skip)]
+    pub search_manager: system::search::SearchManager,
 }
 
 impl std::fmt::Debug for TosState {
@@ -525,10 +534,10 @@ impl TosState {
         self.advanced_input = AdvancedInputManager::new();
         
         // Container and Infrastructure Managers
-        self.container_manager = None;
-        self.sector_container_manager = None;
         self.sandbox_manager = None;
         self.cloud_manager = Some(saas::CloudResourceManager::new(saas::CloudConfig::default()));
+        self.ai_manager = system::ai::AiManager::new();
+        self.search_manager = system::search::SearchManager::new();
     }
 
     /// Create a fresh TosState, bypassing any saved state.
@@ -827,6 +836,8 @@ impl TosState {
             sector_container_manager,
             sandbox_manager: None,
             sandbox_registry,
+            ai_manager: system::ai::AiManager::new(),
+            search_manager: system::search::SearchManager::new(),
             cloud_manager,
         };
         
@@ -1208,18 +1219,49 @@ impl TosState {
             }
             SemanticEvent::ToggleBezel => self.toggle_bezel(),
             SemanticEvent::ModeCommand => self.toggle_mode(CommandHubMode::Command),
-            SemanticEvent::ModeDirectory => self.toggle_mode(CommandHubMode::Directory),
-            SemanticEvent::ModeActivity => self.toggle_mode(CommandHubMode::Activity),
-            SemanticEvent::CycleMode => {
-                let viewport = &self.viewports[0];
-                let current_mode = self.sectors[viewport.sector_index].hubs[viewport.hub_index].mode;
-                let next_mode = match current_mode {
-                    CommandHubMode::Command => CommandHubMode::Directory,
-                    CommandHubMode::Directory => CommandHubMode::Activity,
-                    CommandHubMode::Activity => CommandHubMode::Command,
-                };
-                self.toggle_mode(next_mode);
+        SemanticEvent::ModeDirectory => self.toggle_mode(CommandHubMode::Directory),
+        SemanticEvent::ModeActivity => self.toggle_mode(CommandHubMode::Activity),
+        SemanticEvent::ModeSearch => self.toggle_mode(CommandHubMode::Search),
+        SemanticEvent::ModeAi => self.toggle_mode(CommandHubMode::Ai),
+        SemanticEvent::CycleMode => {
+            let viewport = &self.viewports[0];
+            let current_mode = self.sectors[viewport.sector_index].hubs[viewport.hub_index].mode;
+            let next_mode = match current_mode {
+                CommandHubMode::Command => CommandHubMode::Directory,
+                CommandHubMode::Directory => CommandHubMode::Activity,
+                CommandHubMode::Activity => CommandHubMode::Search,
+                CommandHubMode::Search => CommandHubMode::Ai,
+                CommandHubMode::Ai => CommandHubMode::Command,
+            };
+            self.toggle_mode(next_mode);
+        }
+        SemanticEvent::AiSubmit => {
+            let viewport = &self.viewports[self.active_viewport_index];
+            let hub_mode = self.sectors[viewport.sector_index].hubs[viewport.hub_index].mode;
+            if hub_mode == CommandHubMode::Ai {
+                let query = self.sectors[viewport.sector_index].hubs[viewport.hub_index].prompt.clone();
+                self.ai_manager.submit_query(&query);
+                self.sectors[viewport.sector_index].hubs[viewport.hub_index].prompt.clear();
             }
+        }
+        SemanticEvent::AiStop | SemanticEvent::StopOperation => {
+            self.ai_manager.stop_generation();
+            self.search_manager.clear();
+            // Also send SIGINT to shell if in Command mode
+            let viewport = &self.viewports[self.active_viewport_index];
+            if self.sectors[viewport.sector_index].hubs[viewport.hub_index].mode == CommandHubMode::Command {
+                self.shell_api.parser.config.auto_execute_safe = false; // Example interrupt-like behavior
+            }
+        }
+        SemanticEvent::AiModeToggle => {
+            let viewport = &self.viewports[self.active_viewport_index];
+            let current_mode = self.sectors[viewport.sector_index].hubs[viewport.hub_index].mode;
+            if current_mode == CommandHubMode::Ai {
+                self.toggle_mode(CommandHubMode::Command);
+            } else {
+                self.toggle_mode(CommandHubMode::Ai);
+            }
+        }
             SemanticEvent::OpenGlobalOverview => {
                 self.current_level = HierarchyLevel::GlobalOverview;
                 for v in &mut self.viewports {

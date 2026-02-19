@@ -22,6 +22,8 @@ pub enum SemanticEvent {
     ModeCommand,
     ModeDirectory,
     ModeActivity,
+    ModeSearch,
+    ModeAi,
     ToggleHiddenFiles,
     
     // Bezel & Layout
@@ -43,6 +45,17 @@ pub enum SemanticEvent {
 
     // Voice
     VoiceCommandStart,
+
+    // AI (§9.1)
+    AiSubmit,
+    AiStop,
+    AiModeToggle,
+
+    // Collaboration (§9.1)
+    RaiseHand,
+
+    // Operations (§9.1)
+    StopOperation,
 }
 
 #[cfg(feature = "gamepad")]

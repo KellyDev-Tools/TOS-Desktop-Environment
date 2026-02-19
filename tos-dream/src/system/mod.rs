@@ -14,6 +14,8 @@ pub mod voice;
 // Shell API implementation
 pub mod shell_api;
 pub mod shell;
+pub mod ai;
+pub mod search;
 
 // Security and Dangerous Command Handling implementation
 pub mod security;

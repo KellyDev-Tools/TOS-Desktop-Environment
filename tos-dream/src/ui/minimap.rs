@@ -336,6 +336,8 @@ fn calculate_click_target(&self, x: f32, y: f32, state: &TosState) -> Option<(us
             CommandHubMode::Command => ("⌘", "Command"),
             CommandHubMode::Directory => ("📁", "Directory"),
             CommandHubMode::Activity => ("⚡", "Activity"),
+            CommandHubMode::Search => ("🔍", "Search"),
+            CommandHubMode::Ai => ("🤖", "AI"),
         };
 
         let mut html = format!(
@@ -404,6 +406,8 @@ fn calculate_click_target(&self, x: f32, y: f32, state: &TosState) -> Option<(us
                 CommandHubMode::Command => "Command",
                 CommandHubMode::Directory => "Directory",
                 CommandHubMode::Activity => "Activity",
+                CommandHubMode::Search => "Search",
+                CommandHubMode::Ai => "AI",
             },
             active_app,
             active_app,

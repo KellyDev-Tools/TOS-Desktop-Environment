@@ -871,6 +871,24 @@ impl ShellApi {
                     confidence: 0.8,
                 });
             }
+            CommandHubMode::Search => {
+                suggestions.push(CommandSuggestion {
+                    text: "find ".to_string(),
+                    command: "find ".to_string(),
+                    description: "Search current domain".to_string(),
+                    category: "search".to_string(),
+                    confidence: 0.9,
+                });
+            }
+            CommandHubMode::Ai => {
+                suggestions.push(CommandSuggestion {
+                    text: "/explain ".to_string(),
+                    command: "/explain ".to_string(),
+                    description: "Explain current context".to_string(),
+                    category: "ai".to_string(),
+                    confidence: 0.9,
+                });
+            }
         }
 
         // 3. Security context completions

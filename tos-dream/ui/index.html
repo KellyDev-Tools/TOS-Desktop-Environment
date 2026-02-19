@@ -53,12 +53,32 @@
             const container = document.getElementById('main-content');
             const cleanLevel = currentLevelStr.replace('"', '').replace('"', ''); // Strip quotes if any
 
+            // Preserve terminal input state across DOM refresh.
+            // Without this, the 100ms update cycle destroys the <input> element,
+            // losing focus, typed text, and cursor position.
+            const oldInput = document.getElementById('terminal-input');
+            const inputWasFocused = oldInput && document.activeElement === oldInput;
+            const savedValue = oldInput ? oldInput.value : null;
+            const savedSelStart = oldInput ? oldInput.selectionStart : 0;
+            const savedSelEnd = oldInput ? oldInput.selectionEnd : 0;
+
             // Check if we need to transition
             if (lastLevel && lastLevel !== cleanLevel && !isTransitioning) {
                 performTransition(container, html, lastLevel, cleanLevel);
             } else if (!isTransitioning) {
                 // Static update
                 container.innerHTML = `<div class="viewport-layer active-layer">${html}</div>`;
+            }
+
+            // Restore input state after DOM replacement
+            const newInput = document.getElementById('terminal-input');
+            if (newInput && savedValue !== null) {
+                newInput.value = savedValue;
+                if (inputWasFocused) {
+                    newInput.focus();
+                    newInput.selectionStart = savedSelStart;
+                    newInput.selectionEnd = savedSelEnd;
+                }
             }
 
             lastLevel = cleanLevel;

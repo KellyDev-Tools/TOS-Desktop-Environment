@@ -1,6 +1,7 @@
 use crate::system::pty::PtyHandle;
 
 pub mod fish;
+pub mod bash;
 pub mod ssh;
 
 /// Trait for shell providers
@@ -30,6 +31,7 @@ impl ShellRegistry {
             providers: std::collections::HashMap::new(),
         };
         registry.register(Box::new(fish::FishShellProvider::new()));
+        registry.register(Box::new(bash::BashShellProvider::new()));
         registry.register(Box::new(ssh::SshShellProvider::new()));
         registry
     }

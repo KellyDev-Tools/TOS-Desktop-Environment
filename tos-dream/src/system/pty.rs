@@ -206,50 +206,59 @@ impl PtyHandle {
     ) {
         thread::spawn(move || {
             loop {
-                let mut ptys_lock = ptys.lock().unwrap();
-                for (hub_id, pty) in ptys_lock.iter_mut() {
-                    while let Ok(event) = pty.event_rx.try_recv() {
-                        let mut state_lock = state.lock().unwrap();
-                        
-                        // Find the target hub
-                        let (sector_idx, hub_idx) = if let Some(indices) = state_lock.sectors.iter().enumerate().find_map(|(s_idx, s)| {
-                            s.hubs.iter().enumerate().find_map(|(h_idx, h)| {
-                                if h.id == *hub_id { Some((s_idx, h_idx)) } else { None }
-                            })
-                        }) {
-                            indices
-                        } else {
-                            continue;
-                        };
-
-                        match event {
-                            PtyEvent::Output(data) => {
-                                // Use ShellApi to process output and handle OSC sequences
-                                let clean_output = state_lock.process_shell_output(&data);
-                                
-                                // Direct access to the hub to update terminal output after ShellApi processed it
-                                let hub = &mut state_lock.sectors[sector_idx].hubs[hub_idx];
-                                if !clean_output.is_empty() {
-                                    hub.terminal_output.push(clean_output);
-                                    if hub.terminal_output.len() > 100 {
-                                        hub.terminal_output.remove(0);
-                                    }
-                                }
+                // Collect events first (hold ptys lock, release it, then hold state lock)
+                // This prevents Deadlock: IPC holds State -> wants Ptys; Poll holds Ptys -> wants State.
+                let mut events_to_process = Vec::new();
+                
+                {
+                    // Use try_lock to be extra safe, or just lock
+                    if let Ok(ptys_lock) = ptys.lock() {
+                        for (hub_id, pty) in ptys_lock.iter() {
+                            while let Ok(event) = pty.event_rx.try_recv() {
+                                events_to_process.push((*hub_id, event));
                             }
-                            PtyEvent::DirectoryChanged(path) => {
-                                // Manual override or legacy support
-                                let hub = &mut state_lock.sectors[sector_idx].hubs[hub_idx];
-                                tracing::debug!("Hub {} directory changed to: {}", hub.id, path);
-                            }
-                            PtyEvent::ProcessExited(code) => {
-                                let hub = &mut state_lock.sectors[sector_idx].hubs[hub_idx];
-                                hub.terminal_output.push(format!("\n[PROCESS EXITED WITH CODE {}]", code));
-                            }
-                            _ => {}
                         }
                     }
                 }
-                drop(ptys_lock);
+
+                // Now process events with state lock
+                if !events_to_process.is_empty() {
+                    if let Ok(mut state_lock) = state.lock() {
+                        for (hub_id, event) in events_to_process {
+                            // Find the target hub
+                            let indices = state_lock.sectors.iter().enumerate().find_map(|(s_idx, s)| {
+                                s.hubs.iter().enumerate().find_map(|(h_idx, h)| {
+                                    if h.id == hub_id { Some((s_idx, h_idx)) } else { None }
+                                })
+                            });
+
+                            if let Some((sector_idx, hub_idx)) = indices {
+                                match event {
+                                    PtyEvent::Output(data) => {
+                                        let clean_output = state_lock.process_shell_output(&data);
+                                        let hub = &mut state_lock.sectors[sector_idx].hubs[hub_idx];
+                                        if !clean_output.is_empty() {
+                                            hub.terminal_output.push(clean_output);
+                                            if hub.terminal_output.len() > 100 {
+                                                hub.terminal_output.remove(0);
+                                            }
+                                        }
+                                    }
+                                    PtyEvent::DirectoryChanged(path) => {
+                                        let hub = &mut state_lock.sectors[sector_idx].hubs[hub_idx];
+                                        tracing::debug!("Hub {} directory changed to: {}", hub.id, path);
+                                    }
+                                    PtyEvent::ProcessExited(code) => {
+                                        let hub = &mut state_lock.sectors[sector_idx].hubs[hub_idx];
+                                        hub.terminal_output.push(format!("\n[PROCESS EXITED WITH CODE {}]", code));
+                                    }
+                                    _ => {}
+                                }
+                            }
+                        }
+                    }
+                }
+
                 thread::sleep(Duration::from_millis(50));
             }
         });

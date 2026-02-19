@@ -33,14 +33,36 @@ fn main() -> anyhow::Result<()> {
         let mut state_lock = state.lock().unwrap();
         let mut initial_ptys = Vec::new();
         
-        if let Some(fish) = state_lock.shell_registry.get("fish") {
+        // Robust Shell Selection: Try 'fish', then 'bash'
+        let mut active_shell_name = None;
+        for shell_name in ["fish", "bash"] {
+            if let Some(provider) = state_lock.shell_registry.get(shell_name) {
+                // Test by attempting to spawn
+                if let Some(test_pty) = provider.spawn(".") {
+                    // It works!
+                    drop(test_pty); // Clean up test process
+                    active_shell_name = Some(shell_name);
+                    break;
+                }
+            }
+        }
+
+        if let Some(name) = active_shell_name {
+            let shell = state_lock.shell_registry.get(name).unwrap();
+            println!("TOS // SPAWNING SHELL: {}", shell.name());
+            
             for sector in &state_lock.sectors {
                 for hub in &sector.hubs {
-                    if let Some(pty) = fish.spawn(".") {
+                    if let Some(pty) = shell.spawn(".") {
                         initial_ptys.push((hub.id, pty));
+                    } else {
+                        tracing::warn!("Failed to spawn shell for hub {}", hub.id);
                     }
                 }
             }
+        } else {
+             println!("TOS // CRITICAL: NO COMPATIBLE SHELL FOUND (Tried fish, bash)");
+             // Check if we should fallback to dummy?
         }
 
         for (hub_id, pty) in initial_ptys {

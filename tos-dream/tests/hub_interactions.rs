@@ -17,7 +17,14 @@ fn test_hub_mode_toggling() {
     // Toggle to Activity
     state.toggle_mode(CommandHubMode::Activity);
     assert!(state.render_current_view().contains("ACTIVITY"));
-    assert!(state.render_current_view().contains("TERMINAL"));
+    
+    // Toggle to Search
+    state.toggle_mode(CommandHubMode::Search);
+    assert!(state.render_current_view().contains("SEARCH"));
+
+    // Toggle to Ai
+    state.toggle_mode(CommandHubMode::Ai);
+    assert!(state.render_current_view().contains("AI"));
 }
 
 #[test]

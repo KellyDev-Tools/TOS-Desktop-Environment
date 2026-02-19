@@ -26,6 +26,8 @@ impl IpcDispatcher {
                 "Command" => CommandHubMode::Command,
                 "Directory" => CommandHubMode::Directory,
                 "Activity" => CommandHubMode::Activity,
+                "Search" => CommandHubMode::Search,
+                "Ai" => CommandHubMode::Ai,
                 _ => return,
             };
             state.toggle_mode(mode);
@@ -426,6 +428,8 @@ impl IpcDispatcher {
                     Some(&"command") => state.toggle_mode(CommandHubMode::Command),
                     Some(&"directory") | Some(&"dir") => state.toggle_mode(CommandHubMode::Directory),
                     Some(&"activity") | Some(&"apps") => state.toggle_mode(CommandHubMode::Activity),
+                    Some(&"search") => state.toggle_mode(CommandHubMode::Search),
+                    Some(&"ai") => state.toggle_mode(CommandHubMode::Ai),
                     _ => {}
                 }
             }

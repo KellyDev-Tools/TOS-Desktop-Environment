@@ -26,6 +26,8 @@ The hierarchy is extended with two deeper inspection levels:
 | **4** | **Detail**           | Structured metadata view for any surface: CPU, memory, uptime, event history, and configuration. |
 | **5** | **Buffer**           | Raw memory / hex dump of the application’s process space. **Privileged access** – requires explicit elevation (see §11.6). On Android, this level may be limited or omitted due to platform restrictions. |
 
+**Lifecycle Tip**: Both Level 4 and Level 5 views are transient; a **Tactical Reset** (§15) immediately flushes all inspection buffers and reverts the view to Level 1 or 2 as appropriate for the sector.
+
 Level 1 (Global Overview) is now reserved for sector setup, configuration, remote management, and global settings.
 
 ---
@@ -62,6 +64,10 @@ Search Mode transforms the Command Hub into a unified search interface across mu
 - Clicking a tile sends the query to the provider, opening results in the default web browser.
 - Providers are user‑configurable via URL templates.
 
+**Federated Dispatch (Implementation)**
+- The `SearchManager` aggregates results from local domain providers (files, logs, processes) and web proxies.
+- Results are ranked using a combination of lexical relevance and surface priority scores (§5.1).
+
 ### 3.5 Multi‑Mode Prompt with AI Assistant (New)
 
 The Persistent Unified Prompt now features a three‑way mode selector (`CMD`, `SEARCH`, `AI`) and a stop button.
@@ -83,6 +89,19 @@ The Persistent Unified Prompt now features a three‑way mode selector (`CMD`, `
 - Directory Mode on Android uses the Storage Access Framework.
 - Activity Mode on Android lists TOS‑native apps and optionally system apps.
 
+### 3.6 Command Helpers & High‑Frequency Interaction (New)
+
+The Command Hub (Level 2) includes a dynamic **Command Helpers Tray** located immediately above the prompt. This tray provides one-tap/click access to contextually relevant commands.
+
+**Content Sources**
+1. **Sector-Specific Favorites**: Defined by the `SectorType` (e.g., Science sectors suggest `sensor scan`, Engineering suggests `power status`).
+2. **Shell-Provided Suggestions**: Live command completions and frequent aliases provided by the underlying shell integration (OSC 777).
+3. **Global Defaults**: Fallback commands (`ls`, `ps`, `git status`) if no contextual matches are available.
+
+**Interaction Model**
+- **Action**: Clicking a helper tile "stages" the command in the prompt (appending a trailing space) but does not execute it.
+- **Confirmation**: The user can then modify the arguments before pressing Enter or clicking the transmit icon.
+
 ---
 
 ## 4. Tactical Bezel (Additions)
@@ -101,7 +120,7 @@ To convey relative importance without altering size or position, TOS uses non‑
 **Indicator Types**
 | Indicator | Description |
 |-----------|-------------|
-| Border Chips | Small, pill‑shaped coloured accents along the border. Number reflects priority score. |
+| Border Chips | Colored notches appearing on the tile border. Number and color reflect priority level (v1.2 implementation uses up to 5 chips). |
 | Chevrons | LCARS‑style arrow shapes; pulsing indicates a pending notification or critical status. |
 | Glow / Luminance | Subtle inner/outer glow; intensity varies with priority. |
 | Status Dots | Small circles in a corner; colour‑coded (blue=normal, yellow=caution, red=critical). Multiple dots can indicate multiple factors. |
@@ -224,9 +243,24 @@ pub trait SystemServices {
 - **Android XR**: OpenXR renderer, OpenXR action mapping, JNI for Android APIs.
 - **Android Phone**: egui with Android backend or JNI to Jetpack Compose; touch events from Android view system.
 
+### 10.5 Rendering Stability & DOM Optimization (New)
+To ensure a premium, flicker‑free experience during high‑frequency telemetry updates (e.g., system clock, process stats), the TOS frontend implements **Intelligent View Synchronization**.
+
+**Optimization Techniques**
+1. **HTML Diffing**: The `updateView` function in the UI layer compares the incoming HTML payload with the current DOM state. If the payloads are identical, the DOM update is skipped entirely.
+2. **Animation Suppression**: CSS animations on core structural elements (like `.global-grid`) are designed to trigger only once or be manually controlled, preventing "re-flicker" on layout updates.
+3. **State Preservation**: Input fields and scroll positions are tracked and restored across DOM refreshes to ensure user focus is never lost.
+4. **Throttled Backgrounds**: Surfaces not currently in focus (background viewports) are rendered at reduced frequencies (1-5 Hz) to conserve resources.
+
 ---
 
 ## 11. Security Model (Additions)
+
+### 11.4 Tactile Confirmation Slider (Refinement)
+- Dangerous commands (marked as high‑risk in Shell API §13) trigger a modal overlay.
+- Execution requires a **Tactile Confirmation Slider** – the user must drag a physical or virtual slider 100% to the right to unlock the "Confirm" action.
+- This prevents accidental execution via mis-taps or unintentional Enter presses.
+- Shortcuts like `Ctrl+Enter` bypass the slider if the user has a physical keyboard and the appropriate permission flag.
 
 ### 11.6 Deep Inspection Privilege (New)
 - Access to Level 5 (raw memory) is **disabled by default**.
@@ -235,6 +269,7 @@ pub trait SystemServices {
 - All enable/disable events and Level 5 usage are audited.
 - Applications may opt out via their Application Model manifest.
 - On Android, Level 5 is generally unavailable due to platform restrictions.
+- **Implementation Note**: Enforcement is handled at the `ViewRenderer` level – if the flag is false, the renderer returns an "Access Denied" view instead of the hex dump.
 
 **Platform Comparison Table**
 
@@ -448,13 +483,13 @@ Haptics parallel the tactical audio layer.
 
 The original roadmap is extended with additional phases (in order):
 
-8. **Deep Inspection (L4/L5)** – Level 4 structured metadata, Level 5 raw memory with privilege elevation.
-9. **TOS Log** – Per‑surface logging, global log sector, privacy controls, OpenSearch compatibility.
-10. **Search Mode** – Unified search across domains with external providers, integration with prompt.
-11. **AI Assistant** – Multi‑mode prompt with CMD/SEARCH/AI toggle, pluggable backends, stop button.
-12. **Priority‑Weighted Layouts** – Visual indicators, configurable factors and appearance.
-13. **Auditory and Haptic Feedback** – Three‑layer audio, context adaptation, haptic feedback for supported devices.
-14. **Accessibility and Polish** – Screen reader integration, high contrast, mini‑map monitoring layer.
+8. **Deep Inspection (L4/L5)** – Level 4 structured metadata, Level 5 raw memory with privilege elevation. *(IMPLEMENTED)*
+9. **TOS Log** – Per‑surface logging, global log sector, privacy controls, OpenSearch compatibility. *(IMPLEMENTED)*
+10. **Search Mode** – Unified search across domains with external providers, integration with prompt. *(IMPLEMENTED)*
+11. **AI Assistant** – Multi‑mode prompt with CMD/SEARCH/AI toggle, pluggable backends, stop button. *(IMPLEMENTED - OLLAMA DEFAULT)*
+12. **Priority‑Weighted Layouts** – Visual indicators, configurable factors and appearance. *(PARTIAL - BORDER CHIPS IMPLEMENTED)*
+13. **Auditory and Haptic Feedback** – Three‑layer audio, context adaptation, haptic feedback for supported devices. *(PARTIAL - AUDIO ENGINE ACTIVE)*
+14. **Accessibility and Polish** – Screen reader integration, high contrast, mini‑map monitoring layer. *(IN PROGRESS)*
 
 In v1.2, the roadmap is reframed modularly:
 1. Core Library (platform‑agnostic)
@@ -475,7 +510,7 @@ The core TOS logic is platform‑independent and interacts with the platform thr
 
 ## 22. Conclusion
 
-This addendum consolidates development changes and updates to date February 17 2026
+This addendum consolidates development changes and updates to date February 18 2026
 
 
 

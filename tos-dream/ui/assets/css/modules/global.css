@@ -8,8 +8,8 @@
 
 .dashboard-header {
     text-align: left;
-    padding: 40px 100px;
-    margin-bottom: 20px;
+    padding: 20px 50px;
+    margin-bottom: 10px;
 }
 
 .dashboard-title {
@@ -27,8 +27,8 @@
 
 .telemetry-bar {
     position: absolute;
-    top: 55px;
-    right: 100px;
+    top: 35px;
+    right: 50px;
     display: flex;
     gap: 40px;
     font-family: var(--font-mono);
@@ -55,9 +55,9 @@
 
 .global-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
-    gap: 30px;
-    padding: 0 100px 100px 100px;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 25px;
+    padding: 0 50px 50px 50px;
     width: 100%;
 }
 
@@ -209,10 +209,30 @@
     color: var(--lcars-blue);
 }
 
-/* Remote Connection Upgrade */
+/* Remote & Create Cards */
 .remote-card {
     background: rgba(20, 40, 30, 0.3);
     border: 1px dashed rgba(153, 204, 153, 0.3);
+}
+
+.create-card {
+    background: rgba(255, 255, 255, 0.05);
+    border: 2px dashed rgba(255, 255, 255, 0.1);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 300px;
+    font-weight: 800;
+    color: rgba(255, 255, 255, 0.3);
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    transition: all 0.3s;
+}
+
+.create-card:hover {
+    background: rgba(255, 255, 255, 0.08);
+    border-color: var(--lcars-orange);
+    color: var(--lcars-orange);
 }
 
 .remote-input-group {

@@ -112,6 +112,14 @@ impl ViewRenderer for GlobalRenderer {
             ));
         }
         
+        // Add Create Sector Card
+        html.push_str(r#"<div class="sector-card create-card" onclick="window.ipc.postMessage('create_sector')">
+            <div class="card-body" style="align-items: center; justify-content: center;">
+                <div class="card-icon" style="margin-bottom: 10px; font-size: 4rem;">+</div>
+                <div class="sector-name" style="font-size: 1.2rem; opacity: 0.6;">NEW SECTOR</div>
+            </div>
+        </div>"#);
+
         // Add Remote Card (Styled like a sector card)
         html.push_str(r#"<div class="sector-card remote-card green">
             <div class="card-header">
@@ -119,7 +127,7 @@ impl ViewRenderer for GlobalRenderer {
             </div>
             <div class="card-body">
                 <div class="card-icon">📡</div>
-                <div class="sector-name">LINK NODE</div>
+                <div class="sector-name" style="font-size: 1.5rem;">LINK NODE</div>
                 <p class="sector-desc">Establish a persistent tactical link to a remote TOS installation via IP/Hostname.</p>
                 <div class="remote-input-group">
                     <input type="text" id="remote-host-input" placeholder="ADDRESS (e.g. 192.168.1.50)" 

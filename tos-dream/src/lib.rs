@@ -42,7 +42,7 @@ use system::input::advanced::AdvancedInputManager;
 use containers::{
     ContainerManager, ContainerBackend,
     sector::SectorContainerManager,
-    sandbox::{SandboxManager, SandboxRegistry, SandboxInfo, SandboxLevel},
+    sandbox::{SandboxManager, SandboxRegistry},
 };
 
 // Cloud Resource Infrastructure systems
@@ -631,175 +631,15 @@ impl TosState {
             sector_type_name: "development".to_string(),
         };
 
-        let second_sector = Sector {
-            id: uuid::Uuid::new_v4(),
-            name: "Science Labs".to_string(),
-            color: "#9999cc".to_string(),
-            hubs: vec![CommandHub {
-                id: uuid::Uuid::new_v4(),
-                mode: CommandHubMode::Activity,
-                prompt: String::new(),
-                applications: vec![
-                    Application {
-                        id: uuid::Uuid::new_v4(),
-                        title: "Spectrometer".to_string(),
-                        app_class: "Science".to_string(),
-                        is_minimized: false,
-                        pid: None,
-                        icon: Some("🔬".to_string()),
-                        is_dummy: true,
-                        settings: std::collections::HashMap::new(),
-                        thumbnail: None,
-                        decoration_policy: DecorationPolicy::Overlay,
-                        bezel_actions: vec![
-                            BezelAction { label: "SCAN".to_string(), command: "scan_start".to_string() },
-                            BezelAction { label: "CALIBRATE".to_string(), command: "calibrate".to_string() }
-                        ],
-                    },
-                    Application {
-                        id: uuid::Uuid::new_v4(),
-                        title: "DataFeed".to_string(),
-                        app_class: "Telemetry".to_string(),
-                        is_minimized: false,
-                        pid: None,
-                        icon: Some("📡".to_string()),
-                        is_dummy: true,
-                        settings: std::collections::HashMap::new(),
-                        thumbnail: None,
-                        decoration_policy: DecorationPolicy::Suppress,
-                        bezel_actions: vec![],
-                    }
-                ],
-                active_app_index: Some(0),
-                terminal_output: Vec::new(),
-                confirmation_required: None,
-                current_directory: dirs::home_dir().unwrap_or_else(|| std::path::PathBuf::from("/")),
-                show_hidden_files: false,
-                selected_files: std::collections::HashSet::new(),
-                context_menu: None,
-                shell_listing: None,
-                suggestions: vec![],
-            }],
-            active_hub_index: 0,
-            host: "LAB-SRV-01".to_string(),
-            connection_type: ConnectionType::TOSNative,
-            participants: vec![
-                system::collaboration::Participant { 
-                    id: uuid::Uuid::new_v4(),
-                    name: "Commander".to_string(), 
-                    color: "#ffcc00".to_string(), 
-                    role: system::collaboration::CollaborationRole::CoOwner,
-                    cursor_position: None,
-                    following_host_id: None,
-                },
-                system::collaboration::Participant { 
-                    id: uuid::Uuid::new_v4(),
-                    name: "Ensign Kim".to_string(), 
-                    color: "#99ccff".to_string(), 
-                    role: system::collaboration::CollaborationRole::Operator,
-                    cursor_position: None,
-                    following_host_id: None,
-                },
-                system::collaboration::Participant { 
-                    id: uuid::Uuid::new_v4(),
-                    name: "Seven".to_string(), 
-                    color: "#cc99ff".to_string(), 
-                    role: system::collaboration::CollaborationRole::Viewer,
-                    cursor_position: None,
-                    following_host_id: None,
-                },
-            ],
-            portal_active: false,
-            portal_url: None,
-            description: "Data analysis and sensor array telemetry.".to_string(),
-            icon: "🔬".to_string(),
-            sector_type_name: "science".to_string(),
-        };
-
-        let third_sector = Sector {
-            id: uuid::Uuid::new_v4(),
-            name: "Engineering Hub".to_string(),
-            color: "#cc6666".to_string(),
-            hubs: vec![CommandHub {
-                id: uuid::Uuid::new_v4(),
-                mode: CommandHubMode::Command,
-                prompt: String::new(),
-                applications: vec![Application {
-                    id: uuid::Uuid::new_v4(),
-                    title: "Core Monitor".to_string(),
-                    app_class: "Engineering".to_string(),
-                    is_minimized: false,
-                    pid: None,
-                    icon: Some("📡".to_string()),
-                    is_dummy: true,
-                    settings: std::collections::HashMap::new(),
-                    thumbnail: None,
-                    decoration_policy: DecorationPolicy::Native,
-                    bezel_actions: Vec::new(),
-                }],
-                active_app_index: Some(0),
-                terminal_output: Vec::new(),
-                confirmation_required: None,
-                current_directory: dirs::home_dir().unwrap_or_else(|| std::path::PathBuf::from("/")),
-                show_hidden_files: false,
-                selected_files: std::collections::HashSet::new(),
-                shell_listing: None,
-                suggestions: vec![],
-                context_menu: None,
-            }],
-            active_hub_index: 0,
-            host: "OBS-NODE-04".to_string(),
-            connection_type: ConnectionType::HTTP,
-            participants: Vec::new(),
-            portal_active: false,
-            portal_url: None,
-            description: "Core systems and power distribution telemetry.".to_string(),
-            icon: "⚙️".to_string(),
-            sector_type_name: "operations".to_string(),
-        };
-
-        let initial_viewport = Viewport {
+        let sectors = vec![first_sector];
+        let viewports = vec![Viewport {
             id: uuid::Uuid::new_v4(),
             sector_index: 0,
             hub_index: 0,
             current_level: HierarchyLevel::GlobalOverview,
-            active_app_index: None,
+            active_app_index: Some(0),
             bezel_expanded: false,
-        };
-
-        let third_sector_id = third_sector.id;
-        let sectors = vec![first_sector, second_sector, third_sector];
-        let viewports = vec![initial_viewport];
-        let modules = Vec::new(); // Modules are loaded and managed by module_registry
-        let minimap = MiniMap::new();
-        let tactical_reset = TacticalReset::new();
-        let voice = VoiceCommandProcessor::new();
-        let shell_api = ShellApi::new();
-        let shell_registry = system::shell::ShellRegistry::new();
-        let security = SecurityManager::new();
-        let remote_manager = RemoteManager::new();
-        let collaboration_manager = CollaborationManager::new();
-        let audio_manager = AudioManager::new();
-        let performance_monitor = PerformanceMonitor::new();
-        let earcon_player = EarconPlayer::new();
-        let sound_theme_manager = ThemeManager::new();
-        let advanced_input = AdvancedInputManager::new();
-        let container_manager = None;
-        let sector_container_manager = None;
-        #[cfg(feature = "accessibility")]
-        let accessibility = None;
-        #[cfg(feature = "live-feed")]
-        let live_feed = None;
-        let cloud_manager = Some(saas::CloudResourceManager::new(saas::CloudConfig::default()));
-
-        let mut sandbox_registry = SandboxRegistry::new();
-        sandbox_registry.register(third_sector_id, SandboxInfo {
-            id: "sector-obs-sandbox".to_string(),
-            level: SandboxLevel::Isolated,
-            container_id: None,
-            active: true,
-            created_at: chrono::Local::now(),
-        });
+        }];
 
         let state = Self {
             current_level: HierarchyLevel::GlobalOverview,
@@ -816,7 +656,7 @@ impl TosState {
             escape_count: 0,
             fps: 60.0,
             performance_alert: false,
-            modules,
+            modules: Vec::new(),
             portal_security_bypass: false,
             approval_requested_sector: None,
             module_registry,
@@ -824,39 +664,31 @@ impl TosState {
             sector_type_registry,
             marketplace,
             #[cfg(feature = "accessibility")]
-            accessibility,
+            accessibility: None,
             #[cfg(feature = "live-feed")]
-            live_feed,
-            minimap,
-            tactical_reset,
-            voice,
-            shell_api,
-            shell_registry,
-            security,
-            remote_manager,
-            collaboration_manager,
-            audio_manager,
-            performance_monitor,
-            earcon_player,
-            sound_theme_manager,
-            advanced_input,
-            container_manager,
-            sector_container_manager,
+            live_feed: None,
+            minimap: MiniMap::new(),
+            tactical_reset: TacticalReset::new(),
+            voice: VoiceCommandProcessor::new(),
+            shell_api: ShellApi::new(),
+            shell_registry: system::shell::ShellRegistry::new(),
+            security: SecurityManager::new(),
+            remote_manager: RemoteManager::new(),
+            collaboration_manager: CollaborationManager::new(),
+            audio_manager: AudioManager::new(),
+            performance_monitor: PerformanceMonitor::new(),
+            earcon_player: EarconPlayer::new(),
+            sound_theme_manager: ThemeManager::new(),
+            advanced_input: AdvancedInputManager::new(),
+            container_manager: None,
+            sector_container_manager: None,
             sandbox_manager: None,
-            sandbox_registry,
+            sandbox_registry: SandboxRegistry::new(),
             ai_manager: system::ai::AiManager::new(),
             search_manager: system::search::SearchManager::new(),
             log_manager: system::log::LogManager::new(),
-            cloud_manager,
+            cloud_manager: Some(saas::CloudResourceManager::new(saas::CloudConfig::default())),
         };
-        
-        // Initialize all loaded modules
-        // Note: Module initialization happens after state construction
-        // to avoid borrow checker issues with self-referential structs
-        let module_names: Vec<String> = state.module_registry.module_names();
-        for name in &module_names {
-            tracing::info!("Module loaded: {}", name);
-        }
         
         state
     }
@@ -1192,6 +1024,57 @@ impl TosState {
 
     pub fn add_sector(&mut self, sector: Sector) {
         self.sectors.push(sector);
+    }
+
+    pub fn create_new_sector(&mut self) {
+        let count = self.sectors.len();
+        let name = format!("Sector {}", count);
+        let color = match count % 4 {
+            0 => "#ff9900", // Orange
+            1 => "#9999cc", // Blue
+            2 => "#cc99cc", // Purple
+            _ => "#99cc99", // Green
+        };
+
+        let new_sector = Sector {
+            id: uuid::Uuid::new_v4(),
+            name,
+            color: color.to_string(),
+            hubs: vec![CommandHub {
+                id: uuid::Uuid::new_v4(),
+                mode: CommandHubMode::Command,
+                prompt: String::new(),
+                applications: Vec::new(),
+                active_app_index: None,
+                terminal_output: Vec::new(),
+                confirmation_required: None,
+                current_directory: dirs::home_dir().unwrap_or_else(|| std::path::PathBuf::from("/")),
+                show_hidden_files: false,
+                selected_files: std::collections::HashSet::new(),
+                context_menu: None,
+                shell_listing: None,
+                suggestions: vec![],
+            }],
+            active_hub_index: 0,
+            host: "LOCAL".to_string(),
+            connection_type: ConnectionType::Local,
+            participants: vec![system::collaboration::Participant { 
+                id: uuid::Uuid::new_v4(),
+                name: "Host".to_string(), 
+                color: "#ffcc00".to_string(), 
+                role: system::collaboration::CollaborationRole::CoOwner,
+                cursor_position: None,
+                following_host_id: None,
+            }],
+            portal_active: false,
+            portal_url: None,
+            description: "Newly initialized tactical sector.".to_string(),
+            icon: "🛰️".to_string(),
+            sector_type_name: "general".to_string(),
+        };
+
+        self.sectors.push(new_sector);
+        self.earcon_player.play(crate::system::audio::earcons::EarconEvent::CommandAccepted);
     }
 
     pub fn focus_app_by_id(&mut self, app_id: uuid::Uuid) {

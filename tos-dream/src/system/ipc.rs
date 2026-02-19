@@ -75,6 +75,8 @@ impl IpcDispatcher {
             state.deny_portal();
         } else if request == "split_viewport" {
             self.handle_split_viewport(&mut state);
+        } else if request == "create_sector" {
+            state.create_new_sector();
         } else if request == "zoom_in" {
             state.handle_semantic_event(SemanticEvent::ZoomIn);
         } else if request == "zoom_out" {

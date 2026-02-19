@@ -4,7 +4,7 @@
 //! implementations (Linux Wayland, Android XR, Android Phone).
 
 use std::path::{Path, PathBuf};
-use crate::{HierarchyLevel, Viewport};
+use crate::HierarchyLevel;
 
 /// Configuration for creating a surface
 pub struct SurfaceConfig {

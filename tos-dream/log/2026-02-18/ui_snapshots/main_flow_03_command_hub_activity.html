@@ -7,13 +7,13 @@
                     <div class="participant-avatar" style="background-color: #ffcc00" title="Host (Co-Owner)"></div>
                     <div class="invite-btn" onclick="window.ipc.postMessage('collaboration_invite')">+</div>
                 </div>
-            </div><div class="hub-tabs"><div class="hub-tab " onclick="window.ipc.postMessage('set_mode:Command')">COMMAND</div><div class="hub-tab " onclick="window.ipc.postMessage('set_mode:Directory')">DIRECTORY</div><div class="hub-tab active" onclick="window.ipc.postMessage('set_mode:Activity')">ACTIVITY</div></div><div class="hub-content"><div class="activity-view">
+            </div><div class="hub-tabs"><div class="hub-tab " onclick="window.ipc.postMessage('set_mode:Command')">COMMAND</div><div class="hub-tab " onclick="window.ipc.postMessage('set_mode:Directory')">DIRECTORY</div><div class="hub-tab active" onclick="window.ipc.postMessage('set_mode:Activity')">ACTIVITY</div><div class="hub-tab " onclick="window.ipc.postMessage('set_mode:Search')">SEARCH</div><div class="hub-tab " onclick="window.ipc.postMessage('set_mode:Ai')">AI</div></div><div class="hub-content"><div class="activity-view">
                         <div class="activity-section">
                             <div class="section-title">ACTIVE PROCESSES</div>
                             
                             <div class="activity-grid">
                                 <div class="app-tile staging-item ">
-                            <div class="file-selector" onclick="event.stopPropagation(); window.ipc.postMessage('app_toggle_select:0f512de1-8544-431d-8ee3-2ab041f547c5')"></div>
+                            <div class="file-selector" onclick="event.stopPropagation(); window.ipc.postMessage('app_toggle_select:ca9a43b5-93fb-4f07-848f-d18094e9b33e')"></div>
                             <div class="app-tile-header" onclick="window.ipc.postMessage('stage_command:focus TERMINAL')">
                                 <div class="app-tile-icon">⌨️</div>
                                 <div class="app-tile-info">
@@ -27,8 +27,8 @@
                                 <div class="stat">MEM: <1MB</div>
                             </div>
                             <div class="app-tile-actions">
-                                <button class="tile-btn" onclick="window.ipc.postMessage('signal_app:0f512de1-8544-431d-8ee3-2ab041f547c5;INT')">SIGINT</button>
-                                <button class="tile-btn danger" onclick="window.ipc.postMessage('kill_app:0f512de1-8544-431d-8ee3-2ab041f547c5')">KILL</button>
+                                <button class="tile-btn" onclick="window.ipc.postMessage('signal_app:ca9a43b5-93fb-4f07-848f-d18094e9b33e;INT')">SIGINT</button>
+                                <button class="tile-btn danger" onclick="window.ipc.postMessage('kill_app:ca9a43b5-93fb-4f07-848f-d18094e9b33e')">KILL</button>
                             </div>
                         </div>
                                 <div class="app-tile add-tile" onclick="window.ipc.postMessage('spawn_app')">
@@ -61,4 +61,8 @@
                 </div>
                 <div class="prompt-prefix">TOS@ALPHA SECTOR ></div>
                 <input type="text" id="terminal-input" value="" onkeydown="handlePromptKey(event)" autofocus>
+                <div class="prompt-controls">
+                    
+                    <div class="stop-btn" onclick="window.ipc.postMessage('semantic_event:StopOperation')" title="STOP (Ctrl+Shift+C)">⏹️</div>
+                </div>
             </div></div>

@@ -6,8 +6,7 @@
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 use std::collections::HashMap;
-use async_trait::async_trait;
-use crate::{HierarchyLevel, TosState, Viewport};
+use crate::{HierarchyLevel, TosState};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum CollaborationRole {

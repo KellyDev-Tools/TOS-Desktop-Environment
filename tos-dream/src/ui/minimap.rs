@@ -16,7 +16,7 @@
 //! - **Level 2**: Current sector with mode indicator; other sectors dimmed
 //! - **Level 3**: Current sector with focused app highlighted; other viewports shown
 
-use crate::{HierarchyLevel, TosState, CommandHubMode, Sector};
+use crate::{HierarchyLevel, TosState, CommandHubMode};
 use serde::{Deserialize, Serialize};
 
 /// Position of the mini-map on screen
@@ -246,10 +246,6 @@ fn calculate_click_target_with_geometry(&self, x: f32, y: f32, state: &TosState)
     }
 }
 
-/// Legacy method - kept for compatibility, now delegates to geometry-based method
-fn calculate_click_target(&self, x: f32, y: f32, state: &TosState) -> Option<(usize, Option<usize>)> {
-    self.calculate_click_target_with_geometry(x, y, state)
-}
 
     /// Render the mini-map as HTML
     pub fn render(&self, state: &TosState) -> String {
@@ -636,7 +632,7 @@ mod tests {
         assert_eq!(geometry.sectors.len(), 3);
         
         // Add more sectors
-        let test_sector = Sector {
+        let test_sector = crate::Sector {
             id: uuid::Uuid::new_v4(),
             name: "Test Sector 4".to_string(),
             color: "#ff0000".to_string(),
@@ -692,7 +688,6 @@ mod tests {
     #[test]
     fn test_click_target_with_geometry() {
         let mut state = TosState::new();
-        let minimap = MiniMap::new();
         
         // Activate minimap
         let mut active_minimap = MiniMap::new();

@@ -25,6 +25,7 @@ pub mod remote;
 pub mod collaboration;
 pub mod audio;
 pub mod proc;
+pub mod log;
 
 // Auditory Interface - Earcons and Themes implementation
 pub use audio::earcons;

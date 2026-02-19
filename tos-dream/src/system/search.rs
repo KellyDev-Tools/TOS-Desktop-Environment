@@ -57,31 +57,16 @@ impl SearchManager {
         }
     }
 
-    pub fn execute_search(&mut self, query: &str) {
+    pub fn start_search(&mut self, query: &str) {
         self.current_query = query.to_string();
         self.is_searching = true;
-        
-        // Mock results for now
-        self.results = vec![
-            SearchResult {
-                id: "test-1".to_string(),
-                title: format!("Match for '{}' in Files", query),
-                description: "/home/user/tos-config.json".to_string(),
-                domain: SearchDomain::Files,
-                relevance: 0.95,
-                priority_score: 2,
-                target_location: SearchTarget::FilePath("/home/user/tos-config.json".to_string()),
-            },
-            SearchResult {
-                id: "web-1".to_string(),
-                title: format!("Search Google for '{}'", query),
-                description: "External Provider".to_string(),
-                domain: SearchDomain::Web,
-                relevance: 0.5,
-                priority_score: 0,
-                target_location: SearchTarget::Url(format!("https://google.com/search?q={}", query)),
-            }
-        ];
+        self.results.clear();
+    }
+
+    pub fn add_results(&mut self, mut results: Vec<SearchResult>) {
+        self.results.append(&mut results);
+        // Sort by priority/relevance if needed, for now just append
+        self.results.sort_by(|a, b| b.priority_score.cmp(&a.priority_score));
     }
 
     pub fn clear(&mut self) {

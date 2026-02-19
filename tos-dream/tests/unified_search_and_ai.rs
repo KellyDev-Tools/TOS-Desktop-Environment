@@ -1,6 +1,5 @@
-use tos_core::{TosState, CommandHubMode, HierarchyLevel};
+use tos_core::{TosState, CommandHubMode};
 use tos_core::system::input::SemanticEvent;
-use uuid::Uuid;
 
 #[test]
 fn test_ai_manager_query() {
@@ -16,6 +15,10 @@ fn test_ai_manager_query() {
     
     let mode = state.sectors[s_idx].hubs[h_idx].mode;
     assert_eq!(mode, CommandHubMode::Ai);
+    
+    // Check default backend registration
+    assert!(state.ai_manager.backends.contains_key("ollama"));
+    assert_eq!(state.ai_manager.active_backend, Some("ollama".to_string()));
     
     // Stage a query
     state.sectors[s_idx].hubs[h_idx].prompt = "Explain quantum computing".to_string();
@@ -52,7 +55,7 @@ fn test_search_manager_execution() {
     assert_eq!(mode, CommandHubMode::Search);
     
     // Execute search
-    state.search_manager.execute_search("tos-config");
+    state.perform_search("tos-config");
     
     assert!(state.search_manager.is_searching);
     assert!(!state.search_manager.results.is_empty());
@@ -62,6 +65,31 @@ fn test_search_manager_execution() {
     state.handle_semantic_event(SemanticEvent::StopOperation);
     assert!(!state.search_manager.is_searching);
     assert!(state.search_manager.results.is_empty());
+}
+
+#[test]
+fn test_search_logs_integration() {
+    use tos_core::system::log::LogType;
+    use tos_core::system::search::SearchDomain;
+    
+    let mut state = TosState::new();
+    state.zoom_in();
+    state.handle_semantic_event(SemanticEvent::ModeSearch);
+
+    // Add some logs
+    state.log_manager.log(LogType::System, "Kernel", "System started", None);
+    state.log_manager.log(LogType::Security, "Auth", "User logged in", None);
+
+    // Search for "logged"
+    state.perform_search("logged");
+    
+    // Check results
+    let results = &state.search_manager.results;
+    assert!(!results.is_empty());
+    
+    let log_result = results.iter().find(|r| r.domain == SearchDomain::Logs);
+    assert!(log_result.is_some());
+    assert!(log_result.unwrap().title.contains("User logged in"));
 }
 
 #[test]

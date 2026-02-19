@@ -427,6 +427,73 @@
 }
 
 .search-desc {
-    font-size: 0.8rem;
+    font-size: 0.9rem;
+    color: rgba(255, 255, 255, 0.7);
+    line-height: 1.4;
+}
+
+/* Priority Indicators (§5.1) */
+
+.search-result {
+    position: relative;
+    overflow: hidden;
+}
+
+.priority-indicator {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    display: flex;
+    gap: 2px;
+}
+
+.priority-chip {
+    width: 8px;
+    height: 16px;
+    border-radius: 2px;
+    background: currentColor;
+    opacity: 0.5;
+}
+
+.priority-low {
+    border-left: 4px solid var(--lcars-blue);
+}
+
+.priority-low .priority-chip {
+    color: var(--lcars-blue);
+}
+
+.priority-med {
+    border-left: 4px solid var(--lcars-orange);
+    box-shadow: 0 0 10px rgba(255, 153, 0, 0.1);
+}
+
+.priority-med .priority-chip {
+    color: var(--lcars-orange);
     opacity: 0.8;
+}
+
+.priority-high {
+    border-left: 4px solid var(--lcars-red);
+    box-shadow: 0 0 15px rgba(204, 0, 0, 0.2);
+    animation: priority-pulse 2s infinite;
+}
+
+.priority-high .priority-chip {
+    color: var(--lcars-red);
+    opacity: 1;
+}
+
+@keyframes priority-pulse {
+    0% {
+        border-color: var(--lcars-red);
+    }
+
+    50% {
+        border-color: rgba(255, 100, 100, 1);
+    }
+
+    100% {
+        border-color: var(--lcars-red);
+    }
 }

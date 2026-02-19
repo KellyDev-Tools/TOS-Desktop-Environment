@@ -443,7 +443,7 @@ impl RemoteManager {
     }
 
     /// Execute a command relay (Real implementation)
-    pub fn execute_command_relay(&mut self, hub_id: Uuid, command: &str) -> Result<String, String> {
+    pub fn execute_command_relay(&mut self, hub_id: Uuid, _command: &str) -> Result<String, String> {
         // Find the hub in the command queue and execute
         if let Some((_, cmd)) = self.command_queue.iter().find(|(id, _)| *id == hub_id) {
             tracing::info!("Executing relayed command: {}", cmd);

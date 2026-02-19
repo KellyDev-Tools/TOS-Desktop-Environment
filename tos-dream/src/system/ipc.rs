@@ -374,6 +374,23 @@ impl IpcDispatcher {
 
     fn handle_prompt_submit(&self, state: &mut TosState, cmd_full: &str) {
         println!("Prompt Submitted: {}", cmd_full);
+
+        // Handle Search and AI modes
+        let viewport = &state.viewports[state.active_viewport_index];
+        let sector_idx = viewport.sector_index;
+        let hub_idx = viewport.hub_index;
+        let mode = state.sectors[sector_idx].hubs[hub_idx].mode;
+
+        if mode == CommandHubMode::Search {
+             state.perform_search(cmd_full);
+             return;
+        } else if mode == CommandHubMode::Ai {
+             // In AI mode, prompt is usually updated live, but if submitted via IPC ensure it's set
+             state.sectors[sector_idx].hubs[hub_idx].prompt = cmd_full.to_string();
+             state.handle_semantic_event(SemanticEvent::AiSubmit);
+             return;
+        }
+
         let parts: Vec<&str> = cmd_full.split_whitespace().collect();
         if parts.is_empty() { return; }
 

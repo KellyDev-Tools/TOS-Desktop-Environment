@@ -512,8 +512,23 @@ impl ViewRenderer for HubRenderer {
             CommandHubMode::Search => {
                 let mut results_html = String::new();
                 for res in &state.search_manager.results {
+                    let priority_class = match res.priority_score {
+                        0..=2 => "priority-low",
+                        3..=6 => "priority-med",
+                        _ => "priority-high",
+                    };
+                    
+                    let chips_count = (res.priority_score as f32 / 2.0).ceil() as usize;
+                    let mut chips_html = String::new();
+                    for _ in 0..chips_count {
+                        chips_html.push_str(r#"<div class="priority-chip"></div>"#);
+                    }
+
                     results_html.push_str(&format!(
-                        r#"<div class="search-result staging-item" onclick="window.ipc.postMessage('search_select:{}')">
+                        r#"<div class="search-result staging-item {}" onclick="window.ipc.postMessage('search_select:{}')">
+                            <div class="priority-indicator">
+                                {}
+                            </div>
                             <div class="search-meta">
                                 <span class="search-domain">{:?}</span>
                                 <span class="search-relevance">{}%</span>
@@ -521,7 +536,9 @@ impl ViewRenderer for HubRenderer {
                             <div class="search-title">{}</div>
                             <div class="search-desc">{}</div>
                         </div>"#,
+                        priority_class,
                         res.id,
+                        chips_html,
                         res.domain,
                         (res.relevance * 100.0) as u32,
                         res.title,

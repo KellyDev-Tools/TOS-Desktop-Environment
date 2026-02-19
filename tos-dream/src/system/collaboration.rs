@@ -150,7 +150,7 @@ pub struct ViewState {
 impl ViewState {
     pub fn from_state(state: &TosState) -> Self {
         let viewport = &state.viewports[state.active_viewport_index];
-        let sector = &state.sectors[viewport.sector_index];
+        let _sector = &state.sectors[viewport.sector_index];
         
         Self {
             hierarchy_level: state.current_level,

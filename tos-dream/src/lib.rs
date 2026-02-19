@@ -357,6 +357,9 @@ pub struct TosState {
     /// Unified Search Manager (§3.4)
     #[serde(skip)]
     pub search_manager: system::search::SearchManager,
+    /// System-wide TOS Log (§14)
+    #[serde(skip)]
+    pub log_manager: system::log::LogManager,
 }
 
 impl std::fmt::Debug for TosState {
@@ -538,6 +541,7 @@ impl TosState {
         self.cloud_manager = Some(saas::CloudResourceManager::new(saas::CloudConfig::default()));
         self.ai_manager = system::ai::AiManager::new();
         self.search_manager = system::search::SearchManager::new();
+        self.log_manager = system::log::LogManager::new();
     }
 
     /// Create a fresh TosState, bypassing any saved state.
@@ -838,6 +842,7 @@ impl TosState {
             sandbox_registry,
             ai_manager: system::ai::AiManager::new(),
             search_manager: system::search::SearchManager::new(),
+            log_manager: system::log::LogManager::new(),
             cloud_manager,
         };
         
@@ -1102,6 +1107,58 @@ impl TosState {
             hub.selected_files.clear();
             hub.prompt.clear();
         }
+    }
+
+    pub fn perform_search(&mut self, query: &str) {
+        use system::search::{SearchResult, SearchDomain, SearchTarget};
+        
+        self.search_manager.start_search(query);
+        
+        let mut results = Vec::new();
+
+        // 1. Search Files (Mock)
+        results.push(SearchResult {
+            id: "test-1".to_string(),
+            title: format!("Match for '{}' in Files", query),
+            description: "/home/user/tos-config.json".to_string(),
+            domain: SearchDomain::Files,
+            relevance: 0.95,
+            priority_score: 2,
+            target_location: SearchTarget::FilePath("/home/user/tos-config.json".to_string()),
+        });
+
+        // 2. Search Logs (§3.4)
+        let log_matches = self.log_manager.query(query);
+        for entry in log_matches {
+            let priority = match entry.event_type {
+                crate::system::log::LogType::Security => 8,
+                crate::system::log::LogType::System => 5,
+                _ => 1,
+            };
+
+            results.push(SearchResult {
+                id: entry.id.to_string(),
+                title: entry.message.clone(),
+                description: format!("{} [{}]", entry.timestamp.format("%H:%M:%S"), entry.region),
+                domain: SearchDomain::Logs,
+                relevance: 0.8, // Base relevance for logs
+                priority_score: priority,
+                target_location: SearchTarget::Command(format!("log show {}", entry.id)),
+            });
+        }
+
+        // 3. External Search
+        results.push(SearchResult {
+            id: "web-1".to_string(),
+            title: format!("Search Google for '{}'", query),
+            description: "External Provider".to_string(),
+            domain: SearchDomain::Web,
+            relevance: 0.5,
+            priority_score: 0,
+            target_location: SearchTarget::Url(format!("https://google.com/search?q={}", query)),
+        });
+        
+        self.search_manager.add_results(results);
     }
 
     pub fn set_prompt(&mut self, text: String) {

@@ -559,3 +559,19 @@ fn test_no_audit_when_disabled() {
     // Should not log
     assert!(manager.audit_log.is_empty());
 }
+
+#[test]
+fn test_deep_inspection_dashboard() {
+    let mut config = SecurityConfig::default();
+    config.allow_deep_inspection = true;
+    
+    let mut manager = SecurityManager::with_config(config);
+    
+    manager.enable_deep_inspection("admin");
+    let html = manager.render_security_dashboard();
+    assert!(html.contains("🔓 Deep Inspection ON"));
+    
+    manager.disable_deep_inspection("admin");
+    let html = manager.render_security_dashboard();
+    assert!(html.contains("🔒 Deep Inspection OFF"));
+}

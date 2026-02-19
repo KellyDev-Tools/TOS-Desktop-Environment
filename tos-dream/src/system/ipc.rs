@@ -344,6 +344,10 @@ impl IpcDispatcher {
                 let files: Vec<String> = hub.selected_files.iter().cloned().collect();
                 hub.prompt = format!("rm {} ", files.join(" "));
             }
+        } else if request == "security:disable_deep_inspection" {
+            state.security.disable_deep_inspection("USER");
+        } else if request == "security:enable_deep_inspection" {
+            state.security.enable_deep_inspection("USER");
         } else if request.starts_with("update_setting:") {
             let parts: Vec<&str> = request[15..].split(':').collect();
             if parts.len() >= 2 {
@@ -398,6 +402,22 @@ impl IpcDispatcher {
             "zoom" => {
                 if parts.get(1) == Some(&"in") { state.zoom_in(); }
                 else if parts.get(1) == Some(&"out") { state.zoom_out(); }
+            }
+            "enable-deep-inspection" => {
+                if state.security.config.allow_deep_inspection {
+                    if state.security.enable_deep_inspection("host") {
+                        println!("TOS // DEEP INSPECTION ENABLED");
+                        state.earcon_player.play(crate::system::audio::earcons::EarconEvent::CommandAccepted);
+                    }
+                } else {
+                    println!("TOS // DEEP INSPECTION DISABLED BY POLICY");
+                    state.earcon_player.play(crate::system::audio::earcons::EarconEvent::CommandError);
+                }
+            }
+            "disable-deep-inspection" => {
+                state.security.disable_deep_inspection("host");
+                println!("TOS // DEEP INSPECTION DISABLED");
+                state.earcon_player.play(crate::system::audio::earcons::EarconEvent::CommandAccepted);
             }
             "in" => state.zoom_in(),
             "out" => state.zoom_out(),

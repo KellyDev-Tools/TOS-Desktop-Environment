@@ -64,6 +64,12 @@ impl ViewRenderer for AppRenderer {
             String::new()
         };
 
+        let deep_inspection_html = if state.security.deep_inspection_active {
+            r#"<div class="bezel-btn warning mini" onclick="window.ipc.postMessage('security:disable_deep_inspection')" title="Disable Deep Inspection">🔓</div>"#.to_string()
+        } else {
+            String::new()
+        };
+
         let mut module_content = String::new();
         for module in &state.modules {
             if let Some(content) = module.render_override(HierarchyLevel::ApplicationFocus) {
@@ -76,6 +82,7 @@ impl ViewRenderer for AppRenderer {
                 <div class="tactical-bezel {bezel_class}">
                     <div class="bezel-top">
                         <div class="bezel-back" onclick="window.ipc.postMessage('zoom_out')">BACK</div>
+                        {deep_inspection_html}
                         <div class="bezel-title">{title} // {class}</div>
                         <div class="bezel-participants">
                             {participants_html}
@@ -168,7 +175,8 @@ impl ViewRenderer for AppRenderer {
             portal_active_class = portal_active_class,
             portal_label = portal_label,
             portal_info_html = portal_info_html,
-            portal_approval_html = portal_approval_html
+            portal_approval_html = portal_approval_html,
+            deep_inspection_html = deep_inspection_html
         )
 
     }

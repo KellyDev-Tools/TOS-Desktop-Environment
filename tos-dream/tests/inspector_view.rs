@@ -46,6 +46,10 @@ fn test_detail_inspector_dynamic_data() {
 #[test]
 fn test_buffer_inspector_dynamic_data() {
     let mut state = create_test_state_with_real_pid();
+    // Enable Deep Inspection for test
+    state.security.config.allow_deep_inspection = true;
+    state.security.enable_deep_inspection("test_user");
+
     state.current_level = HierarchyLevel::BufferInspector;
     state.viewports[0].current_level = HierarchyLevel::BufferInspector;
     

@@ -63,6 +63,20 @@ impl ViewRenderer for BufferInspectorRenderer {
         let hub = &sector.hubs[viewport.hub_index];
         let app = &hub.applications[viewport.active_app_index.unwrap_or(0)];
         
+        // Security Check: Level 5 requires Deep Inspection privilege (§11.6)
+        if !state.security.deep_inspection_active {
+            return format!(r#"<div class="inspector-container buffer-inspector render-{mode:?} access-denied">
+                <div class="inspector-header">BUFFER HEX DUMP // LEVEL 5</div>
+                <div class="access-denied-message">
+                    <div class="lock-icon">🔒</div>
+                    <div class="denied-title">ACCESS DENIED</div>
+                    <div class="denied-reason">DEEP INSPECTION PRIVILEGE REQUIRED</div>
+                    <div class="denied-instruction">Execute 'enable-deep-inspection' to unlock</div>
+                </div>
+                <div class="inspector-footer" onclick="window.ipc.postMessage('zoom_out')">BACK</div>
+            </div>"#, mode = mode);
+        }
+
         // Get buffer data (cmdline + environ)
         let buffer = if let Some(pid) = app.pid {
             crate::system::proc::get_process_buffer_sample(pid)

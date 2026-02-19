@@ -80,6 +80,22 @@ pub enum SecurityEvent {
         changed_by: String,
         timestamp: String,
     },
+    /// Deep Inspection enabled
+    DeepInspectionEnabled {
+        user: String,
+        timestamp: String,
+    },
+    /// Deep Inspection disabled
+    DeepInspectionDisabled {
+        user: String,
+        timestamp: String,
+    },
+    /// Deep Inspection accessed (Level 5)
+    DeepInspectionAccessed {
+        user: String,
+        target: String, // what was inspected (PID, memory range, etc.)
+        timestamp: String,
+    },
 }
 
 /// Risk level for operations
@@ -95,7 +111,6 @@ pub enum RiskLevel {
     Critical,
 }
 
-/// Tactile confirmation method
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub enum TactileMethod {
     /// Hold button/key for duration
@@ -184,7 +199,10 @@ pub struct SecurityConfig {
     /// Require confirmation for all destructive commands
     pub confirm_all_destructive: bool,
     /// Timeout for confirmation (seconds)
+    /// Timeout for confirmation (seconds)
     pub confirmation_timeout_secs: u64,
+    /// Whether Deep Inspection (Level 5) is allowed to be enabled by default
+    pub allow_deep_inspection: bool,
 }
 
 impl Default for SecurityConfig {
@@ -201,6 +219,7 @@ impl Default for SecurityConfig {
             patterns: Self::default_patterns(),
             confirm_all_destructive: true,
             confirmation_timeout_secs: 30,
+            allow_deep_inspection: false,
         }
     }
 }
@@ -337,6 +356,8 @@ pub struct SecurityManager {
     pub active_sessions: HashMap<Uuid, ConfirmationSession>,
     /// Dangerous pattern cache (compiled regex)
     pattern_cache: Vec<(DangerousPattern, regex::Regex)>,
+    /// Whether Deep Inspection (Level 5) is currently active (elevated)
+    pub deep_inspection_active: bool,
 }
 
 impl SecurityManager {
@@ -354,6 +375,7 @@ impl SecurityManager {
             audit_log: Vec::new(),
             active_sessions: HashMap::new(),
             pattern_cache,
+            deep_inspection_active: false,
         }
     }
 
@@ -379,6 +401,44 @@ impl SecurityManager {
         self.active_sessions.values().any(|s| 
             s.risk_level == RiskLevel::High || s.risk_level == RiskLevel::Critical
         )
+    }
+
+    /// Enable Deep Inspection Mode (Level 5 access)
+    pub fn enable_deep_inspection(&mut self, user: &str) -> bool {
+        if !self.config.allow_deep_inspection {
+            return false;
+        }
+
+        self.deep_inspection_active = true;
+        self.log_event(SecurityEvent::DeepInspectionEnabled { 
+            user: user.to_string(), 
+            timestamp: Self::current_timestamp() 
+        });
+        true
+    }
+
+    /// Disable Deep Inspection Mode
+    pub fn disable_deep_inspection(&mut self, user: &str) {
+        self.deep_inspection_active = false;
+        self.log_event(SecurityEvent::DeepInspectionDisabled { 
+            user: user.to_string(), 
+            timestamp: Self::current_timestamp() 
+        });
+    }
+
+    /// Check and log access to Deep Inspection features
+    pub fn check_deep_inspection_access(&mut self, user: &str, target: &str) -> bool {
+        if !self.deep_inspection_active {
+            return false;
+        }
+
+        self.log_event(SecurityEvent::DeepInspectionAccessed {
+            user: user.to_string(),
+            target: target.to_string(),
+            timestamp: Self::current_timestamp(),
+        });
+
+        true
     }
 
     /// Check if a command matches dangerous patterns
@@ -552,6 +612,9 @@ impl SecurityManager {
                 SecurityEvent::CommandBlocked { user: u, .. } => u == user,
                 SecurityEvent::Authentication { user: u, .. } => u == user,
                 SecurityEvent::RoleChange { user: u, .. } => u == user,
+                SecurityEvent::DeepInspectionEnabled { user: u, .. } => u == user,
+                SecurityEvent::DeepInspectionDisabled { user: u, .. } => u == user,
+                SecurityEvent::DeepInspectionAccessed { user: u, .. } => u == user,
             })
             .collect()
     }
@@ -706,6 +769,9 @@ impl SecurityManager {
                     SecurityEvent::CommandBlocked { timestamp, .. } => timestamp,
                     SecurityEvent::Authentication { timestamp, .. } => timestamp,
                     SecurityEvent::RoleChange { timestamp, .. } => timestamp,
+                    SecurityEvent::DeepInspectionEnabled { timestamp, .. } => timestamp,
+                    SecurityEvent::DeepInspectionDisabled { timestamp, .. } => timestamp,
+                    SecurityEvent::DeepInspectionAccessed { timestamp, .. } => timestamp,
                 },
                 match e {
                     SecurityEvent::DangerousCommandDetected { .. } => "⚠️ Dangerous Command",
@@ -719,6 +785,9 @@ impl SecurityManager {
                         if *success { "🔓 Auth Success" } else { "🔒 Auth Failed" }
                     }
                     SecurityEvent::RoleChange { .. } => "👤 Role Change",
+                    SecurityEvent::DeepInspectionEnabled { .. } => "🔓 Deep Inspection ON",
+                    SecurityEvent::DeepInspectionDisabled { .. } => "🔒 Deep Inspection OFF",
+                    SecurityEvent::DeepInspectionAccessed { .. } => "👁️ Deep Access",
                 },
                 match e {
                     SecurityEvent::DangerousCommandDetected { user, .. } => user,
@@ -728,6 +797,9 @@ impl SecurityManager {
                     SecurityEvent::CommandBlocked { user, .. } => user,
                     SecurityEvent::Authentication { user, .. } => user,
                     SecurityEvent::RoleChange { user, .. } => user,
+                    SecurityEvent::DeepInspectionEnabled { user, .. } => user,
+                    SecurityEvent::DeepInspectionDisabled { user, .. } => user,
+                    SecurityEvent::DeepInspectionAccessed { user, .. } => user,
                 }
             ))
             .collect();

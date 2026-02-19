@@ -1,70 +1,35 @@
-# TOS Design Document: Command Hub & Unified Prompt
+# TOS UX Design Specification
 
-This document serves as the finalized architecture for the Command Hub and Unified Prompt within the TOS (Tactical Operating System) framework.
-
----
-
-## 1. Global Overview Integration
-
-The Command Hub maintains spatial awareness through the integration of sector-level telemetry into the primary interface.
-
-* **Tactical Mini-Map**: To maintain a clean bezel, the mini-map is compressed into a **Live Button** located on the outer bezel.
-* **Behavior**: This button remains active, providing a real-time, high-level visual telemetry of the map state even when the full view is hidden.
-* **Zoom Transition**: When selected, sector tiles smoothly expand into the full Command Hub: the top border widens into the Tactical Bezel and the bottom border grows into the Persistent Unified Prompt.
+This document defines the complete user experience design for the TOS (Tactical Operating System), covering the spatial interface hierarchy, interaction patterns, collaboration features, and accessibility considerations.
 
 ---
 
-## 2. The Unified Prompt
+## Table of Contents
 
-The prompt is a persistent input interface fixed at the bottom of the Command Hub, spanning the full width. It supports three primary operational modes: **CMD**, **SEARCH**, and **AI**.
-
-### 2.1 Interface Sections
-* **Left Section**: 3-position mode selector (CMD | SEARCH | AI) where the active mode is visually highlighted.
-* **Center Section**: Text input field supporting typing, pasting, and real-time autocomplete suggestions.
-* **Right Section**: Contains the Mic Button for voice transcription and the Multi-Function Stop Button.
-
-### 2.2 The Multi-Function Stop Button
-Located within the prompt interface, the Stop Button features dual-action logic based on input duration:
-
-* **Short Press / Select**: Sends a `SIGINT` (Ctrl+C). Used to kill a running process or stop the current AI generation/Search query.
-* **Long Press / Right-Click**: Sends a "Close/EOF" command (Ctrl+D).
-    * **In CMD Mode**: Closes the current sub-terminal session (e.g., exiting a Python REPL) without killing the parent shell.
-    * **In SEARCH/AI Mode**: Terminates the current mode and reverts the Unified Prompt to the default CMD state.
-
----
-
-## 3. AI Mode Architecture
-
-When AI Mode is engaged, the interface expands to include high-granularity controls integrated into the bottom bezel.
-
-### 3.1 Contextual Chips
-Small-scale interface elements (1/4 to 1/2 the size of standard UI chips) emerge from the bottom bezel to provide the following options:
-
-* **Model Selector**: Choose the specific LLM or processing engine (e.g., via the AI Backend module).
-* **Operational Mode**: Toggle between Chat, Agent, or Planning behaviors.
-* **Context Management (+)**: A dedicated selector for attaching:
-    * Specific Files
-    * Rulesets (`.cursorrules` / custom instructions)
-    * Knowledge Bases
-* **Elevated Access (The "Dangerous" Toggle)**: A high-visibility toggle that grants the AI full read/write access to the current working directory (CWD). This triggers the system's dangerous command handling protocols.
+1. [Global Overview – Level 1](#1-global-overview--level-1)
+2. [Command Hub – Level 2](#2-command-hub--level-2)
+3. [Application Focus – Level 3](#3-application-focus--level-3)
+4. [Deep Inspection – Levels 4 & 5](#4-deep-inspection--levels-4--5)
+5. [Priority Indicators](#5-priority-indicators)
+6. [Tactical Mini-Map](#6-tactical-mini-map)
+7. [Collaboration UI](#7-collaboration-ui)
+8. [Input Abstraction Layer](#8-input-abstraction-layer)
+9. [TOS Log](#9-tos-log)
+10. [Auditory and Haptic Interface](#10-auditory-and-haptic-interface)
+11. [Security Model](#11-security-model)
+12. [Application Models and Sector Types](#12-application-models-and-sector-types)
+13. [Shell API](#13-shell-api)
+14. [Tactical Reset](#14-tactical-reset)
+15. [Sector Templates and Marketplace](#15-sector-templates-and-marketplace)
+16. [Accessibility](#16-accessibility)
 
 ---
 
-## 4. Technical Implementation Notes
-
-* **Aesthetic**: All elements follow the Star Trek LCARS design philosophy—flat geometry, distinct color-coded functional blocks, and high-contrast labels.
-* **Mode Switching**: The UI clearly reflects the current state (CMD, SEARCH, AI) via bezel color shifts or breadcrumb indicators.
-* **Input Abstraction**: All prompt interactions are normalized through the Input Abstraction Layer, ensuring consistency across keyboard, touch, and voice.
-* **Security**: AI-initiated actions are recorded in the TOS Log for auditability and system integrity.
-
----
-
-
-1. Global Overview – Level 1
+## 1. Global Overview – Level 1
 
 The Global Overview displays all sectors (local and remote) as zoomable tiles. Each tile acts as a miniature representation of its corresponding Command Hub.
 
-1.1 Sector Tile as a Mini Command Hub
+### 1.1 Sector Tile as a Mini Command Hub
 
 · Borders – The four borders of a sector tile mirror the structural elements of a full Command Hub:
   · Top border – Represents the Tactical Bezel (collapsed state). A thin coloured strip may indicate the sector’s alert status or active collaboration.
@@ -81,7 +46,7 @@ The Global Overview displays all sectors (local and remote) as zoomable tiles. E
   · Side borders become the left and right “wings” of the hub (chip regions).
   · Priority chips slide into position around the hub’s content area.
 
-1.2 Global Overview Bezel
+### 1.2 Global Overview Bezel
 
 The Tactical Bezel at Level 1 provides system‑level controls.
 
@@ -99,18 +64,18 @@ The Tactical Bezel at Level 1 provides system‑level controls.
   · Power – Sleep, Restart TOS, Log Out (with tactile confirmation).
 · Settings Panel – Opens as a modal overlay with left sidebar categories, right content area, and integrated search. The bezel remains visible (collapsed) with the Settings icon highlighted.
 
-2. Command Hub – Level 2
+## 2. Command Hub – Level 2
 
 The Command Hub is the central control point for a sector. It consists of a top bezel, a main display area with dual‑sided chip layout and output background, and the Persistent Unified Prompt at the bottom.
 
-2.1 Top Bezel
+### 2.1 Top Bezel
 
 · Output Mode Toggle – Button (or icon) to switch between Standard and Centered Perspective output configurations (see §2.4). Positioned on the bezel, visible even when collapsed.
 · Zoom Out – Returns to Global Overview.
 · Left Region Toggle – Optional button to show/hide the left favourites/context chip region.
 · Additional Controls – May include split buttons, sector name, etc., depending on context.
 
-2.2 Persistent Unified Prompt
+### 2.2 Persistent Unified Prompt
 
 Fixed at the bottom of the Command Hub, spanning the full width. It consists of three distinct sections:
 
@@ -133,7 +98,7 @@ Layout Consistency:
 · The mic and stop buttons align with the right chip region.
 · The input field dynamically resizes as the left and right sections occupy fixed widths.
 
-2.3 Main Display Area – Dual‑Sided Chip Layout
+### 2.3 Main Display Area – Dual-Sided Chip Layout
 
 The area between the top bezel and the prompt contains two overlapping layers:
 
@@ -161,17 +126,17 @@ Right Region – Prioritized Chips
 · Visual Priority Indicators – Each chip may display border chips, chevrons, or status dots to convey urgency.
 · Interaction – Tapping a right‑region chip appends its content to the prompt at the cursor position (or replaces the current token). For flags that accept arguments, tapping inserts the flag and positions the cursor for the argument; a secondary chip list may appear for possible values.
 
-2.4 Output Area – Two Configurations
+### 2.4 Output Area – Two Configurations
 
 The background terminal output can be viewed in two modes, toggled by the bezel button (see §2.1). The output area always scrolls vertically; new lines appear at the bottom.
 
-2.4.1 Standard Rectangular Configuration
+#### 2.4.1 Standard Rectangular Configuration
 
 · Full‑width rectangle spanning between left and right chip regions (or full hub width if chips hidden).
 · Uniform text, vertical scrolling.
 · Ideal for reviewing logs or continuous output.
 
-2.4.2 Centered Perspective Configuration
+#### 2.4.2 Centered Perspective Configuration
 
 · Output lines recede toward a central vanishing point, creating a sense of depth.
 · Bottom line (most recent) retains the full width of the Persistent Unified Prompt.
@@ -180,7 +145,7 @@ The background terminal output can be viewed in two modes, toggled by the bezel 
 · Left and right chip regions expand outward, using the freed space to show more chips.
 · Transition is animated with a smooth “tunnel” effect, accompanied by an earcon and optional haptic feedback.
 
-2.5 Autocomplete – Bezel‑Born Overlay
+### 2.5 Autocomplete – Bezel-Born Overlay
 
 When the user types in the prompt (CMD mode), a temporary overlay extends downward from the right side of the top bezel.
 
@@ -189,7 +154,7 @@ When the user types in the prompt (CMD mode), a temporary overlay extends downwa
 · Dismissal – Tapping outside, pressing Escape, clicking a close chevron, or executing the command retracts the overlay.
 · Relationship with Chip Regions – The overlay complements the persistent right‑region chips by providing a fuller set of options; it temporarily overlays the chip layout but can be dismissed to return to the persistent view.
 
-2.6 Context‑Aware Mode Switching
+### 2.6 Context-Aware Mode Switching
 
 The Command Hub can automatically switch modes based on the command being typed.
 
@@ -206,17 +171,17 @@ The Command Hub can automatically switch modes based on the command being typed.
 
 Application Focus is the deepest interactive level in the standard hierarchy. When the user zooms into an application from the Command Hub (Level 2), the view transitions smoothly to a full‑screen (or tiled) surface displaying the application’s native window. This level is where the user interacts directly with graphical applications, while the Tactical Bezel remains the only system‑level overlay, guaranteeing navigational escape and providing contextual controls.
 
-3.1 Application Surface
+### 3.1 Application Surface
 
 · The application runs in its own window, rendered as a native Wayland surface (or X11 forward‑compatible surface).
 · The surface occupies the entire viewport (or a tile in a split configuration) with no window decorations other than the Tactical Bezel.
 · For legacy X11 applications, TOS suppresses native decorations where possible and overlays the bezel; if suppression is not possible, the bezel may be positioned above the application’s own title bar.
 
-3.2 Tactical Bezel – Application Context
+### 3.2 Tactical Bezel – Application Context
 
 The bezel at Level 3 follows the same design as at higher levels but is tailored for application interaction.
 
-3.2.1 Collapsed State
+#### 3.2.1 Collapsed State
 
 · Thin, semi‑transparent strip along the top edge of the application surface (position user‑configurable).
 · Contains:
@@ -224,7 +189,7 @@ The bezel at Level 3 follows the same design as at higher levels but is tailor
   · Application Icon and Title – Provides immediate context.
   · Expand Handle – A down‑chevron that reveals the expanded bezel when dragged, clicked, or activated via keyboard (Ctrl+Space).
 
-3.2.2 Expanded State
+#### 3.2.2 Expanded State
 
 Activated by any of the above methods. The expanded bezel extends downward, revealing a command strip with the following sections:
 
@@ -238,7 +203,7 @@ Collaboration Indicators Avatars of active participants, share button
 · The expanded bezel may also display priority indicators (border chips, chevrons) reflecting the application’s current importance (e.g., a pending notification in a communication app).
 · Tapping any control either executes an action or populates the Command Hub’s prompt (if the action involves a command).
 
-3.3 Split Viewports from Level 3
+### 3.3 Split Viewports from Level 3
 
 Splitting is initiated from the expanded bezel:
 
@@ -250,7 +215,7 @@ Splitting is initiated from the expanded bezel:
 
 Each split viewport operates independently: it can contain an application (Level 3) or a Command Hub (Level 2), with its own zoom state, mode, and content. Viewports can be resized by dragging dividers; closing a viewport causes the remaining ones to expand.
 
-3.4 Application Models
+### 3.4 Application Models
 
 Application Models (see §12 of v1.0 Core) customise the behaviour of specific applications at Level 3. They provide:
 
@@ -262,33 +227,33 @@ Application Models (see §12 of v1.0 Core) customise the behaviour of specific a
 
 Models are installed locally and run sandboxed with user‑granted permissions.
 
-3.5 Deep Inspection Access
+### 3.5 Deep Inspection Access
 
 From the expanded bezel, an Inspect button (or similar) allows the user to zoom into Level 4 (Detail View) for the current application. This reveals structured metadata such as CPU/memory usage, uptime, event history, and configuration. A further zoom (Level 5) provides raw memory inspection, but requires explicit privilege elevation and may be unavailable on some platforms (see §11.6 of v1.2 Extensions).
 
-3.6 Auditory and Haptic Feedback at Level 3
+### 3.6 Auditory and Haptic Feedback at Level 3
 
 · Zoom transition – A distinct earcon confirms entry into Application Focus.
 · Bezel actions – Tapping bezel controls triggers appropriate haptic feedback (e.g., a light click for selection, a buzz for dangerous actions).
 · Spatial audio (VR/AR) – Application sounds may be positioned in 3D space relative to the user; bezel interactions also have spatialised feedback.
 
-3.7 Platform Adaptations
+### 3.7 Platform Adaptations
 
 · Linux Wayland – Full native performance; the bezel is rendered by the TOS compositor as an overlay.
 · Android XR – The application surface becomes a virtual screen in 3D space; the bezel appears as a floating panel attached to the virtual screen, operable via gaze, pinch, or hand tracking.
-· Android Phone – The application fills the screen; the bezel is a swipe‑down drawer from the top, with touch‑optimised controls.
+· Android Phone – The application fills the screen; the bezel is a swipe-down drawer from the top, with touch-optimised controls.
 
-3.8 Accessibility
+### 3.8 Accessibility
 
 · The bezel is fully navigable via keyboard (Tab, arrow keys, Enter) and screen reader (announcing button labels and states).
 · High‑contrast variants and adjustable font scaling ensure visibility.
 · Haptic feedback provides confirmation for users with visual impairments.
 
-4. Deep Inspection – Levels 4 & 5
+## 4. Deep Inspection – Levels 4 & 5
 
 Deep Inspection extends the standard three-level hierarchy to provide detailed introspection of any surface (sector, application, or process). These levels are accessible from any point in the hierarchy where deeper analysis is required, typically via an Inspect button in the expanded bezel or a contextual command.
 
-4.1 Level 4 – Detail View
+### 4.1 Level 4 – Detail View
 
 The Detail View presents structured metadata about the inspected surface in a clear, organised panel.
 
@@ -362,11 +327,11 @@ Android Phone Partial (limited metadata) Not available
 · Keyboard navigation: arrow keys move through the hex dump; Tab focuses controls.
 · High‑contrast and large‑text modes apply to all inspection panels.
 
-5. Priority Indicators
+## 5. Priority Indicators
 
-Priority indicators provide a consistent, non‑intrusive visual language to convey the relative importance or urgency of elements across all levels of the TOS interface. They appear on sector tiles, application tiles, chips, viewports, and even individual files or search results, enabling users to quickly assess what needs attention without disrupting the spatial layout.
+Priority indicators provide a consistent, non-intrusive visual language to convey the relative importance or urgency of elements across all levels of the TOS interface.
 
-5.1 Indicator Types
+### 5.1 Indicator Types
 
 Four primary indicator types are used, often in combination:
 
@@ -376,7 +341,7 @@ Chevrons LCARS‑style arrow shapes that can be static or animated. Pulsing chev
 Glow / Luminance A subtle inner or outer glow around the element. Intensity varies with priority; can be combined with colour to convey mood. Applied to the entire tile or its border; may pulse for high priority.
 Status Dots Small circles in a corner of the tile. Colour‑coded (blue=normal, yellow=caution, red=critical). Multiple dots can appear to indicate multiple concurrent factors (e.g., both a notification and high activity). Typically bottom‑right or top‑left; dots may have tooltips on hover.
 
-5.2 Priority Scoring
+### 5.2 Priority Scoring
 
 Each element’s priority is determined by a weighted score computed from multiple factors. The score maps to a specific indicator configuration (e.g., number of chips, chevron state, glow intensity).
 
@@ -403,7 +368,7 @@ Score Range Border Chips Chevron Glow Status Dots
 
 The exact mapping is fully customisable per user or per sector.
 
-5.3 Behaviour by Depth
+### 5.3 Behaviour by Depth
 
 Priority indicators adapt to the current zoom level, showing aggregated or detailed information as appropriate.
 
@@ -414,7 +379,7 @@ Level 3 – Application Focus The Tactical Bezel may show a priority chevron o
 Level 4 – Detail View The inspection panel includes a mini‑map of sibling surfaces, each with priority indicators. The inspected surface’s own priority is shown prominently, and a timeline of priority changes (from the TOS Log) may be displayed.
 Level 5 – Buffer View Priority indicators are minimal, as the focus is on raw data. However, a chevron may indicate if the process is in a critical state (e.g., high memory pressure).
 
-5.4 Configuration
+### 5.4 Configuration
 
 Users have extensive control over priority indicators through a dedicated settings panel (accessible from the global Settings or per‑sector).
 
@@ -440,7 +405,7 @@ Users have extensive control over priority indicators through a dedicated settin
 · A file in Directory Mode with a single blue chip is a recently accessed document.
 · A search result with two chips and a yellow dot is a high‑relevance match based on frequency and recency.
 
-6. Tactical Mini‑Map
+## 6. Tactical Mini-Map
 
 The Tactical Mini‑Map is an ephemeral overlay that provides spatial awareness of the entire sector hierarchy without blocking interaction. It appears as a small, semi‑transparent panel (default bottom‑right corner) and adapts its content based on the current zoom level. Users can quickly orient themselves, jump to different areas, or monitor resource usage – all without leaving their current context.
 

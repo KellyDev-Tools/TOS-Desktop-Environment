@@ -276,7 +276,7 @@ Collaboration Active guests, recent guest actions (if any)
   · Configuration values that are editable appear with an edit icon; changing them may require elevation.
 · Export – A button in the panel allows exporting the current detail view as JSON or plain text for further analysis.
 
-4.2 Level 5 – Buffer View
+### 4.2 Level 5 – Buffer View
 
 The Buffer View provides raw memory inspection of the target surface's process space. Due to its sensitivity, this level is privileged and subject to strict controls.
 
@@ -291,7 +291,7 @@ The Buffer View provides raw memory inspection of the target surface's process s
   · Applications may opt out via their Application Model manifest; attempting to inspect such apps at Level 5 shows a permission denied notice.
   · The view is read‑only; no memory modification is permitted through TOS.
 
-4.3 Security & Privilege Elevation
+### 4.3 Security & Privilege Elevation
 
 Access to Level 5 (and certain sensitive data in Level 4) requires explicit user consent and may be gated by platform‑specific authentication.
 
@@ -302,26 +302,26 @@ Access to Level 5 (and certain sensitive data in Level 4) requires explicit 
 · Visual Indicator – When deep inspection is enabled (globally or for a session), a 🔓 indicator appears in the Tactical Bezel (all levels). Clicking this indicator immediately disables deep inspection and closes any open Level 5 views.
 · Auditing – All enable/disable events and every access to Level 5 are recorded in the system audit log (non‑disableable). Level 4 access is logged in the TOS Log (see §14) but may be disabled by user privacy settings.
 
-4.4 Relationship with TOS Log
+### 4.4 Relationship with TOS Log
 
 · Level 4 includes an Event History section that pulls from the TOS Log (see §14), displaying a filtered timeline relevant to the inspected surface.
 · From Level 4, the user can click "View Full Log" to open the global TOS Log sector at that surface's filtered view.
 · Log entries related to deep inspection (e.g., "Level 5 accessed for process 1234") appear in both the surface's log and the global audit trail.
 
-4.5 Platform Notes
+### 4.5 Platform Notes
 
 Platform Level 4 Availability Level 5 Availability
 Linux Wayland Full Available with privilege elevation (sudo/Polkit)
 Android XR Partial (no raw memory) Not available
 Android Phone Partial (limited metadata) Not available
 
-4.6 Use Cases
+### 4.6 Use Cases
 
 · Debugging – A developer inspecting a misbehaving application can view its resource usage and recent log entries at Level 4, then drop to Level 5 to examine memory for corruption or unexpected data.
 · Security Analysis – An advanced user investigating a suspicious process can review its configuration and event history at Level 4, and if necessary, examine its memory space for anomalies.
 · System Optimisation – Identifying memory‑leaking applications by comparing live memory dumps over time.
 
-4.7 Accessibility
+### 4.7 Accessibility
 
 · The hex viewer in Level 5 supports screen reader output (announcing offset, byte values, and ASCII equivalents).
 · Keyboard navigation: arrow keys move through the hex dump; Tab focuses controls.
@@ -391,14 +391,14 @@ Users have extensive control over priority indicators through a dedicated settin
 · Hover Tooltips – When hovering over an indicator, a tooltip can show the contributing factors and their scores.
 · Accessibility – Options to enlarge indicators, replace colours with patterns, or route priority information to audio/haptic channels.
 
-5.5 Integration with Other Systems
+### 5.5 Integration with Other Systems
 
 · TOS Log – Every change in priority score is logged, allowing users to review why an element became important at a certain time.
 · Collaboration – When a collaborator focuses on an element, its priority may temporarily increase, indicated by a special chevron or a collaborator’s avatar merging with the indicator.
 · AI Assistant – The AI can suggest priority adjustments based on learned patterns (e.g., “I noticed you often check this log at this time – would you like to pin it?”).
 · Auditory Interface – Priority changes can be accompanied by earcons; for example, a rising tone when an element becomes critical.
 
-5.6 Examples
+### 5.6 Examples
 
 · A sector tile with three border chips and a pulsing chevron indicates high aggregate activity and a pending notification.
 · In Activity Mode, an application tile with a red status dot and a glow signals a process consuming excessive resources.
@@ -409,7 +409,7 @@ Users have extensive control over priority indicators through a dedicated settin
 
 The Tactical Mini‑Map is an ephemeral overlay that provides spatial awareness of the entire sector hierarchy without blocking interaction. It appears as a small, semi‑transparent panel (default bottom‑right corner) and adapts its content based on the current zoom level. Users can quickly orient themselves, jump to different areas, or monitor resource usage – all without leaving their current context.
 
-6.1 Overview
+### 6.1 Overview
 
 · Purpose – Maintain situational awareness across sectors, hubs, and applications. The mini‑map shows the user’s current position within the tree, nearby elements, and optionally live resource metrics.
 · Persistence – The mini‑map is always available but remains passive (input passes through to underlying UI) until explicitly activated. This ensures it never interferes with interaction.
@@ -421,7 +421,7 @@ The Tactical Mini‑Map is an ephemeral overlay that provides spatial awareness 
   · Game controller button (e.g., View/Back button).
   · Voice command (“show mini‑map” or “activate mini‑map”).
 
-6.2 Visual Design
+### 6.2 Visual Design
 
 · Shape – A rounded rectangle or LCARS‑style curved panel, sized approximately 200×150 pixels (scales with UI). The panel has a subtle glow and a semi‑transparent background (blur effect) to maintain readability over content.
 · Elements – The mini‑map displays a simplified topological view:
@@ -432,7 +432,7 @@ The Tactical Mini‑Map is an ephemeral overlay that provides spatial awareness 
   · Collaboration presence – Tiny avatars or coloured dots may appear on sectors/viewports where collaborators are active.
 · Active State – When activated, the mini‑map becomes opaque, its border thickens, and it captures input. A small close button (×) appears in its corner for dismissal.
 
-6.3 Activation and Interaction
+### 6.3 Activation and Interaction
 
 · Passive State – The mini‑map displays information but does not capture mouse/touch events. Users can click through it to interact with underlying elements.
 · Active State – Once activated, the mini‑map captures all input:
@@ -443,7 +443,7 @@ The Tactical Mini‑Map is an ephemeral overlay that provides spatial awareness 
   · Close – Click the close button, press Escape, or repeat the activation gesture to return to passive state.
 · Deactivation – The mini‑map automatically reverts to passive state after a configurable timeout of inactivity (default 5 seconds) or when the user explicitly closes it.
 
-6.4 Content by Depth
+### 6.4 Content by Depth
 
 The mini‑map’s content adapts to the user’s current zoom level, providing the most relevant spatial information.
 
@@ -454,7 +454,7 @@ Level 3 – Application Focus The current sector is shown, with the focused ap
 Level 4 – Detail View The mini‑map may show the current surface and its siblings, helping the user understand where they are in the inspection hierarchy. Depth: “L4”.
 Level 5 – Buffer View Simplified view – may only show the current surface and an indicator that deep inspection is active. Depth: “L5”.
 
-6.5 Monitoring Layer (Resource Usage)
+### 6.5 Monitoring Layer (Resource Usage)
 
 Introduced in v1.2 (§18.5), an optional overlay within the mini‑map displays live resource usage of processes relevant to the current depth.
 
@@ -467,7 +467,7 @@ Introduced in v1.2 (§18.5), an optional overlay within the mini‑map displays 
 · Update Rate – Throttled to 1–2 Hz to minimise performance impact.
 · Visual Style – Small, unobtrusive bars or numeric readouts, colour‑coded (green = normal, yellow = high, red = critical). Hovering over a metric shows a tooltip with exact values.
 
-6.6 Configuration
+### 6.6 Configuration
 
 Users can customise the mini‑map through the Settings panel:
 
@@ -479,13 +479,13 @@ Users can customise the mini‑map through the Settings panel:
 · Monitoring Layer – Enable/disable, choose metrics to display (CPU, memory, network, disk), and set colour thresholds.
 · Accessibility – Options to enlarge the mini‑map, use high‑contrast colours, or route its information to audio (e.g., spoken summary on hover).
 
-6.7 Platform Adaptations
+### 6.7 Platform Adaptations
 
 · Linux Wayland – Rendered as a compositor overlay; input pass‑through handled via Wayland protocols.
 · Android XR – The mini‑map appears as a floating panel in 3D space, attached to the user’s field of view (HUD) or anchored to a virtual wrist. Activation via gaze dwell or hand gesture.
 · Android Phone – Positioned as a small overlay; touch interaction follows standard mobile conventions. May be temporarily hidden during landscape full‑screen apps.
 
-6.8 Accessibility
+### 6.8 Accessibility
 
 · Screen Reader – The mini‑map’s content can be announced on activation or hover; users can navigate its elements with keyboard or switch scanning.
 · High Contrast – The mini‑map respects system‑wide high‑contrast themes; its colours can be overridden for better visibility.
@@ -496,7 +496,7 @@ Users can customise the mini‑map through the Settings panel:
 
 Collaboration in TOS transforms a sector into a shared workspace where multiple users can interact in real time. The collaboration interface is designed to be minimally intrusive while providing clear awareness of other participants’ presence, actions, and intent. All collaboration features are built on a host‑owned model: the sector resides on one host, and guests connect via secure tokens or invitations.
 
-7.1 Visual Presence Indicators
+### 7.1 Visual Presence Indicators
 
 Collaborators are represented consistently across all levels through a combination of avatars, coloured borders, and cursors.
 
@@ -512,7 +512,7 @@ Collaborators are represented consistently across all levels through a combinati
   · Priority indicators – Collaboration focus may temporarily boost an element’s priority, indicated by a special chevron or a collaborator’s avatar merging with the indicator.
 · Follow Mode Indicator – When a guest is following another user, a small “following” icon (e.g., an eye or footsteps) appears next to the follower’s avatar, and their viewport may show a semi‑transparent outline of the target’s view.
 
-7.2 Collaboration Controls in the Bezel
+### 7.2 Collaboration Controls in the Bezel
 
 The expanded bezel at any level includes a Collaboration section with the following controls (subject to role permissions):
 
@@ -523,7 +523,7 @@ The expanded bezel at any level includes a Collaboration section with the follow
 · Follow / Unfollow – Toggle to synchronise viewport with another participant.
 · Leave Sector – Exit the shared session.
 
-7.3 Collaboration Alerts
+### 7.3 Collaboration Alerts
 
 Key collaboration events trigger non‑intrusive alerts to maintain awareness without disrupting workflow. Alerts are visual, auditory, and haptic (configurable).
 
@@ -538,7 +538,7 @@ Host ends session Countdown notification; session closes Alert tone Long vibrati
 
 All collaboration alerts are recorded in the TOS Log (host side) for later review.
 
-7.4 Guest View and Permissions
+### 7.4 Guest View and Permissions
 
 Guests experience the same TOS interface as the host, but with certain restrictions based on their role:
 
@@ -549,7 +549,7 @@ Guests experience the same TOS interface as the host, but with certain restricti
 
 Guests always see the host’s sector tree; they cannot access other sectors on the host machine unless explicitly shared. Their own local sectors remain private.
 
-7.5 Following Mode
+### 7.5 Following Mode
 
 Following mode synchronises a guest’s view with another participant’s (usually the host or an operator). When following:
 
@@ -558,7 +558,7 @@ Following mode synchronises a guest’s view with another participant’s (usual
 · A “break follow” button appears in the bezel; clicking it restores independent control.
 · The target may receive a notification when someone starts following them.
 
-7.6 Chat and Communication
+### 7.6 Chat and Communication
 
 While TOS emphasises command‑first interaction, a lightweight chat overlay is available for collaboration.
 
@@ -567,7 +567,7 @@ While TOS emphasises command‑first interaction, a lightweight chat overlay is 
 · Input – A text field at the bottom of the chat panel; messages are sent with Enter.
 · Integration – Commands typed in chat can be executed by the host if prefixed with /run (subject to permissions). Chat messages are also logged in the TOS Log.
 
-7.7 AI Assistant in Collaboration
+### 7.7 AI Assistant in Collaboration
 
 The AI assistant (see §2.2, AI Mode) gains collaboration‑aware capabilities when a sector is shared:
 
@@ -579,19 +579,19 @@ The AI assistant (see §2.2, AI Mode) gains collaboration‑aware capabilities w
 
 Guests are notified if their actions may be processed by the AI, and they can opt out if privacy concerns arise.
 
-7.8 Privacy and Auditing
+### 7.8 Privacy and Auditing
 
 · Guest Action Logging – All guest actions (commands executed, files accessed, etc.) are recorded in the host’s TOS Log (see §8). Guests do not have access to this log unless granted explicit permission.
 · Privacy Notice – When joining a shared sector, guests see a brief notice explaining what data may be logged and whether AI processing is enabled. They must acknowledge before continuing.
 · Audit Trail – Critical events (role changes, invite usage, security‑relevant commands) are written to a non‑disableable audit log on the host.
 
-7.9 Platform Adaptations
+### 7.9 Platform Adaptations
 
 · Linux Wayland – Full collaboration features, including cursor sharing and viewport synchronisation, implemented via custom Wayland protocols.
 · Android XR – Avatars appear as 3D models floating near the user; collaboration alerts are spatialised. Following mode may include gaze and hand tracking.
 · Android Phone – Simplified avatars and chat overlay; following mode may show a small inset view of the target’s screen.
 
-7.10 Accessibility
+### 7.10 Accessibility
 
 · Screen readers announce when users join/leave, when hands are raised, and when following mode is activated.
 · Haptic feedback provides tactile confirmation of collaboration events.
@@ -601,7 +601,7 @@ Guests are notified if their actions may be processed by the AI, and they can op
 
 TOS is fundamentally input‑agnostic, designed to support any interaction modality equally. The Input Abstraction Layer normalises all physical input devices into a common set of semantic events, which are then mapped to TOS actions through a flexible, user‑configurable mapping layer. This ensures that whether the user is typing, touching, speaking, or gesturing, the system responds consistently and predictably.
 
-8.1 Semantic Event Categories
+### 8.1 Semantic Event Categories
 
 All input devices generate events that fall into one of several high‑level categories. These semantic events are what the core TOS logic understands, independent of the physical source.
 
@@ -617,7 +617,7 @@ AI Interaction ai_submit, ai_stop, ai_mode_toggle, ai_suggestion_accept AI‑spe
 Collaboration show_cursor, follow_user, unfollow, raise_hand, share_sector, leave_sector Multi‑user actions.
 Stop Operation stop_operation Universal cancel (maps to stop button).
 
-8.2 Device Support and Mapping
+### 8.2 Device Support and Mapping
 
 Physical devices are supported through pluggable input modules that translate raw input into semantic events. The user can remap any physical action to any semantic event via a graphical configuration interface.
 
@@ -632,7 +632,7 @@ Gaze / Eye Tracking Gaze point, dwell, blink patterns, smooth pursuit Gaze + dwe
 Voice Wake word, natural language commands, dictation Wake word + "zoom in" → zoom_in; dictation → text_input with transcription
 Accessibility Switches Single switch, multiple switches, sip‑and‑puff, eye blink Switch 1 → next_element; switch 2 → select; long press switch → secondary_select
 
-8.3 Concurrent Input
+### 8.3 Concurrent Input
 
 TOS supports simultaneous use of multiple input devices, intelligently merging streams to provide a seamless experience.
 
@@ -641,7 +641,7 @@ TOS supports simultaneous use of multiple input devices, intelligently merging s
 · Device‑Specific Feedback – Haptic and auditory feedback can be routed to the active device (e.g., controller vibrates when used for selection).
 · Accessibility Priority – Users can assign higher priority to specific devices (e.g., a switch device always takes precedence).
 
-8.4 Input Configuration
+### 8.4 Input Configuration
 
 Users can customise input mappings through a dedicated panel in Settings, accessible from any level.
 
@@ -651,7 +651,7 @@ Users can customise input mappings through a dedicated panel in Settings, access
 · Sensitivity and Dead Zones – Adjustable for analog inputs (controller triggers, thumbsticks, touch pressure).
 · Profiles – Save and load input configurations per user, per sector, or per application.
 
-8.5 Accessibility Integration
+### 8.5 Accessibility Integration
 
 The Input Abstraction Layer is the foundation for TOS’s accessibility features.
 
@@ -662,7 +662,7 @@ The Input Abstraction Layer is the foundation for TOS’s accessibility features
 · Voice Commands – All semantic events can be triggered by voice, with custom phrases.
 · Haptic Feedback as Input – On supported devices, haptic patterns can be used as input triggers (e.g., a specific vibration pattern to confirm a dangerous action).
 
-8.6 Platform‑Specific Input Sources
+### 8.6 Platform-Specific Input Sources
 
 Each platform implementation provides appropriate input modules:
 
@@ -671,7 +671,7 @@ Linux Wayland evdev/libinput for keyboards, mice, touchpads, touchscreens; SDL2 
 Android XR OpenXR action system (gaze, hand tracking, controllers); Android touch events for phone‑mode fallback; Google Speech Recognition for voice; platform accessibility services
 Android Phone Android touch events; hardware keys; Bluetooth controllers (via Android gamepad API); Google Speech Recognition; Accessibility Service API for switch devices
 
-8.7 Semantic Event Flow
+### 8.7 Semantic Event Flow
 
 ```
 Physical Input → Device Driver → Raw Event → Input Module → Semantic Event → Action Mapper → TOS Core
@@ -683,7 +683,7 @@ Physical Input → Device Driver → Raw Event → Input Module → Semantic Eve
 · Action Mapper – Applies user mappings (e.g., remap zoom_in to select if desired).
 · TOS Core – Consumes the semantic event and triggers the appropriate response (change depth, select element, execute command).
 
-8.8 Example Workflows
+### 8.8 Example Workflows
 
 · Keyboard User – Presses Ctrl+Alt+T (configured as open_hub), types ls -la, presses Enter (text_input with submission). The output scrolls in the terminal.
 · Touch User – Pinches to zoom out from an application (zoom_out), taps a sector tile (select), then taps a file in Directory Mode (select), which appends its path to the prompt.
@@ -696,7 +696,7 @@ Physical Input → Device Driver → Raw Event → Input Module → Semantic Eve
 
 The TOS Log is a system‑wide, per‑surface event history that provides a complete timeline of user and system actions. It is designed for auditability, debugging, and quick recall of past activities. The log is integrated into the UI at multiple levels, allowing users to review events without leaving their current context.
 
-9.1 Overview
+### 9.1 Overview
 
 · Purpose – Record all significant events within TOS, including commands executed, lifecycle changes, inspections, collaboration events, and system alerts.
 · Storage – Logs are stored locally in ~/.local/share/tos/logs/ (Linux) or app‑private storage (Android) in a structured format (JSON Lines or SQLite). Critical security events are stored in a separate, non‑disableable audit log.

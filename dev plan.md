@@ -32,6 +32,12 @@
     *   *Investigation*: Verifying `wry` IPC handler and JS event loop interaction.
 *   [ ] **Performance**: Monitor `Dropped Escape call` warnings from WSLg.
 
+## 🔱 Phase 4: Native OS Backends (ACTIVE)
+*   [x] **Feature Flags**: Added `wayland` and `openxr` features to `Cargo.toml`.
+*   [x] **Wayland Compositor**: Implemented native compositor skeleton using `smithay` v0.7.0. Handles socket creation, client acceptance, and event dispatching (§10.1).
+*   [x] **OpenXR Immersive Mode**: Implemented `android_xr` backend stub with spatial session initialization (§21).
+*   [x] **CLI Flag Selection**: Refactored `main.rs` to support `--wayland` and `--xr` for native mode selection.
+
 ## 📦 Phase 5: Distribution & Polish (PLANNED)
 *   [ ] **Packaging**: Debian package creation.
 *   [ ] **Themes**: Additional LCARS color schemes.

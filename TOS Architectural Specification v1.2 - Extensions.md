@@ -492,10 +492,10 @@ The original roadmap is extended with additional phases (in order):
 14. **Accessibility and Polish** – Screen reader integration, high contrast, mini‑map monitoring layer. *(IN PROGRESS)*
 
 In v1.2, the roadmap is reframed modularly:
-1. Core Library (platform‑agnostic)
-2. Linux Wayland Backend
+1. Core Library (platform‑agnostic) *(COMPLETED)*
+2. Linux Wayland Backend *(IN PROGRESS)*
 3. Android Phone Backend
-4. Android XR Backend
+4. Android XR Backend *(IN PROGRESS)*
 5. Remote Sectors (unified protocol)
 6. Marketplace & Modules
 7. Polish & Testing

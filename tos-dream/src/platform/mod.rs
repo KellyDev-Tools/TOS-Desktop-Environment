@@ -43,3 +43,9 @@ pub trait SystemServices {
     fn get_system_metrics(&self) -> SystemMetrics;
     fn open_url(&self, url: &str);
 }
+
+#[cfg(all(feature = "wayland", target_os = "linux"))]
+pub mod linux_wayland;
+
+#[cfg(feature = "openxr")]
+pub mod android_xr;

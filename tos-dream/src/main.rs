@@ -20,6 +20,8 @@ use std::collections::HashMap;
 fn main() -> anyhow::Result<()> {
     let args: Vec<String> = std::env::args().collect();
     let disable_security = args.iter().any(|arg| arg == "--disable-portal-security");
+    let _use_wayland = args.iter().any(|arg| arg == "--wayland");
+    let _use_xr = args.iter().any(|arg| arg == "--xr");
 
     // 1. Initialize System State
     let state = {
@@ -29,18 +31,16 @@ fn main() -> anyhow::Result<()> {
     };
     let ptys: Arc<Mutex<HashMap<uuid::Uuid, PtyHandle>>> = Arc::new(Mutex::new(HashMap::new()));
     
+    // 2. Initialize Shells
     {
         let mut state_lock = state.lock().unwrap();
         let mut initial_ptys = Vec::new();
         
-        // Robust Shell Selection: Try 'fish', then 'bash'
         let mut active_shell_name = None;
         for shell_name in ["fish", "bash"] {
             if let Some(provider) = state_lock.shell_registry.get(shell_name) {
-                // Test by attempting to spawn
                 if let Some(test_pty) = provider.spawn(".") {
-                    // It works!
-                    drop(test_pty); // Clean up test process
+                    drop(test_pty);
                     active_shell_name = Some(shell_name);
                     break;
                 }
@@ -49,26 +49,19 @@ fn main() -> anyhow::Result<()> {
 
         if let Some(name) = active_shell_name {
             let shell = state_lock.shell_registry.get(name).unwrap();
-            println!("TOS // SPAWNING SHELL: {}", shell.name());
-            
             for sector in &state_lock.sectors {
                 for hub in &sector.hubs {
                     if let Some(pty) = shell.spawn(".") {
                         initial_ptys.push((hub.id, pty));
-                    } else {
-                        tracing::warn!("Failed to spawn shell for hub {}", hub.id);
                     }
                 }
             }
-        } else {
-             println!("TOS // CRITICAL: NO COMPATIBLE SHELL FOUND (Tried fish, bash)");
-             // Check if we should fallback to dummy?
         }
 
         for (hub_id, pty) in initial_ptys {
             let pid = pty.child_pid;
             ptys.lock().unwrap().insert(hub_id, pty);
-            
+
             // Register shell as an application for monitoring in the state
             if let Some(sector) = state_lock.sectors.iter_mut().find(|s| s.hubs.iter().any(|h| h.id == hub_id)) {
                 if let Some(hub) = sector.hubs.iter_mut().find(|h| h.id == hub_id) {
@@ -92,8 +85,27 @@ fn main() -> anyhow::Result<()> {
         }
     }
 
-    // 2. Start System Pollers
+    // 3. Start System Pollers
     PtyHandle::poll_all(Arc::clone(&state), Arc::clone(&ptys));
+    #[cfg(feature = "gamepad")]
+    tos_core::system::input::poll_gamepad(Arc::clone(&state));
+
+    // 4. Platform Selection
+    #[cfg(all(feature = "wayland", target_os = "linux"))]
+    if _use_wayland {
+        use tos_core::platform::linux_wayland::WaylandRenderer;
+        let mut renderer = WaylandRenderer::new();
+        renderer.run_event_loop(Arc::clone(&state));
+        return Ok(());
+    }
+
+    #[cfg(feature = "openxr")]
+    if _use_xr {
+        use tos_core::platform::android_xr::OpenXrRenderer;
+        let mut renderer = OpenXrRenderer::new();
+        renderer.run_event_loop(Arc::clone(&state));
+        return Ok(());
+    }
     #[cfg(feature = "gamepad")]
     tos_core::system::input::poll_gamepad(Arc::clone(&state));
 

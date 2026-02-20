@@ -52,6 +52,10 @@
         // The update function called from Rust (indirectly via evaluate_script)
         window.updateView = function (html, currentLevelStr) {
             const container = document.getElementById('main-content');
+            if (!container) {
+                document.body.innerHTML = "<h1>NO CONTAINER: " + html.substring(0, 100) + "</h1>";
+                return;
+            }
             const cleanLevel = currentLevelStr.replace(/"/g, ''); // Strip quotes correctly
 
             // Preserve terminal input state across DOM refresh.

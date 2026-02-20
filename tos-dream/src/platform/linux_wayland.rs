@@ -40,6 +40,7 @@ use smithay::{
     },
     output::{Output, PhysicalProperties, Subpixel, Mode, Scale},
 };
+use smithay::backend::input::PointerMotionEvent;
 
 use std::sync::{Arc, Mutex};
 use super::{Renderer as TosPlatformRenderer, InputSource, SurfaceConfig, SurfaceHandle};
@@ -59,6 +60,8 @@ pub struct TosCompositorState {
     pub shm_state: ShmState,
     pub output_state: OutputManagerState,
     pub seat_state: SeatState<TosCompositorState>,
+    pub data_device_state: smithay::wayland::selection::data_device::DataDeviceState,
+    pub primary_selection_state: smithay::wayland::selection::primary_selection::PrimarySelectionState,
     pub decoration_state: XdgDecorationState,
     pub seat: Seat<TosCompositorState>,
     pub space: Space<Window>,
@@ -66,7 +69,7 @@ pub struct TosCompositorState {
     pub tos_state: Arc<Mutex<TosState>>,
     pub pending_semantic_events: Arc<Mutex<Vec<SemanticEvent>>>,
     pub pointer_location: Point<f64, Logical>,
-    pub bezel_ids: [Id; 5],
+    pub bezel_ids: [Id; 6],
 }
 
 #[derive(Default)]
@@ -89,6 +92,21 @@ impl CompositorHandler for TosCompositorState {
     }
 }
 
+impl smithay::wayland::selection::SelectionHandler for TosCompositorState {
+    type SelectionUserData = ();
+}
+
+impl smithay::wayland::selection::data_device::DataDeviceHandler for TosCompositorState {
+    fn data_device_state(&self) -> &smithay::wayland::selection::data_device::DataDeviceState { &self.data_device_state }
+}
+
+impl smithay::wayland::selection::primary_selection::PrimarySelectionHandler for TosCompositorState {
+    fn primary_selection_state(&self) -> &smithay::wayland::selection::primary_selection::PrimarySelectionState { &self.primary_selection_state }
+}
+
+impl smithay::wayland::selection::data_device::ClientDndGrabHandler for TosCompositorState {}
+impl smithay::wayland::selection::data_device::ServerDndGrabHandler for TosCompositorState {}
+
 impl smithay::wayland::buffer::BufferHandler for TosCompositorState {
     fn buffer_destroyed(&mut self, _buffer: &wl_buffer::WlBuffer) {}
 }
@@ -97,10 +115,21 @@ impl XdgShellHandler for TosCompositorState {
     fn xdg_shell_state(&mut self) -> &mut XdgShellState { &mut self.xdg_shell_state }
     fn new_toplevel(&mut self, surface: ToplevelSurface) {
         let window = Window::new_wayland_window(surface);
+        
+        let mut width = 1200;
+        let mut height = 728;
+        if let Some(output) = self.space.outputs().next() {
+            if let Some(mode) = output.current_mode() {
+                width = mode.size.w - 80;
+                height = mode.size.h - 68;
+            }
+        }
+        
         if let Some(toplevel) = window.toplevel() {
             toplevel.with_pending_state(|state| {
-                state.size = Some((1200, 728).into());
+                state.size = Some((width, height).into());
                 state.states.set(xdg_toplevel::State::Activated);
+                state.states.set(xdg_toplevel::State::Maximized);
             });
             toplevel.send_configure();
         }
@@ -131,10 +160,22 @@ delegate_shm!(TosCompositorState);
 delegate_seat!(TosCompositorState);
 delegate_output!(TosCompositorState);
 delegate_xdg_decoration!(TosCompositorState);
+smithay::delegate_data_device!(TosCompositorState);
+smithay::delegate_primary_selection!(TosCompositorState);
 
 impl smithay::wayland::shell::xdg::decoration::XdgDecorationHandler for TosCompositorState {
-    fn new_decoration(&mut self, _toplevel: ToplevelSurface) {}
-    fn request_mode(&mut self, _toplevel: ToplevelSurface, _mode: zxdg_toplevel_decoration_v1::Mode) {}
+    fn new_decoration(&mut self, toplevel: ToplevelSurface) {
+        toplevel.with_pending_state(|state| {
+            state.decoration_mode = Some(zxdg_toplevel_decoration_v1::Mode::ServerSide);
+        });
+        toplevel.send_configure();
+    }
+    fn request_mode(&mut self, toplevel: ToplevelSurface, _mode: zxdg_toplevel_decoration_v1::Mode) {
+        toplevel.with_pending_state(|state| {
+            state.decoration_mode = Some(zxdg_toplevel_decoration_v1::Mode::ServerSide);
+        });
+        toplevel.send_configure();
+    }
     fn unset_mode(&mut self, _toplevel: ToplevelSurface) {}
 }
 
@@ -168,13 +209,17 @@ impl WaylandRenderer {
         seat.add_pointer();
         seat.add_keyboard(XkbConfig::default(), 200, 25).unwrap();
         
+        let data_device_state = smithay::wayland::selection::data_device::DataDeviceState::new::<TosCompositorState>(&dh);
+        let primary_selection_state = smithay::wayland::selection::primary_selection::PrimarySelectionState::new::<TosCompositorState>(&dh);
+
         let state = Arc::new(Mutex::new(TosCompositorState {
             display_handle: dh.clone(),
             compositor_state, xdg_shell_state, shm_state, output_state, seat_state, decoration_state,
+            data_device_state, primary_selection_state,
             seat, space: Space::default(), running: true, tos_state,
             pending_semantic_events: Arc::new(Mutex::new(Vec::new())),
             pointer_location: (0.0, 0.0).into(),
-            bezel_ids: [Id::new(), Id::new(), Id::new(), Id::new(), Id::new()],
+            bezel_ids: [Id::new(), Id::new(), Id::new(), Id::new(), Id::new(), Id::new()],
         }));
         self.state = Some(state.clone());
 
@@ -215,6 +260,7 @@ impl WaylandRenderer {
             }
         });
 
+        let mut prev_fb_size = backend.window_size();
         let mut serial = 0u32;
         while state.lock().unwrap().running {
             {
@@ -238,14 +284,36 @@ impl WaylandRenderer {
                                 sl.pointer_location = pos;
                                 serial += 1;
                                 
-                                let focus = sl.space.element_under(pos).map(|(window, _)| {
-                                    (window.toplevel().unwrap().wl_surface().clone(), pos)
+                                let focus = sl.space.element_under(pos).map(|(window, origin)| {
+                                    (window.toplevel().unwrap().wl_surface().clone(), origin.to_f64())
                                 });
                                 
                                 sl.seat.get_pointer().unwrap().motion(&mut *sl, focus, &MotionEvent {
                                     location: pos,
                                     serial: Serial::from(serial),
                                     time: event.time() as u32,
+                                });
+                            }
+                            InputEvent::PointerMotion { event, .. } => {
+                                let mut pos = sl.pointer_location;
+                                pos.x += <smithay::backend::input::UnusedEvent as PointerMotionEvent<smithay::backend::winit::WinitInput>>::delta_x(&event);
+                                pos.y += <smithay::backend::input::UnusedEvent as PointerMotionEvent<smithay::backend::winit::WinitInput>>::delta_y(&event);
+                                
+                                let size = backend.window_size();
+                                pos.x = pos.x.clamp(0.0, size.w as f64);
+                                pos.y = pos.y.clamp(0.0, size.h as f64);
+                                
+                                sl.pointer_location = pos;
+                                serial += 1;
+                                
+                                let focus = sl.space.element_under(pos).map(|(window, origin)| {
+                                    (window.toplevel().unwrap().wl_surface().clone(), origin.to_f64())
+                                });
+                                
+                                sl.seat.get_pointer().unwrap().motion(&mut *sl, focus, &MotionEvent {
+                                    location: pos,
+                                    serial: Serial::from(serial),
+                                    time: <smithay::backend::input::UnusedEvent as smithay::backend::input::Event<smithay::backend::winit::WinitInput>>::time(&event) as u32,
                                 });
                             }
                             InputEvent::PointerButton { event, .. } => {
@@ -270,6 +338,26 @@ impl WaylandRenderer {
                 (backend.buffer_age().unwrap_or(0), backend.window_size(), sl.bezel_ids.clone())
             };
 
+            if prev_fb_size != fb_size {
+                prev_fb_size = fb_size;
+                output.change_current_state(
+                    Some(Mode { size: fb_size, refresh: 60_000 }),
+                    None, None, None
+                );
+                
+                let sl = state.lock().unwrap();
+                let width = if fb_size.w > 80 { fb_size.w - 80 } else { fb_size.w };
+                let height = if fb_size.h > 68 { fb_size.h - 68 } else { fb_size.h };
+                for window in sl.space.elements() {
+                    if let Some(toplevel) = window.toplevel() {
+                        toplevel.with_pending_state(|state| {
+                            state.size = Some((width, height).into());
+                        });
+                        toplevel.send_configure();
+                    }
+                }
+            }
+
             let (backend_renderer, mut framebuffer) = backend.bind().unwrap();
             
             let scale = 1.0;
@@ -280,6 +368,13 @@ impl WaylandRenderer {
             bezel.push(SolidColorRenderElement::new(bezel_ids[2].clone(), Rectangle::new((4, 36).into(), (48, sh-72).into()).to_f64().to_physical(scale).to_i32_round(), CommitCounter::default(), LCARS_BLUE, Kind::Unspecified));
             bezel.push(SolidColorRenderElement::new(bezel_ids[3].clone(), Rectangle::new((72, sh-32).into(), (sw-76, 28).into()).to_f64().to_physical(scale).to_i32_round(), CommitCounter::default(), LCARS_PEACH, Kind::Unspecified));
             bezel.push(SolidColorRenderElement::new(bezel_ids[4].clone(), Rectangle::new((4, sh-32).into(), (64, 28).into()).to_f64().to_physical(scale).to_i32_round(), CommitCounter::default(), LCARS_BLUE, Kind::Unspecified));
+
+            {
+                let pos = state.lock().unwrap().pointer_location;
+                let cx = pos.x as i32;
+                let cy = pos.y as i32;
+                bezel.push(SolidColorRenderElement::new(bezel_ids[5].clone(), Rectangle::new((cx, cy).into(), (12, 12).into()).to_f64().to_physical(scale).to_i32_round(), CommitCounter::default(), [1.0, 1.0, 1.0, 1.0], Kind::Unspecified));
+            }
 
             let mut elements: Vec<TosRenderElements<GlesRenderer, SpaceRenderElements<GlesRenderer, <Window as AsRenderElements<GlesRenderer>>::RenderElement>, SolidColorRenderElement>> = {
                 let sl = state.lock().unwrap();

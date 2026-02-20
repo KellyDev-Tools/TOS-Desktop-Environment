@@ -114,6 +114,8 @@ fn main() -> anyhow::Result<()> {
     let window = WindowBuilder::new()
         .with_title("TOS Tactical Operating System — Dream Complete")
         .with_inner_size(tao::dpi::LogicalSize::new(1280.0, 800.0))
+        .with_maximized(true)
+        .with_decorations(false)
         .build(&event_loop)?;
 
     // Serve UI files via a custom "tos://" protocol.
@@ -186,13 +188,14 @@ fn main() -> anyhow::Result<()> {
     // 4. Main Event Loop with UI updates
     let state_update = Arc::clone(&state);
     let mut last_update = std::time::Instant::now();
+    let mut last_rendered_html = String::new();
     // Section 14: Track modifiers for Super+Backspace / Super+Alt+Backspace
     let mut modifiers = ModifiersState::empty();
 
     let ptys_cleanup = Arc::clone(&ptys);
 
     event_loop.run(move |event, _, control_flow| {
-        *control_flow = ControlFlow::Wait;
+        *control_flow = ControlFlow::WaitUntil(last_update + std::time::Duration::from_millis(100));
 
         // Periodic UI update (every 100ms)
         if last_update.elapsed().as_millis() >= 100 {
@@ -201,10 +204,13 @@ fn main() -> anyhow::Result<()> {
                 (s.render_current_view(), s.current_level)
             };
             
-            // Use the tested helper to generate safe update script
-            let js = tos_core::ui::generate_view_update_script(&html, current_level);
+            if html != last_rendered_html {
+                // Use the tested helper to generate safe update script
+                let js = tos_core::ui::generate_view_update_script(&html, current_level);
+                let _ = webview.evaluate_script(&js);
+                last_rendered_html = html;
+            }
             
-            let _ = webview.evaluate_script(&js);
             last_update = std::time::Instant::now();
         }
 

@@ -62,108 +62,165 @@
 }
 
 .sector-card {
-    background: rgba(20, 20, 30, 0.4);
-    backdrop-filter: blur(25px);
-    border: 1px solid rgba(255, 255, 255, 0.05);
-    border-radius: 20px;
+    background: rgba(0, 0, 0, 0.6);
+    border: none;
+    border-radius: 0;
     overflow: hidden;
     cursor: pointer;
     transition: all 0.5s cubic-bezier(0.16, 1, 0.3, 1);
-    display: flex;
-    flex-direction: column;
+    display: grid;
+    grid-template-areas:
+        "top top top"
+        "left body right"
+        "bottom bottom bottom";
+    grid-template-rows: 15px 1fr 10px;
+    grid-template-columns: 20px 1fr 20px;
     box-shadow: 0 15px 45px rgba(0, 0, 0, 0.4);
+    min-height: 250px;
 }
 
-.sector-card .card-header {
-    padding: 15px 25px;
+.sector-card .mini-bezel {
+    grid-area: top;
     background: var(--card-accent);
-    color: black;
     display: flex;
-    justify-content: space-between;
+    justify-content: flex-end;
     align-items: center;
-    position: relative;
+    padding: 0 10px;
+    font-size: 0.5rem;
+    font-weight: 800;
 }
 
-.card-header::after {
+.sector-card .mini-prompt {
+    grid-area: bottom;
+    background: var(--lcars-orange);
+    position: relative;
+    overflow: hidden;
+}
+
+.mini-prompt::after {
     content: '';
     position: absolute;
-    bottom: -10px;
+    top: 0;
     left: 0;
-    width: 100%;
-    height: 10px;
-    background: linear-gradient(to bottom, var(--card-accent), transparent);
+    width: 30%;
+    height: 100%;
+    background: white;
+    opacity: 0.3;
+    animation: prompt-wave 3s infinite linear;
+}
+
+@keyframes prompt-wave {
+    0% {
+        transform: translateX(-100%);
+    }
+
+    100% {
+        transform: translateX(400%);
+    }
+}
+
+.sector-card .left-indicators {
+    grid-area: left;
+    background: var(--card-accent);
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+    padding-top: 20px;
+    align-items: center;
+}
+
+.sector-card .right-indicators {
+    grid-area: right;
+    background: var(--card-accent);
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+    padding-top: 20px;
+    align-items: center;
+}
+
+.mode-chip {
+    width: 12px;
+    height: 6px;
+    background: rgba(0, 0, 0, 0.4);
+    border-radius: 2px;
+}
+
+.mode-chip.active {
+    background: white;
+    box-shadow: 0 0 5px white;
+}
+
+.priority-chip-mini {
+    width: 12px;
+    height: 4px;
+    background: var(--lcars-red);
     opacity: 0.3;
 }
 
-.header-label {
-    font-weight: 800;
-    font-size: 0.8rem;
-    letter-spacing: 2px;
+.priority-chip-mini.active {
+    opacity: 1;
+    box-shadow: 0 0 3px var(--lcars-red);
 }
 
 .sector-card .card-body {
-    padding: 40px 30px;
-    flex: 1;
+    grid-area: body;
+    padding: 20px;
     display: flex;
     flex-direction: column;
     align-items: flex-start;
     text-align: left;
+    position: relative;
 }
 
 .card-icon {
-    font-size: 3.5rem;
-    margin-bottom: 25px;
-    filter: drop-shadow(0 0 15px var(--card-accent));
+    font-size: 2.5rem;
+    margin-bottom: 15px;
+    filter: drop-shadow(0 0 10px var(--card-accent));
 }
 
 .sector-name {
-    font-size: 2rem;
+    font-size: 1.4rem;
     font-weight: 800;
     margin-bottom: 5px;
-    color: #fff;
+    color: var(--card-accent);
 }
 
 .sector-desc {
-    font-size: 0.95rem;
-    color: rgba(255, 255, 255, 0.5);
-    line-height: 1.5;
-    margin-bottom: 30px;
-    height: 3em;
-    overflow: hidden;
+    font-size: 0.8rem;
+    color: rgba(255, 255, 255, 0.6);
+    line-height: 1.4;
+    margin-bottom: 15px;
+    flex: 1;
 }
 
 .sector-stats {
     display: flex;
-    gap: 30px;
+    gap: 20px;
     width: 100%;
     border-top: 1px solid rgba(255, 255, 255, 0.1);
-    padding-top: 20px;
-}
-
-.stat {
-    display: flex;
-    flex-direction: column;
-}
-
-.stat .label {
-    font-size: 0.6rem;
-    color: rgba(255, 255, 255, 0.3);
-    font-weight: 800;
-    margin-bottom: 5px;
+    padding-top: 10px;
 }
 
 .stat .val {
-    font-size: 1.2rem;
+    font-size: 1rem;
     font-weight: 700;
-    color: var(--card-accent);
+    color: white;
 }
 
-.sector-card .card-footer {
-    padding: 20px 25px;
+.sector-card .collaboration-dots {
     display: flex;
-    background: rgba(0, 0, 0, 0.2);
-    align-items: center;
-    justify-content: space-between;
+    gap: 4px;
+    position: absolute;
+    top: 10px;
+    right: 15px;
+}
+
+.collab-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--lcars-blue);
 }
 
 .execute-btn {

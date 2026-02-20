@@ -10,6 +10,7 @@ impl ViewRenderer for DetailInspectorRenderer {
         let app = &hub.applications[viewport.active_app_index.unwrap_or(0)];
 
         let mut mem_str = "--- MB".to_string();
+        let mut cpu_str = "0.0%".to_string();
         let mut pid_str = "N/A".to_string();
         let mut uptime_str = "00:00:00".to_string();
         let mut perm_str = "----".to_string();
@@ -18,6 +19,7 @@ impl ViewRenderer for DetailInspectorRenderer {
             pid_str = pid.to_string();
             if let Ok(stats) = crate::system::proc::get_process_stats(pid) {
                 mem_str = format!("{} MB", stats.memory_bytes / 1024 / 1024);
+                cpu_str = format!("{:.1}%", stats.cpu_usage);
                 
                 let total_seconds = stats.uptime_seconds as u64;
                 let hours = total_seconds / 3600;
@@ -31,26 +33,56 @@ impl ViewRenderer for DetailInspectorRenderer {
 
         format!(
             r#"<div class="inspector-container detail-inspector render-{mode:?}">
-                <div class="inspector-header">NODE INSPECTOR // LEVEL 4</div>
-                <div class="inspector-content">
-                    <div class="stat-row"><span>ID:</span> <span>{id}</span></div>
-                    <div class="stat-row"><span>PID:</span> <span>{pid}</span></div>
-                    <div class="stat-row"><span>CLASS:</span> <span>{class}</span></div>
-                    <div class="stat-row"><span>SECTOR:</span> <span>{sector}</span></div>
-                    <div class="stat-row"><span>MEMORY:</span> <span>{mem}</span></div>
-                    <div class="stat-row"><span>UPTIME:</span> <span>{uptime}</span></div>
-                    <div class="stat-row"><span>PERMS:</span> <span>{perms}</span></div>
+                <div class="inspector-header">
+                    <div class="header-main">NODE INSPECTOR // LEVEL 4</div>
+                    <div class="header-sub">{title} // {id}</div>
                 </div>
-                <div class="inspector-footer" onclick="window.ipc.postMessage('zoom_out')">BACK</div>
+                
+                <div class="inspector-grid">
+                    <div class="inspector-section">
+                        <div class="section-title">SYSTEM RESOURCES</div>
+                        <div class="section-body">
+                            <div class="stat-row"><span class="label">PID</span> <span class="val">{pid}</span></div>
+                            <div class="stat-row"><span class="label">CPU USAGE</span> <span class="val">{cpu}</span></div>
+                            <div class="stat-row"><span class="label">MEM RESIDENT</span> <span class="val">{mem}</span></div>
+                            <div class="stat-row"><span class="label">UPTIME</span> <span class="val">{uptime}</span></div>
+                        </div>
+                    </div>
+
+                    <div class="inspector-section">
+                        <div class="section-title">SECURITY & SCOPE</div>
+                        <div class="section-body">
+                            <div class="stat-row"><span class="label">PERMISSIONS</span> <span class="val">{perms}</span></div>
+                            <div class="stat-row"><span class="label">SANDBOX</span> <span class="val">ACTIVE</span></div>
+                            <div class="stat-row"><span class="label">DECORATION</span> <span class="val">{deco:?}</span></div>
+                            <div class="bezel-btn mini" onclick="window.ipc.postMessage('zoom_to:BufferInspector')">MEMORY DUMP</div>
+                        </div>
+                    </div>
+
+                    <div class="inspector-section full-width">
+                        <div class="section-title">COLLABORATION GRAPH</div>
+                        <div class="section-body collab-list">
+                            <div class="stat-row"><span class="label">PARTICIPANTS</span> <span class="val">{participants}</span></div>
+                            <div class="stat-row"><span class="label">FOLLOW MODE</span> <span class="val">OFF</span></div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="inspector-footer">
+                    <button class="bezel-btn" onclick="window.ipc.postMessage('zoom_out')">RETURN TO OVERVIEW</button>
+                    <button class="bezel-btn danger" onclick="window.ipc.postMessage('kill_app')">TERMINATE NODE</button>
+                </div>
             </div>"#,
             mode = mode,
-            id = app.id, 
+            title = app.title.to_uppercase(),
+            id = &app.id.to_string()[..8], 
             pid = pid_str,
-            class = app.app_class, 
-            sector = sector.name,
+            cpu = cpu_str,
             mem = mem_str,
             uptime = uptime_str,
-            perms = perm_str
+            perms = perm_str,
+            deco = app.decoration_policy,
+            participants = sector.participants.len()
         )
     }
 }

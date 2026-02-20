@@ -20,26 +20,68 @@
 }
 
 .inspector-header {
-    color: var(--lcars-blue);
-    font-size: 1.2rem;
-    font-weight: 800;
-    margin-bottom: 20px;
-    border-bottom: 2px solid var(--lcars-blue);
+    margin-bottom: 30px;
+    border-left: 15px solid var(--lcars-blue);
+    padding-left: 20px;
 }
 
-.inspector-content {
+.header-main {
+    color: var(--lcars-blue);
+    font-size: 1.5rem;
+    font-weight: 800;
+    letter-spacing: 2px;
+}
+
+.header-sub {
+    color: rgba(255, 255, 255, 0.4);
+    font-size: 0.8rem;
+    font-weight: 700;
+}
+
+.inspector-grid {
     flex: 1;
-    font-family: var(--font-mono);
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    grid-template-rows: auto auto;
+    gap: 20px;
+    overflow-y: auto;
+}
+
+.inspector-section {
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 10px;
+    padding: 20px;
+    border-top: 4px solid var(--lcars-blue);
+}
+
+.inspector-section.full-width {
+    grid-column: 1 / span 2;
+}
+
+.section-title {
+    font-size: 0.7rem;
+    font-weight: 800;
+    color: var(--lcars-blue);
+    margin-bottom: 15px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
 }
 
 .stat-row {
     display: flex;
     justify-content: space-between;
-    margin-bottom: 10px;
+    margin-bottom: 12px;
+    font-size: 0.9rem;
 }
 
-.stat-row span:first-child {
-    color: var(--lcars-orange);
+.stat-row .label {
+    color: rgba(255, 255, 255, 0.4);
+    font-weight: 800;
+}
+
+.stat-row .val {
+    color: white;
+    font-weight: 700;
 }
 
 .buffer-hex {

@@ -74,17 +74,33 @@
 }
 
 .bezel-expanded-content {
-    padding: 20px 30px;
+    padding: 30px 40px;
     display: flex;
-    gap: 40px;
+    flex-direction: row;
+    gap: 60px;
     opacity: 0;
     transform: translateY(-20px);
     transition: all 0.3s 0.1s;
+    justify-content: flex-start;
 }
 
 .expanded .bezel-expanded-content {
     opacity: 1;
     transform: translateY(0);
+}
+
+.bezel-section {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+
+.section-label {
+    font-size: 0.7rem;
+    font-weight: 800;
+    color: rgba(255, 255, 255, 0.4);
+    letter-spacing: 2px;
+    text-transform: uppercase;
 }
 
 .bezel-group {
@@ -306,6 +322,7 @@
         transform: translateY(0) scale(1);
     }
 }
+
 /* Redesigned App Surface Styles */
 .app-surface-header {
     background: rgba(153, 102, 255, 0.2);
@@ -330,8 +347,15 @@
 }
 
 @keyframes blink {
-    0%, 100% { opacity: 1; }
-    50% { opacity: 0.4; }
+
+    0%,
+    100% {
+        opacity: 1;
+    }
+
+    50% {
+        opacity: 0.4;
+    }
 }
 
 .app-id-badge {

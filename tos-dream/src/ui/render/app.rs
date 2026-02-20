@@ -92,26 +92,38 @@ impl ViewRenderer for AppRenderer {
                         </div>
                     </div>
                     <div class="bezel-expanded-content">
-                        <div class="bezel-group">
-                            <div class="bezel-btn" onclick="window.ipc.postMessage('zoom_out')">ZOOM OUT</div>
-                            <div class="bezel-btn" onclick="window.ipc.postMessage('split_viewport')">SPLIT VIEW</div>
-                            <div class="bezel-btn {portal_active_class}" onclick="window.ipc.postMessage('toggle_portal')">{portal_label}</div>
-                            <div class="bezel-btn danger">CLOSE</div>
+                        <div class="bezel-section">
+                            <div class="section-label">NAVIGATION</div>
+                            <div class="bezel-group">
+                                <div class="bezel-btn" onclick="window.ipc.postMessage('zoom_out')">ZOOM OUT</div>
+                                <div class="bezel-btn" onclick="window.ipc.postMessage('split_viewport')">SPLIT VIEW</div>
+                                <div class="bezel-btn" onclick="window.ipc.postMessage('zoom_to:DetailInspector')">INSPECT</div>
+                                <div class="bezel-btn danger" onclick="window.ipc.postMessage('kill_app')">CLOSE</div>
+                            </div>
                         </div>
-                        {portal_info_html}
-                        <div class="bezel-group sliders">
-                             <div class="action-slider">
-                                <span>PRIORITY</span>
-                                <input type="range" min="1" max="10" step="1" value="{priority}" oninput="window.ipc.postMessage('update_setting:priority:' + this.value)">
-                             </div>
-                             <div class="action-slider">
-                                <span>GAIN</span>
-                                <input type="range" min="0" max="100" step="1" value="{gain}" oninput="window.ipc.postMessage('update_setting:gain:' + this.value)">
-                             </div>
-                             <div class="action-slider">
-                                <span>SENSITIVITY</span>
-                                <input type="range" min="0" max="100" step="1" value="{sensitivity}" oninput="window.ipc.postMessage('update_setting:sensitivity:' + this.value)">
-                             </div>
+                        <div class="bezel-section">
+                            <div class="section-label">PORTAL & CONNECTIVITY</div>
+                            <div class="bezel-group">
+                                <div class="bezel-btn {portal_active_class}" onclick="window.ipc.postMessage('toggle_portal')">{portal_label}</div>
+                            </div>
+                            {portal_info_html}
+                        </div>
+                        <div class="bezel-section">
+                            <div class="section-label">CALIBRATION</div>
+                            <div class="bezel-group sliders">
+                                 <div class="action-slider">
+                                    <span>PRIORITY</span>
+                                    <input type="range" min="1" max="10" step="1" value="{priority}" oninput="window.ipc.postMessage('update_setting:priority:' + this.value)">
+                                 </div>
+                                 <div class="action-slider">
+                                    <span>GAIN</span>
+                                    <input type="range" min="0" max="100" step="1" value="{gain}" oninput="window.ipc.postMessage('update_setting:gain:' + this.value)">
+                                 </div>
+                                 <div class="action-slider">
+                                    <span>SENSITIVITY</span>
+                                    <input type="range" min="0" max="100" step="1" value="{sensitivity}" oninput="window.ipc.postMessage('update_setting:sensitivity:' + this.value)">
+                                 </div>
+                            </div>
                         </div>
                     </div>
                 </div>

@@ -20,17 +20,30 @@ impl ViewRenderer for HubRenderer {
 
         let mut participants_html = String::new();
         for p in &sector.participants {
+            let initials: String = p.name.split_whitespace().map(|s| s.chars().next().unwrap_or(' ')).collect();
             participants_html.push_str(&format!(
-                r#"<div class="participant-avatar" style="background-color: {color}" title="{name} ({role})"></div>"#,
-                color = p.color, name = p.name, role = p.role
+                r#"<div class="participant-avatar" style="background-color: {color}" title="{name} ({role})">{initials}</div>"#,
+                color = p.color, name = p.name, role = p.role, initials = initials
             ));
         }
 
+        let follow_indicator = if !state.collaboration_manager.following_modes.is_empty() {
+             r#"<div class="follow-indicator active">FOLLOW MODE ACTIVE</div>"#
+        } else {
+             ""
+        };
+
         html.push_str(&format!(
             r#"<div class="hub-header">
+                <div class="hub-controls">
+                    <button class="bezel-btn mini" onclick="window.ipc.postMessage('zoom_out')" title="Zoom Out">ZOOM OUT</button>
+                    <button class="bezel-btn mini" onclick="window.ipc.postMessage('toggle_output_mode')" title="Standard / Centered Perspective">OUTPUT MODE</button>
+                    <button class="bezel-btn mini" onclick="window.ipc.postMessage('toggle_left_region')" title="Toggle Left Favourites">LEFT REGION</button>
+                </div>
                 <div class="hub-info">
                     <span class="hub-sector-name">{name}</span>
                     <span class="hub-host">LINK: {host}</span>
+                    {follow_indicator}
                 </div>
                 <div class="hub-participants">
                     {participants_html}
@@ -39,7 +52,8 @@ impl ViewRenderer for HubRenderer {
             </div>"#,
             name = sector.name.to_uppercase(),
             host = sector.host,
-            participants_html = participants_html
+            participants_html = participants_html,
+            follow_indicator = follow_indicator
         ));
         
         html.push_str(r#"<div class="hub-tabs">"#);
@@ -94,16 +108,16 @@ impl ViewRenderer for HubRenderer {
                     output_html.push_str(&format!(r#"<div class="log-line">{}</div>"#, line));
                 }
 
-                // High Frequency Command Helpers
-                let mut helpers_html = String::new();
+                let mut left_chips = String::new();
+                let mut right_chips = String::new();
                 
-                // 1. Sector-specific favorites
+                // 1. Sector-specific favorites (Left Region)
                 if let Some(sector_type) = state.sector_type_registry.get(&sector.sector_type_name) {
                     for fav_str in sector_type.command_favourites() {
                         let fav_str: String = fav_str;
                         if let Some((label, cmd)) = fav_str.split_once(':') {
-                            helpers_html.push_str(&format!(
-                                r#"<button class="bezel-btn mini" onclick="window.ipc.postMessage('stage_command:{} ')">{}</button>"#,
+                            left_chips.push_str(&format!(
+                                r#"<button class="chip-btn" onclick="window.ipc.postMessage('stage_command:{} ')">{}</button>"#,
                                 cmd.replace('\'', "\\'"),
                                 label.to_uppercase()
                             ));
@@ -111,18 +125,18 @@ impl ViewRenderer for HubRenderer {
                     }
                 }
 
-                // 2. Shell provided suggestions
+                // 2. Shell provided suggestions (Right Region)
                 for sug in &hub.suggestions {
-                    helpers_html.push_str(&format!(
-                        r#"<button class="bezel-btn mini" onclick="window.ipc.postMessage('stage_command:{}')" title="{}">{}</button>"#,
+                    right_chips.push_str(&format!(
+                        r#"<button class="chip-btn priority-high" onclick="window.ipc.postMessage('stage_command:{}')" title="{}">{}</button>"#,
                         sug.command.replace('\'', "\\'"),
                         sug.description.replace('\'', "\\'"),
                         sug.text.to_uppercase()
                     ));
                 }
                 
-                // 3. System defaults if empty
-                if helpers_html.is_empty() {
+                // 3. System defaults if empty (Left Region)
+                if left_chips.is_empty() {
                     let defaults = [
                         ("LS", "ls -F"),
                         ("GIT STATUS", "git status"),
@@ -130,21 +144,28 @@ impl ViewRenderer for HubRenderer {
                         ("RELOAD", "source ~/.config/fish/config.fish"),
                     ];
                     for (label, cmd) in defaults {
-                        helpers_html.push_str(&format!(
-                            r#"<button class="bezel-btn mini" onclick="window.ipc.postMessage('stage_command:{} ')">{}</button>"#,
+                        left_chips.push_str(&format!(
+                            r#"<button class="chip-btn" onclick="window.ipc.postMessage('stage_command:{} ')">{}</button>"#,
                             cmd, label
                         ));
                     }
                 }
 
                 html.push_str(&format!(r#"<div class="command-view">
-                    <div class="terminal-output" id="hub-term-{}">
+                    <div class="left-chip-region">
+                        <div class="chip-region-title" style="font-size:0.7em;color:var(--lcars-orange);margin-bottom:10px;">FAVORITES & CONTEXT</div>
                         {}
                     </div>
-                    <div class="command-helpers">
+                    <div class="terminal-container">
+                        <div class="terminal-output" id="hub-term-{}">
+                            {}
+                        </div>
+                    </div>
+                    <div class="right-chip-region">
+                        <div class="chip-region-title" style="font-size:0.7em;color:var(--lcars-orange);margin-bottom:10px;">PRIORITY SUGGESTIONS</div>
                         {}
                     </div>
-                </div>"#, hub.id, output_html, helpers_html));
+                </div>"#, left_chips, hub.id, output_html, right_chips));
             }
             CommandHubMode::Directory => {
                 let cwd = &hub.current_directory;
@@ -618,18 +639,24 @@ impl ViewRenderer for HubRenderer {
 
         html.push_str(&format!(
             r#"<div class="unified-prompt">
-                <div class="input-mode-tabs">
-                    <div class="mode-tab {cmd_active}" onclick="window.ipc.postMessage('set_mode:Command')">CMD</div>
-                    <div class="mode-tab {search_active}" onclick="window.ipc.postMessage('set_mode:Search')">SEARCH</div>
-                    <div class="mode-tab {ai_active}" onclick="window.ipc.postMessage('set_mode:Ai')">AI</div>
-                </div>
-                <div class="prompt-container">
-                    <div class="voice-trigger" onclick="window.ipc.postMessage('semantic_event:VoiceCommandStart')">
-                        {voice_indicator}
+                <div class="left-section">
+                    <div class="input-mode-tabs">
+                        <div class="mode-tab {cmd_active}" onclick="window.ipc.postMessage('set_mode:Command')">CMD</div>
+                        <div class="mode-tab {search_active}" onclick="window.ipc.postMessage('set_mode:Search')">SEARCH</div>
+                        <div class="mode-tab {ai_active}" onclick="window.ipc.postMessage('set_mode:Ai')">AI</div>
                     </div>
-                    <div class="prompt-prefix">TOS@{} ></div>
-                    <input type="text" id="terminal-input" value="{}" onkeydown="window.handlePromptKey(event)" autofocus>
+                </div>
+                <div class="center-section">
+                    <div class="prompt-container">
+                        <div class="prompt-prefix">TOS@{} ></div>
+                        <input type="text" id="terminal-input" value="{}" onkeydown="window.handlePromptKey(event)" autofocus>
+                    </div>
+                </div>
+                <div class="right-section">
                     <div class="prompt-controls">
+                        <div class="voice-trigger" style="font-size:1.5rem;cursor:pointer;" onclick="window.ipc.postMessage('semantic_event:VoiceCommandStart')">
+                            {voice_indicator}
+                        </div>
                         {ai_control}
                         <div class="stop-btn" onclick="window.ipc.postMessage('semantic_event:StopOperation')" title="STOP (Ctrl+Shift+C)">⏹️</div>
                     </div>

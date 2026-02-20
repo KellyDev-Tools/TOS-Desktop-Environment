@@ -76,39 +76,59 @@ impl ViewRenderer for GlobalRenderer {
 
             html.push_str(&format!(
                 r#"<div class="sector-card {color_class}" onclick="window.ipc.postMessage('select_sector:{index}')">
-                    <div class="card-header">
-                        <div class="header-label">SECTOR {index}</div>
-                        {remote_indicator}
-                        {portal_tag}
-                        <div class="header-utils">
-                            <span title="Settings">⚙️</span>
-                            <span title="Pin">📌</span>
-                        </div>
+                    <div class="mini-bezel">
+                        {remote_label}
+                        <div class="settings-trigger" onclick="event.stopPropagation(); window.ipc.postMessage('open_settings')">⚙️</div>
+                    </div>
+                    <div class="left-indicators">
+                        <div class="mode-chip {active_cmd}"></div>
+                        <div class="mode-chip {active_dir}"></div>
+                        <div class="mode-chip {active_act}"></div>
                     </div>
                     <div class="card-body">
+                        <div class="collaboration-dots">
+                            {collab_dots}
+                        </div>
                         <div class="card-icon">{icon}</div>
                         <div class="sector-name">{name}</div>
                         <div class="sector-desc">{desc}</div>
                         <div class="sector-stats">
-                            <div class="stat"><span class="label">USERS</span><span class="val">{participants}</span></div>
-                            <div class="stat"><span class="label">HUBS</span><span class="val">{hubs}</span></div>
+                            <div class="stat"><span class="val">{hubs} HUBS</span></div>
+                            <div class="stat"><span class="val">{participants} USERS</span></div>
                         </div>
                     </div>
-                    <div class="card-footer">
-                        <div class="execute-btn">ENTER</div>
-                        <div class="footer-actions">
-                            <button class="action-btn share-btn" onclick="event.stopPropagation(); window.ipc.postMessage('invite_participant:Viewer')">SHARE</button>
-                            <button class="action-btn delete-btn" onclick="event.stopPropagation(); window.ipc.postMessage('kill_sector:{index}')">DEL</button>
-                        </div>
+                    <div class="right-indicators">
+                        {priority_chips}
                     </div>
+                    <div class="mini-prompt"></div>
                 </div>"#,
                 index = i,
                 name = sector.name.to_uppercase(),
                 icon = icon,
                 desc = desc,
-                participants = sector.participants.len(),
                 hubs = sector.hubs.len(),
-                portal_tag = portal_tag
+                participants = sector.participants.len(),
+                color_class = color_class,
+                remote_label = match sector.connection_type {
+                    ConnectionType::Local => "LOCAL".to_string(),
+                    ConnectionType::TOSNative => format!("TOS // {}", sector.host),
+                    ConnectionType::SSH => format!("SSH // {}", sector.host),
+                    ConnectionType::HTTP => format!("HTTP // {}", sector.host),
+                },
+                active_cmd = if sector.hubs[sector.active_hub_index].mode == crate::CommandHubMode::Command { "active" } else { "" },
+                active_dir = if sector.hubs[sector.active_hub_index].mode == crate::CommandHubMode::Directory { "active" } else { "" },
+                active_act = if sector.hubs[sector.active_hub_index].mode == crate::CommandHubMode::Activity { "active" } else { "" },
+                collab_dots = sector.participants.iter().map(|_| r#"<div class="collab-dot"></div>"#).collect::<Vec<_>>().join(""),
+                priority_chips = {
+                    let score = sector.priority_score(state);
+                    let active_chips = (score / 3.0).min(5.0) as usize;
+                    let mut chips = String::new();
+                    for j in 0..5 {
+                        let active = if j < active_chips { "active" } else { "" };
+                        chips.push_str(&format!(r#"<div class="priority-chip-mini {}"></div>"#, active));
+                    }
+                    chips
+                }
             ));
         }
         

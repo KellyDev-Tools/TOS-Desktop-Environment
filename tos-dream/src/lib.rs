@@ -244,6 +244,19 @@ pub struct BezelAction {
     pub command: String,
 }
 
+impl HierarchyLevel {
+    pub fn depth_modifier(&self) -> f32 {
+        match self {
+            HierarchyLevel::GlobalOverview => 0.1,
+            HierarchyLevel::CommandHub => 0.2,
+            HierarchyLevel::ApplicationFocus => 0.3,
+            HierarchyLevel::SplitView => 0.3,
+            HierarchyLevel::DetailInspector => 0.4,
+            HierarchyLevel::BufferInspector => 0.5,
+        }
+    }
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Application {
     pub id: uuid::Uuid,
@@ -262,6 +275,29 @@ pub struct Application {
     pub decoration_policy: DecorationPolicy,
     #[serde(default)]
     pub bezel_actions: Vec<BezelAction>,
+}
+
+impl Application {
+    pub fn priority_score(&self, is_active: bool, level: HierarchyLevel) -> f32 {
+        let base = self.settings.get("priority").cloned().unwrap_or(5.0);
+        let activity_bonus = if is_active { 2.0 } else { 0.0 };
+        (base + activity_bonus) * (1.0 + level.depth_modifier())
+    }
+}
+
+impl Sector {
+    pub fn priority_score(&self, state: &TosState) -> f32 {
+        let mut score = 0.0;
+        for hub in &self.hubs {
+            for (idx, app) in hub.applications.iter().enumerate() {
+                let is_active = hub.active_app_index == Some(idx);
+                score += app.priority_score(is_active, state.current_level);
+            }
+        }
+        
+        let collab_multiplier = 1.0 + (self.participants.len() as f32 * 0.2);
+        score * collab_multiplier
+    }
 }
 
 #[derive(Serialize, Deserialize)]

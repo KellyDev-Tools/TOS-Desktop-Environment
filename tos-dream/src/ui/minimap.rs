@@ -389,20 +389,24 @@ fn calculate_click_target_with_geometry(&self, x: f32, y: f32, state: &TosState)
         let mut html = format!(
             r#"<div class="minimap-app-focus">
                 <div class="app-path">
-                    <span style="color: {};">{}</span> → {} → <strong>{}</strong>
+                    <span style="color: {};">{}</span> // {} // <span style="font-weight: 800; color: white;">{}</span>
                 </div>
                 <div class="active-app">
                     <div class="app-title">{}</div>
                     <div class="app-class">{}</div>
+                    <div class="app-priority-tags">
+                        <span class="tag">P:{}</span>
+                        <span class="tag">D:{}</span>
+                    </div>
                 </div>
             </div>"#,
             sector.color,
             sector.name,
             match hub.mode {
-                CommandHubMode::Command => "Command",
-                CommandHubMode::Directory => "Directory",
-                CommandHubMode::Activity => "Activity",
-                CommandHubMode::Search => "Search",
+                CommandHubMode::Command => "CMD",
+                CommandHubMode::Directory => "DIR",
+                CommandHubMode::Activity => "ACT",
+                CommandHubMode::Search => "SRCH",
                 CommandHubMode::Ai => "AI",
             },
             active_app,
@@ -410,7 +414,9 @@ fn calculate_click_target_with_geometry(&self, x: f32, y: f32, state: &TosState)
             viewport.active_app_index
                 .and_then(|idx| hub.applications.get(idx))
                 .map(|app| app.app_class.clone())
-                .unwrap_or_default()
+                .unwrap_or_default(),
+            viewport.active_app_index.unwrap_or(0),
+            state.viewports.len()
         );
 
         // Show viewports if in split mode

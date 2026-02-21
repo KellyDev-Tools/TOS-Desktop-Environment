@@ -109,7 +109,8 @@ fn test_minimap_position_variants() {
     for pos in positions {
         let mut config = MiniMapConfig::default();
         config.position = pos;
-        let minimap = MiniMap::with_config(config);
+        let mut minimap = MiniMap::with_config(config);
+        minimap.activate();
         
         let state = TosState::new();
         let html = minimap.render(&state);
@@ -129,7 +130,8 @@ fn test_minimap_position_variants() {
 #[test]
 fn test_minimap_render_levels() {
     let mut state = TosState::new();
-    let minimap = MiniMap::new();
+    let mut minimap = MiniMap::new();
+    minimap.activate();
     
     // Level 1: Global Overview
     let html = minimap.render(&state);
@@ -143,7 +145,7 @@ fn test_minimap_render_levels() {
     state.zoom_in();
     let html = minimap.render(&state);
     assert!(html.contains("minimap-current-sector"));
-    assert!(html.contains("Command Mode"));
+    assert!(html.contains("COMMAND"));
     
     // Level 3: Application Focus
     state.zoom_in();
@@ -159,13 +161,13 @@ fn test_minimap_active_vs_passive_rendering() {
     
     // Passive state
     let html_passive = minimap.render(&state);
-    assert!(html_passive.contains("minimap-passive"));
-    assert!(html_passive.contains("opacity: 0.3"));
+    assert!(html_passive.is_empty());
     
     // Active state
     minimap.activate();
     let html_active = minimap.render(&state);
-    assert!(html_active.contains("minimap-active"));
+    assert!(html_active.contains("tactical-minimap"));
+    assert!(html_active.contains("active-overlay"));
     assert!(html_active.contains("opacity: 0.9"));
 }
 
@@ -176,12 +178,9 @@ fn test_minimap_opacity_configuration() {
     config.active_opacity = 1.0;
     
     let mut minimap = MiniMap::with_config(config);
+    minimap.activate();
     let state = TosState::new();
     
-    let html = minimap.render(&state);
-    assert!(html.contains("opacity: 0.5"));
-    
-    minimap.activate();
     let html = minimap.render(&state);
     assert!(html.contains("opacity: 1"));
 }
@@ -235,7 +234,8 @@ fn test_activation_methods() {
 #[test]
 fn test_minimap_split_view_rendering() {
     let mut state = TosState::new();
-    let minimap = MiniMap::new();
+    let mut minimap = MiniMap::new();
+    minimap.activate();
     
     // Create split view state
     state.current_level = tos_core::HierarchyLevel::SplitView;
@@ -248,20 +248,22 @@ fn test_minimap_split_view_rendering() {
 #[test]
 fn test_minimap_with_multiple_sectors() {
     let state = TosState::new();
-    let minimap = MiniMap::new();
+    let mut minimap = MiniMap::new();
+    minimap.activate();
     
     let html = minimap.render(&state);
     
     // Should show all three default sectors
     assert!(html.contains("Alpha Sector"));
     assert!(html.contains("Science Labs"));
-    assert!(html.contains("Engineering Hub"));
+    assert!(html.contains("Observation Hub"));
 }
 
 #[test]
 fn test_minimap_legend_by_level() {
     let mut state = TosState::new();
-    let minimap = MiniMap::new();
+    let mut minimap = MiniMap::new();
+    minimap.activate();
     
     // Level 1
     let html = minimap.render(&state);

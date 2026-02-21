@@ -836,6 +836,7 @@ mod tests {
     #[test]
     fn test_position_classes() {
         let mut minimap = MiniMap::new();
+        minimap.activate();
         
         minimap.config.position = MiniMapPosition::TopLeft;
         let html = minimap.render(&crate::TosState::new());
@@ -849,7 +850,8 @@ mod tests {
     #[test]
     fn test_render_levels() {
         let mut state = crate::TosState::new();
-        let minimap = MiniMap::new();
+        let mut minimap = MiniMap::new();
+        minimap.activate();
         
         // Explicitly reset to GlobalOverview to avoid flakiness from persisted state
         // (TosState::new() may load saved state from a previous test in the same process)

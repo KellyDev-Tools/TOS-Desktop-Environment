@@ -678,7 +678,101 @@ impl TosState {
             sector_type_name: "development".to_string(),
         };
 
-        let sectors = vec![first_sector];
+        let science_sector = Sector {
+            id: uuid::Uuid::new_v4(),
+            name: "Science Labs".to_string(),
+            color: "#00ccff".to_string(),
+            hubs: vec![CommandHub {
+                id: uuid::Uuid::new_v4(),
+                mode: CommandHubMode::Activity,
+                prompt: String::new(),
+                applications: vec![
+                    Application {
+                        id: uuid::Uuid::new_v4(),
+                        title: "Spectrometer".to_string(),
+                        app_class: "Analysis".to_string(),
+                        is_minimized: false,
+                        pid: None,
+                        icon: Some("🔬".to_string()),
+                        is_dummy: true,
+                        settings: std::collections::HashMap::new(),
+                        thumbnail: None,
+                        decoration_policy: DecorationPolicy::Overlay,
+                        bezel_actions: vec![
+                            BezelAction { label: "SCAN".to_string(), command: "scan_start".to_string() },
+                            BezelAction { label: "ABORT".to_string(), command: "scan_stop".to_string() }
+                        ],
+                    },
+                    Application {
+                        id: uuid::Uuid::new_v4(),
+                        title: "DataFeed".to_string(),
+                        app_class: "Navigation".to_string(),
+                        is_minimized: false,
+                        pid: None,
+                        icon: Some("🔭".to_string()),
+                        is_dummy: true,
+                        settings: std::collections::HashMap::new(),
+                        thumbnail: None,
+                        decoration_policy: DecorationPolicy::Suppress,
+                        bezel_actions: vec![],
+                    }
+                ],
+                active_app_index: Some(0),
+                terminal_output: Vec::new(),
+                confirmation_required: None,
+                current_directory: std::path::PathBuf::from("/"),
+                show_hidden_files: false,
+                selected_files: std::collections::HashSet::new(),
+                context_menu: None,
+                shell_listing: None,
+                suggestions: vec![],
+                output_mode_centered: false,
+                left_region_visible: true,
+            }],
+            active_hub_index: 0,
+            host: "LOCAL".to_string(),
+            connection_type: ConnectionType::Local,
+            participants: vec![],
+            portal_active: false,
+            portal_url: None,
+            description: "Deep space analysis and sensor arrays.".to_string(),
+            icon: "🔬".to_string(),
+            sector_type_name: "science".to_string(),
+        };
+
+        let observation_sector = Sector {
+            id: uuid::Uuid::new_v4(),
+            name: "Observation Hub".to_string(),
+            color: "#cc00ff".to_string(),
+            hubs: vec![CommandHub {
+                id: uuid::Uuid::new_v4(),
+                mode: CommandHubMode::Command,
+                prompt: String::new(),
+                applications: vec![],
+                active_app_index: None,
+                terminal_output: Vec::new(),
+                confirmation_required: None,
+                current_directory: std::path::PathBuf::from("/"),
+                show_hidden_files: false,
+                selected_files: std::collections::HashSet::new(),
+                context_menu: None,
+                shell_listing: None,
+                suggestions: vec![],
+                output_mode_centered: false,
+                left_region_visible: true,
+            }],
+            active_hub_index: 0,
+            host: "LOCAL".to_string(),
+            connection_type: ConnectionType::Local,
+            participants: vec![],
+            portal_active: false,
+            portal_url: None,
+            description: "Visual reconnaissance and exterior monitoring.".to_string(),
+            icon: "👁️".to_string(),
+            sector_type_name: "operations".to_string(),
+        };
+
+        let sectors = vec![first_sector, science_sector, observation_sector];
         let viewports = vec![Viewport {
             id: uuid::Uuid::new_v4(),
             sector_index: 0,
@@ -1570,7 +1664,7 @@ mod tests {
         let html = state.render_current_view();
         assert!(html.contains("NODE INSPECTOR"));
         assert!(html.contains("UPTIME"));
-        assert!(html.contains("Shell")); // Check class name
+        assert!(html.contains("SHELL")); // Check class name
 
         // Buffer Inspector
         state.zoom_in();

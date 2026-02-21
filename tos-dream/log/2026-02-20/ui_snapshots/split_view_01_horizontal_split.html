@@ -1,0 +1,189 @@
+<div class="split-viewport-grid"><div class="viewport-cell"><div class="command-hub mode-command   render-Full"><div class="tactical-header" style="--header-accent: #ff9900;">
+                <div class="header-left">
+                    <button class="bezel-btn mini" onclick="window.ipc.postMessage('zoom_out')" title="Zoom Out">ZOOM OUT</button>
+                    <button class="bezel-btn mini" onclick="window.ipc.postMessage('toggle_output_mode')" title="Standard / Centered Perspective">OUTPUT MODE</button>
+                    <button class="bezel-btn mini" onclick="window.ipc.postMessage('toggle_left_region')" title="Toggle Left Favourites">LEFT</button>
+                </div>
+                <div class="header-center">
+                    <div class="three-way-toggle">
+                        <div class="toggle-segment active" onclick="window.ipc.postMessage('set_mode:Command')">COMMAND</div>
+                        <div class="toggle-segment " onclick="window.ipc.postMessage('set_mode:Directory')">DIRECTORY</div>
+                        <div class="toggle-segment " onclick="window.ipc.postMessage('set_mode:Activity')">ACTIVITY</div>
+                    </div>
+                </div>
+                <div class="header-right">
+                    <div class="hub-info-inline" style="display:flex; gap:20px; align-items:center;">
+                        <div class="hub-metadata">
+                            <span class="hub-sector-name" style="font-weight:800; color:#ff9900;">ALPHA SECTOR</span>
+                            <span class="hub-host" style="font-size:0.7rem; opacity:0.6; margin-left:10px;">LOCAL</span>
+                        </div>
+                        
+                        <div class="hub-participants" style="display:flex; gap:5px;">
+                            <div class="participant-avatar" style="background-color: #ffcc00" title="Host (Co-Owner)" onclick="window.ipc.postMessage('follow_participant:3edbabdb-c3e1-478f-8440-292f104b111f')">H</div>
+                        </div>
+                        <div class="telemetry-item" style="display:flex; gap:5px;">
+                            <button class="bezel-btn mini comms-toggle-btn" onclick="window.ipc.postMessage('toggle_comms')">COMMS</button>
+                            <button class="bezel-btn mini minimap-toggle-btn" onclick="window.ipc.postMessage('semantic_event:ToggleMiniMap')">MAP</button>
+                        </div>
+                    </div>
+                </div>
+            </div><div class="hub-content"><div class="command-view">
+                    <div class="left-chip-region">
+                        <div class="chip-region-title" style="font-size:0.7em;color:var(--lcars-orange);margin-bottom:10px;">FAVORITES & CONTEXT</div>
+                        <button class="chip-btn" onclick="window.ipc.postMessage('stage_command:git status ')">GIT STATUS</button><button class="chip-btn" onclick="window.ipc.postMessage('stage_command:cargo build ')">BUILD</button><button class="chip-btn" onclick="window.ipc.postMessage('stage_command:cargo test ')">TEST</button>
+                    </div>
+                    <div class="terminal-container">
+                        <div class="terminal-output" id="hub-term-af0c1680-7a11-4cb5-9fb9-4c92f17b3737">
+                            
+                        </div>
+                    </div>
+                    <div class="right-chip-region">
+                        <div class="chip-region-title" style="font-size:0.7em;color:var(--lcars-orange);margin-bottom:10px;">PRIORITY SUGGESTIONS</div>
+                        
+                    </div>
+                </div></div><div class="unified-prompt">
+                <div class="left-section">
+                    <div class="three-way-toggle">
+                        <div class="toggle-segment active" onclick="window.ipc.postMessage('set_mode:Command')">CMD</div>
+                        <div class="toggle-segment " onclick="window.ipc.postMessage('set_mode:Search')">SEARCH</div>
+                        <div class="toggle-segment " onclick="window.ipc.postMessage('set_mode:Ai')">AI</div>
+                    </div>
+                </div>
+                <div class="center-section">
+                    <div class="prompt-container">
+                        <div class="prompt-prefix">TOS@ALPHA SECTOR ></div>
+                        <input type="text" id="terminal-input" value="" onkeydown="window.handlePromptKey(event)" autofocus>
+                    </div>
+                </div>
+                <div class="right-section">
+                    <div class="prompt-controls">
+                        <div class="voice-trigger" style="font-size:1.5rem;cursor:pointer;" onclick="window.ipc.postMessage('semantic_event:VoiceCommandStart')">
+                            <div class="voice-indicator voice-idle">
+                <div class="voice-icon">🎤</div>
+                <div class="voice-status">Voice commands disabled</div>
+                
+            </div>
+                        </div>
+                        
+                        <div class="stop-btn" onclick="window.ipc.postMessage('semantic_event:StopOperation')" title="STOP (Ctrl+Shift+C)">⏹️</div>
+                    </div>
+                </div>
+            </div></div></div><div class="viewport-cell"><div class="command-hub mode-activity   render-Throttled"><div class="tactical-header" style="--header-accent: #00ccff;">
+                <div class="header-left">
+                    <button class="bezel-btn mini" onclick="window.ipc.postMessage('zoom_out')" title="Zoom Out">ZOOM OUT</button>
+                    <button class="bezel-btn mini" onclick="window.ipc.postMessage('toggle_output_mode')" title="Standard / Centered Perspective">OUTPUT MODE</button>
+                    <button class="bezel-btn mini" onclick="window.ipc.postMessage('toggle_left_region')" title="Toggle Left Favourites">LEFT</button>
+                </div>
+                <div class="header-center">
+                    <div class="three-way-toggle">
+                        <div class="toggle-segment " onclick="window.ipc.postMessage('set_mode:Command')">COMMAND</div>
+                        <div class="toggle-segment " onclick="window.ipc.postMessage('set_mode:Directory')">DIRECTORY</div>
+                        <div class="toggle-segment active" onclick="window.ipc.postMessage('set_mode:Activity')">ACTIVITY</div>
+                    </div>
+                </div>
+                <div class="header-right">
+                    <div class="hub-info-inline" style="display:flex; gap:20px; align-items:center;">
+                        <div class="hub-metadata">
+                            <span class="hub-sector-name" style="font-weight:800; color:#00ccff;">SCIENCE LABS</span>
+                            <span class="hub-host" style="font-size:0.7rem; opacity:0.6; margin-left:10px;">LOCAL</span>
+                        </div>
+                        
+                        <div class="hub-participants" style="display:flex; gap:5px;">
+                            
+                        </div>
+                        <div class="telemetry-item" style="display:flex; gap:5px;">
+                            <button class="bezel-btn mini comms-toggle-btn" onclick="window.ipc.postMessage('toggle_comms')">COMMS</button>
+                            <button class="bezel-btn mini minimap-toggle-btn" onclick="window.ipc.postMessage('semantic_event:ToggleMiniMap')">MAP</button>
+                        </div>
+                    </div>
+                </div>
+            </div><div class="hub-content"><div class="activity-view">
+                        <div class="activity-section">
+                            <div class="section-title">ACTIVE PROCESSES</div>
+                            
+                            <div class="activity-grid">
+                                <div class="app-tile staging-item ">
+                            <div class="file-selector" onclick="event.stopPropagation(); window.ipc.postMessage('app_toggle_select:684051e8-4e0f-4868-a9e7-e0d78e6cd9e6')"></div>
+                            <div class="app-tile-header" onclick="window.ipc.postMessage('stage_command:focus SPECTROMETER')">
+                                <div class="app-tile-icon">🔬</div>
+                                <div class="app-tile-info">
+                                    <div class="app-title">SPECTROMETER</div>
+                                    <div class="app-class">ANALYSIS</div>
+                                    <div class="app-pid" style="font-size: 0.7em; color: var(--tos-gold); opacity: 0.7;">PID: [TOS]</div>
+                                </div>
+                            </div>
+                            <div class="app-tile-stats">
+                                <div class="stat">CPU: 0.0%</div>
+                                <div class="stat">MEM: <1MB</div>
+                            </div>
+                            <div class="app-tile-actions">
+                                <button class="tile-btn" onclick="window.ipc.postMessage('signal_app:684051e8-4e0f-4868-a9e7-e0d78e6cd9e6;INT')">SIGINT</button>
+                                <button class="tile-btn danger" onclick="window.ipc.postMessage('kill_app:684051e8-4e0f-4868-a9e7-e0d78e6cd9e6')">KILL</button>
+                            </div>
+                        </div><div class="app-tile staging-item ">
+                            <div class="file-selector" onclick="event.stopPropagation(); window.ipc.postMessage('app_toggle_select:eb6e72c9-d25b-47be-8f8a-2e26414a7d6a')"></div>
+                            <div class="app-tile-header" onclick="window.ipc.postMessage('stage_command:focus DATAFEED')">
+                                <div class="app-tile-icon">🔭</div>
+                                <div class="app-tile-info">
+                                    <div class="app-title">DATAFEED</div>
+                                    <div class="app-class">NAVIGATION</div>
+                                    <div class="app-pid" style="font-size: 0.7em; color: var(--tos-gold); opacity: 0.7;">PID: [TOS]</div>
+                                </div>
+                            </div>
+                            <div class="app-tile-stats">
+                                <div class="stat">CPU: 0.0%</div>
+                                <div class="stat">MEM: <1MB</div>
+                            </div>
+                            <div class="app-tile-actions">
+                                <button class="tile-btn" onclick="window.ipc.postMessage('signal_app:eb6e72c9-d25b-47be-8f8a-2e26414a7d6a;INT')">SIGINT</button>
+                                <button class="tile-btn danger" onclick="window.ipc.postMessage('kill_app:eb6e72c9-d25b-47be-8f8a-2e26414a7d6a')">KILL</button>
+                            </div>
+                        </div>
+                                <div class="app-tile add-tile" onclick="window.ipc.postMessage('spawn_app')">
+                                    <span>+ NEW PROCESS</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="activity-section">
+                            <div class="section-title">MODULE DATA FEEDS</div>
+                            <div class="module-data-grid">
+                                
+                            </div>
+                        </div>
+                        <div class="activity-section">
+                            <div class="section-title">SECTOR TEMPLATES</div>
+                            <div class="template-registry">
+                                <div class="template-item empty">NO TEMPLATES FOUND</div>
+                                <div class="template-item action-item" onclick="window.ipc.postMessage('save_template:Current-Sector')">
+                                    <div class="template-name">+ SAVE CURRENT AS TEMPLATE</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div></div><div class="unified-prompt">
+                <div class="left-section">
+                    <div class="three-way-toggle">
+                        <div class="toggle-segment active" onclick="window.ipc.postMessage('set_mode:Command')">CMD</div>
+                        <div class="toggle-segment " onclick="window.ipc.postMessage('set_mode:Search')">SEARCH</div>
+                        <div class="toggle-segment " onclick="window.ipc.postMessage('set_mode:Ai')">AI</div>
+                    </div>
+                </div>
+                <div class="center-section">
+                    <div class="prompt-container">
+                        <div class="prompt-prefix">TOS@SCIENCE LABS ></div>
+                        <input type="text" id="terminal-input" value="" onkeydown="window.handlePromptKey(event)" autofocus>
+                    </div>
+                </div>
+                <div class="right-section">
+                    <div class="prompt-controls">
+                        <div class="voice-trigger" style="font-size:1.5rem;cursor:pointer;" onclick="window.ipc.postMessage('semantic_event:VoiceCommandStart')">
+                            <div class="voice-indicator voice-idle">
+                <div class="voice-icon">🎤</div>
+                <div class="voice-status">Voice commands disabled</div>
+                
+            </div>
+                        </div>
+                        
+                        <div class="stop-btn" onclick="window.ipc.postMessage('semantic_event:StopOperation')" title="STOP (Ctrl+Shift+C)">⏹️</div>
+                    </div>
+                </div>
+            </div></div></div></div>

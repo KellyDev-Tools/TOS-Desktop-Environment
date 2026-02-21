@@ -38,7 +38,7 @@ fn test_ipc_navigation_integration() {
         // Verify rendering integration (Modular HubRenderer)
         let html = s.render_current_view();
         assert!(html.contains("command-hub"));
-        assert!(html.contains("hub-header"));
+        assert!(html.contains("tactical-header"));
     }
 }
 

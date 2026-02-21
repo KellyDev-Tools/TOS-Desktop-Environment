@@ -38,12 +38,12 @@ fn test_direct_comms_broadcast() {
     assert!(state.comms_messages.len() >= 1);
     assert_eq!(state.comms_messages[0].from, "STARFLEET");
     
-    // Simulated broadcast from IPC
     state.comms_messages.push(CommsMessage {
         from: "USER".to_string(),
         body: "Hello Bridge".to_string(),
         timestamp: "12:00".to_string(),
     });
+    state.comms_visible = true;
     
     let html = state.render_current_view();
     assert!(html.contains("Hello Bridge"));

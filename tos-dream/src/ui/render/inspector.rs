@@ -35,7 +35,7 @@ impl ViewRenderer for DetailInspectorRenderer {
             r#"<div class="inspector-container detail-inspector render-{mode:?}">
                 <div class="inspector-header">
                     <div class="header-main">NODE INSPECTOR // LEVEL 4</div>
-                    <div class="header-sub">{title} // {id}</div>
+                    <div class="header-sub">{title} // {class} // {id}</div>
                 </div>
                 
                 <div class="inspector-grid">
@@ -75,6 +75,7 @@ impl ViewRenderer for DetailInspectorRenderer {
             </div>"#,
             mode = mode,
             title = app.title.to_uppercase(),
+            class = app.app_class.to_uppercase(),
             id = &app.id.to_string()[..8], 
             pid = pid_str,
             cpu = cpu_str,

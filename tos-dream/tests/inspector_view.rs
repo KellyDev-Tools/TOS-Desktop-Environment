@@ -35,11 +35,11 @@ fn test_detail_inspector_dynamic_data() {
     let state = create_test_state_with_real_pid();
     let html = state.render_current_view();
     
-    assert!(html.contains("UPTIME:"), "Should show uptime label");
+    assert!(html.contains("UPTIME"), "Should show uptime label");
     // Verify it's not the hardcoded old value
     assert!(!html.contains("02:14:05"), "Should not show old hardcoded uptime");
     // Verify it fetched something (UID is present)
-    assert!(html.contains("PERMS:"), "Should show perms label");
+    assert!(html.contains("PERMISSIONS"), "Should show permissions label");
     assert!(html.contains("UID:"), "Should show UID");
 }
 

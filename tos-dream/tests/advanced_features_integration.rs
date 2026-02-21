@@ -281,7 +281,8 @@ fn test_minimap_toggle() {
 
 #[test]
 fn test_minimap_render_contains_elements() {
-    let state = TosState::new();
+    let mut state = TosState::new();
+    state.toggle_minimap();
     let html = state.minimap.render(&state);
     
     assert!(html.contains("TACTICAL MINI-MAP"));
@@ -500,7 +501,7 @@ fn test_minimap_toggle_rendering_integration() {
     // Toggle minimap on
     state.toggle_minimap();
     let html = state.minimap.render(&state);
-    assert!(html.contains("minimap-active"));
+    assert!(html.contains("tactical-minimap") && html.contains("active-overlay"));
 }
 
 #[test]
@@ -611,6 +612,7 @@ fn test_collaboration_invitation_system_integration() {
 fn test_minimap_state_after_zoom_integration() {
     let mut state = TosState::new();
     
+    state.toggle_minimap();
     // Render at global overview
     let html = state.minimap.render(&state);
     assert!(html.contains("Alpha Sector"));

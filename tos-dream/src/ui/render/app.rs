@@ -155,6 +155,7 @@ impl ViewRenderer for AppRenderer {
                         </div>
                         <div class="app-surface-body">
                             <div class="data-stream">
+                                <div class="data-stream-title">DATAFEED // REAL-TIME ANALYTICS</div>
                                 {module_content}
                                 <div class="mock-data-entry">INITIALIZING SUBSYSTEMS...</div>
                                 <div class="mock-data-entry">ATTACHING TO KERNEL V{version}...</div>

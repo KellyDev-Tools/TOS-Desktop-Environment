@@ -27,38 +27,38 @@ The Global Overview displays all sectors (local and remote) as zoomable tiles. E
 
 ### 1.1 Sector Tile as a Mini Command Hub
 
-· Borders – The four borders of a sector tile mirror the structural elements of a full Command Hub:
-  · Top border – Represents the Tactical Bezel (collapsed state). A thin coloured strip may indicate the sector’s alert status or active collaboration.
-  · Bottom border – Embodies the Persistent Unified Prompt – a solid or subtly animated line.
-  · Left and right borders – House mode indicators (CMD, DIR, ACT, SEARCH) as small coloured chips or icons, and priority indicator chips (see §5.1 of v1.2).
-· Conveyed Information:
-  · Active Mode – A coloured chip on the left or right border glows to indicate the sector’s current hub mode.
-  · Priority State – Border chips along the edges reflect the sector’s urgency or activity level.
-  · Recent Activity – A subtle “wave” animation along the bottom border hints at recent command output or notifications.
-  · Collaboration Presence – Tiny avatar dots along the top border show active guests.
-· Zoom Transition – When selected, the tile’s borders smoothly expand and resolve into the full Command Hub interface:
-  · Top border widens into the Tactical Bezel.
-  · Bottom border grows into the Persistent Unified Prompt.
-  · Side borders become the left and right “wings” of the hub (chip regions).
-  · Priority chips slide into position around the hub’s content area.
+* Borders/bezels – The four borders of a sector tile mirror the structural elements of a full Command Hub:
+  * Top border – Represents the Tactical Bezel (collapsed state). A thin coloured strip may indicate the sector’s alert status or active collaboration.
+  * Bottom border – Embodies the Persistent Unified Prompt – a solid or subtly animated line.
+  * Left and right borders – House mode indicators (CMD, DIR, ACT, SEARCH) as small coloured chips or icons, and priority indicator chips (see §5.1 of v1.2).
+* Conveyed Information:
+  * Active Mode – A coloured chip on the left or right border glows to indicate the sector’s current hub mode.
+  * Priority State – Border chips along the edges reflect the sector’s urgency or activity level.
+  * Recent Activity – A subtle “wave” animation along the bottom border hints at recent command output or notifications.
+  * Collaboration Presence – Tiny avatar dots along the top border show active guests.
+* Zoom Transition – When selected, the tile’s borders smoothly expand and resolve into the full Command Hub interface:
+  * Top border widens into the Tactical Bezel.
+  * Bottom border grows into the Persistent Unified Prompt.
+  * Side borders become the left and right “wings” of the hub (chip regions).
+  * Priority chips slide into position around the hub’s content area.
 
 ### 1.2 Global Overview Bezel
 
 The Tactical Bezel at Level 1 provides system‑level controls.
 
-· Collapsed State – Thin strip along the top edge containing:
-  · Settings icon (gear) – one‑click access to global settings.
-  · Add Sector button (+).
-  · Expand Handle (down chevron).
-  · Collaboration Indicator (avatars of active shared sectors) – far right.
-· Expanded State – Activated by dragging the handle, clicking, or Ctrl+Space. Reveals a command strip:
-  · Navigation – Zoom Out (if applicable), Home (reset overview layout).
-  · Sector Management – New Sector, Import Sector, Remote Connection.
-  · System – Settings, Updates, Security Dashboard.
-  · Collaboration – Share Overview, Active Sessions, Invite Users.
-  · View Controls – Toggle Mini‑Map, Toggle Sector Labels, Arrange Tiles.
-  · Power – Sleep, Restart TOS, Log Out (with tactile confirmation).
-· Settings Panel – Opens as a modal overlay with left sidebar categories, right content area, and integrated search. The bezel remains visible (collapsed) with the Settings icon highlighted.
+* Collapsed State – Thin strip along the top edge containing:
+  * Settings icon (gear) – one‑click access to global settings.
+  * Add Sector button (+).
+  * Expand Handle (down chevron).
+  * Collaboration Indicator (avatars of active shared sectors) – far right.
+* Expanded State – Activated by dragging the handle, clicking, or Ctrl+Space. Reveals a command strip:
+  * Navigation – Zoom Out (if applicable), Home (reset overview layout).
+  * Sector Management – New Sector, Import Sector, Remote Connection.
+  * System – Settings, Updates, Security Dashboard.
+  * Collaboration – Share Overview, Active Sessions, Invite Users.
+  * View Controls – Toggle Mini‑Map, Toggle Sector Labels, Arrange Tiles.
+  * Power – Sleep, Restart TOS, Log Out (with tactile confirmation).
+* Settings Panel – Opens as a modal overlay with left sidebar categories, right content area, and integrated search. The bezel remains visible (collapsed) with the Settings icon highlighted.
 
 ## 2. Command Hub – Level 2
 
@@ -66,61 +66,61 @@ The Command Hub is the central control point for a sector. It consists of a top 
 
 ### 2.1 Top Bezel
 
-· Output Mode Toggle – Button (or icon) to switch between Standard and Centered Perspective output configurations (see §2.4). Positioned on the bezel, visible even when collapsed.
-· Zoom Out – Returns to Global Overview.
-· Left Region Toggle – Optional button to show/hide the left favourites/context chip region.
-· Additional Controls – May include split buttons, sector name, etc., depending on context.
+* Output Mode Toggle – Button (or icon) to switch between Standard and Centered Perspective output configurations (see §2.4). Positioned on the bezel, visible even when collapsed.
+* Zoom Out – Returns to Global Overview.
+* Left Region Toggle – Optional button to show/hide the left favourites/context chip region.
+* Additional Controls – May include split buttons, sector name, etc., depending on context.
 
 ### 2.2 Persistent Unified Prompt
 
 Fixed at the bottom of the Command Hub, spanning the full width. It consists of three distinct sections:
 
-· Left Section – 3‑position mode selector (CMD | SEARCH | AI). The active mode is visually highlighted. Tapping or clicking a mode switches the hub’s behaviour.
-· Center Section – Text input field. Supports typing, pasting, and real‑time autocomplete suggestions. In CMD mode, syntax highlighting may be applied. In SEARCH mode, it acts as a search query field. In AI mode, it accepts natural language.
-· Right Section – Contains two controls:
-  · Mic Button (microphone icon) – Toggles voice input mode. When activated, the system listens for speech and transcribes it into the input field. The button may change appearance (e.g., pulsing red) while recording. Voice input can be cancelled by tapping the mic button again or using the stop button.
-  · Stop Button (⏹️) – Cancels the current operation: interrupts a running command, stops an ongoing search, halts AI response generation, or deactivates voice input.
+* Left Section – 3‑position mode selector (CMD | SEARCH | AI). The active mode is visually highlighted. Tapping or clicking a mode switches the hub’s behaviour.
+* Center Section – Text input field. Supports typing, pasting, and real‑time autocomplete suggestions. In CMD mode, syntax highlighting may be applied. In SEARCH mode, it acts as a search query field. In AI mode, it accepts natural language.
+* Right Section – Contains two controls:
+  * Mic Button (microphone icon) – Toggles voice input mode. When activated, the system listens for speech and transcribes it into the input field. The button may change appearance (e.g., pulsing red) while recording. Voice input can be cancelled by tapping the mic button again or using the stop button.
+  * Stop Button (⏹️) – Cancels the current operation: interrupts a running command, stops an ongoing search, halts AI response generation, or deactivates voice input.
 
 Voice Interaction Notes:
 
-· Voice input can also be triggered by a wake word (e.g., “Hey TOS”) or a dedicated hardware button, depending on platform capabilities.
-· The mic button provides a manual, always‑available fallback.
-· Transcribed text appears in the input field; the user can edit it before execution.
-· In AI mode, voice is particularly useful for natural language queries; the AI response may be spoken back via TTS if enabled.
+* Voice input can also be triggered by a wake word (e.g., “Hey TOS”) or a dedicated hardware button, depending on platform capabilities.
+* The mic button provides a manual, always‑available fallback.
+* Transcribed text appears in the input field; the user can edit it before execution.
+* In AI mode, voice is particularly useful for natural language queries; the AI response may be spoken back via TTS if enabled.
 
 Layout Consistency:
 
-· The mode selector visually aligns with the left chip region above.
-· The mic and stop buttons align with the right chip region.
-· The input field dynamically resizes as the left and right sections occupy fixed widths.
+* The mode selector visually aligns with the left chip region above.
+* The mic and stop buttons align with the right chip region.
+* The input field dynamically resizes as the left and right sections occupy fixed widths.
 
 ### 2.3 Main Display Area – Dual-Sided Chip Layout
 
 The area between the top bezel and the prompt contains two overlapping layers:
 
-· Background – Terminal output (see §2.4).
-· Foreground – Left and right chip regions, rendered with semi‑transparent backgrounds.
+* Background – Terminal output (see §2.4).
+* Foreground – Left and right chip regions, rendered with semi‑transparent backgrounds.
 
 Left Region – Favourites & Context
 
-· Position – Left edge, expanding rightward.
-· Content:
-  · Favourites – User‑pinned commands (global or per‑sector). Each chip shows command name and a star icon.
-  · Context Chips – Generated from directory awareness, Application Model hooks, Sector Type defaults, or active processes.
-· Visibility – Can be toggled off (via bezel button or keyboard shortcut). When hidden, the right region expands to full width.
-· Interaction – Tapping a left‑region chip populates the prompt with the associated command (or executes it directly if auto‑execute is enabled). Chips that open submenus display a secondary chip list in the same region.
+* Position – Left edge, expanding rightward.
+* Content:
+  * Favourites – User‑pinned commands (global or per‑sector). Each chip shows command name and a star icon.
+  * Context Chips – Generated from directory awareness, Application Model hooks, Sector Type defaults, or active processes.
+* Visibility – Can be toggled off (via bezel button or keyboard shortcut). When hidden, the right region expands to full width.
+* Interaction – Tapping a left‑region chip populates the prompt with the associated command (or executes it directly if auto‑execute is enabled). Chips that open submenus display a secondary chip list in the same region.
 
 Right Region – Prioritized Chips
 
-· Position – Right edge, expanding leftward up to 3/4 of the hub’s width (or full width if left region hidden).
-· Content – Dynamically ranked suggestions based on priority scoring (§5.1 of v1.2):
-  · Eval‑help flags (parsed from --help output of the current command).
-  · Command history (relevant to context).
-  · File/path completions.
-  · AI‑suggested actions.
-  · System alerts (e.g., low disk space).
-· Visual Priority Indicators – Each chip may display border chips, chevrons, or status dots to convey urgency.
-· Interaction – Tapping a right‑region chip appends its content to the prompt at the cursor position (or replaces the current token). For flags that accept arguments, tapping inserts the flag and positions the cursor for the argument; a secondary chip list may appear for possible values.
+* Position – Right edge, expanding leftward up to 3/4 of the hub’s width (or full width if left region hidden).
+* Content – Dynamically ranked suggestions based on priority scoring (§5.1 of v1.2):
+  * Eval‑help flags (parsed from --help output of the current command).
+  * Command history (relevant to context).
+  * File/path completions.
+  * AI‑suggested actions.
+  * System alerts (e.g., low disk space).
+* Visual Priority Indicators – Each chip may display border chips, chevrons, or status dots to convey urgency.
+* Interaction – Tapping a right‑region chip appends its content to the prompt at the cursor position (or replaces the current token). For flags that accept arguments, tapping inserts the flag and positions the cursor for the argument; a secondary chip list may appear for possible values.
 
 ### 2.4 Output Area – Two Configurations
 
@@ -128,40 +128,40 @@ The background terminal output can be viewed in two modes, toggled by the bezel 
 
 #### 2.4.1 Standard Rectangular Configuration
 
-· Full‑width rectangle spanning between left and right chip regions (or full hub width if chips hidden).
-· Uniform text, vertical scrolling.
-· Ideal for reviewing logs or continuous output.
+* Full‑width rectangle spanning between left and right chip regions (or full hub width if chips hidden).
+* Uniform text, vertical scrolling.
+* Ideal for reviewing logs or continuous output.
 
 #### 2.4.2 Centered Perspective Configuration
 
-· Output lines recede toward a central vanishing point, creating a sense of depth.
-· Bottom line (most recent) retains the full width of the Persistent Unified Prompt.
-· Previous lines progressively narrow and move toward the center as they scroll upward.
-· Older lines may become too narrow to read; hovering or clicking expands a tooltip with full content.
-· Left and right chip regions expand outward, using the freed space to show more chips.
-· Transition is animated with a smooth “tunnel” effect, accompanied by an earcon and optional haptic feedback.
+* Output lines recede toward a central vanishing point, creating a sense of depth.
+* Bottom line (most recent) retains the full width of the Persistent Unified Prompt.
+* Previous lines progressively narrow and move toward the center as they scroll upward.
+* Older lines may become too narrow to read; hovering or clicking expands a tooltip with full content.
+* Left and right chip regions expand outward, using the freed space to show more chips.
+* Transition is animated with a smooth “tunnel” effect, accompanied by an earcon and optional haptic feedback.
 
 ### 2.5 Autocomplete – Bezel-Born Overlay
 
 When the user types in the prompt (CMD mode), a temporary overlay extends downward from the right side of the top bezel.
 
-· Appearance – Unfurls like a drawer, attached to the bezel. Maximum height ~3/4 of the hub.
-· Content – Comprehensive, scrollable list of completions (flags, file paths, command names, etc.), presented as chips with descriptions.
-· Dismissal – Tapping outside, pressing Escape, clicking a close chevron, or executing the command retracts the overlay.
-· Relationship with Chip Regions – The overlay complements the persistent right‑region chips by providing a fuller set of options; it temporarily overlays the chip layout but can be dismissed to return to the persistent view.
+* Appearance – Unfurls like a drawer, attached to the bezel. Maximum height ~3/4 of the hub.
+* Content – Comprehensive, scrollable list of completions (flags, file paths, command names, etc.), presented as chips with descriptions.
+* Dismissal – Tapping outside, pressing Escape, clicking a close chevron, or executing the command retracts the overlay.
+* Relationship with Chip Regions – The overlay complements the persistent right‑region chips by providing a fuller set of options; it temporarily overlays the chip layout but can be dismissed to return to the persistent view.
 
 ### 2.6 Context-Aware Mode Switching
 
 The Command Hub can automatically switch modes based on the command being typed.
 
-· Filesystem Commands (e.g., ls, cd, cp, rm, find) – Triggers a switch to Directory Mode (either automatically or via suggestion chip). In Directory Mode, the file grid displays the current working directory, and file selections populate the prompt.
-· Process Commands (e.g., kill, ps, top, renice) – Triggers a switch to Activity Mode. The tactical grid of running processes appears, with relevant processes highlighted.
-· Configuration – User setting in Command Hub preferences:
-  · Off – No automatic switching.
-  · Suggest – A chip appears offering to switch; tapping it changes mode.
-  · Auto – The mode switches immediately without confirmation.
-· Command List Customisation – Users can extend or override the list of commands that trigger each mode.
-· Visual Feedback – When a mode switch occurs, a subtle animation highlights the mode selector and the new mode’s icon. A brief earcon or haptic pulse may accompany the transition. Chip regions update to reflect the new mode’s context.
+* Filesystem Commands (e.g., ls, cd, cp, rm, find) – Triggers a switch to Directory Mode (either automatically or via suggestion chip). In Directory Mode, the file grid displays the current working directory, and file selections populate the prompt.
+* Process Commands (e.g., kill, ps, top, renice) – Triggers a switch to Activity Mode. The tactical grid of running processes appears, with relevant processes highlighted.
+* Configuration – User setting in Command Hub preferences:
+  * Off – No automatic switching.
+  * Suggest – A chip appears offering to switch; tapping it changes mode.
+  * Auto – The mode switches immediately without confirmation.
+* Command List Customisation – Users can extend or override the list of commands that trigger each mode.
+* Visual Feedback – When a mode switch occurs, a subtle animation highlights the mode selector and the new mode’s icon. A brief earcon or haptic pulse may accompany the transition. Chip regions update to reflect the new mode’s context.
 
 3. Application Focus – Level 3
 
@@ -169,9 +169,9 @@ Application Focus is the deepest interactive level in the standard hierarchy. Wh
 
 ### 3.1 Application Surface
 
-· The application runs in its own window, rendered as a native Wayland surface (or X11 forward‑compatible surface).
-· The surface occupies the entire viewport (or a tile in a split configuration) with no window decorations other than the Tactical Bezel.
-· For legacy X11 applications, TOS suppresses native decorations where possible and overlays the bezel; if suppression is not possible, the bezel may be positioned above the application’s own title bar.
+* The application runs in its own window, rendered as a native Wayland surface (or X11 forward‑compatible surface).
+* The surface occupies the entire viewport (or a tile in a split configuration) with no window decorations other than the Tactical Bezel.
+* For legacy X11 applications, TOS suppresses native decorations where possible and overlays the bezel; if suppression is not possible, the bezel may be positioned above the application’s own title bar.
 
 ### 3.2 Tactical Bezel – Application Context
 
@@ -179,11 +179,11 @@ The bezel at Level 3 follows the same design as at higher levels but is tailor
 
 #### 3.2.1 Collapsed State
 
-· Thin, semi‑transparent strip along the top edge of the application surface (position user‑configurable).
-· Contains:
-  · Zoom Out button – Returns to Level 2 (Command Hub).
-  · Application Icon and Title – Provides immediate context.
-  · Expand Handle – A down‑chevron that reveals the expanded bezel when dragged, clicked, or activated via keyboard (Ctrl+Space).
+* Thin, semi‑transparent strip along the top edge of the application surface (position user‑configurable).
+* Contains:
+  * Zoom Out button – Returns to Level 2 (Command Hub).
+  * Application Icon and Title – Provides immediate context.
+  * Expand Handle – A down‑chevron that reveals the expanded bezel when dragged, clicked, or activated via keyboard (Ctrl+Space).
 
 #### 3.2.2 Expanded State
 
@@ -196,18 +196,18 @@ Application‑Specific Actions Provided by the Application Model (e.g., “New T
 System Shortcuts Open Command Hub, Toggle Mini‑Map, Settings
 Collaboration Indicators Avatars of active participants, share button
 
-· The expanded bezel may also display priority indicators (border chips, chevrons) reflecting the application’s current importance (e.g., a pending notification in a communication app).
-· Tapping any control either executes an action or populates the Command Hub’s prompt (if the action involves a command).
+* The expanded bezel may also display priority indicators (border chips, chevrons) reflecting the application’s current importance (e.g., a pending notification in a communication app).
+* Tapping any control either executes an action or populates the Command Hub’s prompt (if the action involves a command).
 
 ### 3.3 Split Viewports from Level 3
 
 Splitting is initiated from the expanded bezel:
 
-· Split Button – After choosing orientation (horizontal or vertical), the user selects what to place in the new viewport:
-  · New Command Hub – Creates a fresh Level 2 hub.
-  · Parent Command Hub – Shows the hub that launched the current app.
-  · Choose Hub… – Lists all hubs in the sector.
-· From Activity Mode – In Level 2 Activity Mode, multi‑selecting application tiles and choosing “Open in Split View” creates tiled Level 3 viewports for the selected apps and zooms to Level 3.
+* Split Button – After choosing orientation (horizontal or vertical), the user selects what to place in the new viewport:
+  * New Command Hub – Creates a fresh Level 2 hub.
+  * Parent Command Hub – Shows the hub that launched the current app.
+  * Choose Hub… – Lists all hubs in the sector.
+* From Activity Mode – In Level 2 Activity Mode, multi‑selecting application tiles and choosing “Open in Split View” creates tiled Level 3 viewports for the selected apps and zooms to Level 3.
 
 Each split viewport operates independently: it can contain an application (Level 3) or a Command Hub (Level 2), with its own zoom state, mode, and content. Viewports can be resized by dragging dividers; closing a viewport causes the remaining ones to expand.
 
@@ -215,11 +215,11 @@ Each split viewport operates independently: it can contain an application (Level
 
 Application Models (see §12 of v1.0 Core) customise the behaviour of specific applications at Level 3. They provide:
 
-· Custom bezel actions – Additional buttons or menus relevant to the application.
-· Zoom behaviour – Some applications (e.g., IDEs) may support internal deep zoom levels; the model can define how the TOS zoom interacts with the app’s own interface.
-· Legacy decoration policy – How the bezel should integrate with applications that have their own window decorations (Suppress, Overlay, or Native).
-· Thumbnail generation – For Activity Mode at Level 2.
-· Searchable content – Applications can expose internal data to the unified search (e.g., browser tabs, document titles).
+* Custom bezel actions – Additional buttons or menus relevant to the application.
+* Zoom behaviour – Some applications (e.g., IDEs) may support internal deep zoom levels; the model can define how the TOS zoom interacts with the app’s own interface.
+* Legacy decoration policy – How the bezel should integrate with applications that have their own window decorations (Suppress, Overlay, or Native).
+* Thumbnail generation – For Activity Mode at Level 2.
+* Searchable content – Applications can expose internal data to the unified search (e.g., browser tabs, document titles).
 
 Models are installed locally and run sandboxed with user‑granted permissions.
 
@@ -229,21 +229,21 @@ From the expanded bezel, an Inspect button (or similar) allows the user to zoom 
 
 ### 3.6 Auditory and Haptic Feedback at Level 3
 
-· Zoom transition – A distinct earcon confirms entry into Application Focus.
-· Bezel actions – Tapping bezel controls triggers appropriate haptic feedback (e.g., a light click for selection, a buzz for dangerous actions).
-· Spatial audio (VR/AR) – Application sounds may be positioned in 3D space relative to the user; bezel interactions also have spatialised feedback.
+* Zoom transition – A distinct earcon confirms entry into Application Focus.
+* Bezel actions – Tapping bezel controls triggers appropriate haptic feedback (e.g., a light click for selection, a buzz for dangerous actions).
+* Spatial audio (VR/AR) – Application sounds may be positioned in 3D space relative to the user; bezel interactions also have spatialised feedback.
 
 ### 3.7 Platform Adaptations
 
-· Linux Wayland – Full native performance; the bezel is rendered by the TOS compositor as an overlay.
-· Android XR – The application surface becomes a virtual screen in 3D space; the bezel appears as a floating panel attached to the virtual screen, operable via gaze, pinch, or hand tracking.
-· Android Phone – The application fills the screen; the bezel is a swipe-down drawer from the top, with touch-optimised controls.
+* Linux Wayland – Full native performance; the bezel is rendered by the TOS compositor as an overlay.
+* Android XR – The application surface becomes a virtual screen in 3D space; the bezel appears as a floating panel attached to the virtual screen, operable via gaze, pinch, or hand tracking.
+* Android Phone – The application fills the screen; the bezel is a swipe-down drawer from the top, with touch-optimised controls.
 
 ### 3.8 Accessibility
 
-· The bezel is fully navigable via keyboard (Tab, arrow keys, Enter) and screen reader (announcing button labels and states).
-· High‑contrast variants and adjustable font scaling ensure visibility.
-· Haptic feedback provides confirmation for users with visual impairments.
+* The bezel is fully navigable via keyboard (Tab, arrow keys, Enter) and screen reader (announcing button labels and states).
+* High‑contrast variants and adjustable font scaling ensure visibility.
+* Haptic feedback provides confirmation for users with visual impairments.
 
 ## 4. Deep Inspection – Levels 4 & 5
 
@@ -253,8 +253,8 @@ Deep Inspection extends the standard three-level hierarchy to provide detailed i
 
 The Detail View presents structured metadata about the inspected surface in a clear, organised panel.
 
-· Access – From Level 3 (Application Focus), the expanded bezel includes an Inspect button. From Level 2 (Command Hub), right‑clicking/long‑pressing a tile in Activity Mode or a file in Directory Mode may offer "Inspect" as an option. From Level 1, sector tiles can be inspected similarly.
-· Appearance – A modal overlay that slides up from the bottom or expands from the bezel, occupying most of the viewport while preserving context of the underlying surface. The overlay follows LCARS design language: clean panels, colour‑coded sections, and interactive chips.
+* Access – From Level 3 (Application Focus), the expanded bezel includes an Inspect button. From Level 2 (Command Hub), right‑clicking/long‑pressing a tile in Activity Mode or a file in Directory Mode may offer "Inspect" as an option. From Level 1, sector tiles can be inspected similarly.
+* Appearance – A modal overlay that slides up from the bottom or expands from the bezel, occupying most of the viewport while preserving context of the underlying surface. The overlay follows LCARS design language: clean panels, colour‑coded sections, and interactive chips.
 
 Content Categories:
 
@@ -266,43 +266,43 @@ Metadata Surface UUID, process ID (if applicable), parent surface, session owner
 Security Permissions granted, sandbox status, audit log excerpts (critical events only)
 Collaboration Active guests, recent guest actions (if any)
 
-· Interactive Elements – Certain data points may be interactive:
-  · Clicking a process ID switches to Activity Mode with that process highlighted.
-  · Tapping a log entry may expand it or offer to search for similar events.
-  · Configuration values that are editable appear with an edit icon; changing them may require elevation.
-· Export – A button in the panel allows exporting the current detail view as JSON or plain text for further analysis.
+* Interactive Elements – Certain data points may be interactive:
+  * Clicking a process ID switches to Activity Mode with that process highlighted.
+  * Tapping a log entry may expand it or offer to search for similar events.
+  * Configuration values that are editable appear with an edit icon; changing them may require elevation.
+* Export – A button in the panel allows exporting the current detail view as JSON or plain text for further analysis.
 
 ### 4.2 Level 5 – Buffer View
 
 The Buffer View provides raw memory inspection of the target surface's process space. Due to its sensitivity, this level is privileged and subject to strict controls.
 
-· Access – From Level 4, a button labelled "Memory View" or "Buffer" appears, but is disabled by default. Enabling it requires explicit privilege elevation (see §4.3).
-· Appearance – A hex dump viewer fills the main area, with columns for offset, hexadecimal representation, and ASCII interpretation. Controls at the top allow:
-  · Seek – Jump to a specific memory address.
-  · Search – Find a byte sequence or ASCII string.
-  · Export – Save the buffer (or selected range) to a file.
-  · Refresh – Update the view (memory may change rapidly).
-· Limitations:
-  · On Android, Level 5 is generally unavailable due to platform restrictions; attempting to access it shows a message explaining the limitation.
-  · Applications may opt out via their Application Model manifest; attempting to inspect such apps at Level 5 shows a permission denied notice.
-  · The view is read‑only; no memory modification is permitted through TOS.
+* Access – From Level 4, a button labelled "Memory View" or "Buffer" appears, but is disabled by default. Enabling it requires explicit privilege elevation (see §4.3).
+* Appearance – A hex dump viewer fills the main area, with columns for offset, hexadecimal representation, and ASCII interpretation. Controls at the top allow:
+  * Seek – Jump to a specific memory address.
+  * Search – Find a byte sequence or ASCII string.
+  * Export – Save the buffer (or selected range) to a file.
+  * Refresh – Update the view (memory may change rapidly).
+* Limitations:
+  * On Android, Level 5 is generally unavailable due to platform restrictions; attempting to access it shows a message explaining the limitation.
+  * Applications may opt out via their Application Model manifest; attempting to inspect such apps at Level 5 shows a permission denied notice.
+  * The view is read‑only; no memory modification is permitted through TOS.
 
 ### 4.3 Security & Privilege Elevation
 
 Access to Level 5 (and certain sensitive data in Level 4) requires explicit user consent and may be gated by platform‑specific authentication.
 
-· Default State – Level 5 access is disabled globally. Level 4 is fully accessible.
-· Enabling Deep Inspection:
-  · Linux Wayland – User must run a privileged command (sudo tos enable-deep-inspection) or authenticate via Polkit dialog when first attempting to access Level 5. Once enabled globally, individual applications may still be inspected only if they haven't opted out.
-  · Android XR/Phone – Deep inspection is typically not available; if the platform allows, a biometric prompt (fingerprint/face) may grant temporary access to Level 4 extended metadata, but Level 5 remains inaccessible.
-· Visual Indicator – When deep inspection is enabled (globally or for a session), a 🔓 indicator appears in the Tactical Bezel (all levels). Clicking this indicator immediately disables deep inspection and closes any open Level 5 views.
-· Auditing – All enable/disable events and every access to Level 5 are recorded in the system audit log (non‑disableable). Level 4 access is logged in the TOS Log (see §14) but may be disabled by user privacy settings.
+* Default State – Level 5 access is disabled globally. Level 4 is fully accessible.
+* Enabling Deep Inspection:
+  * Linux Wayland – User must run a privileged command (sudo tos enable-deep-inspection) or authenticate via Polkit dialog when first attempting to access Level 5. Once enabled globally, individual applications may still be inspected only if they haven't opted out.
+  * Android XR/Phone – Deep inspection is typically not available; if the platform allows, a biometric prompt (fingerprint/face) may grant temporary access to Level 4 extended metadata, but Level 5 remains inaccessible.
+* Visual Indicator – When deep inspection is enabled (globally or for a session), a 🔓 indicator appears in the Tactical Bezel (all levels). Clicking this indicator immediately disables deep inspection and closes any open Level 5 views.
+* Auditing – All enable/disable events and every access to Level 5 are recorded in the system audit log (non‑disableable). Level 4 access is logged in the TOS Log (see §14) but may be disabled by user privacy settings.
 
 ### 4.4 Relationship with TOS Log
 
-· Level 4 includes an Event History section that pulls from the TOS Log (see §14), displaying a filtered timeline relevant to the inspected surface.
-· From Level 4, the user can click "View Full Log" to open the global TOS Log sector at that surface's filtered view.
-· Log entries related to deep inspection (e.g., "Level 5 accessed for process 1234") appear in both the surface's log and the global audit trail.
+* Level 4 includes an Event History section that pulls from the TOS Log (see §14), displaying a filtered timeline relevant to the inspected surface.
+* From Level 4, the user can click "View Full Log" to open the global TOS Log sector at that surface's filtered view.
+* Log entries related to deep inspection (e.g., "Level 5 accessed for process 1234") appear in both the surface's log and the global audit trail.
 
 ### 4.5 Platform Notes
 
@@ -313,15 +313,15 @@ Android Phone Partial (limited metadata) Not available
 
 ### 4.6 Use Cases
 
-· Debugging – A developer inspecting a misbehaving application can view its resource usage and recent log entries at Level 4, then drop to Level 5 to examine memory for corruption or unexpected data.
-· Security Analysis – An advanced user investigating a suspicious process can review its configuration and event history at Level 4, and if necessary, examine its memory space for anomalies.
-· System Optimisation – Identifying memory‑leaking applications by comparing live memory dumps over time.
+* Debugging – A developer inspecting a misbehaving application can view its resource usage and recent log entries at Level 4, then drop to Level 5 to examine memory for corruption or unexpected data.
+* Security Analysis – An advanced user investigating a suspicious process can review its configuration and event history at Level 4, and if necessary, examine its memory space for anomalies.
+* System Optimisation – Identifying memory‑leaking applications by comparing live memory dumps over time.
 
 ### 4.7 Accessibility
 
-· The hex viewer in Level 5 supports screen reader output (announcing offset, byte values, and ASCII equivalents).
-· Keyboard navigation: arrow keys move through the hex dump; Tab focuses controls.
-· High‑contrast and large‑text modes apply to all inspection panels.
+* The hex viewer in Level 5 supports screen reader output (announcing offset, byte values, and ASCII equivalents).
+* Keyboard navigation: arrow keys move through the hex dump; Tab focuses controls.
+* High‑contrast and large‑text modes apply to all inspection panels.
 
 ## 5. Priority Indicators
 
@@ -379,27 +379,27 @@ Level 5 – Buffer View Priority indicators are minimal, as the focus is on ra
 
 Users have extensive control over priority indicators through a dedicated settings panel (accessible from the global Settings or per‑sector).
 
-· Master Toggle – Enable/disable priority indicators entirely.
-· Indicator Type Selection – Choose which indicator types to use (e.g., some users may prefer only status dots).
-· Colour Customisation – Assign colours per priority level or per factor.
-· Sensitivity – Adjust the weightings or create custom scoring rules.
-· Per‑Factor Visibility – Decide which factors contribute to the score and how they are displayed.
-· Hover Tooltips – When hovering over an indicator, a tooltip can show the contributing factors and their scores.
-· Accessibility – Options to enlarge indicators, replace colours with patterns, or route priority information to audio/haptic channels.
+* Master Toggle – Enable/disable priority indicators entirely.
+* Indicator Type Selection – Choose which indicator types to use (e.g., some users may prefer only status dots).
+* Colour Customisation – Assign colours per priority level or per factor.
+* Sensitivity – Adjust the weightings or create custom scoring rules.
+* Per‑Factor Visibility – Decide which factors contribute to the score and how they are displayed.
+* Hover Tooltips – When hovering over an indicator, a tooltip can show the contributing factors and their scores.
+* Accessibility – Options to enlarge indicators, replace colours with patterns, or route priority information to audio/haptic channels.
 
 ### 5.5 Integration with Other Systems
 
-· TOS Log – Every change in priority score is logged, allowing users to review why an element became important at a certain time.
-· Collaboration – When a collaborator focuses on an element, its priority may temporarily increase, indicated by a special chevron or a collaborator’s avatar merging with the indicator.
-· AI Assistant – The AI can suggest priority adjustments based on learned patterns (e.g., “I noticed you often check this log at this time – would you like to pin it?”).
-· Auditory Interface – Priority changes can be accompanied by earcons; for example, a rising tone when an element becomes critical.
+* TOS Log – Every change in priority score is logged, allowing users to review why an element became important at a certain time.
+* Collaboration – When a collaborator focuses on an element, its priority may temporarily increase, indicated by a special chevron or a collaborator’s avatar merging with the indicator.
+* AI Assistant – The AI can suggest priority adjustments based on learned patterns (e.g., “I noticed you often check this log at this time – would you like to pin it?”).
+* Auditory Interface – Priority changes can be accompanied by earcons; for example, a rising tone when an element becomes critical.
 
 ### 5.6 Examples
 
-· A sector tile with three border chips and a pulsing chevron indicates high aggregate activity and a pending notification.
-· In Activity Mode, an application tile with a red status dot and a glow signals a process consuming excessive resources.
-· A file in Directory Mode with a single blue chip is a recently accessed document.
-· A search result with two chips and a yellow dot is a high‑relevance match based on frequency and recency.
+* A sector tile with three border chips and a pulsing chevron indicates high aggregate activity and a pending notification.
+* In Activity Mode, an application tile with a red status dot and a glow signals a process consuming excessive resources.
+* A file in Directory Mode with a single blue chip is a recently accessed document.
+* A search result with two chips and a yellow dot is a high‑relevance match based on frequency and recency.
 
 ## 6. Tactical Mini-Map
 
@@ -407,37 +407,37 @@ The Tactical Mini‑Map is an ephemeral overlay that provides spatial awareness 
 
 ### 6.1 Overview
 
-· Purpose – Maintain situational awareness across sectors, hubs, and applications. The mini‑map shows the user’s current position within the tree, nearby elements, and optionally live resource metrics.
-· Persistence – The mini‑map is always available but remains passive (input passes through to underlying UI) until explicitly activated. This ensures it never interferes with interaction.
-· Activation Methods (configurable):
-  · Hover (dwell time) over the mini‑map area.
-  · Keyboard shortcut (Ctrl+M or Super+M).
-  · Modifier + click (Alt+click) on any empty area.
-  · Double‑tap (touch) on the edge of the screen.
-  · Game controller button (e.g., View/Back button).
-  · Voice command (“show mini‑map” or “activate mini‑map”).
+* Purpose – Maintain situational awareness across sectors, hubs, and applications. The mini‑map shows the user’s current position within the tree, nearby elements, and optionally live resource metrics.
+* Persistence – The mini‑map is always available but remains passive (input passes through to underlying UI) until explicitly activated. This ensures it never interferes with interaction.
+* Activation Methods (configurable):
+  * Hover (dwell time) over the mini‑map area.
+  * Keyboard shortcut (Ctrl+M or Super+M).
+  * Modifier + click (Alt+click) on any empty area.
+  * Double‑tap (touch) on the edge of the screen.
+  * Game controller button (e.g., View/Back button).
+  * Voice command (“show mini‑map” or “activate mini‑map”).
 
 ### 6.2 Visual Design
 
-· Shape – A rounded rectangle or LCARS‑style curved panel, sized approximately 200×150 pixels (scales with UI). The panel has a subtle glow and a semi‑transparent background (blur effect) to maintain readability over content.
-· Elements – The mini‑map displays a simplified topological view:
-  · Current sector – Highlighted (e.g., with a bright border or colour fill).
-  · Other sectors – Dimmed, shown as smaller outlines.
-  · Viewports – Within the current sector, each split viewport is represented as a rectangle; the active viewport is highlighted.
-  · Depth indicator – A small icon or text (e.g., “L2”) shows the current zoom level.
-  · Collaboration presence – Tiny avatars or coloured dots may appear on sectors/viewports where collaborators are active.
-· Active State – When activated, the mini‑map becomes opaque, its border thickens, and it captures input. A small close button (×) appears in its corner for dismissal.
+* Shape – A rounded rectangle or LCARS‑style curved panel, sized approximately 200×150 pixels (scales with UI). The panel has a subtle glow and a semi‑transparent background (blur effect) to maintain readability over content.
+* Elements – The mini‑map displays a simplified topological view:
+  * Current sector – Highlighted (e.g., with a bright border or colour fill).
+  * Other sectors – Dimmed, shown as smaller outlines.
+  * Viewports – Within the current sector, each split viewport is represented as a rectangle; the active viewport is highlighted.
+  * Depth indicator – A small icon or text (e.g., “L2”) shows the current zoom level.
+  * Collaboration presence – Tiny avatars or coloured dots may appear on sectors/viewports where collaborators are active.
+* Active State – When activated, the mini‑map becomes opaque, its border thickens, and it captures input. A small close button (×) appears in its corner for dismissal.
 
 ### 6.3 Activation and Interaction
 
-· Passive State – The mini‑map displays information but does not capture mouse/touch events. Users can click through it to interact with underlying elements.
-· Active State – Once activated, the mini‑map captures all input:
-  · Click/tap on a sector tile jumps to that sector (zoom out if necessary, then zoom in).
-  · Click/tap on a viewport within the current sector focuses that viewport.
-  · Drag – The mini‑map can be repositioned by dragging its title area (if any) or edges.
-  · Scroll wheel/pinch – May zoom the mini‑map’s view (if supported) to show more or less detail.
-  · Close – Click the close button, press Escape, or repeat the activation gesture to return to passive state.
-· Deactivation – The mini‑map automatically reverts to passive state after a configurable timeout of inactivity (default 5 seconds) or when the user explicitly closes it.
+* Passive State – The mini‑map displays information but does not capture mouse/touch events. Users can click through it to interact with underlying elements.
+* Active State – Once activated, the mini‑map captures all input:
+  * Click/tap on a sector tile jumps to that sector (zoom out if necessary, then zoom in).
+  * Click/tap on a viewport within the current sector focuses that viewport.
+  * Drag – The mini‑map can be repositioned by dragging its title area (if any) or edges.
+  * Scroll wheel/pinch – May zoom the mini‑map’s view (if supported) to show more or less detail.
+  * Close – Click the close button, press Escape, or repeat the activation gesture to return to passive state.
+* Deactivation – The mini‑map automatically reverts to passive state after a configurable timeout of inactivity (default 5 seconds) or when the user explicitly closes it.
 
 ### 6.4 Content by Depth
 
@@ -454,39 +454,39 @@ Level 5 – Buffer View Simplified view – may only show the current surface 
 
 Introduced in v1.2 (§18.5), an optional overlay within the mini‑map displays live resource usage of processes relevant to the current depth.
 
-· Toggle – An icon on the mini‑map (or a separate keyboard shortcut) toggles the monitoring layer on/off.
-· Content by Depth:
-  · Level 1 – Aggregated CPU and memory usage per sector (e.g., small bar graphs or percentages next to each sector tile).
-  · Level 2 – All applications in the current sector shown with CPU%, memory%, and a sparkline of recent activity.
-  · Level 3 – Detailed stats for the focused application, plus compact usage indicators for other viewports (e.g., a small bar).
-  · Level 4/5 – Resource usage of the inspected surface, plus optionally its children.
-· Update Rate – Throttled to 1–2 Hz to minimise performance impact.
-· Visual Style – Small, unobtrusive bars or numeric readouts, colour‑coded (green = normal, yellow = high, red = critical). Hovering over a metric shows a tooltip with exact values.
+* Toggle – An icon on the mini‑map (or a separate keyboard shortcut) toggles the monitoring layer on/off.
+* Content by Depth:
+  * Level 1 – Aggregated CPU and memory usage per sector (e.g., small bar graphs or percentages next to each sector tile).
+  * Level 2 – All applications in the current sector shown with CPU%, memory%, and a sparkline of recent activity.
+  * Level 3 – Detailed stats for the focused application, plus compact usage indicators for other viewports (e.g., a small bar).
+  * Level 4/5 – Resource usage of the inspected surface, plus optionally its children.
+* Update Rate – Throttled to 1–2 Hz to minimise performance impact.
+* Visual Style – Small, unobtrusive bars or numeric readouts, colour‑coded (green = normal, yellow = high, red = critical). Hovering over a metric shows a tooltip with exact values.
 
 ### 6.6 Configuration
 
 Users can customise the mini‑map through the Settings panel:
 
-· Position – Choose corner (top‑left, top‑right, bottom‑left, bottom‑right) or free‑floating with remembered position.
-· Size – Adjust base size (small, medium, large) or enable auto‑scaling based on screen resolution.
-· Opacity – Separate opacity for passive and active states.
-· Activation Behaviour – Choose which methods are enabled (hover, keyboard, etc.) and set dwell time for hover activation.
-· Content – Toggle display of other sectors, viewport details, depth indicator, collaboration avatars.
-· Monitoring Layer – Enable/disable, choose metrics to display (CPU, memory, network, disk), and set colour thresholds.
-· Accessibility – Options to enlarge the mini‑map, use high‑contrast colours, or route its information to audio (e.g., spoken summary on hover).
+* Position – Choose corner (top‑left, top‑right, bottom‑left, bottom‑right) or free‑floating with remembered position.
+* Size – Adjust base size (small, medium, large) or enable auto‑scaling based on screen resolution.
+* Opacity – Separate opacity for passive and active states.
+* Activation Behaviour – Choose which methods are enabled (hover, keyboard, etc.) and set dwell time for hover activation.
+* Content – Toggle display of other sectors, viewport details, depth indicator, collaboration avatars.
+* Monitoring Layer – Enable/disable, choose metrics to display (CPU, memory, network, disk), and set colour thresholds.
+* Accessibility – Options to enlarge the mini‑map, use high‑contrast colours, or route its information to audio (e.g., spoken summary on hover).
 
 ### 6.7 Platform Adaptations
 
-· Linux Wayland – Rendered as a compositor overlay; input pass‑through handled via Wayland protocols.
-· Android XR – The mini‑map appears as a floating panel in 3D space, attached to the user’s field of view (HUD) or anchored to a virtual wrist. Activation via gaze dwell or hand gesture.
-· Android Phone – Positioned as a small overlay; touch interaction follows standard mobile conventions. May be temporarily hidden during landscape full‑screen apps.
+* Linux Wayland – Rendered as a compositor overlay; input pass‑through handled via Wayland protocols.
+* Android XR – The mini‑map appears as a floating panel in 3D space, attached to the user’s field of view (HUD) or anchored to a virtual wrist. Activation via gaze dwell or hand gesture.
+* Android Phone – Positioned as a small overlay; touch interaction follows standard mobile conventions. May be temporarily hidden during landscape full‑screen apps.
 
 ### 6.8 Accessibility
 
-· Screen Reader – The mini‑map’s content can be announced on activation or hover; users can navigate its elements with keyboard or switch scanning.
-· High Contrast – The mini‑map respects system‑wide high‑contrast themes; its colours can be overridden for better visibility.
-· Auditory Cues – When the monitoring layer detects a critical resource threshold, an earcon may play, and the mini‑map can briefly highlight the affected element.
-· Simplified Mode – A “simple mini‑map” option reduces complexity, showing only the current sector and depth.
+* Screen Reader – The mini‑map’s content can be announced on activation or hover; users can navigate its elements with keyboard or switch scanning.
+* High Contrast – The mini‑map respects system‑wide high‑contrast themes; its colours can be overridden for better visibility.
+* Auditory Cues – When the monitoring layer detects a critical resource threshold, an earcon may play, and the mini‑map can briefly highlight the affected element.
+* Simplified Mode – A “simple mini‑map” option reduces complexity, showing only the current sector and depth.
 
 7. Collaboration UI
 
@@ -496,28 +496,28 @@ Collaboration in TOS transforms a sector into a shared workspace where multiple 
 
 Collaborators are represented consistently across all levels through a combination of avatars, coloured borders, and cursors.
 
-· Avatars – Small circular or square icons displaying the user’s profile picture or initials. Avatars appear in:
-  · Global Overview (Level 1) – On sector tiles, indicating active guests in that sector. Multiple avatars may stack or show a count badge.
-  · Command Hub (Level 2) – Near the mode selector or in the top bezel, showing all participants in the current sector. Clicking an avatar reveals a menu with options (follow, message, etc.).
-  · Application Focus (Level 3) – In the expanded bezel, avatars of guests currently viewing or interacting with that application.
-  · Tactical Mini‑Map – Tiny avatars or coloured dots on sector/viewport representations.
-· Coloured Borders and Cursors – Each participant is assigned a distinct colour (user‑configurable or auto‑assigned). This colour is used for:
-  · Cursor outlines – When a guest’s cursor is visible, it appears with their colour.
-  · Viewport borders – If a guest is focused on a particular split viewport, that viewport’s border may glow with their colour.
-  · Selection highlights – Text or elements selected by a guest are highlighted in their colour (if view‑synchronised).
-  · Priority indicators – Collaboration focus may temporarily boost an element’s priority, indicated by a special chevron or a collaborator’s avatar merging with the indicator.
-· Follow Mode Indicator – When a guest is following another user, a small “following” icon (e.g., an eye or footsteps) appears next to the follower’s avatar, and their viewport may show a semi‑transparent outline of the target’s view.
+* Avatars – Small circular or square icons displaying the user’s profile picture or initials. Avatars appear in:
+  * Global Overview (Level 1) – On sector tiles, indicating active guests in that sector. Multiple avatars may stack or show a count badge.
+  * Command Hub (Level 2) – Near the mode selector or in the top bezel, showing all participants in the current sector. Clicking an avatar reveals a menu with options (follow, message, etc.).
+  * Application Focus (Level 3) – In the expanded bezel, avatars of guests currently viewing or interacting with that application.
+  * Tactical Mini‑Map – Tiny avatars or coloured dots on sector/viewport representations.
+* Coloured Borders and Cursors – Each participant is assigned a distinct colour (user‑configurable or auto‑assigned). This colour is used for:
+  * Cursor outlines – When a guest’s cursor is visible, it appears with their colour.
+  * Viewport borders – If a guest is focused on a particular split viewport, that viewport’s border may glow with their colour.
+  * Selection highlights – Text or elements selected by a guest are highlighted in their colour (if view‑synchronised).
+  * Priority indicators – Collaboration focus may temporarily boost an element’s priority, indicated by a special chevron or a collaborator’s avatar merging with the indicator.
+* Follow Mode Indicator – When a guest is following another user, a small “following” icon (e.g., an eye or footsteps) appears next to the follower’s avatar, and their viewport may show a semi‑transparent outline of the target’s view.
 
 ### 7.2 Collaboration Controls in the Bezel
 
 The expanded bezel at any level includes a Collaboration section with the following controls (subject to role permissions):
 
-· Share Sector – Generates an invite link or token (with optional expiration and role limit). Available to hosts and co‑owners.
-· Active Participants – List of current guests with their roles (Viewer, Commenter, Operator, Co‑owner). Clicking a name opens a menu to change role, send a message, or follow.
-· Raise Hand – A button that sends a gentle alert to all participants, indicating a request for attention (e.g., to ask a question). The requester’s avatar pulses yellow.
-· Request Control / Release Control – For guests in following mode, a button to request temporary control or release it.
-· Follow / Unfollow – Toggle to synchronise viewport with another participant.
-· Leave Sector – Exit the shared session.
+* Share Sector – Generates an invite link or token (with optional expiration and role limit). Available to hosts and co‑owners.
+* Active Participants – List of current guests with their roles (Viewer, Commenter, Operator, Co‑owner). Clicking a name opens a menu to change role, send a message, or follow.
+* Raise Hand – A button that sends a gentle alert to all participants, indicating a request for attention (e.g., to ask a question). The requester’s avatar pulses yellow.
+* Request Control / Release Control – For guests in following mode, a button to request temporary control or release it.
+* Follow / Unfollow – Toggle to synchronise viewport with another participant.
+* Leave Sector – Exit the shared session.
 
 ### 7.3 Collaboration Alerts
 
@@ -538,10 +538,10 @@ All collaboration alerts are recorded in the TOS Log (host side) for later revie
 
 Guests experience the same TOS interface as the host, but with certain restrictions based on their role:
 
-· Viewer – Can see all content but cannot issue commands. The prompt is visible but disabled. All controls in the bezel are read‑only.
-· Commenter – Can type in the prompt, but commands are executed in a restricted shell (or not at all, depending on host configuration). Comments may appear in a separate chat overlay (optional).
-· Operator – Full control: can execute any command, create splits, launch applications, and change viewports.
-· Co‑owner – Same as Operator, plus ability to invite others and change roles.
+* Viewer – Can see all content but cannot issue commands. The prompt is visible but disabled. All controls in the bezel are read‑only.
+* Commenter – Can type in the prompt, but commands are executed in a restricted shell (or not at all, depending on host configuration). Comments may appear in a separate chat overlay (optional).
+* Operator – Full control: can execute any command, create splits, launch applications, and change viewports.
+* Co‑owner – Same as Operator, plus ability to invite others and change roles.
 
 Guests always see the host’s sector tree; they cannot access other sectors on the host machine unless explicitly shared. Their own local sectors remain private.
 
@@ -549,49 +549,49 @@ Guests always see the host’s sector tree; they cannot access other sectors on 
 
 Following mode synchronises a guest’s view with another participant’s (usually the host or an operator). When following:
 
-· The guest’s viewport mirrors the target’s zoom level, splits, and focused elements.
-· The guest can still move their own cursor independently, but any interaction (clicking, typing) is either disabled or subject to role permissions.
-· A “break follow” button appears in the bezel; clicking it restores independent control.
-· The target may receive a notification when someone starts following them.
+* The guest’s viewport mirrors the target’s zoom level, splits, and focused elements.
+* The guest can still move their own cursor independently, but any interaction (clicking, typing) is either disabled or subject to role permissions.
+* A “break follow” button appears in the bezel; clicking it restores independent control.
+* The target may receive a notification when someone starts following them.
 
 ### 7.6 Chat and Communication
 
 While TOS emphasises command‑first interaction, a lightweight chat overlay is available for collaboration.
 
-· Activation – A chat bubble icon in the expanded bezel, or keyboard shortcut (Ctrl+Shift+C).
-· Appearance – Slides in from the right edge, overlaying the chip regions but not the prompt. Shows a scrollable list of messages with timestamps and sender avatars.
-· Input – A text field at the bottom of the chat panel; messages are sent with Enter.
-· Integration – Commands typed in chat can be executed by the host if prefixed with /run (subject to permissions). Chat messages are also logged in the TOS Log.
+* Activation – A chat bubble icon in the expanded bezel, or keyboard shortcut (Ctrl+Shift+C).
+* Appearance – Slides in from the right edge, overlaying the chip regions but not the prompt. Shows a scrollable list of messages with timestamps and sender avatars.
+* Input – A text field at the bottom of the chat panel; messages are sent with Enter.
+* Integration – Commands typed in chat can be executed by the host if prefixed with /run (subject to permissions). Chat messages are also logged in the TOS Log.
 
 ### 7.7 AI Assistant in Collaboration
 
 The AI assistant (see §2.2, AI Mode) gains collaboration‑aware capabilities when a sector is shared:
 
-· Summarise Activity – “What has everyone been working on for the last hour?” – the AI scans the TOS Log and provides a summary.
-· Translate Commands – If guests speak different languages, the AI can translate commands and chat messages in real time (with appropriate backend support).
-· Suggest Collaboration Actions – “Should I share this log with the team?” or “X has been idle for a while – would you like to reassign them?”
-· Explain Guest Intent – “What is Y trying to do?” – the AI can interpret a guest’s recent actions.
-· Mediate Role Changes – “Promote Z to operator?” – the AI can suggest role changes based on activity.
+* Summarise Activity – “What has everyone been working on for the last hour?” – the AI scans the TOS Log and provides a summary.
+* Translate Commands – If guests speak different languages, the AI can translate commands and chat messages in real time (with appropriate backend support).
+* Suggest Collaboration Actions – “Should I share this log with the team?” or “X has been idle for a while – would you like to reassign them?”
+* Explain Guest Intent – “What is Y trying to do?” – the AI can interpret a guest’s recent actions.
+* Mediate Role Changes – “Promote Z to operator?” – the AI can suggest role changes based on activity.
 
 Guests are notified if their actions may be processed by the AI, and they can opt out if privacy concerns arise.
 
 ### 7.8 Privacy and Auditing
 
-· Guest Action Logging – All guest actions (commands executed, files accessed, etc.) are recorded in the host’s TOS Log (see §8). Guests do not have access to this log unless granted explicit permission.
-· Privacy Notice – When joining a shared sector, guests see a brief notice explaining what data may be logged and whether AI processing is enabled. They must acknowledge before continuing.
-· Audit Trail – Critical events (role changes, invite usage, security‑relevant commands) are written to a non‑disableable audit log on the host.
+* Guest Action Logging – All guest actions (commands executed, files accessed, etc.) are recorded in the host’s TOS Log (see §8). Guests do not have access to this log unless granted explicit permission.
+* Privacy Notice – When joining a shared sector, guests see a brief notice explaining what data may be logged and whether AI processing is enabled. They must acknowledge before continuing.
+* Audit Trail – Critical events (role changes, invite usage, security‑relevant commands) are written to a non‑disableable audit log on the host.
 
 ### 7.9 Platform Adaptations
 
-· Linux Wayland – Full collaboration features, including cursor sharing and viewport synchronisation, implemented via custom Wayland protocols.
-· Android XR – Avatars appear as 3D models floating near the user; collaboration alerts are spatialised. Following mode may include gaze and hand tracking.
-· Android Phone – Simplified avatars and chat overlay; following mode may show a small inset view of the target’s screen.
+* Linux Wayland – Full collaboration features, including cursor sharing and viewport synchronisation, implemented via custom Wayland protocols.
+* Android XR – Avatars appear as 3D models floating near the user; collaboration alerts are spatialised. Following mode may include gaze and hand tracking.
+* Android Phone – Simplified avatars and chat overlay; following mode may show a small inset view of the target’s screen.
 
 ### 7.10 Accessibility
 
-· Screen readers announce when users join/leave, when hands are raised, and when following mode is activated.
-· Haptic feedback provides tactile confirmation of collaboration events.
-· High‑contrast colours for borders and avatars ensure visibility for users with colour vision deficiencies.
+* Screen readers announce when users join/leave, when hands are raised, and when following mode is activated.
+* Haptic feedback provides tactile confirmation of collaboration events.
+* High‑contrast colours for borders and avatars ensure visibility for users with colour vision deficiencies.
 
 8. Input Abstraction Layer
 
@@ -632,31 +632,31 @@ Accessibility Switches Single switch, multiple switches, sip‑and‑puff, eye b
 
 TOS supports simultaneous use of multiple input devices, intelligently merging streams to provide a seamless experience.
 
-· Last Active Device – The cursor appearance may change based on the last used device (e.g., mouse cursor appears after mouse movement, then fades after keyboard use).
-· Conflict Resolution – When multiple devices generate conflicting events (e.g., simultaneous zoom_in from keyboard and controller), the system processes both but may prioritise one based on user configuration (e.g., keyboard over touch).
-· Device‑Specific Feedback – Haptic and auditory feedback can be routed to the active device (e.g., controller vibrates when used for selection).
-· Accessibility Priority – Users can assign higher priority to specific devices (e.g., a switch device always takes precedence).
+* Last Active Device – The cursor appearance may change based on the last used device (e.g., mouse cursor appears after mouse movement, then fades after keyboard use).
+* Conflict Resolution – When multiple devices generate conflicting events (e.g., simultaneous zoom_in from keyboard and controller), the system processes both but may prioritise one based on user configuration (e.g., keyboard over touch).
+* Device‑Specific Feedback – Haptic and auditory feedback can be routed to the active device (e.g., controller vibrates when used for selection).
+* Accessibility Priority – Users can assign higher priority to specific devices (e.g., a switch device always takes precedence).
 
 ### 8.4 Input Configuration
 
 Users can customise input mappings through a dedicated panel in Settings, accessible from any level.
 
-· Per‑Device Mapping – Select any connected device and remap its physical inputs to semantic events. Multiple mappings can be saved as profiles.
-· Gesture Recording – For touch and controller gestures, users can record custom gestures and assign them to actions.
-· Voice Command Training – Users can teach the system custom voice commands or import command sets.
-· Sensitivity and Dead Zones – Adjustable for analog inputs (controller triggers, thumbsticks, touch pressure).
-· Profiles – Save and load input configurations per user, per sector, or per application.
+* Per‑Device Mapping – Select any connected device and remap its physical inputs to semantic events. Multiple mappings can be saved as profiles.
+* Gesture Recording – For touch and controller gestures, users can record custom gestures and assign them to actions.
+* Voice Command Training – Users can teach the system custom voice commands or import command sets.
+* Sensitivity and Dead Zones – Adjustable for analog inputs (controller triggers, thumbsticks, touch pressure).
+* Profiles – Save and load input configurations per user, per sector, or per application.
 
 ### 8.5 Accessibility Integration
 
 The Input Abstraction Layer is the foundation for TOS’s accessibility features.
 
-· Switch Scanning – The system can automatically cycle through elements; a switch press triggers select. Scanning speed and patterns are configurable.
-· Sticky Keys – Modifier keys (Ctrl, Alt, Super) can be latched for users who cannot hold multiple keys simultaneously.
-· Slow Keys – A delay before key presses are registered, accommodating users with motor difficulties.
-· Dwell Clicking – For gaze or head tracking, dwelling on an element for a configurable time triggers select.
-· Voice Commands – All semantic events can be triggered by voice, with custom phrases.
-· Haptic Feedback as Input – On supported devices, haptic patterns can be used as input triggers (e.g., a specific vibration pattern to confirm a dangerous action).
+* Switch Scanning – The system can automatically cycle through elements; a switch press triggers select. Scanning speed and patterns are configurable.
+* Sticky Keys – Modifier keys (Ctrl, Alt, Super) can be latched for users who cannot hold multiple keys simultaneously.
+* Slow Keys – A delay before key presses are registered, accommodating users with motor difficulties.
+* Dwell Clicking – For gaze or head tracking, dwelling on an element for a configurable time triggers select.
+* Voice Commands – All semantic events can be triggered by voice, with custom phrases.
+* Haptic Feedback as Input – On supported devices, haptic patterns can be used as input triggers (e.g., a specific vibration pattern to confirm a dangerous action).
 
 ### 8.6 Platform-Specific Input Sources
 
@@ -673,19 +673,19 @@ Android Phone Android touch events; hardware keys; Bluetooth controllers (via An
 Physical Input → Device Driver → Raw Event → Input Module → Semantic Event → Action Mapper → TOS Core
 ```
 
-· Raw Event – Device‑specific data (e.g., key code, touch coordinates, controller axis position).
-· Input Module – Normalises raw events into a common format; applies dead zones, sensitivity, and gesture recognition.
-· Semantic Event – Platform‑independent representation (e.g., zoom_in, select).
-· Action Mapper – Applies user mappings (e.g., remap zoom_in to select if desired).
-· TOS Core – Consumes the semantic event and triggers the appropriate response (change depth, select element, execute command).
+* Raw Event – Device‑specific data (e.g., key code, touch coordinates, controller axis position).
+* Input Module – Normalises raw events into a common format; applies dead zones, sensitivity, and gesture recognition.
+* Semantic Event – Platform‑independent representation (e.g., zoom_in, select).
+* Action Mapper – Applies user mappings (e.g., remap zoom_in to select if desired).
+* TOS Core – Consumes the semantic event and triggers the appropriate response (change depth, select element, execute command).
 
 ### 8.8 Example Workflows
 
-· Keyboard User – Presses Ctrl+Alt+T (configured as open_hub), types ls -la, presses Enter (text_input with submission). The output scrolls in the terminal.
-· Touch User – Pinches to zoom out from an application (zoom_out), taps a sector tile (select), then taps a file in Directory Mode (select), which appends its path to the prompt.
-· Voice User – Says “Hey TOS, search for budget files” (wake word + set_mode_search + text_input). The system switches to SEARCH mode, populates the prompt with “budget files”, and displays results.
-· VR User – Gazes at a sector tile for 500ms (gaze + dwell = select), then pinches with both hands to zoom into the Command Hub (zoom_in). Uses hand tracking to tap chips in the right region.
-· Switch User – Single switch: each press cycles focus to the next element (next_element); a long press triggers select. Scanning speed is set to 1.5 seconds.
+* Keyboard User – Presses Ctrl+Alt+T (configured as open_hub), types ls -la, presses Enter (text_input with submission). The output scrolls in the terminal.
+* Touch User – Pinches to zoom out from an application (zoom_out), taps a sector tile (select), then taps a file in Directory Mode (select), which appends its path to the prompt.
+* Voice User – Says “Hey TOS, search for budget files” (wake word + set_mode_search + text_input). The system switches to SEARCH mode, populates the prompt with “budget files”, and displays results.
+* VR User – Gazes at a sector tile for 500ms (gaze + dwell = select), then pinches with both hands to zoom into the Command Hub (zoom_in). Uses hand tracking to tap chips in the right region.
+* Switch User – Single switch: each press cycles focus to the next element (next_element); a long press triggers select. Scanning speed is set to 1.5 seconds.
 
 
 9. TOS Log
@@ -694,11 +694,11 @@ The TOS Log is a system‑wide, per‑surface event history that provides a comp
 
 ### 9.1 Overview
 
-· Purpose – Record all significant events within TOS, including commands executed, lifecycle changes, inspections, collaboration events, and system alerts.
-· Storage – Logs are stored locally in ~/.local/share/tos/logs/ (Linux) or app‑private storage (Android) in a structured format (JSON Lines or SQLite). Critical security events are stored in a separate, non‑disableable audit log.
-· Privacy – Users have granular control over what is logged, with options to opt out per surface, set retention policies, and exclude sensitive patterns.
+* Purpose – Record all significant events within TOS, including commands executed, lifecycle changes, inspections, collaboration events, and system alerts.
+* Storage – Logs are stored locally in ~/.local/share/tos/logs/ (Linux) or app‑private storage (Android) in a structured format (JSON Lines or SQLite). Critical security events are stored in a separate, non‑disableable audit log.
+* Privacy – Users have granular control over what is logged, with options to opt out per surface, set retention policies, and exclude sensitive patterns.
 
-9.2 Recorded Events
+### 9.2 Recorded Events
 
 The log captures a wide range of event types, each with relevant metadata:
 
@@ -718,89 +718,89 @@ Users can access logs through three primary interfaces:
 
 9.3.1 Per‑Surface Log (Level 4 Detail View)
 
-· When inspecting any surface (sector, application, process) at Level 4, a Event History section displays a scrollable timeline of events relevant to that surface.
-· Events are shown in reverse chronological order, with filters for event type and time range.
-· Clicking an event expands it to show full metadata; double‑clicking may jump to the context (e.g., zoom to the surface at the time of the event).
+* When inspecting any surface (sector, application, process) at Level 4, a Event History section displays a scrollable timeline of events relevant to that surface.
+* Events are shown in reverse chronological order, with filters for event type and time range.
+* Clicking an event expands it to show full metadata; double‑clicking may jump to the context (e.g., zoom to the surface at the time of the event).
 
 9.3.2 Global TOS Log Sector
 
-· A dedicated sector, accessible from Level 1, aggregates logs from all surfaces.
-· The sector behaves like a special Command Hub with a single mode: Log Viewer.
-· Layout:
-  · Left region: Filters (by surface, event type, user, date range, etc.) as interactive chips.
-  · Right region: Prioritized log entries (ranked by recency, severity, or custom priority).
-  · Main area: Scrollable list of log entries, each displayed as a card with icon, summary, and timestamp.
-  · Prompt: Can accept log‑specific commands (e.g., log --since 1h --level error).
-· Users can export the current filtered view as JSON, CSV, or plain text.
+* A dedicated sector, accessible from Level 1, aggregates logs from all surfaces.
+* The sector behaves like a special Command Hub with a single mode: Log Viewer.
+* Layout:
+  * Left region: Filters (by surface, event type, user, date range, etc.) as interactive chips.
+  * Right region: Prioritized log entries (ranked by recency, severity, or custom priority).
+  * Main area: Scrollable list of log entries, each displayed as a card with icon, summary, and timestamp.
+  * Prompt: Can accept log‑specific commands (e.g., log --since 1h --level error).
+* Users can export the current filtered view as JSON, CSV, or plain text.
 
 9.3.3 Prompt Queries
 
-· In any Command Hub, users can type log‑query commands directly:
-  · log – Shows recent events in the current sector (output appears in terminal area).
-  · log --surface browser --since 10min – Filters to a specific surface.
-  · log --user guest --level error – Shows errors from a collaborator.
-  · log --help – Displays query syntax.
-· Results are displayed in the output area, with clickable links to jump to the relevant surface or time.
+* In any Command Hub, users can type log‑query commands directly:
+  * log – Shows recent events in the current sector (output appears in terminal area).
+  * log --surface browser --since 10min – Filters to a specific surface.
+  * log --user guest --level error – Shows errors from a collaborator.
+  * log --help – Displays query syntax.
+* Results are displayed in the output area, with clickable links to jump to the relevant surface or time.
 
 9.3.4 OpenSearch Compatibility
 
-· TOS provides an OpenSearch description document, allowing the browser address bar to query logs (e.g., tos log failed command).
-· With user consent, logs can be forwarded to an external OpenSearch cluster for advanced analysis and visualisation.
+* TOS provides an OpenSearch description document, allowing the browser address bar to query logs (e.g., tos log failed command).
+* With user consent, logs can be forwarded to an external OpenSearch cluster for advanced analysis and visualisation.
 
-9.4 Log Viewer UI Components
+### 9.4 Log Viewer UI Components
 
-· Entry Cards – Each log entry is displayed as a card with:
-  · Icon representing event type (command, lifecycle, collaboration, etc.).
-  · Summary line (e.g., “Executed rm -rf temp in sector Dev”).
-  · Timestamp (relative or absolute, user‑configurable).
-  · Severity indicator (colour‑coded dot: info, success, warning, error, critical).
-  · Expand/collapse arrow for details.
-· Details Panel – When expanded, shows full metadata:
-  · Event ID (UUID)
-  · Surface path (e.g., “Dev Sector > Command Hub A”)
-  · User (local or guest)
-  · Full command line (if applicable)
-  · Exit status and duration
-  · Tags and custom fields
-· Filters – Accessible via left chip region or a dedicated filter bar. Filters include:
-  · Time range (last hour, today, custom)
-  · Event type (checkboxes or chips)
-  · Surface (searchable dropdown)
-  · User (local/guest)
-  · Severity
-  · Text search (within event summaries or metadata)
-· Export Button – Saves the current filtered view.
+* Entry Cards – Each log entry is displayed as a card with:
+  * Icon representing event type (command, lifecycle, collaboration, etc.).
+  * Summary line (e.g., “Executed rm -rf temp in sector Dev”).
+  * Timestamp (relative or absolute, user‑configurable).
+  * Severity indicator (colour‑coded dot: info, success, warning, error, critical).
+  * Expand/collapse arrow for details.
+* Details Panel – When expanded, shows full metadata:
+  * Event ID (UUID)
+  * Surface path (e.g., “Dev Sector > Command Hub A”)
+  * User (local or guest)
+  * Full command line (if applicable)
+  * Exit status and duration
+  * Tags and custom fields
+* Filters – Accessible via left chip region or a dedicated filter bar. Filters include:
+  * Time range (last hour, today, custom)
+  * Event type (checkboxes or chips)
+  * Surface (searchable dropdown)
+  * User (local/guest)
+  * Severity
+  * Text search (within event summaries or metadata)
+* Export Button – Saves the current filtered view.
 
-9.5 Privacy and User Control
+### 9.5 Privacy and User Control
 
-· Master Toggle – Global setting to enable/disable logging entirely (except critical security events, which are always logged).
-· Per‑Surface Opt‑Out – Users can disable logging for specific surfaces (e.g., a private terminal session).
-· Retention Policies – Automatic deletion of logs older than a user‑defined period (e.g., 30 days).
-· Exclude Patterns – Users can specify regex patterns to redact sensitive information (e.g., passwords) from logs before storage.
-· Audit Log – Critical events (security, privilege changes) are stored in a separate, append‑only log that cannot be disabled or cleared by the user (requires system administrator access).
+* Master Toggle – Global setting to enable/disable logging entirely (except critical security events, which are always logged).
+* Per‑Surface Opt‑Out – Users can disable logging for specific surfaces (e.g., a private terminal session).
+* Retention Policies – Automatic deletion of logs older than a user‑defined period (e.g., 30 days).
+* Exclude Patterns – Users can specify regex patterns to redact sensitive information (e.g., passwords) from logs before storage.
+* Audit Log – Critical events (security, privilege changes) are stored in a separate, append‑only log that cannot be disabled or cleared by the user (requires system administrator access).
 
-9.6 Integration with Other Systems
+### 9.6 Integration with Other Systems
 
-· Priority Indicators – Logged priority changes help explain why an element became important; users can click a priority indicator to view the log entry for that change.
-· Collaboration – Guest actions are recorded in the host’s log, tagged with guest identity. Guests cannot access the host’s log unless explicitly granted permission.
-· AI Assistant – The AI can query logs to answer questions like “What commands did I run yesterday?” or “Summarise recent errors in the web server.”
-· Marketplace – Log analysis modules may be available to provide advanced visualisations or anomaly detection.
+* Priority Indicators – Logged priority changes help explain why an element became important; users can click a priority indicator to view the log entry for that change.
+* Collaboration – Guest actions are recorded in the host’s log, tagged with guest identity. Guests cannot access the host’s log unless explicitly granted permission.
+* AI Assistant – The AI can query logs to answer questions like “What commands did I run yesterday?” or “Summarise recent errors in the web server.”
+* Marketplace – Log analysis modules may be available to provide advanced visualisations or anomaly detection.
 
-9.7 Platform Adaptations
+### 9.7 Platform Adaptations
 
 Platform Log Storage Access
 Linux Wayland ~/.local/share/tos/logs/ Full read/write access; audit log in /var/log/tos/ (requires root)
 Android XR App‑private storage Logs accessible via TOS Log sector; export via Storage Access Framework
 Android Phone App‑private storage Same as XR; limited by platform sandbox
 
-9.8 Example Use Cases
+### 9.8 Example Use Cases
 
-· Debugging – A developer notices an application crash. They open the TOS Log sector, filter by the application surface, and see the last commands executed before the crash, along with resource spikes.
-· Security Audit – A system administrator reviews the audit log for any privilege escalation attempts or failed authentication.
-· Collaboration Recap – After a shared session, a host reviews guest actions to understand what was changed.
-· Personal Productivity – A user searches their log for all instances of git commit to estimate time spent on version control.
+* Debugging – A developer notices an application crash. They open the TOS Log sector, filter by the application surface, and see the last commands executed before the crash, along with resource spikes.
+* Security Audit – A system administrator reviews the audit log for any privilege escalation attempts or failed authentication.
+* Collaboration Recap – After a shared session, a host reviews guest actions to understand what was changed.
+* Personal Productivity – A user searches their log for all instances of git commit to estimate time spent on version control.
 
-10. Auditory and Haptic Interface
+### 10. Auditory and Haptic Interface
 
 TOS integrates a rich auditory and haptic feedback system to enhance situational awareness, provide confirmation of actions, and create an immersive experience across all platforms. The interface is designed as a three‑layer model, with independent control over each layer and deep integration with the semantic event system.
 
@@ -811,52 +811,52 @@ Ambient Atmosphere and spatial context Continuous, depth‑varying background so
 Tactical Action confirmation and alerts Discrete earcons (short, distinctive sounds) for specific events: zoom in/out, command execution, mode changes, notifications, split actions, collaboration events, and alerts.
 Voice Speech output Text‑to‑speech for announcements, screen reader output, AI responses, and contextual help. Supports multiple languages and voices.
 
-· Volume Control – Each layer has independent volume control and can be enabled/disabled globally or per‑sector.
-· Sound Themes – Users can install custom sound themes (.tos-audio packages) from the Marketplace, replacing default earcons and ambient tracks.
+* Volume Control – Each layer has independent volume control and can be enabled/disabled globally or per‑sector.
+* Sound Themes – Users can install custom sound themes (.tos-audio packages) from the Marketplace, replacing default earcons and ambient tracks.
 
-10.2 Context Adaptation
+### 10.2 Context Adaptation
 
 The auditory interface adapts dynamically to the user’s current context, particularly zoom level and alert state.
 
-· Depth Variation – Ambient sounds shift subtly as the user moves between levels:
-  · Level 1 (Global Overview) – Open, spacious ambience (e.g., soft wind or distant hum).
-  · Level 2 (Command Hub) – Focused, “control room” ambience with subtle technical undertones.
-  · Level 3 (Application Focus) – Intimate, close ambience that may incorporate application‑specific sounds (if provided by Application Model).
-  · Level 4/5 (Inspection) – Quiet, analytical ambience, with minimal background distraction.
-· Alert State Adaptation – When an alert is triggered, the audio mix changes to draw attention:
-  · Green (Normal) – All layers as configured.
-  · Yellow Alert – Ambient layer shifts to a slightly more urgent tone; tactical layer adds a periodic pulse (e.g., soft heartbeat) every few seconds; voice layer becomes more verbose (e.g., announces non‑critical events).
-  · Red Alert – Ambient layer is replaced by a repeating, attention‑grabbing tone (or silenced entirely, depending on theme); tactical layer suppresses non‑critical earcons to avoid overload; voice layer prioritises critical messages (e.g., “System overheating – immediate action required”).
+* Depth Variation – Ambient sounds shift subtly as the user moves between levels:
+  * Level 1 (Global Overview) – Open, spacious ambience (e.g., soft wind or distant hum).
+  * Level 2 (Command Hub) – Focused, “control room” ambience with subtle technical undertones.
+  * Level 3 (Application Focus) – Intimate, close ambience that may incorporate application‑specific sounds (if provided by Application Model).
+  * Level 4/5 (Inspection) – Quiet, analytical ambience, with minimal background distraction.
+* Alert State Adaptation – When an alert is triggered, the audio mix changes to draw attention:
+  * Green (Normal) – All layers as configured.
+  * Yellow Alert – Ambient layer shifts to a slightly more urgent tone; tactical layer adds a periodic pulse (e.g., soft heartbeat) every few seconds; voice layer becomes more verbose (e.g., announces non‑critical events).
+  * Red Alert – Ambient layer is replaced by a repeating, attention‑grabbing tone (or silenced entirely, depending on theme); tactical layer suppresses non‑critical earcons to avoid overload; voice layer prioritises critical messages (e.g., “System overheating – immediate action required”).
 
-10.3 Spatial Audio (VR/AR)
+### 10.3 Spatial Audio (VR/AR)
 
 In virtual and augmented reality environments, sounds are positioned in 3D space to match their visual origin.
 
-· Notifications – A notification from a sector to the user’s left will sound as if coming from that direction.
-· Collaboration – A collaborator’s voice (if voice chat is enabled) appears to emanate from their avatar’s location.
-· Zoom Transitions – The “whoosh” of zooming in/out is spatialised to match the direction of movement.
-· Bezel Interactions – Clicking a bezel control produces a sound that feels attached to the bezel’s position.
+* Notifications – A notification from a sector to the user’s left will sound as if coming from that direction.
+* Collaboration – A collaborator’s voice (if voice chat is enabled) appears to emanate from their avatar’s location.
+* Zoom Transitions – The “whoosh” of zooming in/out is spatialised to match the direction of movement.
+* Bezel Interactions – Clicking a bezel control produces a sound that feels attached to the bezel’s position.
 
-10.4 Theming and Extensibility
+### 10.4 Theming and Extensibility
 
-· Audio Themes – Users can browse and install audio themes from the Marketplace. A theme package (.tos-audio) includes:
-  · Ambient tracks for each level and alert state.
-  · Earcons for all tactical events.
-  · Voice configuration (voice, speed, pitch).
-· Application‑Supplied Sounds – Applications can provide custom tactical sounds via their Application Model, subject to user approval.
-· User Customisation – Advanced users can replace individual sound files or adjust the mapping of events to earcons.
+* Audio Themes – Users can browse and install audio themes from the Marketplace. A theme package (.tos-audio) includes:
+  * Ambient tracks for each level and alert state.
+  * Earcons for all tactical events.
+  * Voice configuration (voice, speed, pitch).
+* Application‑Supplied Sounds – Applications can provide custom tactical sounds via their Application Model, subject to user approval.
+* User Customisation – Advanced users can replace individual sound files or adjust the mapping of events to earcons.
 
-10.5 Haptic Feedback
+### 10.5 Haptic Feedback
 
 Haptics parallel the tactical audio layer, providing tactile confirmation of events on supported devices.
 
-· Device Support:
-  · Game controllers (Xbox, PlayStation, Switch Pro, Steam Deck)
-  · VR/AR controllers (HTC Vive, Oculus Touch, etc.)
-  · Haptic touchpads (Apple Force Touch, some Windows Precision touchpads)
-  · Mobile devices (Android vibration motor)
-  · Accessibility switches (with configurable haptic output)
-· Haptic Event Taxonomy – Each semantic event (see §8.1) maps to a specific haptic pattern:
+* Device Support:
+  * Game controllers (Xbox, PlayStation, Switch Pro, Steam Deck)
+  * VR/AR controllers (HTC Vive, Oculus Touch, etc.)
+  * Haptic touchpads (Apple Force Touch, some Windows Precision touchpads)
+  * Mobile devices (Android vibration motor)
+  * Accessibility switches (with configurable haptic output)
+* Haptic Event Taxonomy – Each semantic event (see §8.1) maps to a specific haptic pattern:
 
 Category Events Pattern Suggestion
 Navigation zoom_in, zoom_out Ascending/descending pulse train
@@ -870,36 +870,36 @@ Collaboration user_joined, raise_hand Gentle ping‑like vibration
 Dangerous Actions dangerous_command_confirmation Sharp, insistent buzz, increasing in intensity
 Alerts red_alert Pulsing vibration that escalates with alert level
 
-· Spatial Haptics (VR/AR) – Haptic feedback is directional:
-  · A notification from the left triggers vibration in the left controller.
-  · Zooming in/out creates a sensation of “pulling” or “pushing” with both hands.
-  · Dragging a surface produces continuous vibration that varies with speed.
+* Spatial Haptics (VR/AR) – Haptic feedback is directional:
+  * A notification from the left triggers vibration in the left controller.
+  * Zooming in/out creates a sensation of “pulling” or “pushing” with both hands.
+  * Dragging a surface produces continuous vibration that varies with speed.
 
-10.6 Configuration
+### 10.6 Configuration
 
 Users can fine‑tune both auditory and haptic feedback through a unified panel in Settings.
 
-· Master Toggle – Enable/disable all non‑voice audio and haptics.
-· Per‑Layer Volume – Sliders for Ambient, Tactical, and Voice.
-· Per‑Category Enable – Checkboxes to enable/disable earcons/haptics for specific event categories (e.g., disable navigation sounds but keep alerts).
-· Test Patterns – Buttons to play each earcon and trigger each haptic pattern for preview.
-· Haptic Intensity – Global slider, plus per‑category intensity adjustments.
-· Hearing‑Impaired Mode – Route tactical audio to haptic feedback (where supported) and increase visual indicators.
-· Motor‑Impaired Mode – Haptics can confirm switch input or dwell selections; patterns may be simplified.
+* Master Toggle – Enable/disable all non‑voice audio and haptics.
+* Per‑Layer Volume – Sliders for Ambient, Tactical, and Voice.
+* Per‑Category Enable – Checkboxes to enable/disable earcons/haptics for specific event categories (e.g., disable navigation sounds but keep alerts).
+* Test Patterns – Buttons to play each earcon and trigger each haptic pattern for preview.
+* Haptic Intensity – Global slider, plus per‑category intensity adjustments.
+* Hearing‑Impaired Mode – Route tactical audio to haptic feedback (where supported) and increase visual indicators.
+* Motor‑Impaired Mode – Haptics can confirm switch input or dwell selections; patterns may be simplified.
 
-10.7 Platform Implementation
+### 10.7 Platform Implementation
 
 Platform Audio Haptics
 Linux Wayland ALSA/PulseAudio (PipeWire ready) evdev haptic events for supported touchpads; SDL2 for controller haptics
 Android XR OpenXR audio spatialisation; Android AudioManager OpenXR haptic feedback for controllers; Android Vibrator for phone mode
 Android Phone Android AudioManager Android Vibrator (pattern support)
 
-10.8 Accessibility Integration
+### 10.8 Accessibility Integration
 
-· Screen Reader – Voice layer provides the foundation for screen reader output, with configurable verbosity (off, brief, verbose).
-· Auditory Cues for Visual Indicators – Priority indicators and status dots can be announced via voice or represented by earcons.
-· Haptic Confirmation – All actions can be confirmed haptically, benefiting users with visual or hearing impairments.
-· Custom Patterns – Users can record custom haptic patterns and assign them to events.
+* Screen Reader – Voice layer provides the foundation for screen reader output, with configurable verbosity (off, brief, verbose).
+* Auditory Cues for Visual Indicators – Priority indicators and status dots can be announced via voice or represented by earcons.
+* Haptic Confirmation – All actions can be confirmed haptically, benefiting users with visual or hearing impairments.
+* Custom Patterns – Users can record custom haptic patterns and assign them to events.
 
 1. User types cd projects in the Command Hub prompt.
 2. Hub sends EXEC cd projects to the shell’s PTY.
@@ -921,44 +921,44 @@ Tactical Reset is a two‑level emergency recovery system that allows users to q
 
 Resets the current sector to a clean state, closing all applications and returning to a fresh Command Hub.
 
-· Trigger – Configurable, default:
-  · Keyboard: Super+Backspace (Linux) or a similar system‑level shortcut.
-  · Command: tos sector reset typed in any Command Hub prompt.
-  · Bezel: In the expanded bezel at any level, a Reset Sector button may be present (user‑configurable).
-  · Voice: “Reset sector” (with confirmation).
-· Action:
-  · Sends SIGTERM to all processes owned by the current sector (applications, background jobs).
-  · Closes all split viewports within the sector.
-  · Returns the sector to a single Level 2 Command Hub with a fresh shell session (preserving the sector’s type and configuration).
-· Confirmation – By default, no confirmation is required (instant reset). Users can enable a 5‑second undo option in Settings, which displays an “Undo” button after reset, allowing the sector to be restored to its previous state (if process termination can be rolled back – limited to non‑destructive actions).
-· Visual Feedback – The screen briefly flashes or dims, and a notification appears: “Sector reset complete.” An earcon (a short, distinctive sound) confirms the action.
+* Trigger – Configurable, default:
+  * Keyboard: Super+Backspace (Linux) or a similar system‑level shortcut.
+  * Command: tos sector reset typed in any Command Hub prompt.
+  * Bezel: In the expanded bezel at any level, a Reset Sector button may be present (user‑configurable).
+  * Voice: “Reset sector” (with confirmation).
+* Action:
+  * Sends SIGTERM to all processes owned by the current sector (applications, background jobs).
+  * Closes all split viewports within the sector.
+  * Returns the sector to a single Level 2 Command Hub with a fresh shell session (preserving the sector’s type and configuration).
+* Confirmation – By default, no confirmation is required (instant reset). Users can enable a 5‑second undo option in Settings, which displays an “Undo” button after reset, allowing the sector to be restored to its previous state (if process termination can be rolled back – limited to non‑destructive actions).
+* Visual Feedback – The screen briefly flashes or dims, and a notification appears: “Sector reset complete.” An earcon (a short, distinctive sound) confirms the action.
 
 14.2 Level 2 – System Reset
 
 Resets the entire TOS session, affecting all sectors. This is a more drastic action with safety measures.
 
-· Trigger – Configurable, default:
-  · Keyboard: Super+Alt+Backspace (Linux) or equivalent.
-  · Command: tos system reset (requires elevated confirmation).
-  · Bezel: In the expanded bezel at Level 1 (Global Overview), a System Reset button is available (may be hidden by default).
-  · Voice: “System reset” (requires confirmation).
-· Dialog – When triggered, a modal dialog appears with three options:
-  · Restart Compositor – Terminates all sectors, restarts the TOS compositor, and returns to the Global Overview with the user still logged in. All running applications are closed (data loss may occur; unsaved work should be saved beforehand).
-  · Log Out – Ends the TOS session and returns to the system login manager (or Android home screen). All processes are terminated.
-  · Cancel – Aborts the reset.
-· Confirmation – The dialog requires tactile confirmation (see §11.4). The user must perform a specific action (e.g., hold a button for 3 seconds, slide a slider, speak a confirmation phrase) to proceed. A countdown (configurable, default 10 seconds) is shown; if the countdown expires without confirmation, the action is cancelled.
-· Visual and Auditory Feedback – The dialog is prominent, with a warning colour (red/orange). A warning earcon plays when the dialog appears, and a continuous tone may sound during the countdown. Haptic feedback (intense, repeating pulses) accompanies the countdown on supported devices.
-· Audit Trail – All system reset attempts (successful or cancelled) are logged in the audit log (see §11.7).
+* Trigger – Configurable, default:
+  * Keyboard: Super+Alt+Backspace (Linux) or equivalent.
+  * Command: tos system reset (requires elevated confirmation).
+  * Bezel: In the expanded bezel at Level 1 (Global Overview), a System Reset button is available (may be hidden by default).
+  * Voice: “System reset” (requires confirmation).
+* Dialog – When triggered, a modal dialog appears with three options:
+  * Restart Compositor – Terminates all sectors, restarts the TOS compositor, and returns to the Global Overview with the user still logged in. All running applications are closed (data loss may occur; unsaved work should be saved beforehand).
+  * Log Out – Ends the TOS session and returns to the system login manager (or Android home screen). All processes are terminated.
+  * Cancel – Aborts the reset.
+* Confirmation – The dialog requires tactile confirmation (see §11.4). The user must perform a specific action (e.g., hold a button for 3 seconds, slide a slider, speak a confirmation phrase) to proceed. A countdown (configurable, default 10 seconds) is shown; if the countdown expires without confirmation, the action is cancelled.
+* Visual and Auditory Feedback – The dialog is prominent, with a warning colour (red/orange). A warning earcon plays when the dialog appears, and a continuous tone may sound during the countdown. Haptic feedback (intense, repeating pulses) accompanies the countdown on supported devices.
+* Audit Trail – All system reset attempts (successful or cancelled) are logged in the audit log (see §11.7).
 
 14.3 Configuration
 
 Users can customise Tactical Reset behaviour in Settings:
 
-· Enable/Disable Level 1 Reset – Toggle sector reset availability.
-· Level 1 Confirmation – Choose between “No confirmation”, “Undo button (5s)”, or “Tactile confirmation” (same as Level 2).
-· Level 2 Confirmation – Enable/disable countdown, adjust countdown duration, choose confirmation method (hold, slider, voice, etc.).
-· Keyboard Shortcuts – Customise the key combinations for both reset levels.
-· Bezel Buttons – Choose whether to show reset buttons in the expanded bezel (at appropriate levels).
+* Enable/Disable Level 1 Reset – Toggle sector reset availability.
+* Level 1 Confirmation – Choose between “No confirmation”, “Undo button (5s)”, or “Tactile confirmation” (same as Level 2).
+* Level 2 Confirmation – Enable/disable countdown, adjust countdown duration, choose confirmation method (hold, slider, voice, etc.).
+* Keyboard Shortcuts – Customise the key combinations for both reset levels.
+* Bezel Buttons – Choose whether to show reset buttons in the expanded bezel (at appropriate levels).
 
 14.4 Platform Adaptations
 
@@ -969,53 +969,53 @@ Android Phone Supported; apps are closed via Android activity manager. Logout re
 
 14.5 Use Cases
 
-· Runaway Application – An application becomes unresponsive and cannot be closed normally. The user triggers a sector reset, which forcefully terminates the application and returns to a clean Command Hub.
-· Cluttered Workspace – After a long session with many splits and open applications, the user wants to start fresh without logging out. A sector reset clears everything in the current sector.
-· System Glitch – If the TOS compositor itself becomes sluggish or behaves unexpectedly, a system reset (restart compositor) can resolve the issue without a full logout.
+* Runaway Application – An application becomes unresponsive and cannot be closed normally. The user triggers a sector reset, which forcefully terminates the application and returns to a clean Command Hub.
+* Cluttered Workspace – After a long session with many splits and open applications, the user wants to start fresh without logging out. A sector reset clears everything in the current sector.
+* System Glitch – If the TOS compositor itself becomes sluggish or behaves unexpectedly, a system reset (restart compositor) can resolve the issue without a full logout.
 
 14.6 Relationship with Other Systems
 
-· TOS Log – Both sector and system resets are recorded in the TOS Log (and audit log for system reset), including the trigger method and outcome.
-· Collaboration – If a sector is shared, a sector reset affects all guests: their viewports are closed, and they are returned to the host’s fresh Command Hub. A system reset ends the session for all guests (they are disconnected).
-· Application Models – Models may receive a shutdown notification before termination, allowing them to save state or perform cleanup (if they support it).
+* TOS Log – Both sector and system resets are recorded in the TOS Log (and audit log for system reset), including the trigger method and outcome.
+* Collaboration – If a sector is shared, a sector reset affects all guests: their viewports are closed, and they are returned to the host’s fresh Command Hub. A system reset ends the session for all guests (they are disconnected).
+* Application Models – Models may receive a shutdown notification before termination, allowing them to save state or perform cleanup (if they support it).
 
 
 1. Discovery – User finds a package via SEARCH Mode, browsing the Marketplace in Settings, or by opening a downloaded .tos-* file directly.
 2. Details Panel – Clicking a package tile opens a details panel showing:
-   · Description, version, author, size.
-   · Screenshots (if available).
-   · Required permissions (for code packages).
-   · Dependencies (other packages that must be installed first).
-   · User ratings and reviews (if repository supports them).
+   * Description, version, author, size.
+   * Screenshots (if available).
+   * Required permissions (for code packages).
+   * Dependencies (other packages that must be installed first).
+   * User ratings and reviews (if repository supports them).
 3. Permission Review – For code packages, TOS displays the requested permissions in a clear, non‑technical language (e.g., “This module will be able to access the internet (api.openai.com only)”). The user can choose:
-   · Install – Grants all requested permissions permanently.
-   · Install for this session only – Grants permissions until TOS restarts.
-   · Cancel – Aborts installation.
+   * Install – Grants all requested permissions permanently.
+   * Install for this session only – Grants permissions until TOS restarts.
+   * Cancel – Aborts installation.
 4. Dependency Resolution – If the package has dependencies, TOS checks if they are already installed. Missing dependencies are presented for installation (with their own permission prompts) before the main package.
 5. Installation – Files are copied to the appropriate local directory (~/.local/share/tos/ on Linux, app‑private storage on Android). The package is registered with the system and becomes available immediately (no restart required for most package types; AI backends may require a settings panel refresh).
 6. Post‑Install – A confirmation notification appears. The package may appear in relevant UI locations (e.g., new AI backend in AI Mode settings, new Sector Type in sector creation dialog).
 
 15.5 Security and Isolation
 
-· Code Packages – Run in sandboxed processes with restricted capabilities (see §11.5). Network access is limited to domains declared in the manifest. Filesystem access is restricted to specified paths (if any). System calls are filtered via seccomp.
-· Configuration‑Only Packages – No code execution; considered safe. Still subject to validation to prevent malformed data from causing issues.
-· Signature Verification – Packages can be signed with GPG or minisign. If the user has imported the signer’s public key, TOS verifies the signature before installation and warns if it's invalid or missing. This is optional but recommended for official repositories.
-· Updates – When an update is available, TOS notifies the user (Yellow Alert). The update details panel highlights any changes in permissions or capabilities. The user must re‑consent if permissions have been added or escalated.
+* Code Packages – Run in sandboxed processes with restricted capabilities (see §11.5). Network access is limited to domains declared in the manifest. Filesystem access is restricted to specified paths (if any). System calls are filtered via seccomp.
+* Configuration‑Only Packages – No code execution; considered safe. Still subject to validation to prevent malformed data from causing issues.
+* Signature Verification – Packages can be signed with GPG or minisign. If the user has imported the signer’s public key, TOS verifies the signature before installation and warns if it's invalid or missing. This is optional but recommended for official repositories.
+* Updates – When an update is available, TOS notifies the user (Yellow Alert). The update details panel highlights any changes in permissions or capabilities. The user must re‑consent if permissions have been added or escalated.
 
 15.6 Marketplace Discovery Enhancements
 
-· Search Mode Integration – As noted, SEARCH Mode includes packages as a search domain. Results show package tiles with install buttons (or “Installed” status). Typing a query like ai backend ollama will find relevant packages.
-· AI‑Assisted Discovery – In AI Mode, the assistant can help find packages based on natural language queries: “I need a Git integration for my terminal” might suggest relevant Application Models.
-· Update Alerts – When an installed module has an update available, a Yellow Alert appears (see §8.7), with a notification chip in the Command Hub’s right region. Clicking it opens the updates panel.
-· Ratings and Reviews – If the repository supports it, users can rate and review packages. Reviews are displayed in the details panel.
+* Search Mode Integration – As noted, SEARCH Mode includes packages as a search domain. Results show package tiles with install buttons (or “Installed” status). Typing a query like ai backend ollama will find relevant packages.
+* AI‑Assisted Discovery – In AI Mode, the assistant can help find packages based on natural language queries: “I need a Git integration for my terminal” might suggest relevant Application Models.
+* Update Alerts – When an installed module has an update available, a Yellow Alert appears (see §8.7), with a notification chip in the Command Hub’s right region. Clicking it opens the updates panel.
+* Ratings and Reviews – If the repository supports it, users can rate and review packages. Reviews are displayed in the details panel.
 
 15.7 Creating and Sharing Packages
 
 Users can create their own packages:
 
-· Export Sector as Template – From any sector, a “Export as Template” option in the expanded bezel (Level 2) creates a .tos-template file. The user can choose which aspects to include (favourites, environment, pinned apps, layout).
-· Package a Module – Developers can create Sector Types, Application Models, or AI backends by writing code and a manifest, then packaging them into a .tos-sector, .tos-appmodel, or .tos-ai file (essentially a tar/zip archive with a specific structure). Documentation and tools for this process will be provided.
-· Submit to Repository – Users can submit their packages to public repositories (if the repository accepts submissions). The process varies by repository.
+* Export Sector as Template – From any sector, a “Export as Template” option in the expanded bezel (Level 2) creates a .tos-template file. The user can choose which aspects to include (favourites, environment, pinned apps, layout).
+* Package a Module – Developers can create Sector Types, Application Models, or AI backends by writing code and a manifest, then packaging them into a .tos-sector, .tos-appmodel, or .tos-ai file (essentially a tar/zip archive with a specific structure). Documentation and tools for this process will be provided.
+* Submit to Repository – Users can submit their packages to public repositories (if the repository accepts submissions). The process varies by repository.
 
 15.8 Platform Notes
 
@@ -1039,55 +1039,55 @@ TOS is designed with accessibility as a first‑class concern, ensuring that the
 
 16.1 Visual Accessibility
 
-· High‑Contrast Themes – TOS includes built‑in high‑contrast colour schemes that meet WCAG guidelines. Users can choose from several presets or customise colours per element (background, text, borders, chips). The interface automatically adapts to system‑wide high‑contrast settings where supported.
-· Font Scaling and Customisation – All text elements (terminal output, chip labels, bezel controls) can be scaled independently of the UI size. Users can choose font families, sizes, and line spacing. A “large text” mode increases all UI text by a configurable percentage.
-· Colourblind Filters – Built‑in colour filters (protanopia, deuteranopia, tritanopia, monochromacy) can be applied globally. Priority indicators (border chips, chevrons, status dots) can also be configured to use patterns or symbols in addition to colour.
-· Focus Indicators – The currently focused element is always clearly marked with a thick, high‑contrast border. The indicator style (colour, thickness, animation) is user‑configurable. Haptic and auditory focus indicators can be enabled as alternatives.
-· Screen Reader Support – TOS integrates with platform screen readers:
-  · Linux: AT‑SPI (Orca) – all UI elements expose appropriate roles, states, and labels.
-  · Android: TalkBack – full compatibility, with custom actions and navigation hints.
-  · Braille displays are supported via the platform’s braille infrastructure.
-· Reduced Motion – Users can disable or reduce animations (zoom transitions, chip movements, bezel expansions) to prevent disorientation.
+* High‑Contrast Themes – TOS includes built‑in high‑contrast colour schemes that meet WCAG guidelines. Users can choose from several presets or customise colours per element (background, text, borders, chips). The interface automatically adapts to system‑wide high‑contrast settings where supported.
+* Font Scaling and Customisation – All text elements (terminal output, chip labels, bezel controls) can be scaled independently of the UI size. Users can choose font families, sizes, and line spacing. A “large text” mode increases all UI text by a configurable percentage.
+* Colourblind Filters – Built‑in colour filters (protanopia, deuteranopia, tritanopia, monochromacy) can be applied globally. Priority indicators (border chips, chevrons, status dots) can also be configured to use patterns or symbols in addition to colour.
+* Focus Indicators – The currently focused element is always clearly marked with a thick, high‑contrast border. The indicator style (colour, thickness, animation) is user‑configurable. Haptic and auditory focus indicators can be enabled as alternatives.
+* Screen Reader Support – TOS integrates with platform screen readers:
+  * Linux: AT‑SPI (Orca) – all UI elements expose appropriate roles, states, and labels.
+  * Android: TalkBack – full compatibility, with custom actions and navigation hints.
+  * Braille displays are supported via the platform’s braille infrastructure.
+* Reduced Motion – Users can disable or reduce animations (zoom transitions, chip movements, bezel expansions) to prevent disorientation.
 
 16.2 Auditory Accessibility
 
-· Screen Reader Output – The Voice layer (see §10.1) provides TTS for all UI elements. Users can adjust speech rate, pitch, and voice. Verbosity levels control how much information is spoken (e.g., “brief” announces only element names, “verbose” includes descriptions and state).
-· Earcons for Navigation – All navigation actions (zoom in/out, mode changes, selection) have distinct earcons that can be enabled independently. Users can choose from different sound themes or replace individual sounds.
-· Auditory Priority Indicators – Priority changes can be accompanied by earcons (e.g., rising tone for increased priority). The intensity and pitch can be mapped to priority level.
-· Spatial Audio Cues – In VR/AR, sounds are positioned to indicate the location of events (e.g., a notification from a sector to the left is heard from the left).
-· Voice Commands – Full voice control is available (see §8), allowing users to navigate, select, and execute commands without touching any device.
+* Screen Reader Output – The Voice layer (see §10.1) provides TTS for all UI elements. Users can adjust speech rate, pitch, and voice. Verbosity levels control how much information is spoken (e.g., “brief” announces only element names, “verbose” includes descriptions and state).
+* Earcons for Navigation – All navigation actions (zoom in/out, mode changes, selection) have distinct earcons that can be enabled independently. Users can choose from different sound themes or replace individual sounds.
+* Auditory Priority Indicators – Priority changes can be accompanied by earcons (e.g., rising tone for increased priority). The intensity and pitch can be mapped to priority level.
+* Spatial Audio Cues – In VR/AR, sounds are positioned to indicate the location of events (e.g., a notification from a sector to the left is heard from the left).
+* Voice Commands – Full voice control is available (see §8), allowing users to navigate, select, and execute commands without touching any device.
 
 16.3 Motor Accessibility
 
-· Switch Device Support – TOS supports single‑switch and multiple‑switch scanning:
-  · Scanning Modes – Automatic (system cycles through elements at user‑set speed) or manual (user advances with switch press). Scanning patterns include linear (through all elements) or row‑column (for grids).
-  · Switch Mapping – Any switch input (physical button, sip‑and‑puff, eye blink) can be mapped to scanning actions (next element, select, previous element, stop scanning).
-  · Visual Scanning Indicator – The current element is highlighted during scanning; auditory cues can announce each element.
-· Dwell Clicking – For gaze tracking, head tracking, or any pointing device, dwelling on an element for a configurable time triggers a selection. Dwell time and activation area size are adjustable.
-· Sticky Keys – Modifier keys (Ctrl, Alt, Super) can be latched, allowing sequential key presses for keyboard shortcuts.
-· Slow Keys – A delay before a key press is registered, accommodating users with unintentional presses.
-· Haptic Feedback – All actions can be confirmed haptically (see §10.5). For switch users, haptic feedback confirms switch presses and scanning progress.
-· Gesture Alternatives – Every gesture (pinch, swipe, etc.) has a keyboard or switch alternative. For example, zoom in can be triggered by Ctrl++ or a switch‑based command.
-· Customisable Input Mapping – Users can remap any input device to any TOS action (see §8.4), creating personalised control schemes.
+* Switch Device Support – TOS supports single‑switch and multiple‑switch scanning:
+  * Scanning Modes – Automatic (system cycles through elements at user‑set speed) or manual (user advances with switch press). Scanning patterns include linear (through all elements) or row‑column (for grids).
+  * Switch Mapping – Any switch input (physical button, sip‑and‑puff, eye blink) can be mapped to scanning actions (next element, select, previous element, stop scanning).
+  * Visual Scanning Indicator – The current element is highlighted during scanning; auditory cues can announce each element.
+* Dwell Clicking – For gaze tracking, head tracking, or any pointing device, dwelling on an element for a configurable time triggers a selection. Dwell time and activation area size are adjustable.
+* Sticky Keys – Modifier keys (Ctrl, Alt, Super) can be latched, allowing sequential key presses for keyboard shortcuts.
+* Slow Keys – A delay before a key press is registered, accommodating users with unintentional presses.
+* Haptic Feedback – All actions can be confirmed haptically (see §10.5). For switch users, haptic feedback confirms switch presses and scanning progress.
+* Gesture Alternatives – Every gesture (pinch, swipe, etc.) has a keyboard or switch alternative. For example, zoom in can be triggered by Ctrl++ or a switch‑based command.
+* Customisable Input Mapping – Users can remap any input device to any TOS action (see §8.4), creating personalised control schemes.
 
 16.4 Cognitive Accessibility
 
-· Simplified Mode – A system‑wide setting that reduces visual clutter, enlarges elements, and limits available features. In this mode:
-  · Only essential UI components are shown (prompt, basic chips, output area).
-  · Complex features (splits, deep inspection, collaboration) are hidden or simplified.
-  · Navigation is restricted to the core three levels.
-  · Tutorials and help are more prominently displayed.
-· Built‑in Tutorials – Context‑sensitive tutorials (eval‑help mapping, interactive guides) help users learn the interface. Tutorials can be triggered manually or appear automatically for new users.
-· Consistent Spatial Model – The strict three‑level hierarchy (with clear visual and auditory cues) provides a predictable mental model, reducing cognitive load.
-· Notification Management – Users can control which notifications appear, how they are presented (visual, auditory, both), and set quiet hours.
-· Command History and Favourites – Frequently used commands are easily accessible via the left chip region, reducing the need to remember syntax.
+* Simplified Mode – A system‑wide setting that reduces visual clutter, enlarges elements, and limits available features. In this mode:
+  * Only essential UI components are shown (prompt, basic chips, output area).
+  * Complex features (splits, deep inspection, collaboration) are hidden or simplified.
+  * Navigation is restricted to the core three levels.
+  * Tutorials and help are more prominently displayed.
+* Built‑in Tutorials – Context‑sensitive tutorials (eval‑help mapping, interactive guides) help users learn the interface. Tutorials can be triggered manually or appear automatically for new users.
+* Consistent Spatial Model – The strict three‑level hierarchy (with clear visual and auditory cues) provides a predictable mental model, reducing cognitive load.
+* Notification Management – Users can control which notifications appear, how they are presented (visual, auditory, both), and set quiet hours.
+* Command History and Favourites – Frequently used commands are easily accessible via the left chip region, reducing the need to remember syntax.
 
 16.5 Configuration and Profiles
 
-· Central Accessibility Panel – All accessibility settings are gathered in a dedicated section of the global Settings panel, organised by category (Visual, Auditory, Motor, Cognitive).
-· User Profiles – Users can save and load accessibility profiles. For example, a “Low Vision” profile might enable high contrast, large text, and screen reader; a “Switch User” profile configures scanning and switch mappings. Profiles can be switched quickly from the bezel or via voice command.
-· Per‑Sector Settings – Some accessibility features can be set per sector (e.g., simplified mode in a “Kids” sector, high contrast in a “Reading” sector).
-· Import/Export – Profiles can be exported and shared, allowing users to transfer their settings to another TOS installation.
+* Central Accessibility Panel – All accessibility settings are gathered in a dedicated section of the global Settings panel, organised by category (Visual, Auditory, Motor, Cognitive).
+* User Profiles – Users can save and load accessibility profiles. For example, a “Low Vision” profile might enable high contrast, large text, and screen reader; a “Switch User” profile configures scanning and switch mappings. Profiles can be switched quickly from the bezel or via voice command.
+* Per‑Sector Settings – Some accessibility features can be set per sector (e.g., simplified mode in a “Kids” sector, high contrast in a “Reading” sector).
+* Import/Export – Profiles can be exported and shared, allowing users to transfer their settings to another TOS installation.
 
 16.6 Platform Integration
 
@@ -1102,8 +1102,8 @@ TOS development includes accessibility testing with real users and adherence to 
 
 16.8 Future Directions
 
-· AI‑Powered Accessibility – The AI assistant can adapt to user needs, e.g., suggesting simplified layouts for users who frequently activate simplified mode, or providing real‑time descriptions of complex visual content.
-· Custom Accessibility Modules – The module system could allow third‑party developers to create specialised accessibility tools (e.g., eye‑tracking keyboards, advanced switch scanning algorithms).
+* AI‑Powered Accessibility – The AI assistant can adapt to user needs, e.g., suggesting simplified layouts for users who frequently activate simplified mode, or providing real‑time descriptions of complex visual content.
+* Custom Accessibility Modules – The module system could allow third‑party developers to create specialised accessibility tools (e.g., eye‑tracking keyboards, advanced switch scanning algorithms).
 
 
 

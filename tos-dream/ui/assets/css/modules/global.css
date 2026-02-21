@@ -6,52 +6,6 @@
   refined LCARS proportions, and high-fidelity animations.
 */
 
-.dashboard-header {
-    text-align: left;
-    padding: 20px 50px;
-    margin-bottom: 10px;
-}
-
-.dashboard-title {
-    font-size: 3.5rem;
-    font-weight: 800;
-    letter-spacing: 2px;
-    color: white;
-    text-transform: uppercase;
-    font-family: var(--font-main);
-    background: linear-gradient(to right, #fff, rgba(255, 255, 255, 0.3));
-    -webkit-background-clip: text;
-    background-clip: text;
-    -webkit-text-fill-color: transparent;
-}
-
-.telemetry-bar {
-    position: absolute;
-    top: 35px;
-    right: 50px;
-    display: flex;
-    gap: 40px;
-    font-family: var(--font-mono);
-    backdrop-filter: blur(10px);
-    background: rgba(255, 255, 255, 0.05);
-    padding: 10px 25px;
-    border-radius: 15px;
-    border: 1px solid rgba(255, 255, 255, 0.1);
-}
-
-.telemetry-item .value {
-    font-size: 1.5rem;
-    font-weight: 700;
-    color: var(--lcars-orange);
-    display: block;
-}
-
-.telemetry-item .label {
-    font-size: 0.6rem;
-    text-transform: uppercase;
-    color: rgba(255, 255, 255, 0.4);
-    letter-spacing: 1px;
-}
 
 .global-grid {
     display: grid;
@@ -63,8 +17,8 @@
 
 .sector-card {
     background: rgba(0, 0, 0, 0.6);
-    border: none;
-    border-radius: 0;
+    border-left: 20px solid var(--card-accent);
+    border-radius: 0 40px 40px 0;
     overflow: hidden;
     cursor: pointer;
     transition: all 0.5s cubic-bezier(0.16, 1, 0.3, 1);
@@ -73,26 +27,28 @@
         "top top top"
         "left body right"
         "bottom bottom bottom";
-    grid-template-rows: 15px 1fr 10px;
-    grid-template-columns: 20px 1fr 20px;
+    grid-template-rows: 25px 1fr 15px;
+    grid-template-columns: 25px 1fr 10px;
     box-shadow: 0 15px 45px rgba(0, 0, 0, 0.4);
     min-height: 250px;
 }
 
 .sector-card .mini-bezel {
     grid-area: top;
-    background: var(--card-accent);
+    background: rgba(var(--card-accent-rgb), 0.2);
+    border-bottom: 2px solid var(--card-accent);
     display: flex;
     justify-content: flex-end;
     align-items: center;
-    padding: 0 10px;
-    font-size: 0.5rem;
+    padding: 0 15px;
+    font-size: 0.6rem;
     font-weight: 800;
 }
 
 .sector-card .mini-prompt {
     grid-area: bottom;
-    background: var(--lcars-orange);
+    background: rgba(255, 153, 0, 0.1);
+    border-top: 2px solid var(--lcars-orange);
     position: relative;
     overflow: hidden;
 }
@@ -121,20 +77,20 @@
 
 .sector-card .left-indicators {
     grid-area: left;
-    background: var(--card-accent);
+    background: rgba(var(--card-accent-rgb), 0.1);
     display: flex;
     flex-direction: column;
-    gap: 5px;
+    gap: 8px;
     padding-top: 20px;
     align-items: center;
 }
 
 .sector-card .right-indicators {
     grid-area: right;
-    background: var(--card-accent);
+    background: rgba(var(--card-accent-rgb), 0.05);
     display: flex;
     flex-direction: column;
-    gap: 5px;
+    gap: 8px;
     padding-top: 20px;
     align-items: center;
 }

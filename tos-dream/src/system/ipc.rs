@@ -81,12 +81,73 @@ impl IpcDispatcher {
             state.handle_semantic_event(SemanticEvent::ZoomIn);
         } else if request == "zoom_out" {
             state.handle_semantic_event(SemanticEvent::ZoomOut);
+        } else if request.starts_with("zoom_to:") {
+            let target = &request[8..];
+            let api = state.active_viewport_index;
+            match target {
+                "GlobalOverview" => state.handle_semantic_event(SemanticEvent::OpenGlobalOverview),
+                "CommandHub" => {
+                    state.current_level = HierarchyLevel::CommandHub;
+                    state.viewports[api].current_level = HierarchyLevel::CommandHub;
+                }
+                "ApplicationFocus" => {
+                    state.current_level = HierarchyLevel::ApplicationFocus;
+                    state.viewports[api].current_level = HierarchyLevel::ApplicationFocus;
+                }
+                "DetailInspector" => {
+                    state.current_level = HierarchyLevel::DetailInspector;
+                    state.viewports[api].current_level = HierarchyLevel::DetailInspector;
+                }
+                "BufferInspector" => {
+                    state.current_level = HierarchyLevel::BufferInspector;
+                    state.viewports[api].current_level = HierarchyLevel::BufferInspector;
+                }
+                _ => tracing::warn!("Unknown zoom target: {}", target),
+            }
+        } else if request == "toggle_output_mode" {
+            let api = state.active_viewport_index;
+            let viewport = &state.viewports[api];
+            let sector_idx = viewport.sector_index;
+            let hub_idx = viewport.hub_index;
+            state.sectors[sector_idx].hubs[hub_idx].output_mode_centered = !state.sectors[sector_idx].hubs[hub_idx].output_mode_centered;
+        } else if request == "toggle_left_region" {
+            let api = state.active_viewport_index;
+            let viewport = &state.viewports[api];
+            let sector_idx = viewport.sector_index;
+            let hub_idx = viewport.hub_index;
+            state.sectors[sector_idx].hubs[hub_idx].left_region_visible = !state.sectors[sector_idx].hubs[hub_idx].left_region_visible;
+        } else if request == "kill_app" {
+            let api = state.active_viewport_index;
+            let app_id_str = {
+                let viewport = &state.viewports[api];
+                viewport.active_app_index.map(|app_idx| {
+                    let sector_idx = viewport.sector_index;
+                    let hub_idx = viewport.hub_index;
+                    state.sectors[sector_idx].hubs[hub_idx].applications[app_idx].id.to_string()
+                })
+            };
+            if let Some(id_str) = app_id_str {
+                self.handle_kill_app(&mut state, &id_str);
+                state.zoom_out();
+            }
+        } else if request == "toggle_comms" {
+            state.toggle_comms();
         } else if request == "optimize_system" {
             state.performance_alert = false;
             state.fps = 60.0;
             println!("TOS // OPTIMIZING RESOURCES... PRUNING DISTANT SURFACES");
         } else if request == "tactical_reset" {
             state.handle_semantic_event(SemanticEvent::TacticalReset);
+        } else if request == "open_settings" {
+            println!("TOS // OPENING SECTOR SETTINGS... SYNCING CALIBRATION DATA");
+            state.toggle_bezel();
+        } else if request.starts_with("follow_participant:") {
+            let host_id_str = &request[19..];
+            if let Ok(host_id) = Uuid::parse_str(host_id_str) {
+                // For mock purposes, find first participant (usually the host/user) to follow the target
+                let guest_id = state.sectors[state.viewports[state.active_viewport_index].sector_index].participants[0].id;
+                let _ = state.collaboration_manager.start_following(guest_id, host_id);
+            }
         } else if request.starts_with("semantic_event:") {
             self.handle_semantic_event(&mut state, &request[15..]);
         } else if request.starts_with("connect_remote:") {
@@ -671,6 +732,8 @@ impl IpcDispatcher {
             context_menu: None,
             shell_listing: None,
             suggestions: vec![],
+            output_mode_centered: false,
+            left_region_visible: true,
         });
         
         let hub_idx = sector.hubs.len() - 1;
@@ -718,6 +781,9 @@ impl IpcDispatcher {
             "TacticalReset" => state.handle_semantic_event(SemanticEvent::TacticalReset),
             "SystemReset" => state.handle_semantic_event(SemanticEvent::SystemReset),
             "OpenGlobalOverview" => state.handle_semantic_event(SemanticEvent::OpenGlobalOverview),
+            "StopOperation" => state.handle_semantic_event(SemanticEvent::StopOperation),
+            "ToggleMiniMap" => state.handle_semantic_event(SemanticEvent::ToggleMiniMap),
+            "ToggleComms" => state.handle_semantic_event(SemanticEvent::ToggleComms),
             "VoiceCommandStart" => {
                 tracing::info!("VOICE COMMAND INITIATED");
                 state.stage_command("LISTENING...".to_string());
@@ -751,6 +817,8 @@ mod tests {
             context_menu: None,
             shell_listing: None,
             suggestions: vec![],
+            output_mode_centered: false,
+            left_region_visible: true,
         };
 
         let sector = Sector {

@@ -13,8 +13,8 @@ impl ViewRenderer for AppRenderer {
         let mut participants_html = String::new();
         for p in &sector.participants {
             participants_html.push_str(&format!(
-                r#"<div class="participant-avatar mini" style="background-color: {color}" title="{name}"></div>"#,
-                color = p.color, name = p.name
+                r#"<div class="participant-avatar mini" style="background-color: {color}" title="{name}" onclick="window.ipc.postMessage('follow_participant:{id}')"></div>"#,
+                color = p.color, name = p.name, id = p.id
             ));
         }
 
@@ -87,6 +87,8 @@ impl ViewRenderer for AppRenderer {
                         <div class="bezel-participants">
                             {participants_html}
                         </div>
+                        <div class="bezel-btn mini comms-toggle-btn" onclick="window.ipc.postMessage('toggle_comms')">COMMS</div>
+                        <div class="bezel-btn mini minimap-toggle-btn" onclick="window.ipc.postMessage('semantic_event:ToggleMiniMap')">MAP</div>
                         <div class="bezel-handle" onclick="window.ipc.postMessage('toggle_bezel')">
                             <span class="chevron"></span>
                         </div>
@@ -168,7 +170,7 @@ impl ViewRenderer for AppRenderer {
                             <div class="footer-stat">ID: {pid}</div>
                             <div class="footer-stat">VRAM: 128MB</div>
                             <div class="footer-stat">LOAD: {mem}</div>
-                            <div class="bezel-btn mini">RECALIBRATE</div>
+                            <div class="bezel-btn mini" onclick="window.ipc.postMessage('tactical_reset')">RECALIBRATE</div>
                         </div>
                     </div>"#,
                     title = app.title.to_uppercase(),

@@ -63,6 +63,10 @@ pub struct MiniMapConfig {
     pub show_other_sectors: bool,
     /// Whether to show viewport dividers
     pub show_viewports: bool,
+    /// Whether to show monitoring layer (resource usage)
+    pub show_monitoring_layer: bool,
+    /// Whether to show collaboration presence
+    pub show_collaboration: bool,
     /// Dwell time for hover activation (ms)
     pub hover_dwell_ms: u64,
 }
@@ -81,6 +85,8 @@ impl Default for MiniMapConfig {
             ],
             show_other_sectors: true,
             show_viewports: true,
+            show_monitoring_layer: true,
+            show_collaboration: true,
             hover_dwell_ms: 1000,
         }
     }
@@ -249,12 +255,6 @@ fn calculate_click_target_with_geometry(&self, x: f32, y: f32, state: &TosState)
 
     /// Render the mini-map as HTML
     pub fn render(&self, state: &TosState) -> String {
-        let opacity = if self.is_active() {
-            self.config.active_opacity
-        } else {
-            self.config.passive_opacity
-        };
-
         let position_class = match self.config.position {
             MiniMapPosition::TopLeft => "minimap-topleft",
             MiniMapPosition::TopRight => "minimap-topright",
@@ -263,10 +263,20 @@ fn calculate_click_target_with_geometry(&self, x: f32, y: f32, state: &TosState)
             MiniMapPosition::Center => "minimap-center",
         };
 
-        let state_class = if self.is_active() {
-            "minimap-active"
-        } else {
-            "minimap-passive"
+        if !self.is_active() {
+            // Passive state: No floating trigger, Handled by Viewport buttons (§6.2)
+            return String::new();
+        }
+
+        let opacity = self.config.active_opacity;
+        
+        // Depth Badge (§6.2)
+        let depth_badge = match state.current_level {
+            HierarchyLevel::GlobalOverview => "L1",
+            HierarchyLevel::CommandHub => "L2",
+            HierarchyLevel::ApplicationFocus | HierarchyLevel::SplitView => "L3",
+            HierarchyLevel::DetailInspector => "L4",
+            HierarchyLevel::BufferInspector => "L5",
         };
 
         let content = match state.current_level {
@@ -278,17 +288,24 @@ fn calculate_click_target_with_geometry(&self, x: f32, y: f32, state: &TosState)
             HierarchyLevel::SplitView => self.render_split_view(state),
         };
 
+        let close_btn = r#"<div class="minimap-close" onclick="window.ipc.postMessage('semantic_event:ToggleMiniMap')">×</div>"#;
+
         format!(
-            r#"<div class="tactical-minimap {} {}" style="opacity: {};">
-                <div class="minimap-header">TACTICAL MINI-MAP</div>
+            r#"<div class="tactical-minimap active-overlay {}" style="opacity: {};">
+                <div class="minimap-header">
+                    <span class="depth-badge">{}</span>
+                    <span class="header-title">TACTICAL MINI-MAP</span>
+                    {}
+                </div>
                 <div class="minimap-content">
                     {}
                 </div>
                 <div class="minimap-footer">{}</div>
             </div>"#,
             position_class,
-            state_class,
             opacity,
+            depth_badge,
+            close_btn,
             content,
             self.render_legend(state)
         )
@@ -302,19 +319,44 @@ fn calculate_click_target_with_geometry(&self, x: f32, y: f32, state: &TosState)
             let is_active = idx == state.viewports[state.active_viewport_index].sector_index;
             let dim_class = if is_active { "minimap-sector-active" } else { "minimap-sector-dimmed" };
             
+            // Collaboration Dots (§6.1.2)
+            let mut collab_html = String::new();
+            if self.config.show_collaboration {
+                for p in &sector.participants {
+                    collab_html.push_str(&format!(r#"<div class="collab-dot" style="background: {};"></div>"#, p.color));
+                }
+            }
+
+            // Monitoring Layer bars (§6.5)
+            let mut monitoring_html = String::new();
+            if self.config.show_monitoring_layer {
+                // Aggregate mock usage for sector
+                let cpu = (idx * 15 + 10) % 100;
+                let mem = (idx * 20 + 30) % 100;
+                monitoring_html = format!(
+                    r#"<div class="sector-monitoring">
+                        <div class="mini-bar cpu" style="width: {}%;"></div>
+                        <div class="mini-bar mem" style="width: {}%;"></div>
+                    </div>"#,
+                    cpu, mem
+                );
+            }
+
             html.push_str(&format!(
-                r#"<div class="minimap-sector {} {}" data-sector="{}" style="border-color: {};">
-                    <div class="sector-name">{}</div>
-                    <div class="sector-host">{}</div>
-                    <div class="sector-hubs">{} hubs</div>
+                r#"<div class="minimap-sector {} {}" onclick="window.ipc.postMessage('select_sector:{}')" style="border-color: {};">
+                    <div class="sector-top">
+                        <div class="sector-name">{}</div>
+                        <div class="collab-strip">{}</div>
+                    </div>
+                    {}
                 </div>"#,
                 dim_class,
                 if self.selected_sector == Some(idx) { "minimap-selected" } else { "" },
                 idx,
                 sector.color,
                 sector.name,
-                sector.host,
-                sector.hubs.len()
+                collab_html,
+                monitoring_html
             ));
         }
         
@@ -328,7 +370,7 @@ fn calculate_click_target_with_geometry(&self, x: f32, y: f32, state: &TosState)
         let sector = &state.sectors[viewport.sector_index];
         let hub = &sector.hubs[viewport.hub_index];
         
-        let (mode_icon, mode_name) = match hub.mode {
+        let (_mode_icon, mode_name) = match hub.mode {
             CommandHubMode::Command => ("⌘", "Command"),
             CommandHubMode::Directory => ("📁", "Directory"),
             CommandHubMode::Activity => ("⚡", "Activity"),
@@ -341,18 +383,33 @@ fn calculate_click_target_with_geometry(&self, x: f32, y: f32, state: &TosState)
                 <div class="sector-header" style="border-color: {};">
                     <span class="sector-indicator">◉</span>
                     <span class="sector-name">{}</span>
-                </div>
-                <div class="hub-info">
-                    <div class="hub-mode">{} {} Mode</div>
-                    <div class="hub-apps">{} applications</div>
+                    <span class="hub-mode-badge">{}</span>
                 </div>
             </div>"#,
             sector.color,
             sector.name,
-            mode_icon,
-            mode_name,
-            hub.applications.len()
+            mode_name.to_uppercase()
         );
+
+        if self.config.show_monitoring_layer {
+            html.push_str(r#"<div class="minimap-app-grid">"#);
+            for (idx, app) in hub.applications.iter().enumerate() {
+                let (cpu, mem) = if let Some(pid) = app.pid {
+                    if let Ok(stats) = crate::system::proc::get_process_stats(pid) {
+                        (stats.cpu_usage as i32, (stats.memory_bytes / 1024 / 1024 / 10) as i32)
+                    } else { (5, 5) }
+                } else { (idx as i32 * 5 % 100, (idx as i32 * 10) % 100) };
+
+                html.push_str(&format!(
+                    r#"<div class="minimap-app-tile">
+                        <div class="mini-bar cpu" style="width: {}%;"></div>
+                        <div class="mini-bar mem" style="width: {}%;"></div>
+                    </div>"#,
+                    cpu.min(100), mem.min(100)
+                ));
+            }
+            html.push_str("</div>");
+        }
 
         // Show other sectors dimmed
         if self.config.show_other_sectors {
@@ -386,6 +443,26 @@ fn calculate_click_target_with_geometry(&self, x: f32, y: f32, state: &TosState)
             .map(|app| app.title.clone())
             .unwrap_or_else(|| "No Application".to_string());
 
+        let mut app_stats_html = String::new();
+        if self.config.show_monitoring_layer {
+            if let Some(app_idx) = viewport.active_app_index {
+                let app = &hub.applications[app_idx];
+                let (cpu, mem) = if let Some(pid) = app.pid {
+                    if let Ok(stats) = crate::system::proc::get_process_stats(pid) {
+                        (stats.cpu_usage as i32, (stats.memory_bytes / 1024 / 1024 / 10) as i32) // Normalize mem
+                    } else { (5, 10) }
+                } else { (2, 5) };
+                
+                app_stats_html = format!(
+                    r#"<div class="detail-monitoring">
+                        <div class="mon-row"><span>CPU</span> <div class="mon-bar"><div class="fill" style="width: {}%;"></div></div> <span>{}%</span></div>
+                        <div class="mon-row"><span>MEM</span> <div class="mon-bar"><div class="fill" style="width: {}%;"></div></div> <span>{}MB</span></div>
+                    </div>"#,
+                    cpu.min(100), cpu, mem.min(100), mem * 10
+                );
+            }
+        }
+
         let mut html = format!(
             r#"<div class="minimap-app-focus">
                 <div class="app-path">
@@ -393,11 +470,7 @@ fn calculate_click_target_with_geometry(&self, x: f32, y: f32, state: &TosState)
                 </div>
                 <div class="active-app">
                     <div class="app-title">{}</div>
-                    <div class="app-class">{}</div>
-                    <div class="app-priority-tags">
-                        <span class="tag">P:{}</span>
-                        <span class="tag">D:{}</span>
-                    </div>
+                    {}
                 </div>
             </div>"#,
             sector.color,
@@ -411,12 +484,7 @@ fn calculate_click_target_with_geometry(&self, x: f32, y: f32, state: &TosState)
             },
             active_app,
             active_app,
-            viewport.active_app_index
-                .and_then(|idx| hub.applications.get(idx))
-                .map(|app| app.app_class.clone())
-                .unwrap_or_default(),
-            viewport.active_app_index.unwrap_or(0),
-            state.viewports.len()
+            app_stats_html
         );
 
         // Show viewports if in split mode

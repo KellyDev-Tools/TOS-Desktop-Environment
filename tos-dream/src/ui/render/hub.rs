@@ -16,14 +16,17 @@ impl ViewRenderer for HubRenderer {
             CommandHubMode::Ai => "mode-ai",
         };
 
-        let mut html = format!(r#"<div class="command-hub {mode_type_class} render-{mode:?}">"#, mode = mode);
+        let perspective_class = if hub.output_mode_centered { "perspective-centered" } else { "" };
+        let region_class = if hub.left_region_visible { "" } else { "left-region-hidden" };
+
+        let mut html = format!(r#"<div class="command-hub {mode_type_class} {perspective_class} {region_class} render-{mode:?}">"#, mode = mode);
 
         let mut participants_html = String::new();
         for p in &sector.participants {
             let initials: String = p.name.split_whitespace().map(|s| s.chars().next().unwrap_or(' ')).collect();
             participants_html.push_str(&format!(
-                r#"<div class="participant-avatar" style="background-color: {color}" title="{name} ({role})">{initials}</div>"#,
-                color = p.color, name = p.name, role = p.role, initials = initials
+                r#"<div class="participant-avatar" style="background-color: {color}" title="{name} ({role})" onclick="window.ipc.postMessage('follow_participant:{id}')">{initials}</div>"#,
+                color = p.color, name = p.name, role = p.role, initials = initials, id = p.id
             ));
         }
 
@@ -33,53 +36,47 @@ impl ViewRenderer for HubRenderer {
              ""
         };
 
+        // 1. Unified Tactical Header
         html.push_str(&format!(
-            r#"<div class="hub-header">
-                <div class="hub-controls">
+            r#"<div class="tactical-header" style="--header-accent: {color};">
+                <div class="header-left">
                     <button class="bezel-btn mini" onclick="window.ipc.postMessage('zoom_out')" title="Zoom Out">ZOOM OUT</button>
                     <button class="bezel-btn mini" onclick="window.ipc.postMessage('toggle_output_mode')" title="Standard / Centered Perspective">OUTPUT MODE</button>
-                    <button class="bezel-btn mini" onclick="window.ipc.postMessage('toggle_left_region')" title="Toggle Left Favourites">LEFT REGION</button>
+                    <button class="bezel-btn mini" onclick="window.ipc.postMessage('toggle_left_region')" title="Toggle Left Favourites">LEFT</button>
                 </div>
-                <div class="hub-info">
-                    <span class="hub-sector-name">{name}</span>
-                    <span class="hub-host">LINK: {host}</span>
-                    {follow_indicator}
+                <div class="header-center">
+                    <div class="three-way-toggle">
+                        <div class="toggle-segment {cmd_active}" onclick="window.ipc.postMessage('set_mode:Command')">COMMAND</div>
+                        <div class="toggle-segment {dir_active}" onclick="window.ipc.postMessage('set_mode:Directory')">DIRECTORY</div>
+                        <div class="toggle-segment {act_active}" onclick="window.ipc.postMessage('set_mode:Activity')">ACTIVITY</div>
+                    </div>
                 </div>
-                <div class="hub-participants">
-                    {participants_html}
-                    <div class="invite-btn" onclick="window.ipc.postMessage('collaboration_invite')">+</div>
+                <div class="header-right">
+                    <div class="hub-info-inline" style="display:flex; gap:20px; align-items:center;">
+                        <div class="hub-metadata">
+                            <span class="hub-sector-name" style="font-weight:800; color:{color};">{name}</span>
+                            <span class="hub-host" style="font-size:0.7rem; opacity:0.6; margin-left:10px;">{host}</span>
+                        </div>
+                        {follow_indicator}
+                        <div class="hub-participants" style="display:flex; gap:5px;">
+                            {participants_html}
+                        </div>
+                        <div class="telemetry-item" style="display:flex; gap:5px;">
+                            <button class="bezel-btn mini comms-toggle-btn" onclick="window.ipc.postMessage('toggle_comms')">COMMS</button>
+                            <button class="bezel-btn mini minimap-toggle-btn" onclick="window.ipc.postMessage('semantic_event:ToggleMiniMap')">MAP</button>
+                        </div>
+                    </div>
                 </div>
             </div>"#,
+            color = sector.color,
             name = sector.name.to_uppercase(),
             host = sector.host,
             participants_html = participants_html,
-            follow_indicator = follow_indicator
+            follow_indicator = follow_indicator,
+            cmd_active = if hub.mode == CommandHubMode::Command { "active" } else { "" },
+            dir_active = if hub.mode == CommandHubMode::Directory { "active" } else { "" },
+            act_active = if hub.mode == CommandHubMode::Activity { "active" } else { "" }
         ));
-        
-        html.push_str(r#"<div class="hub-tabs">"#);
-        let views = [
-            (CommandHubMode::Command, "COMMAND"),
-            (CommandHubMode::Directory, "DIRECTORY"),
-            (CommandHubMode::Activity, "ACTIVITY"),
-        ];
-        
-        let _current_view_active = match hub.mode {
-            CommandHubMode::Command | CommandHubMode::Directory | CommandHubMode::Activity => true,
-            _ => false
-        };
-
-        for (m, label) in views {
-            let active = if hub.mode == m { "active" } else { "" };
-            html.push_str(&format!(
-                r#"<div class="hub-tab {active}" onclick="window.ipc.postMessage('set_mode:{mode:?}')">{label}</div>"#,
-                mode = m
-            ));
-        }
-        
-        // If we are in Search or AI, maybe we want to show that? 
-        // But the user requested "bottom cmd|search|ai modes".
-        // So we won't show them as top tabs.
-        html.push_str("</div>");
 
         html.push_str(r#"<div class="hub-content">"#);
         if let Some(dangerous_cmd) = &hub.confirmation_required {
@@ -199,6 +196,7 @@ impl ViewRenderer for HubRenderer {
                     <button class="bezel-btn" onclick="window.ipc.postMessage('dir_action_copy')">COPY</button>
                     <button class="bezel-btn" onclick="window.ipc.postMessage('dir_action_paste')">PASTE</button>
                     <button class="bezel-btn" onclick="window.ipc.postMessage('stage_command:mv ')">RENAME</button>
+                    <button class="bezel-btn" onclick="window.ipc.postMessage('dir_toggle_hidden')">TOGGLE HIDDEN</button>
                     <button class="bezel-btn danger" onclick="window.ipc.postMessage('stage_command:rm ')">DELETE</button>
                     <button class="bezel-btn" onclick="window.ipc.postMessage('dir_navigate:.')">REFRESH</button>
                 </div>"#);
@@ -640,10 +638,10 @@ impl ViewRenderer for HubRenderer {
         html.push_str(&format!(
             r#"<div class="unified-prompt">
                 <div class="left-section">
-                    <div class="input-mode-tabs">
-                        <div class="mode-tab {cmd_active}" onclick="window.ipc.postMessage('set_mode:Command')">CMD</div>
-                        <div class="mode-tab {search_active}" onclick="window.ipc.postMessage('set_mode:Search')">SEARCH</div>
-                        <div class="mode-tab {ai_active}" onclick="window.ipc.postMessage('set_mode:Ai')">AI</div>
+                    <div class="three-way-toggle">
+                        <div class="toggle-segment {cmd_active}" onclick="window.ipc.postMessage('set_mode:Command')">CMD</div>
+                        <div class="toggle-segment {search_active}" onclick="window.ipc.postMessage('set_mode:Search')">SEARCH</div>
+                        <div class="toggle-segment {ai_active}" onclick="window.ipc.postMessage('set_mode:Ai')">AI</div>
                     </div>
                 </div>
                 <div class="center-section">

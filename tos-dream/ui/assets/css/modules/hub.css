@@ -10,10 +10,11 @@
 
 .command-hub {
     display: grid;
-    grid-template-rows: auto 50px 1fr auto;
+    grid-template-rows: auto 1fr auto;
     height: 100%;
     width: 100%;
-    gap: 15px;
+    gap: 0;
+    /* Removing gap to handle spacing via margins on the bezels */
     overflow: hidden;
 }
 
@@ -22,6 +23,19 @@
     flex-direction: row;
     height: 100%;
     gap: 15px;
+}
+
+.command-hub.left-region-hidden .left-chip-region {
+    display: none;
+}
+
+.command-hub.perspective-centered .terminal-container {
+    padding-left: 10%;
+    padding-right: 10%;
+}
+
+.command-hub.perspective-centered .right-chip-region {
+    display: none;
 }
 
 .left-chip-region,
@@ -71,34 +85,7 @@
     border-color: var(--lcars-orange);
 }
 
-.hub-header {
-    background: var(--lcars-panel);
-    border-left: 20px solid var(--lcars-blue);
-    padding: 15px 25px;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    border-radius: 0 30px 30px 0;
-}
 
-.hub-sector-name {
-    font-size: 1.5rem;
-    font-weight: 800;
-    color: var(--lcars-blue);
-}
-
-.hub-host {
-    display: block;
-    font-family: var(--font-mono);
-    font-size: 0.8rem;
-    color: var(--lcars-orange);
-}
-
-.hub-info {
-    display: flex;
-    flex-direction: column;
-    gap: 5px;
-}
 
 .follow-indicator {
     font-size: 0.7rem;
@@ -127,17 +114,7 @@
     }
 }
 
-.hub-controls {
-    display: flex;
-    gap: 10px;
-    align-items: center;
-}
 
-.hub-participants {
-    display: flex;
-    gap: 10px;
-    align-items: center;
-}
 
 .participant-avatar {
     width: 32px;
@@ -152,36 +129,9 @@
     border: 2px solid rgba(255, 255, 255, 0.3);
 }
 
-.invite-btn {
-    width: 30px;
-    height: 30px;
-    border-radius: 50%;
-    background: var(--lcars-blue);
-    color: black;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-weight: 900;
-    cursor: pointer;
-}
 
-.hub-tabs {
-    display: flex;
-    gap: 2px;
-}
 
-.hub-tab {
-    background: var(--lcars-blue);
-    color: black;
-    padding: 10px 30px;
-    font-weight: 800;
-    cursor: pointer;
-    clip-path: polygon(0 0, 100% 0, 90% 100%, 0% 100%);
-}
 
-.hub-tab.active {
-    background: var(--lcars-orange);
-}
 
 .hub-content {
     background: rgba(255, 255, 255, 0.03);
@@ -189,6 +139,7 @@
     display: flex;
     flex-direction: column;
     padding: 20px;
+    margin: 0 50px;
     overflow: hidden;
     position: relative;
 }
@@ -210,63 +161,6 @@
     word-break: break-all;
 }
 
-.unified-prompt {
-    display: flex;
-    flex-direction: row;
-    align-items: stretch;
-    background: var(--lcars-panel);
-    border-left: 20px solid var(--lcars-orange);
-    border-radius: 0 30px 30px 0;
-    padding: 0;
-    min-height: 60px;
-}
-
-.left-section {
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-    gap: 8px;
-    padding: 10px 20px;
-    border-right: 2px solid rgba(0, 0, 0, 0.5);
-    min-width: 100px;
-}
-
-.input-mode-tabs {
-    display: flex;
-    gap: 10px;
-    flex-direction: column;
-}
-
-.mode-tab {
-    font-size: 0.7rem;
-    font-weight: 800;
-    color: var(--lcars-blue);
-    cursor: pointer;
-    text-transform: uppercase;
-    padding-bottom: 2px;
-    border-bottom: 2px solid transparent;
-    opacity: 0.6;
-    transition: all 0.2s;
-}
-
-.mode-tab:hover {
-    opacity: 1;
-    color: var(--lcars-orange);
-}
-
-.mode-tab.active {
-    opacity: 1;
-    color: var(--lcars-orange);
-    border-bottom: 2px solid var(--lcars-orange);
-}
-
-.center-section {
-    flex: 1;
-    display: flex;
-    align-items: center;
-    padding: 10px 20px;
-}
-
 .prompt-container {
     display: flex;
     align-items: center;
@@ -276,8 +170,10 @@
 .prompt-prefix {
     font-family: var(--font-mono);
     color: var(--lcars-orange);
-    margin-right: 15px;
+    margin-right: 20px;
     font-weight: 700;
+    font-size: 1.3rem;
+    white-space: nowrap;
 }
 
 #terminal-input {
@@ -286,9 +182,11 @@
     border: none;
     color: white;
     font-family: var(--font-mono);
-    font-size: 1.2rem;
+    font-size: 1.4rem;
     outline: none;
+    height: 100%;
 }
+
 
 /* Directory/Activity Sub-Views */
 .directory-view,
@@ -454,11 +352,15 @@
 
 /* Addendum A // Search & AI modes */
 
+.left-section {
+    border-right: 2px solid rgba(0, 0, 0, 0.5);
+}
+
+.center-section {
+    flex: 1;
+}
+
 .right-section {
-    display: flex;
-    align-items: center;
-    padding: 10px 20px;
-    gap: 15px;
     border-left: 2px solid rgba(0, 0, 0, 0.5);
 }
 

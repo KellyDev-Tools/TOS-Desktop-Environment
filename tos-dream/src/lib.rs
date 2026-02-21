@@ -123,7 +123,15 @@ pub struct CommandHub {
     /// Shell-provided command suggestions (synchronized via OSC 9000/9008) §13.2
     #[serde(default)]
     pub suggestions: Vec<system::shell_api::CommandSuggestion>,
+    /// UI State: Standard vs Centered Perspective
+    #[serde(default)]
+    pub output_mode_centered: bool,
+    /// UI State: Visibility of the favorites/context region
+    #[serde(default = "true_default")]
+    pub left_region_visible: bool,
 }
+
+fn true_default() -> bool { true }
 
 /// Directory listing entry
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -314,6 +322,7 @@ pub struct TosState {
     pub modules: Vec<Box<dyn TosModule>>,
     pub portal_security_bypass: bool,
     pub approval_requested_sector: Option<uuid::Uuid>,
+    pub comms_visible: bool,
     /// Module registry for package management
     #[serde(skip)]
     pub module_registry: ModuleRegistry,
@@ -648,6 +657,8 @@ impl TosState {
                 context_menu: None,
                 shell_listing: None,
                 suggestions: vec![],
+                output_mode_centered: false,
+                left_region_visible: true,
             }],
             active_hub_index: 0,
             host: "LOCAL".to_string(),
@@ -695,6 +706,7 @@ impl TosState {
             modules: Vec::new(),
             portal_security_bypass: false,
             approval_requested_sector: None,
+            comms_visible: false,
             module_registry,
             app_model_registry,
             sector_type_registry,
@@ -1090,6 +1102,8 @@ impl TosState {
                 context_menu: None,
                 shell_listing: None,
                 suggestions: vec![],
+                output_mode_centered: false,
+                left_region_visible: true,
             }],
             active_hub_index: 0,
             host: "LOCAL".to_string(),
@@ -1248,6 +1262,12 @@ impl TosState {
                     v.current_level = HierarchyLevel::GlobalOverview;
                 }
             }
+            SemanticEvent::ToggleMiniMap => {
+                self.toggle_minimap();
+            }
+            SemanticEvent::ToggleComms => {
+                self.toggle_comms();
+            }
             _ => {
                 // Placeholder for other events
                 tracing::info!("Received semantic event: {:?}", event);
@@ -1363,6 +1383,11 @@ impl TosState {
         self.minimap.toggle();
     }
 
+    pub fn toggle_comms(&mut self) {
+        self.comms_visible = !self.comms_visible;
+        self.earcon_player.play(crate::system::audio::earcons::EarconEvent::ModeSwitch); 
+    }
+
     /// Process voice text command through the processor.
     pub fn process_voice_command(&mut self, text: &str) -> Option<system::voice::VoiceCommand> {
         if let Some(cmd) = self.voice.process_text(text) {
@@ -1406,6 +1431,13 @@ impl TosState {
         if self.performance_alert {
             html.push_str(&self.render_performance_overlay());
         }
+
+        // Direct Comms Overlay (§8.4)
+        html.push_str(&ui::render::render_comms_overlay(self));
+
+        // Tactical Mini-Map (§6)
+        html.push_str(&self.minimap.render(self));
+
         html
     }
 

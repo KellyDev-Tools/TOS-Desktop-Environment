@@ -56,6 +56,10 @@ pub enum SemanticEvent {
 
     // Operations (§9.1)
     StopOperation,
+
+    // UI State
+    ToggleMiniMap,
+    ToggleComms,
 }
 
 #[cfg(feature = "gamepad")]

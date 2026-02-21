@@ -250,6 +250,8 @@ impl TacticalReset {
             context_menu: None,
             shell_listing: None,
                 suggestions: vec![],
+            output_mode_centered: false,
+            left_region_visible: true,
         }];
         sector.active_hub_index = 0;
 

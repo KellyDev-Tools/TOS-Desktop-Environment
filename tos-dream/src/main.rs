@@ -25,8 +25,10 @@ fn main() -> anyhow::Result<()> {
 
     // 1. Initialize System State
     let state = {
-        let mut s = TosState::new();
-        s.portal_security_bypass = disable_security;
+        // Force reset the state so the user sees the new defaults
+        std::fs::remove_file(dirs::config_dir().unwrap_or_default().join("tos-dream/state.json")).ok();
+        
+        let s = TosState::new_fresh(); // Use new_fresh to bypass loaded state temporarily
         Arc::new(Mutex::new(s))
     };
     let ptys: Arc<Mutex<HashMap<uuid::Uuid, PtyHandle>>> = Arc::new(Mutex::new(HashMap::new()));
@@ -199,12 +201,14 @@ fn main() -> anyhow::Result<()> {
 
         // Periodic UI update (every 100ms)
         if last_update.elapsed().as_millis() >= 100 {
-            let (html, current_level) = {
-                let s = state_update.lock().unwrap();
-                (s.render_current_view(), s.current_level)
+            let (html, current_level, force) = {
+                let mut s = state_update.lock().unwrap();
+                let f = s.force_redraw;
+                s.force_redraw = false;
+                (s.render_current_view(), s.current_level, f)
             };
             
-            if html != last_rendered_html {
+            if force || html != last_rendered_html {
                 // Use the tested helper to generate safe update script
                 let js = tos_core::ui::generate_view_update_script(&html, current_level);
                 let _ = webview.evaluate_script(&js);

@@ -1,0 +1,136 @@
+<div class="tactical-header" style="--header-accent: var(--lcars-blue);">
+                <div class="header-left">
+                    <h1 class="header-title large">TOS COMMAND CENTER</h1>
+                </div>
+                <div class="header-center"></div>
+                <div class="header-right">
+                    <div class="telemetry-bar-inline" style="display:flex; gap:30px; align-items:center;">
+                        <div class="telemetry-item">
+                            <span class="label">System Time</span>
+                            <span class="value" id="tos-sys-time" style="color:var(--lcars-orange); font-weight:700; font-size:1.2rem;">19:17</span>
+                        </div>
+                        <div class="telemetry-item">
+                            <span class="label">Ambience</span>
+                            <div class="ambience-controls" style="display:flex; gap:5px;">
+                                <button class="bezel-btn mini" onclick="window.ipc.postMessage('play_audio:AmbientHum')">HUM</button>
+                                <button class="bezel-btn mini" onclick="window.ipc.postMessage('play_audio:BridgeChirps')">CHIRP</button>
+                            </div>
+                        </div>
+                        <div class="telemetry-item" style="display:flex; gap:5px;">
+                            <button class="bezel-btn mini comms-toggle-btn" onclick="window.ipc.postMessage('toggle_comms')">COMMS</button>
+                            <button class="bezel-btn mini minimap-toggle-btn" onclick="window.ipc.postMessage('semantic_event:ToggleMiniMap')">MAP</button>
+                        </div>
+                        <div class="telemetry-item">
+                            <span class="label">Stardate</span>
+                            <span class="value" id="tos-stardate" style="color:var(--lcars-orange); font-weight:700; font-size:1.2rem;">26-052 // 26-1917</span>
+                        </div>
+                    </div>
+                </div>
+            </div><div class="global-grid mode-Full"><div class="sector-card orange" onclick="window.ipc.postMessage('select_sector:0')">
+                    <div class="mini-bezel">
+                        
+                        
+                        <div class="settings-trigger" onclick="event.stopPropagation(); window.ipc.postMessage('open_settings')">⚙️</div>
+                    </div>
+                    <div class="left-indicators">
+                        <div class="mode-chip active"></div>
+                        <div class="mode-chip "></div>
+                        <div class="mode-chip "></div>
+                    </div>
+                    <div class="card-body">
+                        <div class="collaboration-dots">
+                            <div class="collab-dot"></div>
+                        </div>
+                        <div class="card-icon">⌨️</div>
+                        <div class="sector-name">ALPHA SECTOR</div>
+                        <div class="sector-desc">Primary coordination and terminal access.</div>
+                        <div class="sector-stats">
+                            <div class="stat"><span class="val">1 HUBS</span></div>
+                            <div class="stat"><span class="val">1 USERS</span></div>
+                        </div>
+                    </div>
+                    <div class="right-indicators">
+                        <div class="priority-chip-mini active"></div><div class="priority-chip-mini active"></div><div class="priority-chip-mini active"></div><div class="priority-chip-mini "></div><div class="priority-chip-mini "></div>
+                    </div>
+                    <div class="mini-prompt"></div>
+                </div><div class="sector-card green" onclick="window.ipc.postMessage('select_sector:1')">
+                    <div class="mini-bezel">
+                        
+                        
+                        <div class="settings-trigger" onclick="event.stopPropagation(); window.ipc.postMessage('open_settings')">⚙️</div>
+                    </div>
+                    <div class="left-indicators">
+                        <div class="mode-chip "></div>
+                        <div class="mode-chip "></div>
+                        <div class="mode-chip active"></div>
+                    </div>
+                    <div class="card-body">
+                        <div class="collaboration-dots">
+                            
+                        </div>
+                        <div class="card-icon">🔬</div>
+                        <div class="sector-name">SCIENCE LABS</div>
+                        <div class="sector-desc">Deep space analysis and sensor arrays.</div>
+                        <div class="sector-stats">
+                            <div class="stat"><span class="val">1 HUBS</span></div>
+                            <div class="stat"><span class="val">0 USERS</span></div>
+                        </div>
+                    </div>
+                    <div class="right-indicators">
+                        <div class="priority-chip-mini active"></div><div class="priority-chip-mini active"></div><div class="priority-chip-mini active"></div><div class="priority-chip-mini active"></div><div class="priority-chip-mini "></div>
+                    </div>
+                    <div class="mini-prompt"></div>
+                </div><div class="sector-card green" onclick="window.ipc.postMessage('select_sector:2')">
+                    <div class="mini-bezel">
+                        
+                        
+                        <div class="settings-trigger" onclick="event.stopPropagation(); window.ipc.postMessage('open_settings')">⚙️</div>
+                    </div>
+                    <div class="left-indicators">
+                        <div class="mode-chip active"></div>
+                        <div class="mode-chip "></div>
+                        <div class="mode-chip "></div>
+                    </div>
+                    <div class="card-body">
+                        <div class="collaboration-dots">
+                            
+                        </div>
+                        <div class="card-icon">👁️</div>
+                        <div class="sector-name">OBSERVATION HUB</div>
+                        <div class="sector-desc">Visual reconnaissance and exterior monitoring.</div>
+                        <div class="sector-stats">
+                            <div class="stat"><span class="val">1 HUBS</span></div>
+                            <div class="stat"><span class="val">0 USERS</span></div>
+                        </div>
+                    </div>
+                    <div class="right-indicators">
+                        <div class="priority-chip-mini "></div><div class="priority-chip-mini "></div><div class="priority-chip-mini "></div><div class="priority-chip-mini "></div><div class="priority-chip-mini "></div>
+                    </div>
+                    <div class="mini-prompt"></div>
+                </div><div class="sector-card create-card orange" onclick="window.ipc.postMessage('create_sector')">
+            <div class="mini-bezel">NEW MODULE</div>
+            <div class="left-indicators"></div>
+            <div class="card-body" style="align-items: center; justify-content: center;">
+                <div class="card-icon" style="margin-bottom: 10px; font-size: 4rem;">+</div>
+                <div class="sector-name" style="font-size: 1.2rem; opacity: 0.6;">CREATE SECTOR</div>
+            </div>
+            <div class="right-indicators"></div>
+            <div class="mini-prompt"></div>
+        </div><div class="sector-card remote-card green">
+            <div class="mini-bezel">REMOTE CONNECTION</div>
+            <div class="left-indicators"></div>
+            <div class="card-body">
+                <div class="card-icon">📡</div>
+                <div class="sector-name" style="font-size: 1.5rem;">LINK NODE</div>
+                <p class="sector-desc">Establish a persistent tactical link to a remote TOS installation via IP/Hostname.</p>
+                <div class="remote-input-group">
+                    <input type="text" id="remote-host-input" placeholder="ADDRESS (e.g. 192.168.1.50)" 
+                           onkeyup="if(event.key==='Enter') window.ipc.postMessage('connect_remote:' + this.value)">
+                </div>
+                <div style="margin-top: 15px;">
+                    <button class="execute-btn" onclick="const val = document.getElementById('remote-host-input').value; if(val) window.ipc.postMessage('connect_remote:' + val)">CONNECT</button>
+                </div>
+            </div>
+            <div class="right-indicators"></div>
+            <div class="mini-prompt"></div>
+        </div></div>

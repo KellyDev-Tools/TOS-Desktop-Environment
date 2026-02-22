@@ -24,6 +24,8 @@
     </div>
 
     <script>
+        window.onerror = function(m, s, l, c, e) { document.querySelector("#main-content").innerHTML = "<h1>JS ERROR: " + m + " at " + l + ":" + c + "</h1>"; };
+
         const hierarchyMap = {
             'GlobalOverview': 0,
             'CommandHub': 1,
@@ -44,6 +46,16 @@
             }
         };
 
+        window.handlePromptInput = function (e) {
+            window.ipc.postMessage('prompt_input:' + e.target.value);
+        };
+
+        setInterval(() => {
+            document.querySelectorAll('.terminal-output').forEach(term => {
+                term.scrollTop = term.scrollHeight;
+            });
+        }, 200);
+
         window.addEventListener('keydown', (e) => {
             if (e.key === 'Enter' && e.ctrlKey) window.ipc.postMessage('zoom_in');
             if (e.key === 'Escape') window.ipc.postMessage('zoom_out');
@@ -51,6 +63,10 @@
 
         // The update function called from Rust (indirectly via evaluate_script)
         window.updateView = function (html, currentLevelStr) {
+            if (!document.getElementById('main-content')) {
+                setTimeout(() => window.updateView(html, currentLevelStr), 100);
+                return;
+            }
             const container = document.getElementById('main-content');
             if (!container) {
                 document.body.innerHTML = "<h1>NO CONTAINER: " + html.substring(0, 100) + "</h1>";
@@ -129,6 +145,10 @@
         setInterval(() => {
             document.getElementById('clock').innerText = new Date().toLocaleTimeString('en-GB');
         }, 1000);
+
+        document.addEventListener('DOMContentLoaded', () => {
+            setTimeout(() => window.ipc.postMessage('ui_ready'), 50);
+        });
     </script>
 </body>
 

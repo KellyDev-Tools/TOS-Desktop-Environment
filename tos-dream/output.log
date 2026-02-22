@@ -1,0 +1,5 @@
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.29s
+     Running `target/debug/tos`
+Dropped Escape call with ulEscapeCode : 0x03007703
+Dropped Escape call with ulEscapeCode : 0x03007703
+Dropped Escape call with ulEscapeCode : 0x03007703

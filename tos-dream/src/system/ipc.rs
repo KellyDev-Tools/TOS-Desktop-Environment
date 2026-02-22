@@ -32,14 +32,14 @@ impl IpcDispatcher {
             };
             state.toggle_mode(mode);
 
-            // §13.2: When entering Directory Mode, request an immediate ls of the cwd
-            if mode == CommandHubMode::Directory {
-                let viewport = &state.viewports[state.active_viewport_index];
-                let sector_idx = viewport.sector_index;
-                let hub_idx = viewport.hub_index;
-                let hub = &state.sectors[sector_idx].hubs[hub_idx];
-                let hub_id = hub.id;
-                let cwd = hub.current_directory.to_string_lossy().to_string();
+                let (hub_id, cwd) = {
+                    let viewport = &state.viewports[state.active_viewport_index];
+                    let sector_idx = viewport.sector_index;
+                    let hub_idx = viewport.hub_index;
+                    let hub = &state.sectors[sector_idx].hubs[hub_idx];
+                    (hub.id, hub.current_directory.to_string_lossy().to_string())
+                };
+
                 drop(state); // release lock before locking ptys
                 if let Ok(ptys) = self.ptys.lock() {
                     if let Some(pty) = ptys.get(&hub_id) {
@@ -49,13 +49,50 @@ impl IpcDispatcher {
                     }
                 }
                 return;
-            }
         } else if request.starts_with("select_sector:") {
             if let Ok(idx) = request[14..].parse::<usize>() {
                 state.select_sector(idx);
             }
         } else if request.starts_with("prompt_submit:") {
-            self.handle_prompt_submit(&mut state, &request[14..]);
+            let cmd = request[14..].to_string();
+            let (sector_idx, hub_idx) = {
+                let viewport = &state.viewports[state.active_viewport_index];
+                (viewport.sector_index, viewport.hub_index)
+            };
+            let hub_id = {
+                let hub = &mut state.sectors[sector_idx].hubs[hub_idx];
+                hub.prompt.clear(); // Section 13.2: Clear prompt on submission
+                hub.confirmation_required = None;
+                hub.terminal_output.push(format!("> {}", cmd)); // Immediate local echo
+                if hub.terminal_output.len() > 100 { hub.terminal_output.remove(0); }
+                hub.id
+            };
+            self.handle_prompt_submit(&mut state, &cmd);
+            
+            // §13.2: If handle_prompt_submit didn't intercept (zoom/mode), write to PTY.
+            // But we must do it outside the state lock to avoid deadlocks with PtyHandle::poll_all
+            drop(state);
+            if let Ok(ptys) = self.ptys.lock() {
+                if let Some(pty) = ptys.get(&hub_id) {
+                    // Check if it was a system command already handled
+                    let handled_system = ["zoom", "mode", "focus", "in", "out"].iter().any(|&s| cmd.starts_with(s));
+                    if !handled_system {
+                         pty.write(&format!("{}\n", cmd));
+                    }
+                }
+            }
+            return; // Exit handle_request as we already dropped state and finished logic
+        } else if request.starts_with("prompt_input:") {
+            let partial = &request[13..];
+            state.set_prompt(partial.to_string());
+            
+            // Generate real-time completions (§13.2)
+            let suggestions = state.shell_api.generate_completions(partial, partial.len(), &state);
+            let (sector_idx, hub_idx) = {
+                let viewport = &state.viewports[state.active_viewport_index];
+                (viewport.sector_index, viewport.hub_index)
+            };
+            state.sectors[sector_idx].hubs[hub_idx].suggestions = suggestions;
         } else if request.starts_with("stage_command:") {
             let cmd = &request[14..];
             state.stage_command(cmd.to_string());
@@ -226,16 +263,19 @@ impl IpcDispatcher {
                     
                     // Sync with shell
                     let hub_id = hub.id;
+                    let path_str = new_path.to_string_lossy().to_string();
+                    drop(state);
                     if let Ok(ptys) = self.ptys.lock() {
                         if let Some(pty) = ptys.get(&hub_id) {
-                            let cd_cmd = format!("cd {}\n", new_path.to_string_lossy());
+                            let cd_cmd = format!("cd {}\n", path_str);
                             pty.write(&cd_cmd);
                             
                             // Request directory listing via Shell API
-                            let ls_cmd = format!("LS {}\n", new_path.to_string_lossy());
+                            let ls_cmd = format!("LS {}\n", path_str);
                             pty.write(&ls_cmd);
                         }
                     }
+                    return;
                 }
             } else {
                 // Navigate into subdirectory
@@ -247,16 +287,19 @@ impl IpcDispatcher {
 
                     // Sync with shell
                     let hub_id = hub.id;
+                    let path_str = new_path.to_string_lossy().to_string();
+                    drop(state);
                     if let Ok(ptys) = self.ptys.lock() {
                         if let Some(pty) = ptys.get(&hub_id) {
-                            let cd_cmd = format!("cd {}\n", new_path.to_string_lossy());
+                            let cd_cmd = format!("cd {}\n", path_str);
                             pty.write(&cd_cmd);
                             
                             // Request directory listing via Shell API
-                            let ls_cmd = format!("LS {}\n", new_path.to_string_lossy());
+                            let ls_cmd = format!("LS {}\n", path_str);
                             pty.write(&ls_cmd);
                         }
                     }
+                    return;
                 }
             }
         } else if request == "dir_toggle_hidden" {
@@ -428,12 +471,14 @@ impl IpcDispatcher {
                     app.settings.insert(key.to_string(), val);
                 }
             }
+        } else if request == "ui_ready" {
+            state.force_redraw = true;
         } else {
             // Legacy/Direct zoom fallback
             match request {
                 "zoom_in" => state.zoom_in(),
                 "zoom_out" => state.zoom_out(),
-                _ => tracing::warn!("Unknown IPC request: {}", request),
+                _ => println!("Unknown IPC request: {}", request),
             }
         }
         
@@ -527,9 +572,8 @@ impl IpcDispatcher {
                 }
 
                 hub.confirmation_required = None;
-                if let Some(pty) = self.ptys.lock().unwrap().get(&hub.id) {
-                    pty.write(&format!("{}\n", cmd_full));
-                }
+                // PTY write is now handled in handle_request after dropping state lock
+                tracing::info!("Consolidated tactical command: {}", cmd_full);
             }
         }
     }
@@ -741,10 +785,14 @@ impl IpcDispatcher {
         if let Some(fish) = state.shell_registry.get("fish") {
             if let Some(pty) = fish.spawn(".") {
                 let pid = pty.child_pid;
-                self.ptys.lock().unwrap().insert(new_hub_id, pty);
+                
+                // Add to PTY map
+                if let Ok(mut ptys_lock) = self.ptys.lock() {
+                    ptys_lock.insert(new_hub_id, pty);
+                }
                 
                 // Register shell as an application for monitoring
-                sector.hubs[hub_idx].applications.push(crate::Application {
+                state.sectors[sector_idx].hubs[hub_idx].applications.push(crate::Application {
                     id: Uuid::new_v4(),
                     title: "fish".to_string(),
                     app_class: "Shell".to_string(),
@@ -757,7 +805,7 @@ impl IpcDispatcher {
                     decoration_policy: crate::DecorationPolicy::Native,
                     bezel_actions: std::vec::Vec::new(),
                 });
-                sector.hubs[hub_idx].active_app_index = Some(0);
+                state.sectors[sector_idx].hubs[hub_idx].active_app_index = Some(0);
             }
         }
 

@@ -1,0 +1,92 @@
+<div class="command-hub mode-directory   render-Full"><div class="tactical-header" style="--header-accent: #ff9900;">
+                <div class="header-left">
+                    <button class="bezel-btn mini" onclick="window.ipc.postMessage('zoom_out')" title="Zoom Out">ZOOM OUT</button>
+                    <button class="bezel-btn mini" onclick="window.ipc.postMessage('toggle_output_mode')" title="Standard / Centered Perspective">OUTPUT MODE</button>
+                    <button class="bezel-btn mini" onclick="window.ipc.postMessage('toggle_left_region')" title="Toggle Left Favourites">LEFT</button>
+                </div>
+                <div class="header-center">
+                    <div class="three-way-toggle">
+                        <div class="toggle-segment " onclick="window.ipc.postMessage('set_mode:Command')">COMMAND</div>
+                        <div class="toggle-segment active" onclick="window.ipc.postMessage('set_mode:Directory')">DIRECTORY</div>
+                        <div class="toggle-segment " onclick="window.ipc.postMessage('set_mode:Activity')">ACTIVITY</div>
+                    </div>
+                </div>
+                <div class="header-right">
+                    <div class="hub-info-inline" style="display:flex; gap:20px; align-items:center;">
+                        <div class="hub-metadata">
+                            <span class="hub-sector-name" style="font-weight:800; color:#ff9900;">ALPHA SECTOR</span>
+                            <span class="hub-host" style="font-size:0.7rem; opacity:0.6; margin-left:10px;">LOCAL</span>
+                        </div>
+                        
+                        <div class="hub-participants" style="display:flex; gap:5px;">
+                            <div class="participant-avatar" style="background-color: #ffcc00" title="Host (Co-Owner)" onclick="window.ipc.postMessage('follow_participant:c49b626a-9906-416b-9476-b71492ccc607')">H</div>
+                        </div>
+                        <div class="telemetry-item" style="display:flex; gap:5px;">
+                            <button class="bezel-btn mini comms-toggle-btn" onclick="window.ipc.postMessage('toggle_comms')">COMMS</button>
+                            <button class="bezel-btn mini minimap-toggle-btn" onclick="window.ipc.postMessage('semantic_event:ToggleMiniMap')">MAP</button>
+                        </div>
+                    </div>
+                </div>
+            </div><div class="hub-content"><div class="terminal-container background-layer">
+                <div class="terminal-output" id="hub-term-38fc12c5-db0b-4ae0-b976-8cfe16eda597">
+                    
+                </div>
+            </div><div class="directory-view foreground-layer">
+                    <div class="path-bar breadcrumbs"><span class="breadcrumb" onclick="window.ipc.postMessage('dir_navigate:/')">ROOT</span><span class="path-sep">/</span><span class="breadcrumb" onclick="window.ipc.postMessage('dir_navigate:home')">HOME</span><span class="path-sep">/</span><span class="breadcrumb" onclick="window.ipc.postMessage('dir_navigate:home/tim')">TIM</span></div><div class="directory-actions">
+                    <button class="bezel-btn" onclick="window.ipc.postMessage('stage_command:mkdir ')">NEW FOLDER</button>
+                    <button class="bezel-btn" onclick="window.ipc.postMessage('dir_action_copy')">COPY</button>
+                    <button class="bezel-btn" onclick="window.ipc.postMessage('dir_action_paste')">PASTE</button>
+                    <button class="bezel-btn" onclick="window.ipc.postMessage('stage_command:mv ')">RENAME</button>
+                    <button class="bezel-btn" onclick="window.ipc.postMessage('dir_toggle_hidden')">TOGGLE HIDDEN</button>
+                    <button class="bezel-btn danger" onclick="window.ipc.postMessage('stage_command:rm ')">DELETE</button>
+                    <button class="bezel-btn" onclick="window.ipc.postMessage('dir_navigate:.')">REFRESH</button>
+                </div><div class="file-grid"><div class="file-item staging-item" onclick="window.ipc.postMessage('dir_navigate:..')">
+                    <span class="file-icon folder"></span> ..
+                </div><div class="file-item staging-item " 
+                                    onclick="window.ipc.postMessage('dir_navigate:snap')"
+                                    oncontextmenu="event.preventDefault(); window.ipc.postMessage('dir_context:snap;' + event.clientX + ';' + event.clientY)">
+                                    <div class="file-selector" onclick="event.stopPropagation(); window.ipc.postMessage('dir_toggle_select:snap')"></div>
+                                    <span class="file-icon folder"></span> SNAP/
+                                </div><div class="file-item staging-item " 
+                                    onclick="window.ipc.postMessage('dir_navigate:TOS-Desktop-Environment')"
+                                    oncontextmenu="event.preventDefault(); window.ipc.postMessage('dir_context:TOS-Desktop-Environment;' + event.clientX + ';' + event.clientY)">
+                                    <div class="file-selector" onclick="event.stopPropagation(); window.ipc.postMessage('dir_toggle_select:TOS-Desktop-Environment')"></div>
+                                    <span class="file-icon folder"></span> TOS-DESKTOP-ENVIRONMENT/
+                                </div><div class="file-item staging-item " 
+                                    onclick="window.ipc.postMessage('dir_navigate:TOS-Desktop-Environment.worktrees')"
+                                    oncontextmenu="event.preventDefault(); window.ipc.postMessage('dir_context:TOS-Desktop-Environment.worktrees;' + event.clientX + ';' + event.clientY)">
+                                    <div class="file-selector" onclick="event.stopPropagation(); window.ipc.postMessage('dir_toggle_select:TOS-Desktop-Environment.worktrees')"></div>
+                                    <span class="file-icon folder"></span> TOS-DESKTOP-ENVIRONMENT.WORKTREES/
+                                </div><div class="file-item action-item" onclick="window.ipc.postMessage('dir_toggle_hidden')">
+                                <span class="file-icon"></span> SHOW HIDDEN FILES
+                            </div></div></div></div><div class="unified-prompt">
+                <div class="left-section">
+                    <div class="three-way-toggle">
+                        <div class="toggle-segment active" onclick="window.ipc.postMessage('set_mode:Command')">CMD</div>
+                        <div class="toggle-segment " onclick="window.ipc.postMessage('set_mode:Search')">SEARCH</div>
+                        <div class="toggle-segment " onclick="window.ipc.postMessage('set_mode:Ai')">AI</div>
+                    </div>
+                </div>
+                <div class="center-section">
+                    <div class="prompt-container">
+                        <div class="prompt-prefix">TOS@ALPHA SECTOR ></div>
+                        <input type="text" id="terminal-input" value="" 
+                            onkeydown="window.handlePromptKey(event)" 
+                            oninput="window.handlePromptInput(event)"
+                            autofocus>
+                    </div>
+                </div>
+                <div class="right-section">
+                    <div class="prompt-controls">
+                        <div class="voice-trigger" style="font-size:1.5rem;cursor:pointer;" onclick="window.ipc.postMessage('semantic_event:VoiceCommandStart')">
+                            <div class="voice-indicator voice-idle">
+                <div class="voice-icon">🎤</div>
+                <div class="voice-status">Voice commands disabled</div>
+                
+            </div>
+                        </div>
+                        
+                        <div class="stop-btn" onclick="window.ipc.postMessage('semantic_event:StopOperation')" title="STOP (Ctrl+Shift+C)">⏹️</div>
+                    </div>
+                </div>
+            </div></div>

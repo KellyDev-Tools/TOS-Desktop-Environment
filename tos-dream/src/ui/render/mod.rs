@@ -59,3 +59,11 @@ pub fn render_comms_overlay(state: &TosState) -> String {
         comms_html
     )
 }
+
+pub fn escape_html(s: &str) -> String {
+    s.replace('&', "&amp;")
+     .replace('<', "&lt;")
+     .replace('>', "&gt;")
+     .replace('"', "&quot;")
+     .replace('\'', "&#39;")
+}

@@ -806,7 +806,7 @@ impl ShellApi {
     }
 
     /// Generate command completions
-    fn generate_completions(&self, partial: &str, _cursor_pos: usize, state: &TosState) -> Vec<CommandSuggestion> {
+    pub fn generate_completions(&self, partial: &str, _cursor_pos: usize, state: &TosState) -> Vec<CommandSuggestion> {
         let mut suggestions = Vec::new();
         
         let viewport = &state.viewports[state.active_viewport_index];

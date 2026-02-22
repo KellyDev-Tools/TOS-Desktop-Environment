@@ -2,7 +2,7 @@ use smithay::{
     delegate_compositor, delegate_output, delegate_seat, delegate_shm, delegate_xdg_shell,
     delegate_xdg_decoration,
     reexports::{
-        wayland_server::{Display, DisplayHandle, protocol::{wl_surface::WlSurface, wl_buffer, wl_seat}, Client, ListeningSocket},
+        wayland_server::{Display, DisplayHandle, protocol::{wl_surface::WlSurface, wl_buffer, wl_seat}, Client, ListeningSocket, Resource},
         wayland_protocols::{
             xdg::shell::server::xdg_toplevel,
             xdg::decoration::zv1::server::zxdg_toplevel_decoration_v1,
@@ -13,7 +13,7 @@ use smithay::{
         output::{OutputHandler, OutputManagerState},
         shm::{ShmHandler, ShmState},
         shell::xdg::{
-            XdgShellHandler, XdgShellState, ToplevelSurface, PopupSurface, PositionerState,
+            XdgShellHandler, XdgShellState, ToplevelSurface as XdgToplevelSurface, PopupSurface, PositionerState,
             decoration::XdgDecorationState,
         },
     },
@@ -21,7 +21,7 @@ use smithay::{
         Seat, SeatHandler, SeatState, pointer::{CursorImageStatus, MotionEvent, ButtonEvent},
         keyboard::XkbConfig,
     },
-    utils::{Logical, Point, Rectangle, Serial, Transform, Physical},
+    utils::{Logical, Point, Rectangle, Serial, Transform, Physical, Size},
     desktop::{Space, Window, space::SpaceRenderElements},
     backend::{
         renderer::{
@@ -47,11 +47,74 @@ use super::{Renderer as TosPlatformRenderer, InputSource, SurfaceConfig, Surface
 use crate::system::input::SemanticEvent;
 use crate::TosState;
 
-// LCARS Palette (§1.1, §2.1)
-const LCARS_GOLD: [f32; 4] = [1.0, 0.6, 0.0, 1.0];
-const LCARS_PEACH: [f32; 4] = [1.0, 0.8, 0.6, 1.0];
-const LCARS_BLUE: [f32; 4] = [0.4, 0.4, 1.0, 1.0];
-const LCARS_BLACK: [f32; 4] = [0.01, 0.01, 0.04, 1.0];
+#[derive(Debug, Clone)]
+pub struct LcarsTheme {
+    pub orange: [f32; 4],
+    pub blue: [f32; 4],
+    pub purple: [f32; 4],
+    pub red: [f32; 4],
+    pub black: [f32; 4],
+}
+
+impl Default for LcarsTheme {
+    fn default() -> Self {
+        Self {
+            orange: [1.0, 0.6, 0.0, 1.0],   // #ff9900
+            blue: [0.6, 0.6, 0.8, 1.0],     // #9999cc
+            purple: [0.8, 0.6, 0.8, 1.0],   // #cc99cc
+            red: [0.8, 0.4, 0.4, 1.0],      // #cc6666
+            black: [0.01, 0.01, 0.04, 1.0], // Dark fallback
+        }
+    }
+}
+
+impl LcarsTheme {
+    pub fn load_from_css() -> Self {
+        let mut theme = Self::default();
+        let css_paths = [
+            "ui/assets/css/modules/base.css",
+            "tos-dream/ui/assets/css/modules/base.css",
+        ];
+        
+        for path in css_paths {
+            if let Ok(content) = std::fs::read_to_string(path) {
+                for line in content.lines() {
+                    let line = line.trim();
+                    if line.starts_with("--lcars-") {
+                        let parts: Vec<&str> = line.split(':').collect();
+                        if parts.len() == 2 {
+                            let key = parts[0].trim_start_matches("--lcars-").trim();
+                            let value = parts[1].trim_end_matches(';').trim();
+                            let color = Self::parse_hex(value);
+                            match key {
+                                "orange" => theme.orange = color,
+                                "blue" => theme.blue = color,
+                                "purple" => theme.purple = color,
+                                "red" => theme.red = color,
+                                "bg" => theme.black = color,
+                                _ => {}
+                            }
+                        }
+                    }
+                }
+                break; // Found and loaded
+            }
+        }
+        theme
+    }
+
+    fn parse_hex(hex: &str) -> [f32; 4] {
+        let hex = hex.trim_start_matches('#');
+        if hex.len() == 6 {
+            let r = u8::from_str_radix(&hex[0..2], 16).unwrap_or(0);
+            let g = u8::from_str_radix(&hex[2..4], 16).unwrap_or(0);
+            let b = u8::from_str_radix(&hex[4..6], 16).unwrap_or(0);
+            [r as f32 / 255.0, g as f32 / 255.0, b as f32 / 255.0, 1.0]
+        } else {
+            [0.0, 0.0, 0.0, 1.0]
+        }
+    }
+}
 
 pub struct TosCompositorState {
     pub display_handle: DisplayHandle,
@@ -70,6 +133,9 @@ pub struct TosCompositorState {
     pub pending_semantic_events: Arc<Mutex<Vec<SemanticEvent>>>,
     pub pointer_location: Point<f64, Logical>,
     pub bezel_ids: [Id; 6],
+    pub shell_pid: Option<u32>,
+    pub shell_client_id: Option<smithay::reexports::wayland_server::backend::ClientId>,
+    pub theme: LcarsTheme,
 }
 
 #[derive(Default)]
@@ -113,27 +179,33 @@ impl smithay::wayland::buffer::BufferHandler for TosCompositorState {
 
 impl XdgShellHandler for TosCompositorState {
     fn xdg_shell_state(&mut self) -> &mut XdgShellState { &mut self.xdg_shell_state }
-    fn new_toplevel(&mut self, surface: ToplevelSurface) {
-        let window = Window::new_wayland_window(surface);
+    fn new_toplevel(&mut self, surface: XdgToplevelSurface) {
+        let window = Window::new_wayland_window(surface.clone());
         
-        let mut width = 1200;
-        let mut height = 728;
+        let mut full_width = 1280;
+        let mut full_height = 800;
+
         if let Some(output) = self.space.outputs().next() {
             if let Some(mode) = output.current_mode() {
-                width = mode.size.w - 80;
-                height = mode.size.h - 68;
+                full_width = mode.size.w;
+                full_height = mode.size.h;
             }
         }
         
+        let _is_shell = self.shell_client_id.as_ref().map(|id| {
+            surface.wl_surface().client().map(|c| c.id() == *id).unwrap_or(false)
+        }).unwrap_or(false);
+
         if let Some(toplevel) = window.toplevel() {
             toplevel.with_pending_state(|state| {
-                state.size = Some((width, height).into());
+                state.size = Some(Size::<i32, Logical>::from((full_width, full_height)));
                 state.states.set(xdg_toplevel::State::Activated);
                 state.states.set(xdg_toplevel::State::Maximized);
             });
             toplevel.send_configure();
         }
-        self.space.map_element(window, (76, 36), true);
+
+        self.space.map_element(window, (0, 0), true);
     }
     fn new_popup(&mut self, _surface: PopupSurface, _state: PositionerState) {}
     fn reposition_request(&mut self, _surface: PopupSurface, _state: PositionerState, _token: u32) {}
@@ -164,19 +236,19 @@ smithay::delegate_data_device!(TosCompositorState);
 smithay::delegate_primary_selection!(TosCompositorState);
 
 impl smithay::wayland::shell::xdg::decoration::XdgDecorationHandler for TosCompositorState {
-    fn new_decoration(&mut self, toplevel: ToplevelSurface) {
+    fn new_decoration(&mut self, toplevel: XdgToplevelSurface) {
         toplevel.with_pending_state(|state| {
             state.decoration_mode = Some(zxdg_toplevel_decoration_v1::Mode::ServerSide);
         });
         toplevel.send_configure();
     }
-    fn request_mode(&mut self, toplevel: ToplevelSurface, _mode: zxdg_toplevel_decoration_v1::Mode) {
+    fn request_mode(&mut self, toplevel: XdgToplevelSurface, _mode: zxdg_toplevel_decoration_v1::Mode) {
         toplevel.with_pending_state(|state| {
             state.decoration_mode = Some(zxdg_toplevel_decoration_v1::Mode::ServerSide);
         });
         toplevel.send_configure();
     }
-    fn unset_mode(&mut self, _toplevel: ToplevelSurface) {}
+    fn unset_mode(&mut self, _toplevel: XdgToplevelSurface) {}
 }
 
 smithay::backend::renderer::element::render_elements! {
@@ -220,6 +292,9 @@ impl WaylandRenderer {
             pending_semantic_events: Arc::new(Mutex::new(Vec::new())),
             pointer_location: (0.0, 0.0).into(),
             bezel_ids: [Id::new(), Id::new(), Id::new(), Id::new(), Id::new(), Id::new()],
+            shell_pid: None,
+            shell_client_id: None,
+            theme: LcarsTheme::load_from_css(),
         }));
         self.state = Some(state.clone());
 
@@ -240,12 +315,15 @@ impl WaylandRenderer {
 
         // Client spawning thread
         let socket_name_clone = socket_name.clone();
+        let state_for_spawn = state.clone();
         std::thread::spawn(move || {
             std::thread::sleep(std::time::Duration::from_millis(2000));
             println!("Spawning internal client...");
             let mut cmd = std::process::Command::new(std::env::current_exe().unwrap());
             cmd.env("WAYLAND_DISPLAY", &socket_name_clone);
-            cmd.spawn().ok();
+            if let Ok(child) = cmd.spawn() {
+                state_for_spawn.lock().unwrap().shell_pid = Some(child.id());
+            }
         });
 
         // Socket acceptance thread
@@ -255,7 +333,15 @@ impl WaylandRenderer {
                 if let Some(stream) = stream {
                     let mut sl = state_for_socket.lock().unwrap();
                     println!("Accepted new client connection.");
-                    sl.display_handle.insert_client(stream, Arc::new(WaylandPointerData::default())).ok();
+                    if let Ok(client) = sl.display_handle.insert_client(stream, Arc::new(WaylandPointerData::default())) {
+                        #[cfg(target_os = "linux")]
+                        if let Ok(creds) = client.get_credentials(&sl.display_handle) {
+                            if Some(creds.pid as u32) == sl.shell_pid {
+                                sl.shell_client_id = Some(client.id());
+                                println!("TOS // Identified Shell Client: {:?}", client.id());
+                            }
+                        }
+                    }
                 }
             }
         });
@@ -333,9 +419,13 @@ impl WaylandRenderer {
             });
             if !running { state.lock().unwrap().running = false; }
 
-            let (age, fb_size, bezel_ids) = {
+            let (age, fb_size, bezel_ids, _current_level) = {
                 let sl = state.lock().unwrap();
-                (backend.buffer_age().unwrap_or(0), backend.window_size(), sl.bezel_ids.clone())
+                let age = backend.buffer_age().unwrap_or(0);
+                let size = backend.window_size();
+                let ids = sl.bezel_ids.clone();
+                let level = sl.tos_state.lock().unwrap().current_level;
+                (age, size, ids, level)
             };
 
             if prev_fb_size != fb_size {
@@ -346,12 +436,10 @@ impl WaylandRenderer {
                 );
                 
                 let sl = state.lock().unwrap();
-                let width = if fb_size.w > 80 { fb_size.w - 80 } else { fb_size.w };
-                let height = if fb_size.h > 68 { fb_size.h - 68 } else { fb_size.h };
                 for window in sl.space.elements() {
                     if let Some(toplevel) = window.toplevel() {
                         toplevel.with_pending_state(|state| {
-                            state.size = Some((width, height).into());
+                            state.size = Some(Size::<i32, Logical>::from((fb_size.w, fb_size.h)));
                         });
                         toplevel.send_configure();
                     }
@@ -361,19 +449,21 @@ impl WaylandRenderer {
             let (backend_renderer, mut framebuffer) = backend.bind().unwrap();
             
             let scale = 1.0;
-            let (sw, sh) = (fb_size.w, fb_size.h);
             let mut bezel = Vec::new();
-            bezel.push(SolidColorRenderElement::new(bezel_ids[0].clone(), Rectangle::new((72, 4).into(), (sw-76, 28).into()).to_f64().to_physical(scale).to_i32_round(), CommitCounter::default(), LCARS_GOLD, Kind::Unspecified));
-            bezel.push(SolidColorRenderElement::new(bezel_ids[1].clone(), Rectangle::new((4, 4).into(), (64, 28).into()).to_f64().to_physical(scale).to_i32_round(), CommitCounter::default(), LCARS_BLUE, Kind::Unspecified));
-            bezel.push(SolidColorRenderElement::new(bezel_ids[2].clone(), Rectangle::new((4, 36).into(), (48, sh-72).into()).to_f64().to_physical(scale).to_i32_round(), CommitCounter::default(), LCARS_BLUE, Kind::Unspecified));
-            bezel.push(SolidColorRenderElement::new(bezel_ids[3].clone(), Rectangle::new((72, sh-32).into(), (sw-76, 28).into()).to_f64().to_physical(scale).to_i32_round(), CommitCounter::default(), LCARS_PEACH, Kind::Unspecified));
-            bezel.push(SolidColorRenderElement::new(bezel_ids[4].clone(), Rectangle::new((4, sh-32).into(), (64, 28).into()).to_f64().to_physical(scale).to_i32_round(), CommitCounter::default(), LCARS_BLUE, Kind::Unspecified));
 
+            // Only draw compositor bezel if we are in Application Focus or if no shell is active
+            // Actually, we should only draw it if we want the "System Overlay" on top of the workspace.
+            // For Level 1/2, the Shell provides its own rich bezel.
+            let theme = {
+                let sl = state.lock().unwrap();
+                sl.theme.clone()
+            };
+            
             {
                 let pos = state.lock().unwrap().pointer_location;
                 let cx = pos.x as i32;
                 let cy = pos.y as i32;
-                bezel.push(SolidColorRenderElement::new(bezel_ids[5].clone(), Rectangle::new((cx, cy).into(), (12, 12).into()).to_f64().to_physical(scale).to_i32_round(), CommitCounter::default(), [1.0, 1.0, 1.0, 1.0], Kind::Unspecified));
+                bezel.push(SolidColorRenderElement::new(bezel_ids[5].clone(), Rectangle::new((cx, cy).into(), (8, 8).into()).to_f64().to_physical(scale).to_i32_round(), CommitCounter::default(), [1.0, 1.0, 1.0, 1.0], Kind::Unspecified));
             }
 
             let mut elements: Vec<TosRenderElements<GlesRenderer, SpaceRenderElements<GlesRenderer, <Window as AsRenderElements<GlesRenderer>>::RenderElement>, SolidColorRenderElement>> = {
@@ -387,7 +477,8 @@ impl WaylandRenderer {
             elements.extend(bezel.iter().map(TosRenderElements::Custom));
 
             let damage = {
-                let render_result = tracker.render_output(backend_renderer, &mut framebuffer, age, &elements, LCARS_BLACK).unwrap();
+                let clear_color = theme.black;
+                let render_result = tracker.render_output(backend_renderer, &mut framebuffer, age, &elements, clear_color).unwrap();
                 render_result.damage.cloned()
             };
             drop(framebuffer);

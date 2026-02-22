@@ -98,13 +98,27 @@ impl ViewRenderer for HubRenderer {
                 cmd = dangerous_cmd
             ));
         }
+        // 2. Main Content Area (§2.3)
+        // (Removed redundant hub-content push as it's already pushed at line 81)
+        
+        // Terminal Output Background (§2.4)
+        let mut output_html = String::new();
+        for line in &hub.terminal_output {
+            let escaped = super::escape_html(line);
+            output_html.push_str(&format!(r#"<div class="log-line">{}</div>"#, escaped));
+        }
+
+        html.push_str(&format!(
+            r#"<div class="terminal-container background-layer">
+                <div class="terminal-output" id="hub-term-{}">
+                    {}
+                </div>
+            </div>"#,
+            hub.id, output_html
+        ));
+
         match hub.mode {
             CommandHubMode::Command => {
-                let mut output_html = String::new();
-                for line in &hub.terminal_output {
-                    output_html.push_str(&format!(r#"<div class="log-line">{}</div>"#, line));
-                }
-
                 let mut left_chips = String::new();
                 let mut right_chips = String::new();
                 
@@ -128,7 +142,7 @@ impl ViewRenderer for HubRenderer {
                         r#"<button class="chip-btn priority-high" onclick="window.ipc.postMessage('stage_command:{}')" title="{}">{}</button>"#,
                         sug.command.replace('\'', "\\'"),
                         sug.description.replace('\'', "\\'"),
-                        sug.text.to_uppercase()
+                        sug.text
                     ));
                 }
                 
@@ -148,27 +162,23 @@ impl ViewRenderer for HubRenderer {
                     }
                 }
 
-                html.push_str(&format!(r#"<div class="command-view">
+                html.push_str(&format!(r#"<div class="command-view foreground-layer">
                     <div class="left-chip-region">
-                        <div class="chip-region-title" style="font-size:0.7em;color:var(--lcars-orange);margin-bottom:10px;">FAVORITES & CONTEXT</div>
+                        <div class="chip-region-title" style="font-size:0.7em;color:var(--lcars-orange);margin-bottom:10px;">FAVORITES</div>
                         {}
                     </div>
-                    <div class="terminal-container">
-                        <div class="terminal-output" id="hub-term-{}">
-                            {}
-                        </div>
-                    </div>
+                    <div class="terminal-spacer" style="flex:1; pointer-events:none;"></div>
                     <div class="right-chip-region">
-                        <div class="chip-region-title" style="font-size:0.7em;color:var(--lcars-orange);margin-bottom:10px;">PRIORITY SUGGESTIONS</div>
+                        <div class="chip-region-title" style="font-size:0.7em;color:var(--lcars-orange);margin-bottom:10px;">SUGGESTIONS</div>
                         {}
                     </div>
-                </div>"#, left_chips, hub.id, output_html, right_chips));
+                </div>"#, left_chips, right_chips));
             }
             CommandHubMode::Directory => {
                 let cwd = &hub.current_directory;
                 let _cwd_display = cwd.display().to_string().to_uppercase();
 
-                html.push_str(r#"<div class="directory-view">
+                html.push_str(r#"<div class="directory-view foreground-layer">
                     <div class="path-bar breadcrumbs">"#);
                 
                 let _path_str = hub.current_directory.to_string_lossy();
@@ -498,7 +508,7 @@ impl ViewRenderer for HubRenderer {
                 };
 
                 html.push_str(&format!(
-                    r#"<div class="activity-view">
+                    r#"<div class="activity-view foreground-layer">
                         <div class="activity-section">
                             <div class="section-title">ACTIVE PROCESSES</div>
                             {toolbar_html}
@@ -647,7 +657,10 @@ impl ViewRenderer for HubRenderer {
                 <div class="center-section">
                     <div class="prompt-container">
                         <div class="prompt-prefix">TOS@{} ></div>
-                        <input type="text" id="terminal-input" value="{}" onkeydown="window.handlePromptKey(event)" autofocus>
+                        <input type="text" id="terminal-input" value="{}" 
+                            onkeydown="window.handlePromptKey(event)" 
+                            oninput="window.handlePromptInput(event)"
+                            autofocus>
                     </div>
                 </div>
                 <div class="right-section">

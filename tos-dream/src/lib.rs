@@ -319,6 +319,8 @@ pub struct TosState {
     pub fps: f32,
     pub performance_alert: bool,
     #[serde(skip)]
+    pub force_redraw: bool,
+    #[serde(skip)]
     pub modules: Vec<Box<dyn TosModule>>,
     pub portal_security_bypass: bool,
     pub approval_requested_sector: Option<uuid::Uuid>,
@@ -794,6 +796,7 @@ impl TosState {
             ],
             viewports,
             active_viewport_index: 0,
+            force_redraw: false,
             escape_count: 0,
             fps: 60.0,
             performance_alert: false,

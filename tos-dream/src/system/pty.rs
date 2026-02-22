@@ -141,6 +141,7 @@ impl PtyHandle {
                 };
                 if n > 0 {
                     let data = String::from_utf8_lossy(&buf[..n as usize]).to_string();
+                    println!("PTY READ: {}", data);
                     let events = PtyParser::parse_data(&data);
                     for event in events {
                         if reader_tx.send(event).is_err() {
@@ -170,10 +171,12 @@ impl PtyHandle {
                 match cmd_rx.recv() {
                     Ok(PtyCommand::Write(s)) => {
                         if writer_shutdown.load(Ordering::SeqCst) { break; }
+                        println!("PTY WRITE: {:?}", s);
                         let _ = unsafe { libc::write(master_fd, s.as_ptr() as *const libc::c_void, s.len()) };
                     }
                     Ok(PtyCommand::WriteLine(s)) => {
                         if writer_shutdown.load(Ordering::SeqCst) { break; }
+                        println!("PTY WRITE LINE: {:?}", s);
                         let line = format!("{}\n", s);
                         let _ = unsafe { libc::write(master_fd, line.as_ptr() as *const libc::c_void, line.len()) };
                     }
@@ -236,11 +239,22 @@ impl PtyHandle {
                                 match event {
                                     PtyEvent::Output(data) => {
                                         let clean_output = state_lock.process_shell_output(&data);
-                                        let hub = &mut state_lock.sectors[sector_idx].hubs[hub_idx];
                                         if !clean_output.is_empty() {
-                                            hub.terminal_output.push(clean_output);
-                                            if hub.terminal_output.len() > 100 {
-                                                hub.terminal_output.remove(0);
+                                            let indices = state_lock.sectors.iter().enumerate().find_map(|(s_idx, s)| {
+                                                s.hubs.iter().enumerate().find_map(|(h_idx, h)| {
+                                                    if h.id == hub_id { Some((s_idx, h_idx)) } else { None }
+                                                })
+                                            });
+
+                                            if let Some((sector_idx, hub_idx)) = indices {
+                                                let hub = &mut state_lock.sectors[sector_idx].hubs[hub_idx];
+                                                // Split output into lines for cleaner rendering and log management
+                                                for line in clean_output.lines() {
+                                                    hub.terminal_output.push(line.to_string());
+                                                    if hub.terminal_output.len() > 100 {
+                                                        hub.terminal_output.remove(0);
+                                                    }
+                                                }
                                             }
                                         }
                                     }

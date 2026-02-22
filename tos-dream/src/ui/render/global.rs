@@ -7,35 +7,21 @@ impl ViewRenderer for GlobalRenderer {
     fn render(&self, state: &TosState, _viewport: &Viewport, mode: RenderMode) -> String {
         let mut html = String::new();
 
-        // 1. Unified Tactical Header
+        // 1. Unified Tactical Header (Global View Bezel)
         html.push_str(&format!(
-            r#"<div class="tactical-header" style="--header-accent: var(--lcars-blue);">
-                <div class="header-left">
-                    <h1 class="header-title large">TOS COMMAND CENTER</h1>
+            r#"<div class="global-bezel">
+                <div class="bezel-left">
+                    <div class="bezel-icon" style="color:var(--lcars-purple);">⚙</div>
+                    <h1 class="bezel-brand">TOS COMMAND CENTER</h1>
                 </div>
-                <div class="header-center"></div>
-                <div class="header-right">
-                    <div class="telemetry-bar-inline" style="display:flex; gap:30px; align-items:center;">
-                        <div class="telemetry-item">
-                            <span class="label">System Time</span>
-                            <span class="value" id="tos-sys-time" style="color:var(--lcars-orange); font-weight:700; font-size:1.2rem;">{}</span>
-                        </div>
-                        <div class="telemetry-item">
-                            <span class="label">Ambience</span>
-                            <div class="ambience-controls" style="display:flex; gap:5px;">
-                                <button class="bezel-btn mini" onclick="window.ipc.postMessage('play_audio:AmbientHum')">HUM</button>
-                                <button class="bezel-btn mini" onclick="window.ipc.postMessage('play_audio:BridgeChirps')">CHIRP</button>
-                            </div>
-                        </div>
-                        <div class="telemetry-item" style="display:flex; gap:5px;">
-                            <button class="bezel-btn mini comms-toggle-btn" onclick="window.ipc.postMessage('toggle_comms')">COMMS</button>
-                            <button class="bezel-btn mini minimap-toggle-btn" onclick="window.ipc.postMessage('semantic_event:ToggleMiniMap')">MAP</button>
-                        </div>
-                        <div class="telemetry-item">
-                            <span class="label">Stardate</span>
-                            <span class="value" id="tos-stardate" style="color:var(--lcars-orange); font-weight:700; font-size:1.2rem;">{}</span>
-                        </div>
-                    </div>
+                <div class="bezel-center">
+                    <div class="bezel-view-indicator">GLOBALOVERVIEW</div>
+                </div>
+                <div class="bezel-right">
+                    <button class="bezel-action-btn" onclick="window.ipc.postMessage('toggle_comms')">COMMS</button>
+                    <button class="bezel-action-btn" onclick="window.ipc.postMessage('semantic_event:ToggleMiniMap')">MAP</button>
+                    <div class="bezel-clock" id="tos-sys-time">{}</div>
+                    <div id="tos-stardate" style="display:none">{}</div>
                 </div>
             </div>"#,
             state.get_system_time(),
@@ -94,6 +80,7 @@ impl ViewRenderer for GlobalRenderer {
                         {remote_indicator}
                         {portal_tag}
                         <div style="font-size: 4rem; margin:10px 0; filter: drop-shadow(0 0 10px {color});">{icon}</div>
+                        <div style="font-size: 0.8rem; text-align: center; margin-bottom: 10px; color: rgba(255,255,255,0.8);">{desc}</div>
                         <div style="display:flex; gap:5px;">
                             <span class="pill" style="background:#4CAF50; color:black; font-size:0.6rem; padding:2px 6px; border-radius:10px;">{hubs} HUBS</span>
                             <span class="pill" style="background:#4CAF50; color:black; font-size:0.6rem; padding:2px 6px; border-radius:10px;">{participants} USERS</span>
@@ -112,6 +99,7 @@ impl ViewRenderer for GlobalRenderer {
                 index = i,
                 name = sector.name.to_uppercase(),
                 icon = icon,
+                desc = sector.description,
                 hubs = sector.hubs.len(),
                 participants = sector.participants.len(),
                 color_class = color_class,

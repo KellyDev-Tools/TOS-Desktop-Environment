@@ -1,8 +1,8 @@
 <div class="command-hub mode-directory   render-Full"><div class="tactical-header" style="--header-accent: #ff9900;">
                 <div class="header-left">
-                    <button class="bezel-btn mini" onclick="window.ipc.postMessage('zoom_out')" title="Zoom Out">ZOOM OUT</button>
-                    <button class="bezel-btn mini" onclick="window.ipc.postMessage('toggle_output_mode')" title="Standard / Centered Perspective">OUTPUT MODE</button>
-                    <button class="bezel-btn mini" onclick="window.ipc.postMessage('toggle_left_region')" title="Toggle Left Favourites">LEFT</button>
+                    <button class="bezel-action-btn" onclick="window.ipc.postMessage('zoom_out')" title="Zoom Out">ZOOM OUT</button>
+                    <button class="bezel-action-btn" onclick="window.ipc.postMessage('toggle_output_mode')" title="Standard / Centered Perspective">OUTPUT</button>
+                    <button class="bezel-action-btn" onclick="window.ipc.postMessage('toggle_left_region')" title="Toggle Left Favourites">FAVS</button>
                 </div>
                 <div class="header-center">
                     <div class="three-way-toggle">
@@ -12,23 +12,24 @@
                     </div>
                 </div>
                 <div class="header-right">
-                    <div class="hub-info-inline" style="display:flex; gap:20px; align-items:center;">
+                    <div class="hub-info-inline" style="display:flex; gap:15px; align-items:center;">
                         <div class="hub-metadata">
                             <span class="hub-sector-name" style="font-weight:800; color:#ff9900;">ALPHA SECTOR</span>
                             <span class="hub-host" style="font-size:0.7rem; opacity:0.6; margin-left:10px;">LOCAL</span>
                         </div>
                         
                         <div class="hub-participants" style="display:flex; gap:5px;">
-                            <div class="participant-avatar" style="background-color: #ffcc00" title="Host (Co-Owner)" onclick="window.ipc.postMessage('follow_participant:c49b626a-9906-416b-9476-b71492ccc607')">H</div>
+                            <div class="participant-avatar" style="background-color: #ffcc00" title="Host (Co-Owner)" onclick="window.ipc.postMessage('follow_participant:dcfad11c-9fbf-427f-abe4-1f1985147269')">H</div>
                         </div>
-                        <div class="telemetry-item" style="display:flex; gap:5px;">
-                            <button class="bezel-btn mini comms-toggle-btn" onclick="window.ipc.postMessage('toggle_comms')">COMMS</button>
-                            <button class="bezel-btn mini minimap-toggle-btn" onclick="window.ipc.postMessage('semantic_event:ToggleMiniMap')">MAP</button>
+                        <div class="telemetry-item" style="display:flex; gap:15px; align-items:center;">
+                            <button class="bezel-action-btn comms-toggle-btn" onclick="window.ipc.postMessage('toggle_comms')">COMMS</button>
+                            <button class="bezel-action-btn minimap-toggle-btn" onclick="window.ipc.postMessage('semantic_event:ToggleMiniMap')">MAP</button>
+                            <div class="bezel-clock" style="position: relative; top: 0; left: 0; margin-left: 5px;">20:33</div>
                         </div>
                     </div>
                 </div>
             </div><div class="hub-content"><div class="terminal-container background-layer">
-                <div class="terminal-output" id="hub-term-38fc12c5-db0b-4ae0-b976-8cfe16eda597">
+                <div class="terminal-output" id="hub-term-91eb0bc5-1ffb-4ffd-b4e5-175b3f7d7996">
                     
                 </div>
             </div><div class="directory-view foreground-layer">

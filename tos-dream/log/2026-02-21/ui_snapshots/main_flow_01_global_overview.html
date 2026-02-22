@@ -1,120 +1,152 @@
-<div class="tactical-header" style="--header-accent: var(--lcars-blue);">
-                <div class="header-left">
-                    <h1 class="header-title large">TOS COMMAND CENTER</h1>
+<div class="global-bezel">
+                <div class="bezel-left">
+                    <div class="bezel-icon" style="color:var(--lcars-purple);">⚙</div>
+                    <h1 class="bezel-brand">TOS COMMAND CENTER</h1>
                 </div>
-                <div class="header-center"></div>
-                <div class="header-right">
-                    <div class="telemetry-bar-inline" style="display:flex; gap:30px; align-items:center;">
-                        <div class="telemetry-item">
-                            <span class="label">System Time</span>
-                            <span class="value" id="tos-sys-time" style="color:var(--lcars-orange); font-weight:700; font-size:1.2rem;">19:17</span>
+                <div class="bezel-center">
+                    <div class="bezel-view-indicator">GLOBALOVERVIEW</div>
+                </div>
+                <div class="bezel-right">
+                    <button class="bezel-action-btn" onclick="window.ipc.postMessage('toggle_comms')">COMMS</button>
+                    <button class="bezel-action-btn" onclick="window.ipc.postMessage('semantic_event:ToggleMiniMap')">MAP</button>
+                    <div class="bezel-clock" id="tos-sys-time">20:33</div>
+                    <div id="tos-stardate" style="display:none">26-052 // 26-2033</div>
+                </div>
+            </div><div class="global-grid mode-Full"><div class="sector-card command-hub orange" onclick="this.classList.add('expanding'); setTimeout(() => window.ipc.postMessage('select_sector:0'), 300)">
+                    <div class="tactical-header mini" style="--header-accent: #ff9900;">
+                        <div class="header-left">
+                            <button class="bezel-btn mini">ZOOM IN</button>
+                            <button class="bezel-btn mini">NAV</button>
                         </div>
-                        <div class="telemetry-item">
-                            <span class="label">Ambience</span>
-                            <div class="ambience-controls" style="display:flex; gap:5px;">
-                                <button class="bezel-btn mini" onclick="window.ipc.postMessage('play_audio:AmbientHum')">HUM</button>
-                                <button class="bezel-btn mini" onclick="window.ipc.postMessage('play_audio:BridgeChirps')">CHIRP</button>
+                        <div class="header-center">
+                            <div class="three-way-toggle">
+                                <div class="toggle-segment active">CMD</div>
+                                <div class="toggle-segment ">DIR</div>
+                                <div class="toggle-segment ">ACT</div>
                             </div>
                         </div>
-                        <div class="telemetry-item" style="display:flex; gap:5px;">
-                            <button class="bezel-btn mini comms-toggle-btn" onclick="window.ipc.postMessage('toggle_comms')">COMMS</button>
-                            <button class="bezel-btn mini minimap-toggle-btn" onclick="window.ipc.postMessage('semantic_event:ToggleMiniMap')">MAP</button>
-                        </div>
-                        <div class="telemetry-item">
-                            <span class="label">Stardate</span>
-                            <span class="value" id="tos-stardate" style="color:var(--lcars-orange); font-weight:700; font-size:1.2rem;">26-052 // 26-1917</span>
+                        <div class="header-right">
+                            <div class="hub-info-inline" style="display:flex; gap:10px; align-items:center;">
+                                <div class="hub-metadata">
+                                    <span class="hub-sector-name" style="font-weight:800; color:#ff9900; font-size: 0.8rem;">ALPHA SECTOR</span>
+                                </div>
+                            </div>
                         </div>
                     </div>
-                </div>
-            </div><div class="global-grid mode-Full"><div class="sector-card orange" onclick="window.ipc.postMessage('select_sector:0')">
-                    <div class="mini-bezel">
+                    
+                    <div class="hub-content mini" style="display:flex; flex-direction:column; justify-content:center; align-items:center; background:rgba(0,0,0,0.5);">
                         
                         
-                        <div class="settings-trigger" onclick="event.stopPropagation(); window.ipc.postMessage('open_settings')">⚙️</div>
-                    </div>
-                    <div class="left-indicators">
-                        <div class="mode-chip active"></div>
-                        <div class="mode-chip "></div>
-                        <div class="mode-chip "></div>
-                    </div>
-                    <div class="card-body">
-                        <div class="collaboration-dots">
-                            <div class="collab-dot"></div>
-                        </div>
-                        <div class="card-icon">⌨️</div>
-                        <div class="sector-name">ALPHA SECTOR</div>
-                        <div class="sector-desc">Primary coordination and terminal access.</div>
-                        <div class="sector-stats">
-                            <div class="stat"><span class="val">1 HUBS</span></div>
-                            <div class="stat"><span class="val">1 USERS</span></div>
+                        <div style="font-size: 4rem; margin:10px 0; filter: drop-shadow(0 0 10px #ff9900);">⌨️</div>
+                        <div style="font-size: 0.8rem; text-align: center; margin-bottom: 10px; color: rgba(255,255,255,0.8);">Primary coordination and terminal access.</div>
+                        <div style="display:flex; gap:5px;">
+                            <span class="pill" style="background:#4CAF50; color:black; font-size:0.6rem; padding:2px 6px; border-radius:10px;">1 HUBS</span>
+                            <span class="pill" style="background:#4CAF50; color:black; font-size:0.6rem; padding:2px 6px; border-radius:10px;">1 USERS</span>
                         </div>
                     </div>
-                    <div class="right-indicators">
-                        <div class="priority-chip-mini active"></div><div class="priority-chip-mini active"></div><div class="priority-chip-mini active"></div><div class="priority-chip-mini "></div><div class="priority-chip-mini "></div>
+
+                    <div class="unified-prompt mini">
+                        <div class="center-section">
+                            <div class="prompt-container" style="display:flex; align-items:center;">
+                                <div class="prompt-prefix" style="color:var(--lcars-orange); font-family:var(--font-mono); font-weight:800; font-size:0.8rem; margin-right:10px;">TOS@ALPHA SECTOR ></div>
+                                <div style="width:8px; height:1rem; background:rgba(255,255,255,0.7); animation:blink-soft 1s infinite;"></div>
+                            </div>
+                        </div>
                     </div>
-                    <div class="mini-prompt"></div>
-                </div><div class="sector-card green" onclick="window.ipc.postMessage('select_sector:1')">
-                    <div class="mini-bezel">
+                </div><div class="sector-card command-hub green" onclick="this.classList.add('expanding'); setTimeout(() => window.ipc.postMessage('select_sector:1'), 300)">
+                    <div class="tactical-header mini" style="--header-accent: #00ccff;">
+                        <div class="header-left">
+                            <button class="bezel-btn mini">ZOOM IN</button>
+                            <button class="bezel-btn mini">NAV</button>
+                        </div>
+                        <div class="header-center">
+                            <div class="three-way-toggle">
+                                <div class="toggle-segment ">CMD</div>
+                                <div class="toggle-segment ">DIR</div>
+                                <div class="toggle-segment active">ACT</div>
+                            </div>
+                        </div>
+                        <div class="header-right">
+                            <div class="hub-info-inline" style="display:flex; gap:10px; align-items:center;">
+                                <div class="hub-metadata">
+                                    <span class="hub-sector-name" style="font-weight:800; color:#00ccff; font-size: 0.8rem;">SCIENCE LABS</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="hub-content mini" style="display:flex; flex-direction:column; justify-content:center; align-items:center; background:rgba(0,0,0,0.5);">
                         
                         
-                        <div class="settings-trigger" onclick="event.stopPropagation(); window.ipc.postMessage('open_settings')">⚙️</div>
-                    </div>
-                    <div class="left-indicators">
-                        <div class="mode-chip "></div>
-                        <div class="mode-chip "></div>
-                        <div class="mode-chip active"></div>
-                    </div>
-                    <div class="card-body">
-                        <div class="collaboration-dots">
-                            
-                        </div>
-                        <div class="card-icon">🔬</div>
-                        <div class="sector-name">SCIENCE LABS</div>
-                        <div class="sector-desc">Deep space analysis and sensor arrays.</div>
-                        <div class="sector-stats">
-                            <div class="stat"><span class="val">1 HUBS</span></div>
-                            <div class="stat"><span class="val">0 USERS</span></div>
+                        <div style="font-size: 4rem; margin:10px 0; filter: drop-shadow(0 0 10px #00ccff);">🔬</div>
+                        <div style="font-size: 0.8rem; text-align: center; margin-bottom: 10px; color: rgba(255,255,255,0.8);">Deep space analysis and sensor arrays.</div>
+                        <div style="display:flex; gap:5px;">
+                            <span class="pill" style="background:#4CAF50; color:black; font-size:0.6rem; padding:2px 6px; border-radius:10px;">1 HUBS</span>
+                            <span class="pill" style="background:#4CAF50; color:black; font-size:0.6rem; padding:2px 6px; border-radius:10px;">0 USERS</span>
                         </div>
                     </div>
-                    <div class="right-indicators">
-                        <div class="priority-chip-mini active"></div><div class="priority-chip-mini active"></div><div class="priority-chip-mini active"></div><div class="priority-chip-mini active"></div><div class="priority-chip-mini "></div>
+
+                    <div class="unified-prompt mini">
+                        <div class="center-section">
+                            <div class="prompt-container" style="display:flex; align-items:center;">
+                                <div class="prompt-prefix" style="color:var(--lcars-orange); font-family:var(--font-mono); font-weight:800; font-size:0.8rem; margin-right:10px;">TOS@SCIENCE LABS ></div>
+                                <div style="width:8px; height:1rem; background:rgba(255,255,255,0.7); animation:blink-soft 1s infinite;"></div>
+                            </div>
+                        </div>
                     </div>
-                    <div class="mini-prompt"></div>
-                </div><div class="sector-card green" onclick="window.ipc.postMessage('select_sector:2')">
-                    <div class="mini-bezel">
+                </div><div class="sector-card command-hub green" onclick="this.classList.add('expanding'); setTimeout(() => window.ipc.postMessage('select_sector:2'), 300)">
+                    <div class="tactical-header mini" style="--header-accent: #cc00ff;">
+                        <div class="header-left">
+                            <button class="bezel-btn mini">ZOOM IN</button>
+                            <button class="bezel-btn mini">NAV</button>
+                        </div>
+                        <div class="header-center">
+                            <div class="three-way-toggle">
+                                <div class="toggle-segment active">CMD</div>
+                                <div class="toggle-segment ">DIR</div>
+                                <div class="toggle-segment ">ACT</div>
+                            </div>
+                        </div>
+                        <div class="header-right">
+                            <div class="hub-info-inline" style="display:flex; gap:10px; align-items:center;">
+                                <div class="hub-metadata">
+                                    <span class="hub-sector-name" style="font-weight:800; color:#cc00ff; font-size: 0.8rem;">OBSERVATION HUB</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="hub-content mini" style="display:flex; flex-direction:column; justify-content:center; align-items:center; background:rgba(0,0,0,0.5);">
                         
                         
-                        <div class="settings-trigger" onclick="event.stopPropagation(); window.ipc.postMessage('open_settings')">⚙️</div>
-                    </div>
-                    <div class="left-indicators">
-                        <div class="mode-chip active"></div>
-                        <div class="mode-chip "></div>
-                        <div class="mode-chip "></div>
-                    </div>
-                    <div class="card-body">
-                        <div class="collaboration-dots">
-                            
-                        </div>
-                        <div class="card-icon">👁️</div>
-                        <div class="sector-name">OBSERVATION HUB</div>
-                        <div class="sector-desc">Visual reconnaissance and exterior monitoring.</div>
-                        <div class="sector-stats">
-                            <div class="stat"><span class="val">1 HUBS</span></div>
-                            <div class="stat"><span class="val">0 USERS</span></div>
+                        <div style="font-size: 4rem; margin:10px 0; filter: drop-shadow(0 0 10px #cc00ff);">👁️</div>
+                        <div style="font-size: 0.8rem; text-align: center; margin-bottom: 10px; color: rgba(255,255,255,0.8);">Visual reconnaissance and exterior monitoring.</div>
+                        <div style="display:flex; gap:5px;">
+                            <span class="pill" style="background:#4CAF50; color:black; font-size:0.6rem; padding:2px 6px; border-radius:10px;">1 HUBS</span>
+                            <span class="pill" style="background:#4CAF50; color:black; font-size:0.6rem; padding:2px 6px; border-radius:10px;">0 USERS</span>
                         </div>
                     </div>
-                    <div class="right-indicators">
-                        <div class="priority-chip-mini "></div><div class="priority-chip-mini "></div><div class="priority-chip-mini "></div><div class="priority-chip-mini "></div><div class="priority-chip-mini "></div>
+
+                    <div class="unified-prompt mini">
+                        <div class="center-section">
+                            <div class="prompt-container" style="display:flex; align-items:center;">
+                                <div class="prompt-prefix" style="color:var(--lcars-orange); font-family:var(--font-mono); font-weight:800; font-size:0.8rem; margin-right:10px;">TOS@OBSERVATION HUB ></div>
+                                <div style="width:8px; height:1rem; background:rgba(255,255,255,0.7); animation:blink-soft 1s infinite;"></div>
+                            </div>
+                        </div>
                     </div>
-                    <div class="mini-prompt"></div>
-                </div><div class="sector-card create-card orange" onclick="window.ipc.postMessage('create_sector')">
-            <div class="mini-bezel">NEW MODULE</div>
-            <div class="left-indicators"></div>
-            <div class="card-body" style="align-items: center; justify-content: center;">
-                <div class="card-icon" style="margin-bottom: 10px; font-size: 4rem;">+</div>
-                <div class="sector-name" style="font-size: 1.2rem; opacity: 0.6;">CREATE SECTOR</div>
+                </div><div class="sector-card command-hub create-card orange" onclick="window.ipc.postMessage('create_sector')">
+            <div class="tactical-header mini" style="--header-accent: var(--lcars-orange);">
+                <div class="header-left"><button class="bezel-btn mini">NEW</button></div>
+                <div class="header-center"></div>
+                <div class="header-right"><span class="hub-sector-name" style="font-weight:800; color:var(--lcars-orange); font-size:0.8rem;">INIT MODULE</span></div>
             </div>
-            <div class="right-indicators"></div>
+            
+            <div class="hub-content mini" style="display:flex; flex-direction:column; justify-content:center; align-items:center;">
+                <div style="font-size: 4rem; opacity: 0.8; color: var(--lcars-orange);">+</div>
+                <div style="font-size: 1rem; opacity: 0.6; font-weight:800; letter-spacing:2px; margin-top:10px;">CREATE SECTOR</div>
+            </div>
+            <div class="unified-prompt mini"></div>
             <div class="mini-prompt"></div>
         </div><div class="sector-card remote-card green">
             <div class="mini-bezel">REMOTE CONNECTION</div>

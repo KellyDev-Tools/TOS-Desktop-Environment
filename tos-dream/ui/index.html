@@ -10,12 +10,7 @@
 
 <body class="level-1">
     <div id="tos-root" class="lcars-grid-base">
-        <!-- Persistent Status Bar (Global) -->
-        <div class="lcars-status-bar">
-            <div class="status-left">TOS VER 1.0 // DREAM COMPLETE</div>
-            <div class="status-center" id="current-location">GLOBAL OVERVIEW</div>
-            <div class="status-right" id="clock">--:--:--</div>
-        </div>
+        <!-- The custom Level Bezel is now rendered per-view -->
 
         <!-- Main Content Area -->
         <div id="main-content" class="lcars-main-viewport">
@@ -24,7 +19,7 @@
     </div>
 
     <script>
-        window.onerror = function(m, s, l, c, e) { document.querySelector("#main-content").innerHTML = "<h1>JS ERROR: " + m + " at " + l + ":" + c + "</h1>"; };
+        window.onerror = function (m, s, l, c, e) { document.querySelector("#main-content").innerHTML = "<h1>JS ERROR: " + m + " at " + l + ":" + c + "</h1>"; };
 
         const hierarchyMap = {
             'GlobalOverview': 0,
@@ -113,7 +108,6 @@
             lastLevel = cleanLevel;
             lastHtml = html;
             document.body.className = 'level-' + cleanLevel;
-            document.getElementById('current-location').innerText = cleanLevel.toUpperCase();
         };
 
         function performTransition(container, newHtml, fromLevel, toLevel) {
@@ -142,9 +136,7 @@
             }, 600);
         }
 
-        setInterval(() => {
-            document.getElementById('clock').innerText = new Date().toLocaleTimeString('en-GB');
-        }, 1000);
+        // Clock logic removed because it's now handled by the UI renderer
 
         document.addEventListener('DOMContentLoaded', () => {
             setTimeout(() => window.ipc.postMessage('ui_ready'), 50);

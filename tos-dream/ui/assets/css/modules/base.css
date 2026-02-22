@@ -37,7 +37,7 @@ body {
 /* Base Layout */
 .lcars-grid-base {
     display: grid;
-    grid-template-rows: 40px 1fr;
+    grid-template-rows: 1fr;
     height: 100vh;
 }
 

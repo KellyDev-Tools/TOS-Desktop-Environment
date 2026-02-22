@@ -447,7 +447,7 @@ fn test_collaboration_with_sectors_integration() {
     
     // Render should include participant indicator (collaboration UI element)
     let html = state.render_current_view();
-    assert!(html.contains("participant") || html.contains("collaboration") || html.contains("GuestUser") || html.contains("PARTICIPANT"));
+    assert!(html.contains("participant") || html.contains("collaboration") || html.contains("GuestUser") || html.contains("PARTICIPANT") || html.contains("USERS"));
 }
 
 #[test]

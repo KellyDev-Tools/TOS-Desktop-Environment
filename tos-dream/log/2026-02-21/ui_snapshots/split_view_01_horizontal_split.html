@@ -1,8 +1,8 @@
 <div class="split-viewport-grid"><div class="viewport-cell"><div class="command-hub mode-command   render-Full"><div class="tactical-header" style="--header-accent: #ff9900;">
                 <div class="header-left">
-                    <button class="bezel-btn mini" onclick="window.ipc.postMessage('zoom_out')" title="Zoom Out">ZOOM OUT</button>
-                    <button class="bezel-btn mini" onclick="window.ipc.postMessage('toggle_output_mode')" title="Standard / Centered Perspective">OUTPUT MODE</button>
-                    <button class="bezel-btn mini" onclick="window.ipc.postMessage('toggle_left_region')" title="Toggle Left Favourites">LEFT</button>
+                    <button class="bezel-action-btn" onclick="window.ipc.postMessage('zoom_out')" title="Zoom Out">ZOOM OUT</button>
+                    <button class="bezel-action-btn" onclick="window.ipc.postMessage('toggle_output_mode')" title="Standard / Centered Perspective">OUTPUT</button>
+                    <button class="bezel-action-btn" onclick="window.ipc.postMessage('toggle_left_region')" title="Toggle Left Favourites">FAVS</button>
                 </div>
                 <div class="header-center">
                     <div class="three-way-toggle">
@@ -12,23 +12,24 @@
                     </div>
                 </div>
                 <div class="header-right">
-                    <div class="hub-info-inline" style="display:flex; gap:20px; align-items:center;">
+                    <div class="hub-info-inline" style="display:flex; gap:15px; align-items:center;">
                         <div class="hub-metadata">
                             <span class="hub-sector-name" style="font-weight:800; color:#ff9900;">ALPHA SECTOR</span>
                             <span class="hub-host" style="font-size:0.7rem; opacity:0.6; margin-left:10px;">LOCAL</span>
                         </div>
                         
                         <div class="hub-participants" style="display:flex; gap:5px;">
-                            <div class="participant-avatar" style="background-color: #ffcc00" title="Host (Co-Owner)" onclick="window.ipc.postMessage('follow_participant:1efccc74-d6f5-418a-b5e4-e37951bd32fb')">H</div>
+                            <div class="participant-avatar" style="background-color: #ffcc00" title="Host (Co-Owner)" onclick="window.ipc.postMessage('follow_participant:3dd0b438-8c3d-4ba4-b4eb-65124fa0ccc7')">H</div>
                         </div>
-                        <div class="telemetry-item" style="display:flex; gap:5px;">
-                            <button class="bezel-btn mini comms-toggle-btn" onclick="window.ipc.postMessage('toggle_comms')">COMMS</button>
-                            <button class="bezel-btn mini minimap-toggle-btn" onclick="window.ipc.postMessage('semantic_event:ToggleMiniMap')">MAP</button>
+                        <div class="telemetry-item" style="display:flex; gap:15px; align-items:center;">
+                            <button class="bezel-action-btn comms-toggle-btn" onclick="window.ipc.postMessage('toggle_comms')">COMMS</button>
+                            <button class="bezel-action-btn minimap-toggle-btn" onclick="window.ipc.postMessage('semantic_event:ToggleMiniMap')">MAP</button>
+                            <div class="bezel-clock" style="position: relative; top: 0; left: 0; margin-left: 5px;">20:33</div>
                         </div>
                     </div>
                 </div>
             </div><div class="hub-content"><div class="terminal-container background-layer">
-                <div class="terminal-output" id="hub-term-884f4d27-0282-444f-b797-dcc40bbae3fd">
+                <div class="terminal-output" id="hub-term-6df6e467-6166-46fe-9844-164dc86824a0">
                     
                 </div>
             </div><div class="command-view foreground-layer">
@@ -73,9 +74,9 @@
                 </div>
             </div></div></div><div class="viewport-cell"><div class="command-hub mode-activity   render-Throttled"><div class="tactical-header" style="--header-accent: #00ccff;">
                 <div class="header-left">
-                    <button class="bezel-btn mini" onclick="window.ipc.postMessage('zoom_out')" title="Zoom Out">ZOOM OUT</button>
-                    <button class="bezel-btn mini" onclick="window.ipc.postMessage('toggle_output_mode')" title="Standard / Centered Perspective">OUTPUT MODE</button>
-                    <button class="bezel-btn mini" onclick="window.ipc.postMessage('toggle_left_region')" title="Toggle Left Favourites">LEFT</button>
+                    <button class="bezel-action-btn" onclick="window.ipc.postMessage('zoom_out')" title="Zoom Out">ZOOM OUT</button>
+                    <button class="bezel-action-btn" onclick="window.ipc.postMessage('toggle_output_mode')" title="Standard / Centered Perspective">OUTPUT</button>
+                    <button class="bezel-action-btn" onclick="window.ipc.postMessage('toggle_left_region')" title="Toggle Left Favourites">FAVS</button>
                 </div>
                 <div class="header-center">
                     <div class="three-way-toggle">
@@ -85,7 +86,7 @@
                     </div>
                 </div>
                 <div class="header-right">
-                    <div class="hub-info-inline" style="display:flex; gap:20px; align-items:center;">
+                    <div class="hub-info-inline" style="display:flex; gap:15px; align-items:center;">
                         <div class="hub-metadata">
                             <span class="hub-sector-name" style="font-weight:800; color:#00ccff;">SCIENCE LABS</span>
                             <span class="hub-host" style="font-size:0.7rem; opacity:0.6; margin-left:10px;">LOCAL</span>
@@ -94,14 +95,15 @@
                         <div class="hub-participants" style="display:flex; gap:5px;">
                             
                         </div>
-                        <div class="telemetry-item" style="display:flex; gap:5px;">
-                            <button class="bezel-btn mini comms-toggle-btn" onclick="window.ipc.postMessage('toggle_comms')">COMMS</button>
-                            <button class="bezel-btn mini minimap-toggle-btn" onclick="window.ipc.postMessage('semantic_event:ToggleMiniMap')">MAP</button>
+                        <div class="telemetry-item" style="display:flex; gap:15px; align-items:center;">
+                            <button class="bezel-action-btn comms-toggle-btn" onclick="window.ipc.postMessage('toggle_comms')">COMMS</button>
+                            <button class="bezel-action-btn minimap-toggle-btn" onclick="window.ipc.postMessage('semantic_event:ToggleMiniMap')">MAP</button>
+                            <div class="bezel-clock" style="position: relative; top: 0; left: 0; margin-left: 5px;">20:33</div>
                         </div>
                     </div>
                 </div>
             </div><div class="hub-content"><div class="terminal-container background-layer">
-                <div class="terminal-output" id="hub-term-a6f191b3-ecd4-4790-b8bc-e7e57ea6676c">
+                <div class="terminal-output" id="hub-term-1060aef6-5813-48fb-9729-7e5ccc4acb9f">
                     
                 </div>
             </div><div class="activity-view foreground-layer">
@@ -110,7 +112,7 @@
                             
                             <div class="activity-grid">
                                 <div class="app-tile staging-item ">
-                            <div class="file-selector" onclick="event.stopPropagation(); window.ipc.postMessage('app_toggle_select:e7b11d94-6722-4ac8-853a-6931cd2af281')"></div>
+                            <div class="file-selector" onclick="event.stopPropagation(); window.ipc.postMessage('app_toggle_select:078a3d26-b641-4e1f-8cff-f4b960ae18d6')"></div>
                             <div class="app-tile-header" onclick="window.ipc.postMessage('stage_command:focus SPECTROMETER')">
                                 <div class="app-tile-icon">🔬</div>
                                 <div class="app-tile-info">
@@ -124,11 +126,11 @@
                                 <div class="stat">MEM: <1MB</div>
                             </div>
                             <div class="app-tile-actions">
-                                <button class="tile-btn" onclick="window.ipc.postMessage('signal_app:e7b11d94-6722-4ac8-853a-6931cd2af281;INT')">SIGINT</button>
-                                <button class="tile-btn danger" onclick="window.ipc.postMessage('kill_app:e7b11d94-6722-4ac8-853a-6931cd2af281')">KILL</button>
+                                <button class="tile-btn" onclick="window.ipc.postMessage('signal_app:078a3d26-b641-4e1f-8cff-f4b960ae18d6;INT')">SIGINT</button>
+                                <button class="tile-btn danger" onclick="window.ipc.postMessage('kill_app:078a3d26-b641-4e1f-8cff-f4b960ae18d6')">KILL</button>
                             </div>
                         </div><div class="app-tile staging-item ">
-                            <div class="file-selector" onclick="event.stopPropagation(); window.ipc.postMessage('app_toggle_select:02f6d5bf-df9a-40c1-b9bc-586bbd7e23f8')"></div>
+                            <div class="file-selector" onclick="event.stopPropagation(); window.ipc.postMessage('app_toggle_select:6ff45061-ef4f-4e1e-a2d5-256f1480b545')"></div>
                             <div class="app-tile-header" onclick="window.ipc.postMessage('stage_command:focus DATAFEED')">
                                 <div class="app-tile-icon">🔭</div>
                                 <div class="app-tile-info">
@@ -142,8 +144,8 @@
                                 <div class="stat">MEM: <1MB</div>
                             </div>
                             <div class="app-tile-actions">
-                                <button class="tile-btn" onclick="window.ipc.postMessage('signal_app:02f6d5bf-df9a-40c1-b9bc-586bbd7e23f8;INT')">SIGINT</button>
-                                <button class="tile-btn danger" onclick="window.ipc.postMessage('kill_app:02f6d5bf-df9a-40c1-b9bc-586bbd7e23f8')">KILL</button>
+                                <button class="tile-btn" onclick="window.ipc.postMessage('signal_app:6ff45061-ef4f-4e1e-a2d5-256f1480b545;INT')">SIGINT</button>
+                                <button class="tile-btn danger" onclick="window.ipc.postMessage('kill_app:6ff45061-ef4f-4e1e-a2d5-256f1480b545')">KILL</button>
                             </div>
                         </div>
                                 <div class="app-tile add-tile" onclick="window.ipc.postMessage('spawn_app')">

@@ -3,6 +3,7 @@ pub mod ui;
 pub mod modules;
 pub mod marketplace;
 pub mod cli;
+pub mod bezel;
 
 #[cfg(feature = "accessibility")]
 pub mod accessibility;

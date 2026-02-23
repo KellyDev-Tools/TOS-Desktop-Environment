@@ -1,5 +1,5 @@
 [package]
-name = "tos-dream"
+name = "tos_dream"
 version = "0.1.0"
 edition = "2021"
 
@@ -90,7 +90,7 @@ wayland-server = { version = "0.31", optional = true }
 openxr = { version = "0.19", optional = true }
 
 [features]
-default = ["gui", "saas"]
+default = ["full"]
 gui = ["dep:wry", "dep:tao"]
 gamepad = ["dep:gilrs"]
 accessibility = ["dep:rodio", "dep:speech-dispatcher", "dep:atspi", "dep:dark-light", "voice-system"]

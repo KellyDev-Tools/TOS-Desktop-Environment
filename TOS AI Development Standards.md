@@ -30,6 +30,9 @@ Maintain the "Unified Vision" by using traits defined in `src/platform/mod.rs`.
 ### 2.1 Type Safety & Correctness
 - Use custom enums for state management instead of strings or booleans (e.g., `CommandHubMode`).
 - Favor `Result` and `Option` over `unwrap()`. Errors in tactical systems must be handled gracefully.
+- **Never** disable compiler protections (e.g., do not use `#[allow(warnings)]` or `unsafe` blocks unless absolutely necessary, documented and explicitly approved).
+- **Never** use `#[allow(unused_imports)]`. Instead, comment out the imports and document why they are unused or explain why they are needed.
+- **Error Reporting**: All errors must be reported via the centralized log system (`src/system/log.rs`). Use `LogManager` to record errors with the appropriate log type (i.e. `LogType::System` or `LogType::Security`) events with appropriate region context.
 
 ### 2.2 Modularity
 - Systems (AI, Search, Reset) belong in `src/system/`.
@@ -59,7 +62,8 @@ Interfaces must feel "alive."
 
 ## 4. Testing & Validation
 
-### 4.1 "No Code Without Tests"
+### 4.1 Test-Driven Development (TDD) & "No Code Without Tests"
+- **Test-Driven Development (TDD)** is strictly required. Write the test first, verify it fails, then write the tactical implementation to pass it.
 - Every new feature must include a corresponding integration test in `tests/`.
 - Tests should verify the "Hierarchy Round-Trip" (e.g., initializing state, zooming to a level, triggering an event, verifying state change).
 

@@ -1,0 +1,151 @@
+<div class="command-hub mode-directory   render-Full"><div class="tactical-header" style="--header-accent: #ff9900;">
+                <div class="header-left">
+                    <button class="bezel-action-btn" onclick="window.ipc.postMessage('zoom_out')" title="Zoom Out">ZOOM OUT</button>
+                    <button class="bezel-action-btn" onclick="window.ipc.postMessage('toggle_output_mode')" title="Standard / Centered Perspective">OUTPUT</button>
+                    <button class="bezel-action-btn" onclick="window.ipc.postMessage('toggle_left_region')" title="Toggle Left Favourites">FAVS</button>
+                </div>
+                <div class="header-center">
+                    <div class="three-way-toggle">
+                        <div class="toggle-segment " onclick="window.ipc.postMessage('set_mode:Command')">COMMAND</div>
+                        <div class="toggle-segment active" onclick="window.ipc.postMessage('set_mode:Directory')">DIRECTORY</div>
+                        <div class="toggle-segment " onclick="window.ipc.postMessage('set_mode:Activity')">ACTIVITY</div>
+                    </div>
+                </div>
+                <div class="header-right">
+                    <div class="hub-info-inline" style="display:flex; gap:15px; align-items:center;">
+                        <div class="hub-metadata">
+                            <span class="hub-sector-name" style="font-weight:800; color:#ff9900;">ALPHA SECTOR</span>
+                            <span class="hub-host" style="font-size:0.7rem; opacity:0.6; margin-left:10px;">LOCAL</span>
+                        </div>
+                        
+                        <div class="hub-participants" style="display:flex; gap:5px;">
+                            <div class="participant-avatar" style="background-color: #ffcc00" title="Host (Co-Owner)" onclick="window.ipc.postMessage('follow_participant:4ef9d722-8e8f-4a9e-b1eb-58d822a14654')">H</div>
+                        </div>
+                        <div class="telemetry-item" style="display:flex; gap:15px; align-items:center;">
+                            <button class="bezel-action-btn comms-toggle-btn" onclick="window.ipc.postMessage('toggle_comms')">COMMS</button>
+                            <button class="bezel-action-btn minimap-toggle-btn" onclick="window.ipc.postMessage('semantic_event:ToggleMiniMap')">MAP</button>
+                            <div class="bezel-clock" style="position: relative; top: 0; left: 0; margin-left: 5px;">04:15</div>
+                        </div>
+                    </div>
+                </div>
+            </div><div class="hub-content"><div class="terminal-container background-layer">
+                <div class="terminal-output" id="hub-term-22133bc1-9f45-4be1-a0c1-79e8263508dc">
+                    
+                </div>
+            </div><div class="directory-view foreground-layer">
+                    <div class="path-bar breadcrumbs"><span class="breadcrumb" onclick="window.ipc.postMessage('dir_navigate:/')">ROOT</span><span class="path-sep">/</span><span class="breadcrumb" onclick="window.ipc.postMessage('dir_navigate:home')">HOME</span><span class="path-sep">/</span><span class="breadcrumb" onclick="window.ipc.postMessage('dir_navigate:home/tim')">TIM</span></div><div class="directory-actions">
+                    <button class="bezel-btn" onclick="window.ipc.postMessage('stage_command:mkdir ')">NEW FOLDER</button>
+                    <button class="bezel-btn" onclick="window.ipc.postMessage('dir_action_copy')">COPY</button>
+                    <button class="bezel-btn" onclick="window.ipc.postMessage('dir_action_paste')">PASTE</button>
+                    <button class="bezel-btn" onclick="window.ipc.postMessage('stage_command:mv ')">RENAME</button>
+                    <button class="bezel-btn" onclick="window.ipc.postMessage('dir_toggle_hidden')">TOGGLE HIDDEN</button>
+                    <button class="bezel-btn danger" onclick="window.ipc.postMessage('stage_command:rm ')">DELETE</button>
+                    <button class="bezel-btn" onclick="window.ipc.postMessage('dir_navigate:.')">REFRESH</button>
+                </div><div class="file-grid"><div class="file-item staging-item" onclick="window.ipc.postMessage('dir_navigate:..')">
+                    <span class="file-icon folder"></span> ..
+                </div><div class="file-item staging-item " 
+                                    onclick="window.ipc.postMessage('dir_navigate:Android')"
+                                    oncontextmenu="event.preventDefault(); window.ipc.postMessage('dir_context:Android;' + event.clientX + ';' + event.clientY)">
+                                    <div class="file-selector" onclick="event.stopPropagation(); window.ipc.postMessage('dir_toggle_select:Android')"></div>
+                                    <span class="file-icon folder"></span> ANDROID/
+                                </div><div class="file-item staging-item " 
+                                    onclick="window.ipc.postMessage('dir_navigate:AndroidSDK')"
+                                    oncontextmenu="event.preventDefault(); window.ipc.postMessage('dir_context:AndroidSDK;' + event.clientX + ';' + event.clientY)">
+                                    <div class="file-selector" onclick="event.stopPropagation(); window.ipc.postMessage('dir_toggle_select:AndroidSDK')"></div>
+                                    <span class="file-icon folder"></span> ANDROIDSDK/
+                                </div><div class="file-item staging-item " 
+                                    onclick="window.ipc.postMessage('dir_navigate:bin')"
+                                    oncontextmenu="event.preventDefault(); window.ipc.postMessage('dir_context:bin;' + event.clientX + ';' + event.clientY)">
+                                    <div class="file-selector" onclick="event.stopPropagation(); window.ipc.postMessage('dir_toggle_select:bin')"></div>
+                                    <span class="file-icon folder"></span> BIN/
+                                </div><div class="file-item staging-item " 
+                                    onclick="window.ipc.postMessage('dir_navigate:Desktop')"
+                                    oncontextmenu="event.preventDefault(); window.ipc.postMessage('dir_context:Desktop;' + event.clientX + ';' + event.clientY)">
+                                    <div class="file-selector" onclick="event.stopPropagation(); window.ipc.postMessage('dir_toggle_select:Desktop')"></div>
+                                    <span class="file-icon folder"></span> DESKTOP/
+                                </div><div class="file-item staging-item " 
+                                    onclick="window.ipc.postMessage('dir_navigate:Downloads')"
+                                    oncontextmenu="event.preventDefault(); window.ipc.postMessage('dir_context:Downloads;' + event.clientX + ';' + event.clientY)">
+                                    <div class="file-selector" onclick="event.stopPropagation(); window.ipc.postMessage('dir_toggle_select:Downloads')"></div>
+                                    <span class="file-icon folder"></span> DOWNLOADS/
+                                </div><div class="file-item staging-item " 
+                                    onclick="window.ipc.postMessage('dir_navigate:dropbox')"
+                                    oncontextmenu="event.preventDefault(); window.ipc.postMessage('dir_context:dropbox;' + event.clientX + ';' + event.clientY)">
+                                    <div class="file-selector" onclick="event.stopPropagation(); window.ipc.postMessage('dir_toggle_select:dropbox')"></div>
+                                    <span class="file-icon folder"></span> DROPBOX/
+                                </div><div class="file-item staging-item " 
+                                    onclick="window.ipc.postMessage('dir_navigate:env_repos')"
+                                    oncontextmenu="event.preventDefault(); window.ipc.postMessage('dir_context:env_repos;' + event.clientX + ';' + event.clientY)">
+                                    <div class="file-selector" onclick="event.stopPropagation(); window.ipc.postMessage('dir_toggle_select:env_repos')"></div>
+                                    <span class="file-icon folder"></span> ENV_REPOS/
+                                </div><div class="file-item staging-item " 
+                                    onclick="window.ipc.postMessage('dir_navigate:environment')"
+                                    oncontextmenu="event.preventDefault(); window.ipc.postMessage('dir_context:environment;' + event.clientX + ';' + event.clientY)">
+                                    <div class="file-selector" onclick="event.stopPropagation(); window.ipc.postMessage('dir_toggle_select:environment')"></div>
+                                    <span class="file-icon folder"></span> ENVIRONMENT/
+                                </div><div class="file-item staging-item " 
+                                    onclick="window.ipc.postMessage('dir_navigate:public')"
+                                    oncontextmenu="event.preventDefault(); window.ipc.postMessage('dir_context:public;' + event.clientX + ';' + event.clientY)">
+                                    <div class="file-selector" onclick="event.stopPropagation(); window.ipc.postMessage('dir_toggle_select:public')"></div>
+                                    <span class="file-icon folder"></span> PUBLIC/
+                                </div><div class="file-item staging-item " 
+                                    onclick="window.ipc.postMessage('dir_navigate:repos')"
+                                    oncontextmenu="event.preventDefault(); window.ipc.postMessage('dir_context:repos;' + event.clientX + ';' + event.clientY)">
+                                    <div class="file-selector" onclick="event.stopPropagation(); window.ipc.postMessage('dir_toggle_select:repos')"></div>
+                                    <span class="file-icon folder"></span> REPOS/
+                                </div><div class="file-item staging-item " 
+                                    onclick="window.ipc.postMessage('dir_navigate:snap')"
+                                    oncontextmenu="event.preventDefault(); window.ipc.postMessage('dir_context:snap;' + event.clientX + ';' + event.clientY)">
+                                    <div class="file-selector" onclick="event.stopPropagation(); window.ipc.postMessage('dir_toggle_select:snap')"></div>
+                                    <span class="file-icon folder"></span> SNAP/
+                                </div><div class="file-item staging-item " 
+                                    onclick="window.ipc.postMessage('dir_pick_file:Sing_(2016)_[imdbid=3470600].mkv')"
+                                    oncontextmenu="event.preventDefault(); window.ipc.postMessage('dir_context:Sing_(2016)_[imdbid=3470600].mkv;' + event.clientX + ';' + event.clientY)">
+                                    <div class="file-selector" onclick="event.stopPropagation(); window.ipc.postMessage('dir_toggle_select:Sing_(2016)_[imdbid=3470600].mkv')"></div>
+                                    <span class="file-icon mkv"></span>
+                                    <div class="file-info">
+                                        <div class="file-name">SING_(2016)_[IMDBID=3470600].MKV</div>
+                                        <div class="file-meta">6205.2MB // MKV</div>
+                                    </div>
+                                </div><div class="file-item staging-item " 
+                                    onclick="window.ipc.postMessage('dir_pick_file:Sing_2_(2021)_[imdbid=6467266].mkv')"
+                                    oncontextmenu="event.preventDefault(); window.ipc.postMessage('dir_context:Sing_2_(2021)_[imdbid=6467266].mkv;' + event.clientX + ';' + event.clientY)">
+                                    <div class="file-selector" onclick="event.stopPropagation(); window.ipc.postMessage('dir_toggle_select:Sing_2_(2021)_[imdbid=6467266].mkv')"></div>
+                                    <span class="file-icon mkv"></span>
+                                    <div class="file-info">
+                                        <div class="file-name">SING_2_(2021)_[IMDBID=6467266].MKV</div>
+                                        <div class="file-meta">5023.5MB // MKV</div>
+                                    </div>
+                                </div><div class="file-item action-item" onclick="window.ipc.postMessage('dir_toggle_hidden')">
+                                <span class="file-icon"></span> SHOW HIDDEN FILES
+                            </div></div></div></div><div class="unified-prompt">
+                <div class="left-section">
+                    <div class="three-way-toggle">
+                        <div class="toggle-segment active" onclick="window.ipc.postMessage('set_mode:Command')">CMD</div>
+                        <div class="toggle-segment " onclick="window.ipc.postMessage('set_mode:Search')">SEARCH</div>
+                        <div class="toggle-segment " onclick="window.ipc.postMessage('set_mode:Ai')">AI</div>
+                    </div>
+                </div>
+                <div class="center-section">
+                    <div class="prompt-container">
+                        <div class="prompt-prefix">TOS@ALPHA SECTOR ></div>
+                        <input type="text" id="terminal-input" value="" 
+                            onkeydown="window.handlePromptKey(event)" 
+                            oninput="window.handlePromptInput(event)"
+                            autofocus>
+                    </div>
+                </div>
+                <div class="right-section">
+                    <div class="prompt-controls">
+                        <div class="voice-trigger" style="font-size:1.5rem;cursor:pointer;" onclick="window.ipc.postMessage('semantic_event:VoiceCommandStart')">
+                            <div class="voice-indicator voice-idle">
+                <div class="voice-icon">🎤</div>
+                <div class="voice-status">Voice commands disabled</div>
+                
+            </div>
+                        </div>
+                        
+                        <div class="stop-btn" onclick="window.ipc.postMessage('semantic_event:StopOperation')" title="STOP (Ctrl+Shift+C)">⏹️</div>
+                    </div>
+                </div>
+            </div></div>

@@ -90,7 +90,7 @@ wayland-server = { version = "0.31", optional = true }
 openxr = { version = "0.19", optional = true }
 
 [features]
-default = ["full"]
+default = ["gui", "gamepad", "accessibility", "live-feed", "saas"]
 gui = ["dep:wry", "dep:tao"]
 gamepad = ["dep:gilrs"]
 accessibility = ["dep:rodio", "dep:speech-dispatcher", "dep:atspi", "dep:dark-light", "voice-system"]

@@ -173,11 +173,13 @@ impl Default for SecurityOptions {
 }
 
 /// Docker runtime implementation
+#[cfg(feature = "saas")]
 #[derive(Debug, Clone)]
 pub struct DockerRuntime {
     docker: bollard::Docker,
 }
 
+#[cfg(feature = "saas")]
 impl DockerRuntime {
     pub async fn new() -> ContainerResult<Self> {
         let docker = bollard::Docker::connect_with_local_defaults()
@@ -187,6 +189,7 @@ impl DockerRuntime {
     }
 }
 
+#[cfg(feature = "saas")]
 #[async_trait]
 impl ContainerRuntime for DockerRuntime {
     fn clone_box(&self) -> Box<dyn ContainerRuntime> {
@@ -489,9 +492,9 @@ impl ContainerRuntime for MockRuntime {
     }
 }
 
-/// Create a runtime for the specified backend
 pub async fn create_runtime(backend: ContainerBackend) -> ContainerResult<Box<dyn ContainerRuntime>> {
     match backend {
+        #[cfg(feature = "saas")]
         ContainerBackend::Docker => {
             let runtime = DockerRuntime::new().await?;
             Ok(Box::new(runtime))
@@ -500,7 +503,7 @@ pub async fn create_runtime(backend: ContainerBackend) -> ContainerResult<Box<dy
             Ok(Box::new(MockRuntime::new()))
         }
         _ => Err(ContainerError::Runtime(
-            format!("Backend {:?} not yet implemented", backend)
+            format!("Backend {:?} not yet implemented or enabled", backend)
         )),
     }
 }

@@ -7,27 +7,6 @@ impl ViewRenderer for GlobalRenderer {
     fn render(&self, state: &TosState, _viewport: &Viewport, mode: RenderMode) -> String {
         let mut html = String::new();
 
-        // 1. Unified Tactical Header (Global View Bezel)
-        html.push_str(&format!(
-            r#"<div class="global-bezel">
-                <div class="bezel-left">
-                    <div class="bezel-icon" style="color:var(--lcars-purple);">⚙</div>
-                    <h1 class="bezel-brand">TOS COMMAND CENTER</h1>
-                </div>
-                <div class="bezel-center">
-                    <div class="bezel-view-indicator">GLOBALOVERVIEW</div>
-                </div>
-                <div class="bezel-right">
-                    <button class="bezel-action-btn" onclick="window.ipc.postMessage('toggle_comms')">COMMS</button>
-                    <button class="bezel-action-btn" onclick="window.ipc.postMessage('semantic_event:ToggleMiniMap')">MAP</button>
-                    <div class="bezel-clock" id="tos-sys-time">{}</div>
-                    <div id="tos-stardate" style="display:none">{}</div>
-                </div>
-            </div>"#,
-            state.get_system_time(),
-            state.get_stardate()
-        ));
-
         // 4. Global Grid
         html.push_str(&format!(r#"<div class="global-grid mode-{:?}">"#, mode));
         for (i, sector) in state.sectors.iter().enumerate() {

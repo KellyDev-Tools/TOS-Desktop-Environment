@@ -1,4 +1,5 @@
 //! Container Strategy & Cloud Resource Architecture Integration Tests
+#![cfg(feature = "saas")]
 
 use tos_core::TosState;
 use tos_core::containers::{

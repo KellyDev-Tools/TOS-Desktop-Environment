@@ -3,6 +3,7 @@ use crate::{TosState, Viewport, RenderMode};
 pub mod global;
 pub mod hub;
 pub mod app;
+pub mod bezel;
 pub mod inspector;
 pub mod remote;
 pub mod svg_engine;

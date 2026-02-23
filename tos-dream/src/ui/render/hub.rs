@@ -36,50 +36,6 @@ impl ViewRenderer for HubRenderer {
              ""
         };
 
-        // 1. Unified Tactical Header
-        html.push_str(&format!(
-            r#"<div class="tactical-header" style="--header-accent: {color};">
-                <div class="header-left">
-                    <button class="bezel-action-btn" onclick="window.ipc.postMessage('zoom_out')" title="Zoom Out">ZOOM OUT</button>
-                    <button class="bezel-action-btn" onclick="window.ipc.postMessage('toggle_output_mode')" title="Standard / Centered Perspective">OUTPUT</button>
-                    <button class="bezel-action-btn" onclick="window.ipc.postMessage('toggle_left_region')" title="Toggle Left Favourites">FAVS</button>
-                </div>
-                <div class="header-center">
-                    <div class="three-way-toggle">
-                        <div class="toggle-segment {cmd_active}" onclick="window.ipc.postMessage('set_mode:Command')">COMMAND</div>
-                        <div class="toggle-segment {dir_active}" onclick="window.ipc.postMessage('set_mode:Directory')">DIRECTORY</div>
-                        <div class="toggle-segment {act_active}" onclick="window.ipc.postMessage('set_mode:Activity')">ACTIVITY</div>
-                    </div>
-                </div>
-                <div class="header-right">
-                    <div class="hub-info-inline" style="display:flex; gap:15px; align-items:center;">
-                        <div class="hub-metadata">
-                            <span class="hub-sector-name" style="font-weight:800; color:{color};">{name}</span>
-                            <span class="hub-host" style="font-size:0.7rem; opacity:0.6; margin-left:10px;">{host}</span>
-                        </div>
-                        {follow_indicator}
-                        <div class="hub-participants" style="display:flex; gap:5px;">
-                            {participants_html}
-                        </div>
-                        <div class="telemetry-item" style="display:flex; gap:15px; align-items:center;">
-                            <button class="bezel-action-btn comms-toggle-btn" onclick="window.ipc.postMessage('toggle_comms')">COMMS</button>
-                            <button class="bezel-action-btn minimap-toggle-btn" onclick="window.ipc.postMessage('semantic_event:ToggleMiniMap')">MAP</button>
-                            <div class="bezel-clock" style="position: relative; top: 0; left: 0; margin-left: 5px;">{time}</div>
-                        </div>
-                    </div>
-                </div>
-            </div>"#,
-            color = sector.color,
-            name = sector.name.to_uppercase(),
-            host = sector.host,
-            participants_html = participants_html,
-            follow_indicator = follow_indicator,
-            cmd_active = if hub.mode == CommandHubMode::Command { "active" } else { "" },
-            dir_active = if hub.mode == CommandHubMode::Directory { "active" } else { "" },
-            act_active = if hub.mode == CommandHubMode::Activity { "active" } else { "" },
-            time = state.get_system_time()
-        ));
-
         html.push_str(r#"<div class="hub-content">"#);
         if let Some(dangerous_cmd) = &hub.confirmation_required {
             html.push_str(&format!(

@@ -214,7 +214,7 @@ fn test_app_renderer_non_shell_app_no_pid_shows_placeholder_memory() {
 #[test]
 fn test_app_renderer_shows_app_title_and_class_in_bezel() {
     let (state, viewport) = make_state_with_app("Spectrometer", None);
-    let html = AppRenderer.render(&state, &viewport, RenderMode::Full);
+    let html = state.render_viewport(&viewport);
 
     assert!(html.contains("TEST APP"), "App title should appear uppercased in bezel");
     assert!(html.contains("SPECTROMETER"), "App class should appear uppercased in bezel");
@@ -222,8 +222,9 @@ fn test_app_renderer_shows_app_title_and_class_in_bezel() {
 
 #[test]
 fn test_app_renderer_shows_bezel_controls() {
-    let (state, viewport) = make_state_with_app("Spectrometer", None);
-    let html = AppRenderer.render(&state, &viewport, RenderMode::Full);
+    let (mut state, mut viewport) = make_state_with_app("Spectrometer", None);
+    viewport.bezel_expanded = true;
+    let html = state.render_viewport(&viewport);
 
     assert!(html.contains("ZOOM OUT"), "Bezel should have ZOOM OUT button");
     assert!(html.contains("SPLIT VIEW"), "Bezel should have SPLIT VIEW button");
@@ -244,7 +245,9 @@ fn test_app_renderer_sliders_use_app_settings() {
     state.sectors[sector_idx].hubs[hub_idx].applications[0]
         .settings.insert("gain".to_string(), 42.0);
 
-    let html = AppRenderer.render(&state, &viewport, RenderMode::Full);
+    let mut viewport_expanded = viewport.clone();
+    viewport_expanded.bezel_expanded = true;
+    let html = state.render_viewport(&viewport_expanded);
 
     assert!(html.contains("value=\"8\""), "Priority slider should use app setting value 8");
     assert!(html.contains("value=\"42\""), "Gain slider should use app setting value 42");

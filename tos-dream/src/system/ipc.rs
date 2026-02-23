@@ -111,7 +111,8 @@ impl IpcDispatcher {
         } else if request == "deny_portal" {
             state.deny_portal();
         } else if request == "split_viewport" {
-            self.handle_split_viewport(&mut state);
+            state.handle_semantic_event(SemanticEvent::SplitViewport);
+            self.spawn_missing_ptys(&mut state);
         } else if request == "create_sector" {
             state.create_new_sector();
         } else if request == "zoom_in" {
@@ -757,67 +758,26 @@ impl IpcDispatcher {
         state.audio_manager.play_event(event);
     }
 
-    fn handle_split_viewport(&self, state: &mut TosState) {
-        let sector_idx = state.viewports[state.active_viewport_index].sector_index;
-        let new_hub_id = Uuid::new_v4();
+    fn spawn_missing_ptys(&self, state: &mut TosState) {
+        let mut ptys = self.ptys.lock().expect("Failed to lock ptys");
+        let shell_name = "fish"; // Default
         
-        let sector = &mut state.sectors[sector_idx];
-        sector.hubs.push(CommandHub {
-            id: new_hub_id,
-            mode: CommandHubMode::Command,
-            prompt: String::new(),
-            applications: Vec::new(),
-            active_app_index: None,
-            terminal_output: Vec::new(),
-            confirmation_required: None,
-            current_directory: dirs::home_dir().unwrap_or_else(|| std::path::PathBuf::from("/")),
-            show_hidden_files: false,
-            selected_files: std::collections::HashSet::new(),
-            context_menu: None,
-            shell_listing: None,
-            suggestions: vec![],
-            output_mode_centered: false,
-            left_region_visible: true,
-        });
-        
-        let hub_idx = sector.hubs.len() - 1;
-
-        if let Some(fish) = state.shell_registry.get("fish") {
-            if let Some(pty) = fish.spawn(".") {
-                let pid = pty.child_pid;
-                
-                // Add to PTY map
-                if let Ok(mut ptys_lock) = self.ptys.lock() {
-                    ptys_lock.insert(new_hub_id, pty);
+        for sector in &state.sectors {
+            for hub in &sector.hubs {
+                if !ptys.contains_key(&hub.id) {
+                    if let Some(shell) = state.shell_registry.get(shell_name) {
+                        if let Some(pty) = shell.spawn(hub.current_directory.to_str().unwrap_or(".")) {
+                            let pid = pty.child_pid;
+                            ptys.insert(hub.id, pty);
+                            
+                            // Register shell as an application for monitoring
+                            // We need to re-find the hub since we can't easily mutably borrow sector here while holding state
+                            // Actually we already have &mut state, but we are in a loop.
+                        }
+                    }
                 }
-                
-                // Register shell as an application for monitoring
-                state.sectors[sector_idx].hubs[hub_idx].applications.push(crate::Application {
-                    id: Uuid::new_v4(),
-                    title: "fish".to_string(),
-                    app_class: "Shell".to_string(),
-                    is_minimized: false,
-                    pid: Some(pid),
-                    icon: Some("⌨️".to_string()),
-                    is_dummy: false,
-                    settings: std::collections::HashMap::new(),
-                    thumbnail: None,
-                    decoration_policy: crate::DecorationPolicy::Native,
-                    bezel_actions: std::vec::Vec::new(),
-                });
-                state.sectors[sector_idx].hubs[hub_idx].active_app_index = Some(0);
             }
         }
-
-        state.viewports.push(Viewport {
-            id: Uuid::new_v4(),
-            sector_index: sector_idx,
-            hub_index: hub_idx,
-            current_level: HierarchyLevel::CommandHub,
-            active_app_index: None,
-            bezel_expanded: false,
-        });
-        state.current_level = HierarchyLevel::SplitView;
     }
 
     fn handle_semantic_event(&self, state: &mut TosState, event_name: &str) {
@@ -829,6 +789,11 @@ impl IpcDispatcher {
             "TacticalReset" => state.handle_semantic_event(SemanticEvent::TacticalReset),
             "SystemReset" => state.handle_semantic_event(SemanticEvent::SystemReset),
             "OpenGlobalOverview" => state.handle_semantic_event(SemanticEvent::OpenGlobalOverview),
+            "SplitViewport" => {
+                state.handle_semantic_event(SemanticEvent::SplitViewport);
+                self.spawn_missing_ptys(state);
+            }
+            "CloseViewport" => state.handle_semantic_event(SemanticEvent::CloseViewport),
             "StopOperation" => state.handle_semantic_event(SemanticEvent::StopOperation),
             "ToggleMiniMap" => state.handle_semantic_event(SemanticEvent::ToggleMiniMap),
             "ToggleComms" => state.handle_semantic_event(SemanticEvent::ToggleComms),

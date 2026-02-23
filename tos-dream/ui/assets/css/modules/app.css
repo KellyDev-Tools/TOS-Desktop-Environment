@@ -32,11 +32,83 @@
     border-radius: 0 40px 40px 0;
 }
 
+
 .tactical-bezel.expanded {
-    max-height: 600px;
+    position: absolute;
+    /* Take over the screen when expanded */
+    top: 30px;
+    left: 50px;
+    right: 50px;
+    max-height: 80vh;
     border-radius: 0 40px 40px 0;
-    background: rgba(0, 0, 0, 0.9);
-    border-bottom: 3px solid var(--lcars-purple);
+    background: rgba(10, 15, 25, 0.95);
+    border-bottom: 3px solid var(--bezel-accent, var(--lcars-purple));
+    z-index: 2000;
+}
+
+/* Priority & Border Chips (BZ-11) */
+.tactical-bezel.priority-high {
+    border-left-color: var(--lcars-red) !important;
+}
+
+.tactical-bezel.priority-medium {
+    border-left-color: var(--lcars-orange) !important;
+}
+
+.tactical-bezel.priority-low {
+    border-left-color: var(--lcars-blue) !important;
+}
+
+.bezel-chips {
+    position: absolute;
+    display: flex;
+    gap: 8px;
+    z-index: 5;
+}
+
+.bezel-chips.top {
+    top: 5px;
+    right: 150px;
+}
+
+.bezel-chips.bottom {
+    bottom: 5px;
+    left: 40px;
+}
+
+.chip {
+    width: 25px;
+    height: 6px;
+    background: var(--bezel-accent, var(--lcars-purple));
+    border-radius: 3px;
+    opacity: 0.6;
+}
+
+.priority-high .chip {
+    background: var(--lcars-red);
+}
+
+.priority-medium .chip {
+    background: var(--lcars-orange);
+}
+
+.priority-low .chip {
+    background: var(--lcars-blue);
+}
+
+/* BZ-12: High-Z Layout Orchestration */
+.viewport-wrapper {
+    overflow: hidden;
+}
+
+.tactical-bezel.expanded~.viewport-inner {
+    filter: blur(10px) brightness(0.3);
+    pointer-events: none;
+    transform: scale(0.98);
+}
+
+.viewport-inner {
+    transition: all 0.5s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .bezel-top {
@@ -123,6 +195,94 @@
 
 .bezel-btn.danger {
     background: var(--lcars-red);
+}
+
+/* Calibration Sliders */
+.action-slider {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+}
+
+.action-slider span {
+    font-size: 0.65rem;
+    font-weight: 800;
+    color: var(--lcars-blue);
+    letter-spacing: 1px;
+}
+
+.action-slider input[type="range"] {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 200px;
+    height: 10px;
+    background: rgba(153, 102, 255, 0.2);
+    border-radius: 5px;
+    outline: none;
+}
+
+.action-slider input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 20px;
+    height: 20px;
+    background: var(--lcars-blue);
+    border-radius: 4px;
+    cursor: pointer;
+    box-shadow: 0 0 10px rgba(102, 204, 255, 0.5);
+}
+
+/* Security Confirmation Slider */
+.slider-track {
+    position: relative;
+    height: 60px;
+    background: rgba(204, 102, 102, 0.1);
+    border-radius: 30px;
+    border: 2px solid var(--lcars-red);
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    padding: 0 10px;
+}
+
+.confirm-slider {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 100%;
+    height: 100%;
+    background: transparent;
+    z-index: 10;
+}
+
+.confirm-slider::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 80px;
+    height: 44px;
+    background: var(--lcars-red);
+    border-radius: 22px;
+    cursor: ew-resize;
+    box-shadow: 0 0 20px rgba(204, 102, 102, 0.6);
+}
+
+.slider-label {
+    position: absolute;
+    width: 100%;
+    text-align: center;
+    font-weight: 900;
+    color: var(--lcars-red);
+    font-size: 0.8rem;
+    pointer-events: none;
+    z-index: 5;
+    letter-spacing: 3px;
+}
+
+.dangerous-command {
+    font-family: var(--font-mono);
+    font-size: 1.2rem;
+    color: white;
+    background: rgba(204, 102, 102, 0.3);
+    padding: 10px 20px;
+    border-radius: 5px;
+    text-align: center;
 }
 
 .application-surface {

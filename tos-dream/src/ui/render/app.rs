@@ -8,19 +8,13 @@ impl ViewRenderer for AppRenderer {
         let sector = &state.sectors[viewport.sector_index];
         let hub = &sector.hubs[viewport.hub_index];
         let app = &hub.applications[viewport.active_app_index.unwrap_or(0)];
-        let bezel_class = if viewport.bezel_expanded { "expanded" } else { "collapsed" };
-
-        let mut participants_html = String::new();
-        for p in &sector.participants {
-            participants_html.push_str(&format!(
-                r#"<div class="participant-avatar mini" style="background-color: {color}" title="{name}" onclick="window.ipc.postMessage('follow_participant:{id}')"></div>"#,
-                color = p.color, name = p.name, id = p.id
-            ));
+        let mut module_content = String::new();
+        for module in &state.modules {
+            if let Some(content) = module.render_override(HierarchyLevel::ApplicationFocus) {
+                module_content.push_str(&content);
+            }
         }
 
-        let portal_active_class = if sector.portal_active { "active" } else { "" };
-        let portal_label = if sector.portal_active { "DISABLE PORTAL" } else { "EXPORT PORTAL" };
-        
         // Portal approval dialog for 7.4 security
         let portal_approval_html = if state.is_portal_approval_pending() {
             let sector_name = state.get_approval_requested_sector_name().unwrap_or_default();
@@ -51,97 +45,16 @@ impl ViewRenderer for AppRenderer {
         } else {
             String::new()
         };
-        
-        let portal_info_html = if sector.portal_active {
-            format!(
-                r#"<div class="bezel-status-panel">
-                    <div class="status-label">WEB PORTAL ACTIVE</div>
-                    <div class="status-value">{}</div>
-                </div>"#,
-                sector.portal_url.as_ref().unwrap_or(&"INITIALIZING...".to_string())
-            )
-        } else {
-            String::new()
-        };
 
-        let deep_inspection_html = if state.security.deep_inspection_active {
-            r#"<div class="bezel-btn warning mini" onclick="window.ipc.postMessage('security:disable_deep_inspection')" title="Disable Deep Inspection">🔓</div>"#.to_string()
-        } else {
-            String::new()
-        };
-
-        let mut module_content = String::new();
-        for module in &state.modules {
-            if let Some(content) = module.render_override(HierarchyLevel::ApplicationFocus) {
-                module_content.push_str(&content);
-            }
-        }
-
-            format!(
+        format!(
             r#"<div class="application-container render-{mode:?}">
-                <div class="tactical-bezel {bezel_class}">
-                    <div class="bezel-top">
-                        <div class="bezel-back" onclick="window.ipc.postMessage('zoom_out')">BACK</div>
-                        {deep_inspection_html}
-                        <div class="bezel-title">{title} // {class}</div>
-                        <div class="bezel-participants">
-                            {participants_html}
-                        </div>
-                        <div class="bezel-btn mini comms-toggle-btn" onclick="window.ipc.postMessage('toggle_comms')">COMMS</div>
-                        <div class="bezel-btn mini minimap-toggle-btn" onclick="window.ipc.postMessage('semantic_event:ToggleMiniMap')">MAP</div>
-                        <div class="bezel-handle" onclick="window.ipc.postMessage('toggle_bezel')">
-                            <span class="chevron"></span>
-                        </div>
-                    </div>
-                    <div class="bezel-expanded-content">
-                        <div class="bezel-section">
-                            <div class="section-label">NAVIGATION</div>
-                            <div class="bezel-group">
-                                <div class="bezel-btn" onclick="window.ipc.postMessage('zoom_out')">ZOOM OUT</div>
-                                <div class="bezel-btn" onclick="window.ipc.postMessage('split_viewport')">SPLIT VIEW</div>
-                                <div class="bezel-btn" onclick="window.ipc.postMessage('zoom_to:DetailInspector')">INSPECT</div>
-                                <div class="bezel-btn danger" onclick="window.ipc.postMessage('kill_app')">CLOSE</div>
-                            </div>
-                        </div>
-                        <div class="bezel-section">
-                            <div class="section-label">PORTAL & CONNECTIVITY</div>
-                            <div class="bezel-group">
-                                <div class="bezel-btn {portal_active_class}" onclick="window.ipc.postMessage('toggle_portal')">{portal_label}</div>
-                            </div>
-                            {portal_info_html}
-                        </div>
-                        <div class="bezel-section">
-                            <div class="section-label">CALIBRATION</div>
-                            <div class="bezel-group sliders">
-                                 <div class="action-slider">
-                                    <span>PRIORITY</span>
-                                    <input type="range" min="1" max="10" step="1" value="{priority}" oninput="window.ipc.postMessage('update_setting:priority:' + this.value)">
-                                 </div>
-                                 <div class="action-slider">
-                                    <span>GAIN</span>
-                                    <input type="range" min="0" max="100" step="1" value="{gain}" oninput="window.ipc.postMessage('update_setting:gain:' + this.value)">
-                                 </div>
-                                 <div class="action-slider">
-                                    <span>SENSITIVITY</span>
-                                    <input type="range" min="0" max="100" step="1" value="{sensitivity}" oninput="window.ipc.postMessage('update_setting:sensitivity:' + this.value)">
-                                 </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                {portal_approval_html}
+                {portal_approval}
                 <div class="application-surface" onclick="window.ipc.postMessage('zoom_in')">
                     {app_content}
                 </div>
             </div>"#,
             mode = mode,
-            bezel_class = bezel_class,
-            title = app.title.to_uppercase(),
-            class = app.app_class.to_uppercase(),
-            participants_html = participants_html,
-            priority = app.settings.get("priority").cloned().unwrap_or(5.0),
-            gain = app.settings.get("gain").cloned().unwrap_or(75.0),
-            sensitivity = app.settings.get("sensitivity").cloned().unwrap_or(40.0),
+            portal_approval = portal_approval_html,
             app_content = if app.app_class.contains("Shell") || app.app_class.contains("terminal") {
                 let lines = hub.terminal_output.join("\n");
                 format!(r#"<pre class="terminal-content">{}</pre>{}"#, lines, module_content)
@@ -186,12 +99,7 @@ impl ViewRenderer for AppRenderer {
                         } else { "---MB".to_string() }
                     } else { "---MB".to_string() }
                 )
-            },
-            portal_active_class = portal_active_class,
-            portal_label = portal_label,
-            portal_info_html = portal_info_html,
-            portal_approval_html = portal_approval_html,
-            deep_inspection_html = deep_inspection_html
+            }
         )
 
     }

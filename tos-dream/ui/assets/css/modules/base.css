@@ -7,14 +7,29 @@
 */
 
 :root {
+    /* Standard LCARS Palette (§3.1 Standards) */
     --lcars-orange: #ff9900;
+    --lcars-gold: #ffcc00;
     --lcars-blue: #9999cc;
     --lcars-purple: #cc99cc;
     --lcars-red: #cc6666;
     --lcars-bg: #000000;
+
+    /* Glassmorphism & Visual Effects */
     --lcars-panel: rgba(20, 20, 40, 0.6);
+    --glass-bg: rgba(255, 255, 255, 0.05);
+    --glass-border: rgba(255, 255, 255, 0.1);
+    --glass-blur: blur(15px);
     --lcars-glow: 0 0 20px rgba(153, 153, 204, 0.15);
 
+    /* Tactical Geometry (Elbows & Chips) */
+    --elbow-radius: 20px;
+    --chip-height: 4px;
+    --chip-width: 25px;
+    --bezel-height-collapsed: 8px;
+    --bezel-height-expanded: 120px;
+
+    /* Typography */
     --font-main: 'Outfit', sans-serif;
     --font-mono: 'JetBrains Mono', monospace;
 }

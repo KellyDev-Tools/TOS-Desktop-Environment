@@ -3,13 +3,13 @@ pub mod ui;
 pub mod modules;
 pub mod marketplace;
 pub mod cli;
-pub mod bezel;
 
 #[cfg(feature = "accessibility")]
 pub mod accessibility;
 
 // Container Strategy & SaaS Architecture
 pub mod containers;
+#[cfg(feature = "saas")]
 pub mod saas;
 pub mod platform;
 
@@ -101,6 +101,9 @@ pub struct Sector {
     pub icon: String,
     pub sector_type_name: String,
 }
+
+
+
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct CommandHub {
@@ -397,8 +400,7 @@ pub struct TosState {
     /// Sandbox Registry for secure execution profiles
     #[serde(skip)]
     pub sandbox_registry: SandboxRegistry,
-    /// Cloud Resource Manager for multi-tenant SaaS deployment
-    #[serde(skip)]
+    #[cfg(feature = "saas")]
     pub cloud_manager: Option<saas::CloudResourceManager>,
     /// AI Assistant Manager (§3.5, §11)
     #[serde(skip)]
@@ -587,7 +589,10 @@ impl TosState {
         
         // Container and Infrastructure Managers
         self.sandbox_manager = None;
-        self.cloud_manager = Some(saas::CloudResourceManager::new(saas::CloudConfig::default()));
+        #[cfg(feature = "saas")]
+        {
+            self.cloud_manager = Some(saas::CloudResourceManager::new(saas::CloudConfig::default()));
+        }
         self.ai_manager = system::ai::AiManager::new();
         self.search_manager = system::search::SearchManager::new();
         self.log_manager = system::log::LogManager::new();
@@ -833,6 +838,7 @@ impl TosState {
             ai_manager: system::ai::AiManager::new(),
             search_manager: system::search::SearchManager::new(),
             log_manager: system::log::LogManager::new(),
+            #[cfg(feature = "saas")]
             cloud_manager: Some(saas::CloudResourceManager::new(saas::CloudConfig::default())),
         };
         
@@ -1360,6 +1366,58 @@ impl TosState {
                     v.current_level = HierarchyLevel::GlobalOverview;
                 }
             }
+            SemanticEvent::SplitViewport => {
+                if self.current_level == HierarchyLevel::GlobalOverview {
+                    // Global split not allowed yet
+                    return;
+                }
+                
+                let viewport_idx = self.active_viewport_index;
+                let sector_idx = self.viewports[viewport_idx].sector_index;
+                let new_hub_id = uuid::Uuid::new_v4();
+                
+                let sector = &mut self.sectors[sector_idx];
+                sector.hubs.push(CommandHub {
+                    id: new_hub_id,
+                    mode: CommandHubMode::Command,
+                    prompt: String::new(),
+                    applications: Vec::new(),
+                    active_app_index: None,
+                    terminal_output: Vec::new(),
+                    confirmation_required: None,
+                    current_directory: dirs::home_dir().unwrap_or_else(|| std::path::PathBuf::from("/")),
+                    show_hidden_files: false,
+                    selected_files: std::collections::HashSet::new(),
+                    context_menu: None,
+                    shell_listing: None,
+                    suggestions: vec![],
+                    output_mode_centered: false,
+                    left_region_visible: true,
+                });
+                
+                let hub_idx = sector.hubs.len() - 1;
+                
+                self.viewports.push(Viewport {
+                    id: uuid::Uuid::new_v4(),
+                    sector_index: sector_idx,
+                    hub_index: hub_idx,
+                    current_level: HierarchyLevel::CommandHub,
+                    active_app_index: None,
+                    bezel_expanded: false,
+                });
+                
+                self.current_level = HierarchyLevel::SplitView;
+                self.earcon_player.zoom_in(); // Semantic: split is a "depth" increase of sorts
+            }
+            SemanticEvent::CloseViewport => {
+                if self.viewports.len() > 1 {
+                    self.viewports.remove(self.active_viewport_index);
+                    self.active_viewport_index = 0;
+                    if self.viewports.len() == 1 {
+                        self.current_level = self.viewports[0].current_level;
+                    }
+                }
+            }
             SemanticEvent::ToggleMiniMap => {
                 self.toggle_minimap();
             }
@@ -1541,6 +1599,7 @@ impl TosState {
 
     pub fn render_viewport(&self, viewport: &Viewport) -> String {
         use ui::render::ViewRenderer;
+        use ui::render::bezel::{render_bezel, BezelState};
 
         let (mut mode_l1, mut mode_l2, mut mode_l3) = match viewport.current_level {
             HierarchyLevel::GlobalOverview => (RenderMode::Full, RenderMode::Static, RenderMode::Static),
@@ -1558,7 +1617,7 @@ impl TosState {
             mode_l3 = mode_l3.throttle();
         }
 
-        match viewport.current_level {
+        let inner_html = match viewport.current_level {
             HierarchyLevel::GlobalOverview => ui::render::global::GlobalRenderer.render(self, viewport, mode_l1),
             HierarchyLevel::CommandHub => ui::render::hub::HubRenderer.render(self, viewport, mode_l2),
             HierarchyLevel::ApplicationFocus => {
@@ -1572,7 +1631,26 @@ impl TosState {
             HierarchyLevel::DetailInspector => ui::render::inspector::DetailInspectorRenderer.render(self, viewport, mode_l3),
             HierarchyLevel::BufferInspector => ui::render::inspector::BufferInspectorRenderer.render(self, viewport, mode_l3),
             HierarchyLevel::SplitView => self.render_split_view(),
-        }
+        };
+
+        let bezel_state = if viewport.bezel_expanded {
+            BezelState::Expanded
+        } else {
+            BezelState::Collapsed
+        };
+
+        let bezel_html = render_bezel(self, viewport, viewport.current_level, bezel_state);
+
+        format!(
+            r#"<div class="viewport-wrapper" style="height:100%; width:100%; position:relative; display:flex; flex-direction:column;">
+                {bezel}
+                <div class="viewport-inner" style="flex:1; overflow:hidden; position:relative;">
+                    {content}
+                </div>
+            </div>"#,
+            bezel = bezel_html,
+            content = inner_html
+        )
     }
 
     fn render_split_view(&self) -> String {

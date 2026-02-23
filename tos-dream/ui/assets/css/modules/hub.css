@@ -592,3 +592,76 @@
         border-color: var(--lcars-red);
     }
 }
+
+/* Bezel-Born Autocomplete Drawer (BZ-06) */
+.autocomplete-drawer {
+    position: absolute;
+    top: 110px;
+    /* Below tactical-header (80px + 30px margin) */
+    left: 70px;
+    /* Offset to align with header body */
+    right: 70px;
+    background: rgba(10, 15, 25, 0.95);
+    border-left: 20px solid var(--lcars-orange);
+    border-bottom: 2px solid var(--lcars-orange);
+    border-radius: 0 0 40px 0;
+    z-index: 1000;
+    max-height: 0;
+    overflow: hidden;
+    transition: max-height 0.4s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.3s;
+    opacity: 0;
+    backdrop-filter: blur(20px);
+    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.8);
+}
+
+.autocomplete-drawer.active {
+    max-height: 75vh;
+    /* 3/4 of viewport */
+    opacity: 1;
+    padding-bottom: 20px;
+}
+
+.drawer-header {
+    font-size: 0.7rem;
+    font-weight: 800;
+    color: var(--lcars-orange);
+    padding: 10px 20px;
+    background: rgba(255, 153, 0, 0.1);
+    letter-spacing: 2px;
+}
+
+.drawer-content {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    padding: 20px;
+}
+
+.suggestion-item {
+    background: rgba(153, 153, 204, 0.1);
+    border: 1px solid rgba(153, 153, 204, 0.3);
+    color: var(--lcars-blue);
+    padding: 8px 15px;
+    border-radius: 20px;
+    cursor: pointer;
+    font-family: var(--font-mono);
+    font-size: 0.9rem;
+    transition: all 0.2s;
+}
+
+.suggestion-item:hover {
+    background: var(--lcars-orange);
+    color: black;
+    border-color: var(--lcars-orange);
+    transform: translateY(-2px);
+}
+
+.suggestion-cmd {
+    font-weight: 800;
+}
+
+.suggestion-desc {
+    opacity: 0.6;
+    margin-left: 10px;
+    font-size: 0.75rem;
+}

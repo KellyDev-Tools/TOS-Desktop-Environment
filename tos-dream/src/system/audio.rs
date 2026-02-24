@@ -23,7 +23,12 @@ pub enum AudioEvent {
 }
 
 #[cfg(feature = "accessibility")]
-use rodio::{OutputStream, OutputStreamHandle, Sink, Source};
+use kira::{
+    manager::{backend::cpal::CpalBackend, AudioManager as KiraManager, AudioManagerSettings},
+    track::{TrackBuilder, TrackHandle},
+    sound::static_sound::{StaticSoundData, StaticSoundSettings, StaticSoundHandle},
+    tween::Tween,
+};
 
 /// Ambience profile for sectors
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -46,7 +51,6 @@ impl Default for AmbienceProfile {
 }
 
 /// Audio Manager
-#[derive(Debug)]
 pub struct AudioManager {
     /// Active ambience per sector
     pub sector_ambience: HashMap<Uuid, AmbienceProfile>,
@@ -54,15 +58,31 @@ pub struct AudioManager {
     pub volume: f32,
     /// Whether audio is muted
     pub muted: bool,
-    /// Rodio output stream
+    
+    /// Kira manager
     #[cfg(feature = "accessibility")]
-    _stream: Option<OutputStream>,
-    /// Rodio output stream handle
+    manager: Option<KiraManager<CpalBackend>>,
+    
+    /// Mixer buses
     #[cfg(feature = "accessibility")]
-    stream_handle: Option<OutputStreamHandle>,
-    /// Active ambience sinks
+    ui_track: Option<TrackHandle>,
     #[cfg(feature = "accessibility")]
-    ambience_sinks: HashMap<Uuid, Vec<Sink>>,
+    ambience_track: Option<TrackHandle>,
+    
+    /// Active sound handles (for stopping/modulating)
+    #[cfg(feature = "accessibility")]
+    active_ambience: HashMap<Uuid, Vec<StaticSoundHandle>>,
+}
+
+// Custom Debug implementation since Kira handles aren't Debug
+impl std::fmt::Debug for AudioManager {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("AudioManager")
+            .field("sector_ambience", &self.sector_ambience)
+            .field("volume", &self.volume)
+            .field("muted", &self.muted)
+            .finish()
+    }
 }
 
 impl Default for AudioManager {
@@ -74,49 +94,62 @@ impl Default for AudioManager {
 impl AudioManager {
     pub fn new() -> Self {
         #[cfg(feature = "accessibility")]
-        let (stream, handle) = match OutputStream::try_default() {
-            Ok((s, h)) => (Some(s), Some(h)),
-            Err(_) => (None, None),
+        let mut manager = match KiraManager::<CpalBackend>::new(AudioManagerSettings::default()) {
+            Ok(m) => Some(m),
+            Err(e) => {
+                tracing::error!("Failed to initialize Kira AudioManager: {}", e);
+                None
+            }
         };
+
+        #[cfg(feature = "accessibility")]
+        let mut ui_track = None;
+        #[cfg(feature = "accessibility")]
+        let mut ambience_track = None;
+
+        #[cfg(feature = "accessibility")]
+        if let Some(ref mut m) = manager {
+            ui_track = m.add_sub_track(TrackBuilder::default()).ok();
+            ambience_track = m.add_sub_track(TrackBuilder::default()).ok();
+        }
 
         Self {
             sector_ambience: HashMap::new(),
             volume: 0.8,
             muted: false,
             #[cfg(feature = "accessibility")]
-            _stream: stream,
+            manager,
             #[cfg(feature = "accessibility")]
-            stream_handle: handle,
+            ui_track,
             #[cfg(feature = "accessibility")]
-            ambience_sinks: HashMap::new(),
+            ambience_track,
+            #[cfg(feature = "accessibility")]
+            active_ambience: HashMap::new(),
         }
     }
 
-    pub fn play_event(&self, event: AudioEvent) {
+    pub fn play_event(&mut self, event: AudioEvent) {
         if self.muted { return; }
         tracing::info!("TOS // AUDIO EVENT: {:?}", event);
         
         #[cfg(feature = "accessibility")]
-        if let Some(ref handle) = self.stream_handle {
-            if let Ok(sink) = Sink::try_new(handle) {
-                sink.set_volume(self.volume);
-                
-                let freq = match event {
-                    AudioEvent::AmbientHum => 60.0,
-                    AudioEvent::BridgeChirps => 2000.0,
-                    AudioEvent::ComputerThinking => 800.0,
-                    AudioEvent::DataTransfer => 1200.0,
-                    AudioEvent::SectorTransition => 150.0,
-                    AudioEvent::PortalHum => 40.0,
-                    AudioEvent::AlertBeep => 1000.0,
-                };
-
-                let source = rodio::source::SineWave::new(freq)
-                    .take_duration(std::time::Duration::from_millis(200))
-                    .amplify(0.5);
-                
-                sink.append(source);
-                sink.detach();
+        if let (Some(ref mut manager), Some(ref track)) = (&mut self.manager, &self.ui_track) {
+            let home = std::env::var("HOME").unwrap_or_else(|_| ".".to_string());
+            let sound_path = format!("{}/.local/share/tos/audio/{:?}.wav", home, event).to_lowercase();
+            
+            if std::path::Path::new(&sound_path).exists() {
+                if let Ok(data) = StaticSoundData::from_file(&sound_path) {
+                    let mut settings = StaticSoundSettings::new()
+                        .output_destination(track)
+                        .volume(self.volume as f64);
+                    
+                    // Add a subtle fade-in for tactical smoothness
+                    settings.fade_in_tween = Some(Tween::default());
+                    
+                    let _ = manager.play(data.with_settings(settings));
+                }
+            } else {
+                tracing::debug!("Audio file not found for event {:?}, skipping synthesized fallback in Kira transition.", event);
             }
         }
     }
@@ -131,82 +164,62 @@ impl AudioManager {
 
     #[cfg(feature = "accessibility")]
     fn update_ambience_sinks(&mut self, sector_id: Uuid, profile: AmbienceProfile) {
-        if self.muted { return; }
-        
-        // Stop existing sinks for this sector
-        if let Some(sinks) = self.ambience_sinks.remove(&sector_id) {
-            for sink in sinks {
-                sink.stop();
+        // Stop existing ambience for this sector with a smooth fade-out
+        if let Some(handles) = self.active_ambience.remove(&sector_id) {
+            for mut handle in handles {
+                let _ = handle.stop(Tween::default());
             }
         }
 
-        let mut sinks = Vec::new();
-        if let Some(ref handle) = self.stream_handle {
+        if self.muted { return; }
+
+        let mut new_handles = Vec::new();
+        if let (Some(ref mut manager), Some(ref track)) = (&mut self.manager, &self.ambience_track) {
+            let home = std::env::var("HOME").unwrap_or_else(|_| ".".to_string());
+            
             // Base layer
-            if let Ok(sink) = Sink::try_new(handle) {
-                sink.set_volume(profile.volume * self.volume);
-                
-                // Try to load custom sound pack if available
-                let home = std::env::var("HOME").unwrap_or_else(|_| ".".to_string());
-                let sound_path = format!("{}/.local/share/tos/audio/{:?}.wav", home, profile.base_loop).to_lowercase();
-                
-                if std::path::Path::new(&sound_path).exists() {
-                    if let Ok(file) = std::fs::File::open(&sound_path) {
-                        if let Ok(source) = rodio::Decoder::new(std::io::BufReader::new(file)) {
-                            sink.append(source.repeat_infinite());
-                            sinks.push(sink);
-                        }
+            let base_path = format!("{}/.local/share/tos/audio/{:?}.wav", home, profile.base_loop).to_lowercase();
+            if std::path::Path::new(&base_path).exists() {
+                if let Ok(data) = StaticSoundData::from_file(&base_path) {
+                    let mut settings = StaticSoundSettings::new()
+                        .output_destination(track)
+                        .volume(profile.volume as f64 * self.volume as f64)
+                        .loop_region(0.0..);
+                    
+                    settings.fade_in_tween = Some(Tween::default());
+                    
+                    if let Ok(handle) = manager.play(data.with_settings(settings)) {
+                        new_handles.push(handle);
                     }
-                } else {
-                    // Fallback to sine wave
-                    let freq = match profile.base_loop {
-                        AudioEvent::AmbientHum => 55.0,
-                        _ => 60.0,
-                    };
-                    let source = rodio::source::SineWave::new(freq).repeat_infinite();
-                    sink.append(source);
-                    sinks.push(sink);
                 }
             }
 
             // Secondary layers
             for layer in profile.secondary_layers {
-                if let Ok(sink) = Sink::try_new(handle) {
-                    sink.set_volume(profile.volume * self.volume * 0.5);
-                    
-                    let home = std::env::var("HOME").unwrap_or_else(|_| ".".to_string());
-                    let sound_path = format!("{}/.local/share/tos/audio/{:?}.wav", home, layer).to_lowercase();
-                    
-                    if std::path::Path::new(&sound_path).exists() {
-                        if let Ok(file) = std::fs::File::open(&sound_path) {
-                            if let Ok(source) = rodio::Decoder::new(std::io::BufReader::new(file)) {
-                                sink.append(source.repeat_infinite());
-                                sinks.push(sink);
-                                continue;
-                            }
+                let layer_path = format!("{}/.local/share/tos/audio/{:?}.wav", home, layer).to_lowercase();
+                if std::path::Path::new(&layer_path).exists() {
+                   if let Ok(data) = StaticSoundData::from_file(&layer_path) {
+                        let mut settings = StaticSoundSettings::new()
+                            .output_destination(track)
+                            .volume(profile.volume as f64 * self.volume as f64 * 0.5)
+                            .loop_region(0.0..);
+                        
+                        settings.fade_in_tween = Some(Tween::default());
+                        
+                        if let Ok(handle) = manager.play(data.with_settings(settings)) {
+                            new_handles.push(handle);
                         }
                     }
-
-                    // Fallback
-                    let freq = match layer {
-                        AudioEvent::BridgeChirps => 2500.0,
-                        _ => 1000.0,
-                    };
-                    let source = rodio::source::SineWave::new(freq).repeat_infinite();
-                    sink.append(source);
-                    sinks.push(sink);
                 }
             }
         }
         
-        self.ambience_sinks.insert(sector_id, sinks);
+        self.active_ambience.insert(sector_id, new_handles);
     }
 
     /// Play a spatial earcon (higher-level mixer layer)
-    pub fn play_spatial_earcon(&self, event: AudioEvent, _x: f32, _y: f32, _z: f32) {
-        // In a full implementation, this would use rodio's spatial sinks or HRTF
-        // For now we wire it to standard play_event but log the spatial intent
-        tracing::debug!("TOS // SPATIAL AUDIO: {:?} at ({}, {}, {})", event, _x, _y, _z);
+    pub fn play_spatial_earcon(&mut self, event: AudioEvent, _x: f32, _y: f32, _z: f32) {
+        tracing::debug!("TOS // SPATIAL AUDIO (Kira-Ready): {:?} at ({}, {}, {})", event, _x, _y, _z);
         self.play_event(event);
     }
 }

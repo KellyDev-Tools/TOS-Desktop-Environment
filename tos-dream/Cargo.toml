@@ -13,6 +13,7 @@ tracing-subscriber = "0.3"
 anyhow = "1.0"
 libc = "0.2"
 dirs = "5.0"
+thiserror = "1.0"
 gilrs = { version = "0.10", optional = true }
 
 # Module System dependencies
@@ -35,8 +36,8 @@ wry = { version = "0.40", optional = true }
 tao = { version = "0.27", optional = true }
 
 # Accessibility and Live Feed dependencies
-# Audio/earcons - using rodio for cross-platform audio
-rodio = { version = "0.17", optional = true }
+# Audio/earcons - using kira for high-fidelity interactive audio
+kira = { version = "0.9", features = ["cpal", "wav", "mp3", "ogg"], optional = true }
 
 # Voice System dependencies
 # Audio capture for voice commands
@@ -93,7 +94,7 @@ openxr = { version = "0.19", optional = true }
 default = ["gui", "gamepad", "accessibility", "live-feed", "saas"]
 gui = ["dep:wry", "dep:tao"]
 gamepad = ["dep:gilrs"]
-accessibility = ["dep:rodio", "dep:speech-dispatcher", "dep:atspi", "dep:dark-light", "voice-system"]
+accessibility = ["dep:kira", "dep:speech-dispatcher", "dep:atspi", "dep:dark-light", "voice-system"]
 live-feed = ["dep:tokio-tungstenite"]
 voice-system = ["dep:cpal", "dep:whisper-rs"]
 script-engine = ["dep:rquickjs", "dep:mlua"]

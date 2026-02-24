@@ -340,7 +340,7 @@ fn format_announcement(announcement: &AccessibilityAnnouncement, verbosity: Verb
 }
 
 /// Motor input types for switch devices
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum MotorInput {
     Switch1Press,
     Switch1Release,

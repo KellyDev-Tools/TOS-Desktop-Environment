@@ -35,19 +35,34 @@ use cpal::traits::{DeviceTrait, HostTrait, StreamTrait};
 #[cfg(feature = "voice-system")]
 use std::sync::mpsc;
 
+/// Wrapper to make cpal::Stream Send
+#[cfg(feature = "voice-system")]
+struct SendStream(cpal::Stream);
+#[cfg(feature = "voice-system")]
+unsafe impl Send for SendStream {}
+
 /// Audio capture buffer for voice processing
 #[cfg(feature = "voice-system")]
-#[derive(Debug)]
 pub struct AudioCapture {
     /// Audio samples buffer
     pub samples: Arc<Mutex<Vec<f32>>>,
     /// Sample rate
     pub sample_rate: u32,
     /// Audio stream handle
-    stream: Option<cpal::Stream>,
+    stream: Option<SendStream>,
     /// Channel for audio data
     sender: mpsc::Sender<Vec<f32>>,
     receiver: mpsc::Receiver<Vec<f32>>,
+}
+
+#[cfg(feature = "voice-system")]
+impl std::fmt::Debug for AudioCapture {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("AudioCapture")
+            .field("sample_rate", &self.sample_rate)
+            .field("stream", &self.stream.as_ref().map(|_| "cpal::Stream"))
+            .finish()
+    }
 }
 
 #[cfg(feature = "voice-system")]
@@ -105,7 +120,7 @@ impl AudioCapture {
         stream.play()
             .map_err(|e| VoiceError::RecognitionFailed(e.to_string()))?;
 
-        self.stream = Some(stream);
+        self.stream = Some(SendStream(stream));
         tracing::info!("Audio capture initialized at {} Hz", sample_rate);
         Ok(())
     }

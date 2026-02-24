@@ -34,9 +34,9 @@ pub enum AnnouncementPriority {
 impl ScreenReader {
     /// Create a new screen reader interface
     pub async fn new(config: Arc<RwLock<AccessibilityConfig>>) -> Result<Self, AccessibilityError> {
-        let cfg = config.read().await;
+        let screen_reader_enabled = config.read().await.screen_reader_enabled;
         
-        if !cfg.screen_reader_enabled {
+        if !screen_reader_enabled {
             return Ok(Self {
                 config,
                 connection: None,
@@ -56,10 +56,11 @@ impl ScreenReader {
             }
         };
         
+        let enabled = connection.is_some();
         Ok(Self {
             config,
             connection,
-            enabled: connection.is_some(),
+            enabled,
         })
     }
     

@@ -178,12 +178,12 @@ async fn test_sound_theme_loading() {
     assert_eq!(scifi_theme.unwrap().name, "sci-fi");
 }
 
-#[test]
-fn test_sound_event_mapping() {
+#[tokio::test]
+async fn test_sound_event_mapping() {
     use tos_core::accessibility::audio::*;
     
     // Test that all important events have sounds in default theme
-    let theme = SoundTheme::load_default_blocking();
+    let theme = SoundTheme::load_default().await;
     
     assert!(theme.get_sound(SoundEvent::ZoomIn).is_some());
     assert!(theme.get_sound(SoundEvent::ZoomOut).is_some());
@@ -273,22 +273,16 @@ fn test_theme_modes() {
 fn test_accessibility_error_types() {
     use tos_core::accessibility::AccessibilityError;
     
-    let audio_error = AccessibilityError::AudioError("test".to_string());
-    let sr_error = AccessibilityError::ScreenReaderError("test".to_string());
-    let motor_error = AccessibilityError::MotorError("test".to_string());
+    let _audio_error = AccessibilityError::AudioError("test".to_string());
+    let _sr_error = AccessibilityError::ScreenReaderError("test".to_string());
+    let _motor_error = AccessibilityError::MotorError("test".to_string());
     
     // Test display formatting
-    let audio_str = format!("{}", audio_error);
+    let audio_str = format!("{}", _audio_error);
     assert!(audio_str.contains("Audio"));
     
-    let sr_str = format!("{}", sr_error);
+    let sr_str = format!("{}", _sr_error);
     assert!(sr_str.contains("Screen reader"));
 }
 
-// Helper function for sound theme
-impl audio::SoundTheme {
-    fn load_default_blocking() -> Self {
-        // For tests, create directly without async
-        Self::create_default_theme()
-    }
-}
+

@@ -3,7 +3,7 @@
 //! Provides cognitive accessibility features including tutorial systems
 //! and context-sensitive help mapping.
 
-use super::{AccessibilityConfig, AccessibilityError};
+use super::AccessibilityConfig;
 use std::collections::HashMap;
 use std::sync::Arc;
 use tokio::sync::RwLock;

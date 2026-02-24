@@ -39,6 +39,9 @@ case $DISTRO in
             libpango1.0-dev \
             libatk1.0-dev \
             build-essential \
+            libasound2-dev \
+            libudev-dev \
+            libspeechd-dev \
             curl \
             git
         ;;
@@ -55,6 +58,9 @@ case $DISTRO in
             gdk-pixbuf2-devel \
             pango-devel \
             atk-devel \
+            alsa-lib-devel \
+            libudev-devel \
+            speech-dispatcher-devel \
             gcc \
             curl \
             git
@@ -72,6 +78,9 @@ case $DISTRO in
             gdk-pixbuf2 \
             pango \
             atk \
+            alsa-lib \
+            systemd-libs \
+            speech-dispatcher \
             base-devel \
             curl \
             git

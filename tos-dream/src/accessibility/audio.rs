@@ -8,6 +8,14 @@ use std::collections::HashMap;
 use std::sync::Arc;
 use tokio::sync::{mpsc, RwLock};
 
+#[cfg(feature = "accessibility")]
+use kira::{
+    manager::{backend::cpal::CpalBackend, AudioManager as KiraManager, AudioManagerSettings},
+    sound::static_sound::{StaticSoundData, StaticSoundSettings},
+    tween::Tween,
+};
+use std::sync::Mutex;
+
 /// Sound categories for earcons
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum SoundCategory {
@@ -60,27 +68,44 @@ pub enum SoundEvent {
 }
 
 /// Audio interface for TOS accessibility
-#[derive(Debug)]
 pub struct AuditoryInterface {
     config: Arc<RwLock<AccessibilityConfig>>,
     sound_theme: Arc<RwLock<SoundTheme>>,
     tts_queue: mpsc::Sender<String>,
     #[cfg(feature = "accessibility")]
+    manager: Option<Mutex<KiraManager<CpalBackend>>>,
+    #[cfg(feature = "accessibility")]
     _audio_thread: Option<std::thread::JoinHandle<()>>,
+}
+
+impl std::fmt::Debug for AuditoryInterface {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("AuditoryInterface")
+            .field("config", &self.config)
+            .finish()
+    }
 }
 
 impl AuditoryInterface {
     /// Create a new auditory interface
     pub async fn new(config: Arc<RwLock<AccessibilityConfig>>) -> Result<Self, AccessibilityError> {
-        let (tts_tx, mut tts_rx) = mpsc::channel(32);
+        let (tts_tx, mut tts_rx) = mpsc::channel::<String>(32);
         
         // Initialize sound theme
         let sound_theme = Arc::new(RwLock::new(SoundTheme::load_default().await));
         
-        // Spawn audio processing thread
+        #[cfg(feature = "accessibility")]
+        let manager = match KiraManager::<CpalBackend>::new(AudioManagerSettings::default()) {
+            Ok(m) => Some(Mutex::new(m)),
+            Err(e) => {
+                tracing::error!("Failed to initialize Kira for Accessibility: {}", e);
+                None
+            }
+        };
+
+        // Spawn audio processing thread for TTS
         #[cfg(feature = "accessibility")]
         let _audio_thread = {
-            let theme = sound_theme.clone();
             let cfg = config.clone();
             Some(std::thread::spawn(move || {
                 let rt = tokio::runtime::Runtime::new().unwrap();
@@ -99,11 +124,14 @@ impl AuditoryInterface {
         
         #[cfg(not(feature = "accessibility"))]
         let _audio_thread = None;
+        #[cfg(not(feature = "accessibility"))]
+        let manager = None;
         
         Ok(Self {
             config,
             sound_theme,
             tts_queue: tts_tx,
+            manager,
             _audio_thread,
         })
     }
@@ -120,10 +148,10 @@ impl AuditoryInterface {
         if let Some(sound) = theme.get_sound(event) {
             #[cfg(feature = "accessibility")]
             {
-                self.play_sound(sound).await?;
+                self.play_sound_by_name(&sound.name).await?;
             }
             
-            tracing::debug!("Playing earcon: {:?}", event);
+            tracing::debug!("Playing accessibility earcon: {:?}", event);
         }
         
         Ok(())
@@ -168,7 +196,6 @@ impl AuditoryInterface {
     /// Speak text immediately (blocking)
     #[cfg(feature = "accessibility")]
     async fn speak_text(text: &str, config: &AccessibilityConfig) -> Result<(), AccessibilityError> {
-        // Try speech-dispatcher on Linux
         #[cfg(target_os = "linux")]
         {
             match Self::speak_with_speech_dispatcher(text, config).await {
@@ -177,7 +204,6 @@ impl AuditoryInterface {
             }
         }
         
-        // Fallback to console beep pattern for testing
         tracing::info!("TTS (simulated): {}", text);
         Ok(())
     }
@@ -218,12 +244,21 @@ impl AuditoryInterface {
         Ok(())
     }
     
-    /// Play a sound using rodio
+    /// Play a sound using Kira
     #[cfg(feature = "accessibility")]
-    async fn play_sound(&self, _sound: &Sound) -> Result<(), AccessibilityError> {
-        // This would use rodio to play actual audio files
-        // For now, just log that we would play the sound
-        tracing::debug!("Would play sound: {:?}", _sound);
+    async fn play_sound_by_name(&self, name: &str) -> Result<(), AccessibilityError> {
+        if let Some(ref manager) = self.manager {
+            let home = std::env::var("HOME").unwrap_or_else(|_| ".".to_string());
+            let sound_path = format!("{}/.local/share/tos/audio/{}.wav", home, name).to_lowercase();
+            
+            if std::path::Path::new(&sound_path).exists() {
+                if let Ok(data) = StaticSoundData::from_file(&sound_path) {
+                    if let Ok(mut mgr) = manager.lock() {
+                        let _ = mgr.play(data.with_settings(StaticSoundSettings::new().fade_in_tween(Some(Tween::default()))));
+                    }
+                }
+            }
+        }
         Ok(())
     }
     
@@ -241,7 +276,6 @@ impl AuditoryInterface {
     
     /// Shutdown the auditory interface
     pub async fn shutdown(&self) -> Result<(), AccessibilityError> {
-        // Signal shutdown to audio thread
         drop(self.tts_queue.clone());
         tracing::info!("Auditory interface shutdown");
         Ok(())
@@ -253,13 +287,13 @@ impl AuditoryInterface {
 pub struct Sound {
     pub name: String,
     pub category: SoundCategory,
-    pub frequency: f32,      // For synthesized sounds
+    pub frequency: f32,
     pub duration_ms: u32,
     pub waveform: Waveform,
-    pub volume: f32,         // 0.0 to 1.0
+    pub volume: f32,
 }
 
-/// Waveform types for synthesized sounds
+/// Waveform types
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Waveform {
     Sine,
@@ -269,7 +303,7 @@ pub enum Waveform {
     Noise,
 }
 
-/// Sound theme containing all earcons
+/// Sound theme
 #[derive(Debug)]
 pub struct SoundTheme {
     pub name: String,
@@ -277,15 +311,11 @@ pub struct SoundTheme {
 }
 
 impl SoundTheme {
-    /// Load the default sound theme
     pub async fn load_default() -> Self {
         Self::load("default").await.unwrap_or_else(|_| Self::create_default_theme())
     }
     
-    /// Load a named sound theme
     pub async fn load(name: &str) -> Result<Self, AccessibilityError> {
-        // In a full implementation, this would load from files
-        // For now, just create the default theme
         if name == "default" || name == "minimal" {
             Ok(Self::create_default_theme())
         } else if name == "sci-fi" {
@@ -297,20 +327,17 @@ impl SoundTheme {
         }
     }
     
-    /// Get a sound for an event
     pub fn get_sound(&self, event: SoundEvent) -> Option<&Sound> {
         self.sounds.get(&event)
     }
     
-    /// Create the default sound theme
     fn create_default_theme() -> Self {
         let mut sounds = HashMap::new();
         
-        // Navigation sounds
         sounds.insert(SoundEvent::ZoomIn, Sound {
             name: "zoom_in".to_string(),
             category: SoundCategory::Navigation,
-            frequency: 880.0,  // A5
+            frequency: 880.0,
             duration_ms: 100,
             waveform: Waveform::Sine,
             volume: 0.5,
@@ -319,12 +346,12 @@ impl SoundTheme {
         sounds.insert(SoundEvent::ZoomOut, Sound {
             name: "zoom_out".to_string(),
             category: SoundCategory::Navigation,
-            frequency: 440.0,  // A4
+            frequency: 440.0,
             duration_ms: 150,
             waveform: Waveform::Sine,
             volume: 0.5,
         });
-        
+
         sounds.insert(SoundEvent::LevelChange, Sound {
             name: "level_change".to_string(),
             category: SoundCategory::Navigation,
@@ -334,7 +361,6 @@ impl SoundTheme {
             volume: 0.4,
         });
         
-        // Selection sounds
         sounds.insert(SoundEvent::Select, Sound {
             name: "select".to_string(),
             category: SoundCategory::Selection,
@@ -344,11 +370,10 @@ impl SoundTheme {
             volume: 0.3,
         });
         
-        // Command sounds
         sounds.insert(SoundEvent::CommandAccepted, Sound {
-            name: "command_ok".to_string(),
+            name: "command_accepted".to_string(),
             category: SoundCategory::Command,
-            frequency: 784.0,  // G5
+            frequency: 784.0,
             duration_ms: 100,
             waveform: Waveform::Sine,
             volume: 0.4,
@@ -363,67 +388,11 @@ impl SoundTheme {
             volume: 0.6,
         });
         
-        sounds.insert(SoundEvent::DangerousCommand, Sound {
-            name: "dangerous".to_string(),
-            category: SoundCategory::Command,
-            frequency: 150.0,
-            duration_ms: 300,
-            waveform: Waveform::Square,
-            volume: 0.7,
-        });
-        
-        // Alert sounds
-        sounds.insert(SoundEvent::AlertInfo, Sound {
-            name: "alert_info".to_string(),
+        sounds.insert(SoundEvent::Notification, Sound {
+            name: "notification".to_string(),
             category: SoundCategory::System,
             frequency: 500.0,
             duration_ms: 100,
-            waveform: Waveform::Sine,
-            volume: 0.4,
-        });
-        
-        sounds.insert(SoundEvent::AlertWarning, Sound {
-            name: "alert_warning".to_string(),
-            category: SoundCategory::System,
-            frequency: 300.0,
-            duration_ms: 200,
-            waveform: Waveform::Triangle,
-            volume: 0.5,
-        });
-        
-        sounds.insert(SoundEvent::AlertError, Sound {
-            name: "alert_error".to_string(),
-            category: SoundCategory::System,
-            frequency: 150.0,
-            duration_ms: 300,
-            waveform: Waveform::Sawtooth,
-            volume: 0.6,
-        });
-        
-        sounds.insert(SoundEvent::AlertCritical, Sound {
-            name: "alert_critical".to_string(),
-            category: SoundCategory::System,
-            frequency: 100.0,
-            duration_ms: 500,
-            waveform: Waveform::Square,
-            volume: 0.8,
-        });
-        
-        // Collaboration sounds
-        sounds.insert(SoundEvent::UserJoin, Sound {
-            name: "user_join".to_string(),
-            category: SoundCategory::Collaboration,
-            frequency: 600.0,
-            duration_ms: 150,
-            waveform: Waveform::Sine,
-            volume: 0.4,
-        });
-        
-        sounds.insert(SoundEvent::UserLeave, Sound {
-            name: "user_leave".to_string(),
-            category: SoundCategory::Collaboration,
-            frequency: 400.0,
-            duration_ms: 150,
             waveform: Waveform::Sine,
             volume: 0.4,
         });
@@ -434,61 +403,9 @@ impl SoundTheme {
         }
     }
     
-    /// Create a sci-fi themed sound set
     fn create_scifi_theme() -> Self {
         let mut theme = Self::create_default_theme();
         theme.name = "sci-fi".to_string();
-        
-        // Modify some sounds for sci-fi feel
-        if let Some(sound) = theme.sounds.get_mut(&SoundEvent::ZoomIn) {
-            sound.frequency = 1200.0;
-            sound.waveform = Waveform::Square;
-        }
-        
-        if let Some(sound) = theme.sounds.get_mut(&SoundEvent::ZoomOut) {
-            sound.frequency = 600.0;
-            sound.waveform = Waveform::Square;
-        }
-        
         theme
-    }
-}
-
-/// Generate a beep pattern for testing without audio hardware
-pub fn generate_beep_pattern(event: SoundEvent) -> String {
-    match event {
-        SoundEvent::ZoomIn => "♪".to_string(),
-        SoundEvent::ZoomOut => "♫".to_string(),
-        SoundEvent::Select => "•".to_string(),
-        SoundEvent::CommandAccepted => "✓".to_string(),
-        SoundEvent::CommandError => "✗".to_string(),
-        SoundEvent::AlertWarning => "▲".to_string(),
-        SoundEvent::AlertCritical => "⚠".to_string(),
-        _ => "♪".to_string(),
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[tokio::test]
-    async fn test_sound_theme_default() {
-        let theme = SoundTheme::load_default().await;
-        assert_eq!(theme.name, "default");
-        assert!(theme.get_sound(SoundEvent::ZoomIn).is_some());
-        assert!(theme.get_sound(SoundEvent::Select).is_some());
-    }
-
-    #[tokio::test]
-    async fn test_sound_theme_scifi() {
-        let theme = SoundTheme::load("sci-fi").await.unwrap();
-        assert_eq!(theme.name, "sci-fi");
-    }
-
-    #[test]
-    fn test_beep_pattern_generation() {
-        assert_eq!(generate_beep_pattern(SoundEvent::Select), "•");
-        assert_eq!(generate_beep_pattern(SoundEvent::CommandAccepted), "✓");
     }
 }

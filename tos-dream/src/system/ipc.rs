@@ -4,7 +4,7 @@ use uuid::Uuid;
 use crate::system::pty::PtyHandle;
 use crate::system::remote::{RemoteNodeInfo, RemoteStatus};
 use crate::system::collaboration::{CollaborationRole, PermissionSet};
-use crate::{TosState, CommandHubMode, HierarchyLevel, system::input::SemanticEvent, CommandHub, Viewport, ConnectionType};
+use crate::{TosState, CommandHubMode, HierarchyLevel, system::input::SemanticEvent, ConnectionType};
 use crate::system::collaboration::Participant;
 
 pub struct IpcDispatcher {
@@ -767,7 +767,7 @@ impl IpcDispatcher {
                 if !ptys.contains_key(&hub.id) {
                     if let Some(shell) = state.shell_registry.get(shell_name) {
                         if let Some(pty) = shell.spawn(hub.current_directory.to_str().unwrap_or(".")) {
-                            let pid = pty.child_pid;
+                            let _pid = pty.child_pid;
                             ptys.insert(hub.id, pty);
                             
                             // Register shell as an application for monitoring

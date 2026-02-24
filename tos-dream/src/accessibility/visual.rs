@@ -67,8 +67,10 @@ pub struct FocusSettings {
 impl VisualAccessibility {
     /// Create a new visual accessibility manager
     pub async fn new(config: Arc<RwLock<AccessibilityConfig>>) -> Self {
-        let cfg = config.read().await;
-        let theme = Self::create_theme(&cfg);
+        let theme = {
+            let cfg = config.read().await;
+            Self::create_theme(&cfg)
+        };
         
         Self {
             config,
@@ -103,13 +105,12 @@ impl VisualAccessibility {
     
     /// Generate CSS for the current theme
     pub async fn generate_css(&self) -> String {
-        let config = self.config.read().await;
         let theme = self.current_theme.read().await;
         
         let css = format!(
             r#"
 /* TOS Accessibility Theme CSS */
-/* Generated for mode: {:?} */
+/* Generated for mode: {mode:?} */
 
 :root {{
     /* Colors */
@@ -253,6 +254,7 @@ impl VisualAccessibility {
             focus_style = theme.focus.style,
             focus_color = theme.focus.color,
             focus_offset = theme.focus.offset,
+            mode = theme.mode,
         );
         
         css

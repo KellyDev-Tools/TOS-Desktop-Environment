@@ -31,7 +31,7 @@ fn test_audio_manager_mute_unmute() {
 
 #[test]
 fn test_audio_manager_play_event_when_muted() {
-    let manager = AudioManager::new();
+    let mut manager = AudioManager::new();
     // Should not panic, just return
     manager.play_event(AudioEvent::DataTransfer);
 }

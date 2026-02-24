@@ -35,6 +35,7 @@ impl ViewRenderer for HubRenderer {
         } else {
              ""
         };
+        html.push_str(follow_indicator);
 
         html.push_str(r#"<div class="hub-content">"#);
         if let Some(dangerous_cmd) = &hub.confirmation_required {

@@ -210,7 +210,7 @@ impl MotorAccessibility {
     
     /// Process motor input and return semantic event if triggered
     pub async fn process_input(&self, input: MotorInput) -> Option<SemanticEvent> {
-        let _ = self.event_sender.send(input).await;
+        let _ = self.event_sender.send(input.clone()).await;
         
         // For immediate responses, check state
         let mut state = self.state.write().await;

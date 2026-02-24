@@ -344,7 +344,7 @@ pub struct TosState {
     /// Accessibility manager for system feedback
     #[serde(skip)]
     #[cfg(feature = "accessibility")]
-    pub accessibility: Option<accessibility::AccessibilityManager>,
+    pub accessibility: Option<std::sync::Arc<accessibility::AccessibilityManager>>,
     /// Live feed server for remote streaming
     #[serde(skip)]
     #[cfg(feature = "live-feed")]
@@ -401,6 +401,7 @@ pub struct TosState {
     #[serde(skip)]
     pub sandbox_registry: SandboxRegistry,
     #[cfg(feature = "saas")]
+    #[serde(skip)]
     pub cloud_manager: Option<saas::CloudResourceManager>,
     /// AI Assistant Manager (§3.5, §11)
     #[serde(skip)]
@@ -1439,7 +1440,7 @@ impl TosState {
     #[cfg(feature = "accessibility")]
     pub async fn init_accessibility(&mut self, config: accessibility::AccessibilityConfig) -> Result<(), accessibility::AccessibilityError> {
         let manager = accessibility::AccessibilityManager::new(config).await?;
-        self.accessibility = Some(manager);
+        self.accessibility = Some(std::sync::Arc::new(manager));
         tracing::info!("Accessibility system initialized");
         Ok(())
     }

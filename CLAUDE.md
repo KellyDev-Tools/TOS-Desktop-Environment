@@ -121,6 +121,7 @@ Any AI agent working on this codebase must adhere to these tactical principles t
 - **Test-Driven Development (TDD)** is strictly required. Write the test first, ensure it fails, then write the code to pass it.
 - **"No Code Without Tests"**: Every new feature must include an integration test verifying the "Hierarchy Round-Trip".
 - You must run `cargo check` and `cargo test` after *every* significant file change to ensure zero regressions.
+- **Task Completion Validation**: Always run the full test suite (`cargo test`) upon completing a task. Verify all tests pass before marking the task complete. No regressions are acceptable.
 
 ### 3. Visual Excellence & UI Standards
 - **LCARS Aesthetic**: Use the curated palette in `variables.css` (`--lcars-orange`, `--lcars-blue`, `--lcars-gold`, `--lcars-red`).

@@ -68,7 +68,7 @@ Interfaces must feel "alive."
 - Tests should verify the "Hierarchy Round-Trip" (e.g., initializing state, zooming to a level, triggering an event, verifying state change).
 
 ### 4.2 Terminal Verification
-- AI Agents must run `cargo check` and `cargo test` after every significant file change to ensure no regression.
+- AI Agents must run `cargo check` and `cargo test` after every each task with file changes to ensure no regression.
 
 ---
 

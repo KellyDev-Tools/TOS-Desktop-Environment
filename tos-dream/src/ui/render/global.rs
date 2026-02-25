@@ -9,6 +9,12 @@ impl ViewRenderer for GlobalRenderer {
 
         // 4. Global Grid
         html.push_str(&format!(r#"<div class="global-grid mode-{:?}">"#, mode));
+
+        // System time and stardate elements (required by tests and UI)
+        html.push_str(r#"<div class="global-header" style="display:flex; justify-content:flex-end; gap:12px; padding:8px 12px;">
+            <div id="tos-stardate" style="font-family:var(--font-mono); font-weight:700; color:rgba(255,255,255,0.85);">STARDATE 0.0</div>
+            <div id="tos-sys-time" style="font-family:var(--font-mono); font-weight:700; color:rgba(255,255,255,0.85);">00:00</div>
+        </div>"#);
         for (i, sector) in state.sectors.iter().enumerate() {
             let color_class = match sector.color.as_str() {
                 "#ff9900" => "orange",

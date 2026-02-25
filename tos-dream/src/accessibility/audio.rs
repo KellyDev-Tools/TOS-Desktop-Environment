@@ -10,10 +10,16 @@ use tokio::sync::{mpsc, RwLock};
 
 #[cfg(feature = "accessibility")]
 use kira::{
-    manager::{backend::cpal::CpalBackend, AudioManager as KiraManager, AudioManagerSettings},
+    manager::{AudioManager as KiraManager, AudioManagerSettings},
     sound::static_sound::{StaticSoundData, StaticSoundSettings},
     tween::Tween,
 };
+
+// In test builds (or with --features test-audio) swap to Kira's zero-hardware MockBackend.
+#[cfg(all(feature = "accessibility", any(test, feature = "test-audio")))]
+type AccessKiraBackend = kira::manager::backend::mock::MockBackend;
+#[cfg(all(feature = "accessibility", not(any(test, feature = "test-audio"))))]
+type AccessKiraBackend = kira::manager::backend::cpal::CpalBackend;
 use std::sync::Mutex;
 
 /// Sound categories for earcons
@@ -73,9 +79,17 @@ pub struct AuditoryInterface {
     sound_theme: Arc<RwLock<SoundTheme>>,
     tts_queue: mpsc::Sender<String>,
     #[cfg(feature = "accessibility")]
-    manager: Option<Mutex<KiraManager<CpalBackend>>>,
+    manager: Option<Mutex<KiraManager<AccessKiraBackend>>>,
     #[cfg(feature = "accessibility")]
     _audio_thread: Option<std::thread::JoinHandle<()>>,
+}
+
+impl std::fmt::Debug for AuditoryInterface {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("AuditoryInterface")
+            .field("config", &self.config)
+            .finish()
+    }
 }
 
 impl std::fmt::Debug for AuditoryInterface {
@@ -90,15 +104,16 @@ impl AuditoryInterface {
     /// Create a new auditory interface
     pub async fn new(config: Arc<RwLock<AccessibilityConfig>>) -> Result<Self, AccessibilityError> {
         let (tts_tx, mut tts_rx) = mpsc::channel::<String>(32);
+        let (tts_tx, mut tts_rx) = mpsc::channel::<String>(32);
         
         // Initialize sound theme
         let sound_theme = Arc::new(RwLock::new(SoundTheme::load_default().await));
         
         #[cfg(feature = "accessibility")]
-        let manager = match KiraManager::<CpalBackend>::new(AudioManagerSettings::default()) {
+        let manager = match KiraManager::<AccessKiraBackend>::new(AudioManagerSettings::default()) {
             Ok(m) => Some(Mutex::new(m)),
             Err(e) => {
-                tracing::error!("Failed to initialize Kira for Accessibility: {}", e);
+                tracing::error!("Failed to initialize Kira for Accessibility: {:?}", e);
                 None
             }
         };
@@ -126,11 +141,14 @@ impl AuditoryInterface {
         let _audio_thread = None;
         #[cfg(not(feature = "accessibility"))]
         let manager = None;
+        #[cfg(not(feature = "accessibility"))]
+        let manager = None;
         
         Ok(Self {
             config,
             sound_theme,
             tts_queue: tts_tx,
+            manager,
             manager,
             _audio_thread,
         })
@@ -149,8 +167,10 @@ impl AuditoryInterface {
             #[cfg(feature = "accessibility")]
             {
                 self.play_sound_by_name(&sound.name).await?;
+                self.play_sound_by_name(&sound.name).await?;
             }
             
+            tracing::debug!("Playing accessibility earcon: {:?}", event);
             tracing::debug!("Playing accessibility earcon: {:?}", event);
         }
         
@@ -245,7 +265,21 @@ impl AuditoryInterface {
     }
     
     /// Play a sound using Kira
+    /// Play a sound using Kira
     #[cfg(feature = "accessibility")]
+    async fn play_sound_by_name(&self, name: &str) -> Result<(), AccessibilityError> {
+        if let Some(ref manager) = self.manager {
+            let home = std::env::var("HOME").unwrap_or_else(|_| ".".to_string());
+            let sound_path = format!("{}/.local/share/tos/audio/{}.wav", home, name).to_lowercase();
+            
+            if std::path::Path::new(&sound_path).exists() {
+                if let Ok(data) = StaticSoundData::from_file(&sound_path) {
+                    if let Ok(mut mgr) = manager.lock() {
+                        let _ = mgr.play(data.with_settings(StaticSoundSettings::new().fade_in_tween(Some(Tween::default()))));
+                    }
+                }
+            }
+        }
     async fn play_sound_by_name(&self, name: &str) -> Result<(), AccessibilityError> {
         if let Some(ref manager) = self.manager {
             let home = std::env::var("HOME").unwrap_or_else(|_| ".".to_string());
@@ -288,11 +322,14 @@ pub struct Sound {
     pub name: String,
     pub category: SoundCategory,
     pub frequency: f32,
+    pub frequency: f32,
     pub duration_ms: u32,
     pub waveform: Waveform,
     pub volume: f32,
+    pub volume: f32,
 }
 
+/// Waveform types
 /// Waveform types
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Waveform {
@@ -303,6 +340,7 @@ pub enum Waveform {
     Noise,
 }
 
+/// Sound theme
 /// Sound theme
 #[derive(Debug)]
 pub struct SoundTheme {
@@ -338,6 +376,7 @@ impl SoundTheme {
             name: "zoom_in".to_string(),
             category: SoundCategory::Navigation,
             frequency: 880.0,
+            frequency: 880.0,
             duration_ms: 100,
             waveform: Waveform::Sine,
             volume: 0.5,
@@ -347,10 +386,12 @@ impl SoundTheme {
             name: "zoom_out".to_string(),
             category: SoundCategory::Navigation,
             frequency: 440.0,
+            frequency: 440.0,
             duration_ms: 150,
             waveform: Waveform::Sine,
             volume: 0.5,
         });
+
 
         sounds.insert(SoundEvent::LevelChange, Sound {
             name: "level_change".to_string(),
@@ -372,7 +413,9 @@ impl SoundTheme {
         
         sounds.insert(SoundEvent::CommandAccepted, Sound {
             name: "command_accepted".to_string(),
+            name: "command_accepted".to_string(),
             category: SoundCategory::Command,
+            frequency: 784.0,
             frequency: 784.0,
             duration_ms: 100,
             waveform: Waveform::Sine,
@@ -390,11 +433,50 @@ impl SoundTheme {
         
         sounds.insert(SoundEvent::Notification, Sound {
             name: "notification".to_string(),
+        sounds.insert(SoundEvent::Notification, Sound {
+            name: "notification".to_string(),
             category: SoundCategory::System,
             frequency: 500.0,
             duration_ms: 100,
             waveform: Waveform::Sine,
             volume: 0.4,
+        });
+        
+        // Alert sounds for different severities
+        sounds.insert(SoundEvent::AlertInfo, Sound {
+            name: "alert_info".to_string(),
+            category: SoundCategory::System,
+            frequency: 600.0,
+            duration_ms: 120,
+            waveform: Waveform::Triangle,
+            volume: 0.45,
+        });
+
+        sounds.insert(SoundEvent::AlertWarning, Sound {
+            name: "alert_warning".to_string(),
+            category: SoundCategory::System,
+            frequency: 420.0,
+            duration_ms: 160,
+            waveform: Waveform::Sawtooth,
+            volume: 0.55,
+        });
+
+        sounds.insert(SoundEvent::AlertError, Sound {
+            name: "alert_error".to_string(),
+            category: SoundCategory::System,
+            frequency: 240.0,
+            duration_ms: 220,
+            waveform: Waveform::Square,
+            volume: 0.7,
+        });
+
+        sounds.insert(SoundEvent::AlertCritical, Sound {
+            name: "alert_critical".to_string(),
+            category: SoundCategory::System,
+            frequency: 160.0,
+            duration_ms: 300,
+            waveform: Waveform::Noise,
+            volume: 0.9,
         });
         
         Self {

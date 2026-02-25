@@ -7,6 +7,13 @@ use std::collections::HashMap;
 use std::time::{Duration, Instant};
 use serde::{Deserialize, Serialize};
 
+// In test builds (or with --features test-audio) swap to Kira's zero-hardware MockBackend.
+#[cfg(all(feature = "accessibility", any(test, feature = "test-audio")))]
+type EarconKiraBackend = kira::manager::backend::mock::MockBackend;
+#[cfg(all(feature = "accessibility", not(any(test, feature = "test-audio"))))]
+type EarconKiraBackend = kira::manager::backend::cpal::CpalBackend;
+
+
 /// Categories of earcons for different system events
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub enum EarconCategory {
@@ -257,19 +264,24 @@ pub struct EarconPlayer {
     last_played: HashMap<EarconEvent, Instant>,
     /// Active sounds for overlap management
     active_sounds_count: usize,
+    /// Active sounds for overlap management
+    active_sounds_count: usize,
     /// Maximum concurrent sounds
     max_concurrent: usize,
-    /// Whether spatial audio is enabled
+    /// Whether earcon playback is globally enabled
     enabled: bool,
-    /// Whether spatial audio is enabled
+    /// Whether true 3D spatial audio routing is active
     spatial_audio_enabled: bool,
-    
-    /// Kira manager
+
+    /// Kira AudioManager instance
     #[cfg(feature = "accessibility")]
-    manager: Option<kira::manager::AudioManager<kira::manager::backend::cpal::CpalBackend>>,
-    /// UI track bus
+    manager: Option<kira::manager::AudioManager<EarconKiraBackend>>,
+    /// Flat UI sub-track for non-spatial earcons
     #[cfg(feature = "accessibility")]
     ui_track: Option<kira::track::TrackHandle>,
+    /// Spatial scene — contains a persistent centre listener
+    #[cfg(feature = "accessibility")]
+    spatial_scene: Option<kira::spatial::scene::SpatialSceneHandle>,
 }
 
 impl std::fmt::Debug for EarconPlayer {
@@ -285,16 +297,36 @@ impl EarconPlayer {
     /// Create a new earcon player with default settings
     pub fn new() -> Self {
         #[cfg(feature = "accessibility")]
-        let mut manager = match kira::manager::AudioManager::<kira::manager::backend::cpal::CpalBackend>::new(kira::manager::AudioManagerSettings::default()) {
+        let mut manager = match kira::manager::AudioManager::<EarconKiraBackend>::new(
+            kira::manager::AudioManagerSettings::default(),
+        ) {
             Ok(m) => Some(m),
             Err(_) => None,
         };
 
+        // Flat UI sub-track for non-spatial earcons
         #[cfg(feature = "accessibility")]
         let mut ui_track = None;
+        // Spatial scene with a persistent centre listener for 3D earcons
+        #[cfg(feature = "accessibility")]
+        let mut spatial_scene: Option<kira::spatial::scene::SpatialSceneHandle> = None;
+
         #[cfg(feature = "accessibility")]
         if let Some(ref mut m) = manager {
             ui_track = m.add_sub_track(kira::track::TrackBuilder::default()).ok();
+
+            // Initialise the spatial scene and add a listener at the origin (the "player")
+            if let Ok(mut scene) = m.add_spatial_scene(kira::spatial::scene::SpatialSceneSettings::default()) {
+                // Kira's spatial API accepts mint math types
+                let origin = mint::Vector3 { x: 0.0_f32, y: 0.0, z: 0.0 };
+                let identity_quat = mint::Quaternion { v: mint::Vector3 { x: 0.0_f32, y: 0.0, z: 0.0 }, s: 1.0 };
+                let _ = scene.add_listener(
+                    origin,
+                    identity_quat,
+                    kira::spatial::listener::ListenerSettings::default(),
+                );
+                spatial_scene = Some(scene);
+            }
         }
 
         let mut player = Self {
@@ -303,6 +335,7 @@ impl EarconPlayer {
             event_configs: HashMap::new(),
             last_played: HashMap::new(),
             active_sounds_count: 0,
+            active_sounds_count: 0,
             max_concurrent: 8,
             enabled: true,
             spatial_audio_enabled: true,
@@ -310,9 +343,11 @@ impl EarconPlayer {
             manager,
             #[cfg(feature = "accessibility")]
             ui_track,
+            #[cfg(feature = "accessibility")]
+            spatial_scene,
         };
-        
-        // Initialize default category volumes
+
+        // Initialise default category volumes
         for category in [
             EarconCategory::Navigation,
             EarconCategory::CommandFeedback,
@@ -322,65 +357,104 @@ impl EarconPlayer {
         ] {
             player.category_volumes.insert(category, category.default_volume());
         }
-        
+
         player
     }
     
-    /// Play an earcon for the given event
+    /// Play an earcon for the given event (non-spatial, routed through the UI bus)
     pub fn play(&mut self, event: EarconEvent) {
         self.play_spatial(event, SpatialPosition::center());
     }
-    
-    /// Play an earcon with spatial positioning
+
+    /// Play an earcon with spatial positioning.
+    ///
+    /// When `spatial_audio_enabled` is true and the event's category has
+    /// `spatial: true` in its config, the sound is routed through a temporary
+    /// Kira `SpatialEmitter` inside the persistent `SpatialScene`, giving real
+    /// 3D panning and distance attenuation.  All other sounds go through the
+    /// flat `ui_track` sub-track with software attenuation only.
     pub fn play_spatial(&mut self, event: EarconEvent, position: SpatialPosition) {
-        if !self.enabled {
-            return;
-        }
-        
+        if !self.enabled { return; }
+
         let config = self.get_config(event);
-        
+
+        // Debounce
         if let Some(last) = self.last_played.get(&event) {
             if Instant::now().duration_since(*last) < config.debounce_duration {
                 return;
             }
         }
-        
-        if self.active_sounds_count >= self.max_concurrent {
-            if event.priority() < 5 { // Only skip low/medium priority when busy
-                return;
-            }
+
+        // Polyphony cap for low-priority events
+        if self.active_sounds_count >= self.max_concurrent && event.priority() < 5 {
+            return;
         }
-        
+
         let volume = self.calculate_volume(event, &position);
         self.last_played.insert(event, Instant::now());
-        
+
+        let use_spatial = self.spatial_audio_enabled && config.spatial;
+
         #[cfg(feature = "accessibility")]
-        if let (Some(ref mut manager), Some(ref track)) = (&mut self.manager, &self.ui_track) {
+        {
             let home = std::env::var("HOME").unwrap_or_else(|_| ".".to_string());
-            let sound_path = format!("{}/.local/share/tos/audio/{:?}.wav", home, event).to_lowercase();
-            
-            if std::path::Path::new(&sound_path).exists() {
-                if let Ok(data) = kira::sound::static_sound::StaticSoundData::from_file(&sound_path) {
-                    let mut settings = kira::sound::static_sound::StaticSoundSettings::new()
-                        .output_destination(track)
-                        .volume(volume as f64);
-                    
-                    settings.fade_in_tween = Some(kira::tween::Tween::default());
-                    let _ = manager.play(data.with_settings(settings));
-                }
-            } else {
-                // Tactical Fallback: Minimal blip using a short silence or just logging in the absence of assets
+            let sound_path =
+                format!("{}/.local/share/tos/audio/{:?}.wav", home, event).to_lowercase();
+
+            if !std::path::Path::new(&sound_path).exists() {
                 tracing::debug!("Tactical Audio Asset Missing: {:?}", event);
+            } else if let Ok(data) = kira::sound::static_sound::StaticSoundData::from_file(&sound_path) {
+                if use_spatial {
+                    // ── 3-D spatial path ──────────────────────────────────────────
+                    // Create a transient emitter at the event's position, play the
+                    // sound through it.  The scene's listener is at the origin.
+                    if let Some(ref mut scene) = self.spatial_scene {
+                        // Kira's spatial API uses mint::Vector3<f32> for position
+                        let emitter_pos = mint::Vector3 { x: position.x, y: position.y, z: position.z };
+                        if let Ok(emitter) = scene.add_emitter(
+                            emitter_pos,
+                            kira::spatial::emitter::EmitterSettings::default(),
+                        ) {
+                            let sound_data = data.output_destination(&emitter);
+                            if let Some(ref mut manager) = self.manager {
+                                let _ = manager.play(sound_data);
+                            }
+                        }
+                    } else {
+                        // Spatial scene unavailable — fall back to UI track
+                        self.play_through_ui_track(data, volume);
+                    }
+                } else {
+                    // ── Flat UI-track path ─────────────────────────────────────────
+                    self.play_through_ui_track(data, volume);
+                }
             }
         }
 
         tracing::debug!(
-            "Playing earcon: {:?} (category: {:?}, volume: {:.2}, pattern: {})",
+            "Playing earcon: {:?} (category: {:?}, volume: {:.2}, spatial: {}, pattern: {})",
             event,
             event.category(),
             volume,
+            use_spatial,
             event.sound_pattern()
         );
+    }
+
+    /// Internal: route a loaded StaticSoundData through the flat UI sub-track.
+    #[cfg(feature = "accessibility")]
+    fn play_through_ui_track(
+        &mut self,
+        data: kira::sound::static_sound::StaticSoundData,
+        volume: f32,
+    ) {
+        if let (Some(ref mut manager), Some(ref track)) = (&mut self.manager, &self.ui_track) {
+            let mut settings = kira::sound::static_sound::StaticSoundSettings::new()
+                .output_destination(track)
+                .volume(volume as f64);
+            settings.fade_in_tween = Some(kira::tween::Tween::default());
+            let _ = manager.play(data.with_settings(settings));
+        }
     }
     
     fn calculate_volume(&self, event: EarconEvent, position: &SpatialPosition) -> f32 {
@@ -453,6 +527,7 @@ impl EarconPlayer {
     
     pub fn active_sound_count(&self) -> usize {
         self.active_sounds_count
+        self.active_sounds_count
     }
     
     pub fn mute(&mut self) {
@@ -463,6 +538,17 @@ impl EarconPlayer {
         self.enabled = true;
     }
     
+    pub fn zoom_in(&mut self) { self.play(EarconEvent::ZoomIn); }
+    pub fn zoom_out(&mut self) { self.play(EarconEvent::ZoomOut); }
+    pub fn command_accepted(&mut self) { self.play(EarconEvent::CommandAccepted); }
+    pub fn command_error(&mut self) { self.play(EarconEvent::CommandError); }
+    pub fn dangerous_command_warning(&mut self) { self.play(EarconEvent::DangerousCommandWarning); }
+    pub fn notification(&mut self) { self.play(EarconEvent::Notification); }
+    pub fn tactical_alert(&mut self) { self.play(EarconEvent::TacticalAlert); }
+    pub fn user_joined(&mut self, position: Option<SpatialPosition>) { self.play_spatial(EarconEvent::UserJoined, position.unwrap_or_default()); }
+    pub fn user_left(&mut self, position: Option<SpatialPosition>) { self.play_spatial(EarconEvent::UserLeft, position.unwrap_or_default()); }
+    pub fn bezel_expand(&mut self) { self.play(EarconEvent::BezelExpand); }
+    pub fn bezel_collapse(&mut self) { self.play(EarconEvent::BezelCollapse); }
     pub fn zoom_in(&mut self) { self.play(EarconEvent::ZoomIn); }
     pub fn zoom_out(&mut self) { self.play(EarconEvent::ZoomOut); }
     pub fn command_accepted(&mut self) { self.play(EarconEvent::CommandAccepted); }

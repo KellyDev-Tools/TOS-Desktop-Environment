@@ -30,14 +30,27 @@ impl ViewRenderer for HubRenderer {
             ));
         }
 
-        let follow_indicator = if !state.collaboration_manager.following_modes.is_empty() {
+          let follow_indicator = if !state.collaboration_manager.following_modes.is_empty() {
              r#"<div class="follow-indicator active">FOLLOW MODE ACTIVE</div>"#
         } else {
              ""
         };
         html.push_str(follow_indicator);
 
-        html.push_str(r#"<div class="hub-content">"#);
+           // Participant avatars / list in the hub header
+           if !participants_html.is_empty() {
+              html.push_str(&format!(r#"<div class="hub-participants">{}</div>"#, participants_html));
+           } 
+
+               // Expose a mode label for tests and accessibility
+               match hub.mode {
+                   CommandHubMode::Activity => html.push_str(r#"<div class="hub-mode-label" style="font-weight:800; color:var(--lcars-orange);">ACTIVITY</div>"#),
+                   CommandHubMode::Command => html.push_str(r#"<div class="hub-mode-label" style="font-weight:800; color:var(--lcars-blue);">COMMAND</div>"#),
+                   CommandHubMode::Directory => html.push_str(r#"<div class="hub-mode-label" style="font-weight:800; color:var(--lcars-gold);">DIRECTORY</div>"#),
+                   _ => {}
+               }
+
+           html.push_str(r#"<div class="hub-content">"#);
         if let Some(dangerous_cmd) = &hub.confirmation_required {
             html.push_str(&format!(
                 r#"<div class="dangerous-overlay">

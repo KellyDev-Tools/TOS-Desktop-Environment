@@ -194,7 +194,7 @@ impl IpcDispatcher {
             
             if state.sandbox_registry.get_level(&sector_id) == Some(crate::containers::sandbox::SandboxLevel::Isolated) {
                 println!("TOS // ISOLATION POLICY VIOLATION: Remote connections blocked for this sector.");
-                state.earcon_player.play(crate::system::audio::earcons::EarconEvent::CommandError);
+                state.play_critical_earcon(crate::system::audio::earcons::EarconEvent::CommandError);
                 return;
             }
 
@@ -206,7 +206,7 @@ impl IpcDispatcher {
             
             if state.sandbox_registry.get_level(&sector_id) == Some(crate::containers::sandbox::SandboxLevel::Isolated) {
                 println!("TOS // ISOLATION POLICY VIOLATION: External collaboration blocked for this sector.");
-                state.earcon_player.play(crate::system::audio::earcons::EarconEvent::CommandError);
+                state.play_critical_earcon(crate::system::audio::earcons::EarconEvent::CommandError);
                 return;
             }
 
@@ -522,7 +522,7 @@ impl IpcDispatcher {
                     }
                 } else {
                     println!("TOS // DEEP INSPECTION DISABLED BY POLICY");
-                    state.earcon_player.play(crate::system::audio::earcons::EarconEvent::CommandError);
+                    state.play_critical_earcon(crate::system::audio::earcons::EarconEvent::CommandError);
                 }
             }
             "disable-deep-inspection" => {

@@ -1,0 +1,7 @@
+# Cargo workspace configuration for tos-dream
+
+[alias]
+# `cargo ttest` runs all tests with Kira's MockBackend (no ALSA noise in headless environments).
+# The `test-audio` feature swaps CpalBackend → MockBackend in AudioManager, EarconPlayer,
+# and AuditoryInterface, so cargo test runs completely silently re: audio hardware.
+ttest = "test --features accessibility,test-audio"

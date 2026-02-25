@@ -848,6 +848,8 @@ impl TosState {
 
     pub fn tactical_reset(&mut self) {
         self.earcon_player.tactical_alert();
+        // Phase 3.1: Duck ambience during a critical TacticalReset alert
+        self.audio_manager.duck_ambience();
         self.current_level = HierarchyLevel::GlobalOverview;
         for viewport in &mut self.viewports {
             viewport.current_level = HierarchyLevel::GlobalOverview;
@@ -872,6 +874,13 @@ impl TosState {
         }
     }
     
+    /// Play a critical-priority earcon and simultaneously duck the ambience bus.
+    /// Call `audio_manager.unduck_ambience()` once the alert has resolved.
+    pub fn play_critical_earcon(&mut self, event: crate::system::audio::earcons::EarconEvent) {
+        self.earcon_player.play(event);
+        self.audio_manager.duck_ambience();
+    }
+
     /// Enable hot-reloading for modules
     pub fn enable_module_hot_reload(&mut self) -> Result<(), String> {
         self.module_registry.enable_hot_reload()
@@ -961,7 +970,15 @@ impl TosState {
     }
 
     pub fn toggle_bezel(&mut self) {
-        self.viewports[self.active_viewport_index].bezel_expanded = !self.viewports[self.active_viewport_index].bezel_expanded;
+        let was_expanded = self.viewports[self.active_viewport_index].bezel_expanded;
+        self.viewports[self.active_viewport_index].bezel_expanded = !was_expanded;
+
+        // Phase 3.1: Fire the appropriate bezel earcon
+        if was_expanded {
+            self.earcon_player.bezel_collapse();
+        } else {
+            self.earcon_player.bezel_expand();
+        }
     }
 
     pub fn toggle_portal(&mut self) {
@@ -1014,6 +1031,7 @@ impl TosState {
 
     pub fn zoom_in(&mut self) {
         self.earcon_player.zoom_in();
+        let prev_level = self.viewports[self.active_viewport_index].current_level;
         let viewport = &mut self.viewports[self.active_viewport_index];
         match viewport.current_level {
             HierarchyLevel::GlobalOverview => {
@@ -1039,10 +1057,18 @@ impl TosState {
             }
             _ => {}
         }
+        // Phase 3.1: Apply low-pass filter when entering ApplicationFocus (L3)
+        let new_level = self.viewports[self.active_viewport_index].current_level;
+        if prev_level != HierarchyLevel::ApplicationFocus
+            && new_level == HierarchyLevel::ApplicationFocus
+        {
+            self.audio_manager.apply_focus_filter();
+        }
     }
 
     pub fn zoom_out(&mut self) {
         self.earcon_player.zoom_out();
+        let prev_level = self.viewports[self.active_viewport_index].current_level;
         let viewport = &mut self.viewports[self.active_viewport_index];
         match viewport.current_level {
             HierarchyLevel::GlobalOverview => {}
@@ -1062,6 +1088,13 @@ impl TosState {
                 viewport.current_level = HierarchyLevel::DetailInspector;
                 self.current_level = HierarchyLevel::DetailInspector;
             }
+        }
+        // Phase 3.1: Remove low-pass filter when leaving ApplicationFocus (L3)
+        let new_level = self.viewports[self.active_viewport_index].current_level;
+        if prev_level == HierarchyLevel::ApplicationFocus
+            && new_level != HierarchyLevel::ApplicationFocus
+        {
+            self.audio_manager.remove_focus_filter();
         }
     }
 
@@ -1368,11 +1401,15 @@ impl TosState {
                 }
             }
             SemanticEvent::SplitViewport => {
+                // If we're in GlobalOverview, move the active viewport down to CommandHub
+                // so splitting produces two usable hub viewports (tests expect split from fresh state).
                 if self.current_level == HierarchyLevel::GlobalOverview {
-                    // Global split not allowed yet
-                    return;
+                    self.current_level = HierarchyLevel::CommandHub;
+                    if let Some(v) = self.viewports.get_mut(self.active_viewport_index) {
+                        v.current_level = HierarchyLevel::CommandHub;
+                    }
                 }
-                
+
                 let viewport_idx = self.active_viewport_index;
                 let sector_idx = self.viewports[viewport_idx].sector_index;
                 let new_hub_id = uuid::Uuid::new_v4();

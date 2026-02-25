@@ -38,6 +38,10 @@ tao = { version = "0.27", optional = true }
 # Accessibility and Live Feed dependencies
 # Audio/earcons - using kira for high-fidelity interactive audio
 kira = { version = "0.9", features = ["cpal", "wav", "mp3", "ogg"], optional = true }
+# glam - math types required by kira's spatial audio API
+glam = { version = "0.27", optional = true }
+# mint - interoperability math types used by kira's spatial API
+mint = { version = "0.5", optional = true }
 
 # Voice System dependencies
 # Audio capture for voice commands
@@ -94,7 +98,10 @@ openxr = { version = "0.19", optional = true }
 default = ["gui", "gamepad", "accessibility", "live-feed", "saas"]
 gui = ["dep:wry", "dep:tao"]
 gamepad = ["dep:gilrs"]
-accessibility = ["dep:kira", "dep:speech-dispatcher", "dep:atspi", "dep:dark-light", "voice-system"]
+accessibility = ["dep:kira", "dep:glam", "dep:mint", "dep:speech-dispatcher", "dep:atspi", "dep:dark-light", "voice-system"]
+# test-audio: activates Kira's zero-hardware MockBackend so ALL tests run without
+# probing ALSA/PulseAudio. Usage: cargo test --features accessibility,test-audio
+test-audio = []
 live-feed = ["dep:tokio-tungstenite"]
 voice-system = ["dep:cpal", "dep:whisper-rs"]
 script-engine = ["dep:rquickjs", "dep:mlua"]

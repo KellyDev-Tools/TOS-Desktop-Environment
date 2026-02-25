@@ -264,8 +264,6 @@ pub struct EarconPlayer {
     last_played: HashMap<EarconEvent, Instant>,
     /// Active sounds for overlap management
     active_sounds_count: usize,
-    /// Active sounds for overlap management
-    active_sounds_count: usize,
     /// Maximum concurrent sounds
     max_concurrent: usize,
     /// Whether earcon playback is globally enabled
@@ -334,7 +332,6 @@ impl EarconPlayer {
             category_volumes: HashMap::new(),
             event_configs: HashMap::new(),
             last_played: HashMap::new(),
-            active_sounds_count: 0,
             active_sounds_count: 0,
             max_concurrent: 8,
             enabled: true,
@@ -527,7 +524,6 @@ impl EarconPlayer {
     
     pub fn active_sound_count(&self) -> usize {
         self.active_sounds_count
-        self.active_sounds_count
     }
     
     pub fn mute(&mut self) {
@@ -549,17 +545,7 @@ impl EarconPlayer {
     pub fn user_left(&mut self, position: Option<SpatialPosition>) { self.play_spatial(EarconEvent::UserLeft, position.unwrap_or_default()); }
     pub fn bezel_expand(&mut self) { self.play(EarconEvent::BezelExpand); }
     pub fn bezel_collapse(&mut self) { self.play(EarconEvent::BezelCollapse); }
-    pub fn zoom_in(&mut self) { self.play(EarconEvent::ZoomIn); }
-    pub fn zoom_out(&mut self) { self.play(EarconEvent::ZoomOut); }
-    pub fn command_accepted(&mut self) { self.play(EarconEvent::CommandAccepted); }
-    pub fn command_error(&mut self) { self.play(EarconEvent::CommandError); }
-    pub fn dangerous_command_warning(&mut self) { self.play(EarconEvent::DangerousCommandWarning); }
-    pub fn notification(&mut self) { self.play(EarconEvent::Notification); }
-    pub fn tactical_alert(&mut self) { self.play(EarconEvent::TacticalAlert); }
-    pub fn user_joined(&mut self, position: Option<SpatialPosition>) { self.play_spatial(EarconEvent::UserJoined, position.unwrap_or_default()); }
-    pub fn user_left(&mut self, position: Option<SpatialPosition>) { self.play_spatial(EarconEvent::UserLeft, position.unwrap_or_default()); }
-    pub fn bezel_expand(&mut self) { self.play(EarconEvent::BezelExpand); }
-    pub fn bezel_collapse(&mut self) { self.play(EarconEvent::BezelCollapse); }
+
     
     pub fn reset_to_defaults(&mut self) {
         self.master_volume = 1.0;

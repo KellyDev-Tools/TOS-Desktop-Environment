@@ -334,10 +334,6 @@ impl AudioManager {
         if let Some(handles) = self.active_ambience.remove(&sector_id) {
             for mut handle in handles {
                 let _ = handle.stop(Tween::default());
-        // Stop existing ambience for this sector with a smooth fade-out
-        if let Some(handles) = self.active_ambience.remove(&sector_id) {
-            for mut handle in handles {
-                let _ = handle.stop(Tween::default());
             }
         }
 

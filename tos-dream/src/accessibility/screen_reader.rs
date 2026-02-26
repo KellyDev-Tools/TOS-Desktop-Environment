@@ -18,8 +18,8 @@ pub struct ScreenReader {
 /// AT-SPI connection wrapper
 #[derive(Debug)]
 struct AtspiConnection {
-    bus_address: String,
-    app_name: String,
+    _bus_address: String,
+    _app_name: String,
 }
 
 /// Screen reader announcement priority
@@ -266,8 +266,8 @@ impl ScreenReader {
         }
         
         Ok(AtspiConnection {
-            bus_address,
-            app_name: "TOS".to_string(),
+            _bus_address: bus_address,
+            _app_name: "TOS".to_string(),
         })
     }
     

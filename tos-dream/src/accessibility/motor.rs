@@ -41,7 +41,7 @@ struct SlowKeysState {
     /// Keys currently being held down
     pressed_keys: HashMap<String, Instant>,
     /// Delay required before key registers
-    delay_ms: u32,
+    _delay_ms: u32,
 }
 
 /// Sticky keys state
@@ -102,24 +102,25 @@ struct ScanningState {
 /// A group of scannable items
 #[derive(Debug, Clone)]
 struct ScanGroup {
-    name: String,
+    _name: String,
     items: Vec<ScanItem>,
 }
 
 /// A scannable item
 #[derive(Debug, Clone)]
 struct ScanItem {
-    id: String,
+    _id: String,
     label: String,
     action: ScanAction,
-    bounds: (f32, f32, f32, f32), // x, y, width, height
+    _bounds: (f32, f32, f32, f32), // x, y, width, height
 }
 
 /// Actions that can be triggered by scanning
 #[derive(Debug, Clone)]
 enum ScanAction {
     SemanticEvent(SemanticEvent),
-    Custom(String),
+    #[allow(dead_code)]
+    Custom(()),
 }
 
 impl MotorAccessibility {
@@ -148,7 +149,7 @@ impl MotorAccessibility {
             },
             slow_keys: SlowKeysState {
                 pressed_keys: HashMap::new(),
-                delay_ms: config.read().await.slow_keys_ms,
+                _delay_ms: config.read().await.slow_keys_ms,
             },
             last_input_time: Instant::now(),
         }));
@@ -396,13 +397,13 @@ impl MotorAccessibility {
         
         state.scanning.groups = groups.into_iter().map(|(name, items)| {
             ScanGroup {
-                name,
+                _name: name,
                 items: items.into_iter().map(|(id, label)| {
                     ScanItem {
-                        id,
+                        _id: id,
                         label,
-                        action: ScanAction::Custom("select".to_string()),
-                        bounds: (0.0, 0.0, 100.0, 50.0),
+                        action: ScanAction::SemanticEvent(SemanticEvent::Select),
+                        _bounds: (0.0, 0.0, 100.0, 50.0),
                     }
                 }).collect(),
             }

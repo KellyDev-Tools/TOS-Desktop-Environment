@@ -14,6 +14,7 @@ fn test_global_view_content() {
     let sector = Sector {
         id: uuid::Uuid::new_v4(),
         name: "RESEARCH-BETA".to_string(),
+        settings: std::collections::HashMap::new(),
         hubs: vec![CommandHub {
             id: uuid::Uuid::new_v4(),
             mode: CommandHubMode::Command,

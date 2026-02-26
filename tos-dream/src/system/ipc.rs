@@ -1052,6 +1052,7 @@ mod tests {
             hubs: vec![hub],
             active_hub_index: 0, 
             color: "blue".to_string(),
+            settings: std::collections::HashMap::new(),
             host: "localhost".to_string(),
             connection_type: ConnectionType::Local,
             participants: Vec::new(),

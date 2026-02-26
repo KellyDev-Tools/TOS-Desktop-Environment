@@ -292,6 +292,7 @@ impl RemoteManager {
             id: node.id,
             name: format!("{} @ {}", node.hostname, node.address),
             color: "#66ccff".to_string(), // Remote default color
+            settings: std::collections::HashMap::new(),
             hubs: vec![CommandHub {
                 id: Uuid::new_v4(),
                 mode: crate::CommandHubMode::Command,

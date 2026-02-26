@@ -32,6 +32,7 @@ fn test_svg_dynamic_sector_icon() {
         id: uuid::Uuid::new_v4(),
         name: "Dragon Sector".to_string(),
         color: "#ff0000".to_string(),
+        settings: std::collections::HashMap::new(),
         hubs: vec![],
         active_hub_index: 0,
         host: "REMOTE".to_string(),

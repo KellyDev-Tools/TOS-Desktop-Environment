@@ -710,6 +710,7 @@ mod tests {
             id: uuid::Uuid::new_v4(),
             name: "Test Sector 4".to_string(),
             color: "#ff0000".to_string(),
+            settings: std::collections::HashMap::new(),
             hubs: Vec::new(),
             active_hub_index: 0,
             host: "localhost".to_string(),

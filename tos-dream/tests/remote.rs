@@ -70,6 +70,7 @@ fn test_tos_native_sync_packet() {
         id: remote_node_id,
         name: "Remote Alpha".to_string(),
         color: "#ffffff".to_string(),
+        settings: std::collections::HashMap::new(),
         hubs: vec![],
         active_hub_index: 0,
         host: "remote-host".to_string(),

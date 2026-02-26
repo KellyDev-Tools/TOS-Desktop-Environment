@@ -100,6 +100,8 @@ pub struct Sector {
     pub description: String,
     pub icon: String,
     pub sector_type_name: String,
+    #[serde(default)]
+    pub settings: std::collections::HashMap<String, String>,
 }
 
 
@@ -322,6 +324,8 @@ pub struct TosState {
     pub escape_count: usize, // For Tactical Reset
     pub fps: f32,
     pub performance_alert: bool,
+    #[serde(default)]
+    pub settings: std::collections::HashMap<String, String>,
     #[serde(skip)]
     pub force_redraw: bool,
     #[serde(skip)]
@@ -699,6 +703,7 @@ impl TosState {
             description: "Primary coordination and terminal access.".to_string(),
             icon: "⌨️".to_string(),
             sector_type_name: "development".to_string(),
+            settings: std::collections::HashMap::new(),
         };
 
         let science_sector = Sector {
@@ -761,6 +766,7 @@ impl TosState {
             description: "Deep space analysis and sensor arrays.".to_string(),
             icon: "🔬".to_string(),
             sector_type_name: "science".to_string(),
+            settings: std::collections::HashMap::new(),
         };
 
         let observation_sector = Sector {
@@ -793,6 +799,7 @@ impl TosState {
             description: "Visual reconnaissance and exterior monitoring.".to_string(),
             icon: "👁️".to_string(),
             sector_type_name: "operations".to_string(),
+            settings: std::collections::HashMap::new(),
         };
 
         let sectors = vec![first_sector, science_sector, observation_sector];
@@ -821,6 +828,7 @@ impl TosState {
             escape_count: 0,
             fps: 60.0,
             performance_alert: false,
+            settings: std::collections::HashMap::new(),
             modules: Vec::new(),
             portal_security_bypass: false,
             approval_requested_sector: None,
@@ -1252,6 +1260,7 @@ impl TosState {
             id: uuid::Uuid::new_v4(),
             name,
             color: color.to_string(),
+            settings: std::collections::HashMap::new(),
             hubs: vec![CommandHub {
                 id: uuid::Uuid::new_v4(),
                 mode: CommandHubMode::Command,

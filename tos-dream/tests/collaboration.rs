@@ -18,6 +18,7 @@ fn test_sector_management() {
         id: uuid::Uuid::new_v4(),
         name: "Engineering".to_string(),
         color: "#ffcc00".to_string(),
+        settings: std::collections::HashMap::new(),
         hubs: vec![CommandHub {
             id: uuid::Uuid::new_v4(),
             mode: CommandHubMode::Command,

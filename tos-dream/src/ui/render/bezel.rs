@@ -361,6 +361,7 @@ mod tests {
             id: uuid::Uuid::new_v4(),
             name: "Test Sector".to_string(),
             color: "#ffffff".to_string(),
+            settings: std::collections::HashMap::new(),
             hubs: vec![CommandHub {
                 id: uuid::Uuid::new_v4(),
                 mode: crate::CommandHubMode::Command,
@@ -428,6 +429,7 @@ mod tests {
             id: uuid::Uuid::new_v4(),
             name: "Hub Sector".to_string(),
             color: "#ffcc00".to_string(),
+            settings: std::collections::HashMap::new(),
             hubs: vec![CommandHub {
                 id: uuid::Uuid::new_v4(),
                 mode: crate::CommandHubMode::Command,

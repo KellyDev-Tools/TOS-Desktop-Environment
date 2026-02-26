@@ -2,11 +2,11 @@
 
 **Environment**: WSL2 (Ubuntu 24.04 via WSLg) on Windows
 **Architecture**: Rust (Tao/Wry) with Web-based UI (LCARS)
-**Current Version**: TOS Dream Complete (v1.2 Extension)
+**Current Version**: Alpha 1 Complete (v1.2 Extension)
 
 ## 🛠️ Phase 1: Environment & Core (COMPLETED)
 *   [x] **WSL2 Configuration**: Environment active.
-*   [x] **Rust Toolchain**: `tos-dream` crate implementation.
+*   [x] **Rust Toolchain**: `alpha-1` crate implementation.
 *   [x] **Platform Abstraction**: `tao` windowing and `wry` webview integration.
 *   [x] **Input Handling**: Keyboard event mapping and Semantic Event system.
 

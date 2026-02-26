@@ -1,10 +1,10 @@
-# Architecture Analysis: tos-dream vs TOS Specification (v1.0/v1.2)
+# Architecture Analysis: alpha-1 vs TOS Specification (v1.0/v1.2)
 
 ## 1. Overview
-A concise comparison of the design documents (TOS Architectural Specification v1.0 - Core, v1.2 - Extensions) with the actual implementation found in `/8TB/tos/tos-dream`.
+A concise comparison of the design documents (TOS Architectural Specification v1.0 - Core, v1.2 - Extensions) with the actual implementation found in `/8TB/tos/alpha-1`.
 
 ## 2. Architectural Alignment
-| Design Concept | Implementation in tos-dream | Status |
+| Design Concept | Implementation in alpha-1 | Status |
 |----------------|----------------------------|--------|
 | Three‑level hierarchy (Global Overview → Command Hub → Application Focus) | `HierarchyLevel` enum, `Viewport`, `Sector`, `CommandHub` struct; `TosState::new` creates predefined sectors with hubs. | **Complete** |
 | Command Hub modes (Command, Directory, Activity, Search, AI) | `CommandHubMode` enum; `toggle_mode`, `handle_semantic_event` dispatch mode changes. | **Complete** |

@@ -73,7 +73,7 @@
 ---
 
 ### 🚀 Execution Strategy
-1. **TDD First**: Begin each phase with failing tests in `tos-dream/tests/tactical_confirmation.rs`.
+1. **TDD First**: Begin each phase with failing tests in `alpha-1/tests/tactical_confirmation.rs`.
 2. **Modular Implementation**: 
    - UI rendering: `src/ui/render/confirmation.rs`
    - State logic: `src/system/security/confirmation.rs`

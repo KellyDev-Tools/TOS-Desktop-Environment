@@ -11,7 +11,7 @@ This plan outlines the transition to a modern, high-fidelity audio engine capabl
 Foundational changes to support the new audio engine and resolve current system-level missing links.
 
 ### 1.1 Dependency Update ✅ DONE
-`tos-dream/Cargo.toml` has been updated. Kira is fully configured.
+`alpha-1/Cargo.toml` has been updated. Kira is fully configured.
 - **Implemented**: `kira = { version = "0.9", features = ["cpal", "wav", "mp3", "ogg"], optional = true }`
 - **Also added**: `glam = { version = "0.27", optional = true }` and `mint = { version = "0.5", optional = true }` — math types used by Kira's spatial API.
 - **Feature gate**: All three deps are enabled via the `accessibility` feature flag.

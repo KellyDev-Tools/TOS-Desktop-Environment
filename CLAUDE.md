@@ -23,7 +23,7 @@ cargo test --features accessibility,saas
 
 ## Feature Flags
 
-Available feature flags in `tos-dream/Cargo.toml`:
+Available feature flags in `alpha-1/Cargo.toml`:
 
 | Feature | Description | Dependencies |
 |---------|-------------|--------------|
@@ -89,7 +89,7 @@ Deeper inspection levels (4-5) available for debugging:
 
 ## Development Workflow
 
-1. **修改代码**: Make changes in `tos-dream/src/`
+1. **修改代码**: Make changes in `alpha-1/src/`
 2. **Run tests**: `cargo test` (276 tests)
 3. **Build**: `cargo build --features gui` for UI testing
 4. **Run UI**: `cargo run --features gui`

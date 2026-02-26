@@ -1,0 +1,3 @@
+/8TB/tos/traditional/build/CMakeFiles/tos_traditional.dir
+/8TB/tos/traditional/build/CMakeFiles/edit_cache.dir
+/8TB/tos/traditional/build/CMakeFiles/rebuild_cache.dir

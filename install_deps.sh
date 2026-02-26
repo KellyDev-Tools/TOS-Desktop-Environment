@@ -1,5 +1,5 @@
 #!/bin/bash
-# TOS Dream - Dependency Installation Script
+# Alpha 1 - Dependency Installation Script
 # Installs all required system libraries for building TOS.
 #
 # Feature → Native library mapping:
@@ -15,7 +15,7 @@
 
 set -e
 
-echo "=== TOS Dream - Dependency Installer ==="
+echo "=== Alpha 1 - Dependency Installer ==="
 echo "Detecting distribution..."
 
 # Detect distribution
@@ -231,7 +231,7 @@ check_pkg_config egl
 echo ""
 if [ "$DEPS_OK" = true ]; then
     echo "=== All dependencies installed successfully! ==="
-    echo "You can now build TOS with: cd tos-dream && cargo build"
+    echo "You can now build TOS with: cd alpha-1 && cargo build"
     echo ""
     echo "Feature flags you can pass to cargo:"
     echo "  --features accessibility   Audio, TTS, screen reader"

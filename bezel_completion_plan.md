@@ -52,7 +52,7 @@
 ---
 
 ### 🚀 Execution Strategy
-1. **TDD First**: Every task begins with a failing test case in `tos-dream/src/ui/render/bezel_test.rs`.
+1. **TDD First**: Every task begins with a failing test case in `alpha-1/src/ui/render/bezel_test.rs`.
 2. **Modular Rendering**: Use `src/ui/render/bezel.rs` for shared logic across all hierarchy levels.
 3. **Compiler Protections**: Maintain zero warnings and zero `unwrap()` calls.
 4. **Visual Polish**: Review every UI change against the LCARS modernized aesthetic (§3.1).

@@ -2,7 +2,7 @@
 
 ---
 
-> **Status**: Ratified — derived from implementation experience with `tos-dream`.  
+> **Status**: Ratified — derived from implementation experience with `alpha-1`.  
 > **Supersedes**: Ambiguous or silent areas of v1.0 §3.1, §3.2, §4.2, §13, and v1.2 §14.3.  
 > **Does not modify**: Any behaviour explicitly defined in v1.0 or v1.2.
 

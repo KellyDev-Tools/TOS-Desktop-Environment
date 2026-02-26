@@ -9,7 +9,7 @@ DATADIR="${PREFIX}/share"
 XSESSIONSDIR="${DATADIR}/xsessions"
 
 echo "Building TOS..."
-cd tos-dream
+cd alpha-1
 cargo build --release
 cd ..
 
@@ -19,7 +19,7 @@ sudo mkdir -p "$BINDIR" "$XSESSIONSDIR" "/etc/tos" "/var/log/tos"
 
 # Install binary
 echo "Installing binary..."
-sudo cp tos-dream/target/release/tos "$BINDIR/tos-session"
+sudo cp alpha-1/target/release/tos "$BINDIR/tos-session"
 
 # Install session desktop file
 echo "Installing desktop entry..."

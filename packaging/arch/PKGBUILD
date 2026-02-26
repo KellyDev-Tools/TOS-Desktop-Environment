@@ -11,12 +11,12 @@ source=("$pkgname-$pkgver.tar.gz")
 sha256sums=('SKIP')
 
 build() {
-    cd "$srcdir/$pkgname-$pkgver/tos-dream"
+    cd "$srcdir/$pkgname-$pkgver/alpha-1"
     cargo build --release
 }
 
 package() {
     cd "$srcdir/$pkgname-$pkgver"
-    install -Dm755 tos-dream/target/release/tos "$pkgdir/usr/bin/tos-session"
+    install -Dm755 alpha-1/target/release/tos "$pkgdir/usr/bin/tos-session"
     install -Dm644 packaging/tos.desktop "$pkgdir/usr/share/xsessions/tos.desktop"
 }

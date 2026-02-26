@@ -2,14 +2,16 @@
                 <div class="tactical-bezel collapsed global-bezel priority-high" style="--bezel-accent:#ff9900;">
                             <div class="bezel-top">
                                 <div class="bezel-left">
-                                    <button class="bezel-btn mini settings-gear" onclick="window.ipc.postMessage('open_settings')" title="Settings">⚙</button>
+                                    <button class="bezel-btn mini settings-gear" onclick="window.ipc.postMessage('open_settings')" title="Settings" >⚙</button>
                                     <span class="bezel-title">GLOBAL OVERVIEW</span>
                                 </div>
                                 <div class="bezel-right">
                                     <div class="collaboration-avatars">
-                                        <div class="collab-avatar" style="--avatar-color:#ffcc00;" title="Host"></div>
+                                        <div class="collab-avatar local" style="--avatar-color:#ffcc00;" title="Host (Co-owner)">
+                <span>H</span>
+            </div>
                                     </div>
-                                    <button class="bezel-btn mini add-sector" onclick="window.ipc.postMessage('add_sector')" title="Add Sector">+</button>
+                                    <button class="bezel-btn mini add-sector" onclick="window.ipc.postMessage('add_sector')" title="Add Sector" >+</button>
                                     <div class="bezel-handle" onclick="window.ipc.postMessage('toggle_bezel')">
                                         <div class="chevron"></div>
                                     </div>

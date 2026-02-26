@@ -7,15 +7,20 @@
                                 <div class="bezel-left">
                                     <button class="bezel-btn mini toggle-left-region" onclick="window.ipc.postMessage('toggle_left_region')" title="Toggle Region">◧</button>
                                     <div class="three-way-toggle">
-                                        <div class="toggle-segment " onclick="window.ipc.postMessage('set_mode:Command')">CMD</div>
-                                        <div class="toggle-segment " onclick="window.ipc.postMessage('set_mode:Directory')">DIR</div>
-                                        <div class="toggle-segment active" onclick="window.ipc.postMessage('set_mode:Activity')">ACT</div>
+                                        <div class="toggle-segment  " onclick="window.ipc.postMessage('set_mode:Command')">CMD</div>
+                                        <div class="toggle-segment  " onclick="window.ipc.postMessage('set_mode:Directory')">DIR</div>
+                                        <div class="toggle-segment active " onclick="window.ipc.postMessage('set_mode:Activity')">ACT</div>
                                     </div>
                                 </div>
                                 <div class="bezel-center">
                                     <span class="bezel-title">ALPHA SECTOR</span>
                                 </div>
                                 <div class="bezel-right">
+                                    <div class="collaboration-avatars">
+                                        <div class="collab-avatar local" style="--avatar-color:#ffcc00;" title="Host (Co-owner)">
+                <span>H</span>
+            </div>
+                                    </div>
                                     <button class="bezel-btn mini toggle-output-mode" onclick="window.ipc.postMessage('toggle_output_mode')" title="Perspective Mode">⬚</button>
                                     <div class="bezel-handle" onclick="window.ipc.postMessage('toggle_bezel')">
                                         <div class="chevron"></div>
@@ -30,8 +35,8 @@
                             </div>
                         </div>
                 <div class="viewport-inner" style="flex:1; overflow:hidden; position:relative;">
-                    <div class="command-hub mode-activity   render-Full"><div class="hub-participants"><div class="participant-avatar" style="background-color: #ffcc00" title="Host (Co-Owner)" onclick="window.ipc.postMessage('follow_participant:4b9b5541-bfdc-4033-8334-cf0862d29e92')">H</div></div><div class="hub-mode-label" style="font-weight:800; color:var(--lcars-orange);">ACTIVITY</div><div class="hub-content"><div class="terminal-container background-layer">
-                <div class="terminal-output" id="hub-term-6dd0da79-7e23-4e96-a1f9-ab9deaa64632">
+                    <div class="command-hub mode-activity   render-Full"><div class="hub-participants"><div class="participant-avatar" style="background-color: #ffcc00" title="Host (Co-Owner)" onclick="window.ipc.postMessage('follow_participant:7333e84f-1ae1-431b-9beb-904404b5dc89')">H</div></div><div class="hub-mode-label" style="font-weight:800; color:var(--lcars-orange);">ACTIVITY</div><div class="hub-content"><div class="terminal-container background-layer">
+                <div class="terminal-output" id="hub-term-4dfde2ad-9e77-4910-ae91-80c184218ef2">
                     
                 </div>
             </div><div class="activity-view foreground-layer">
@@ -40,7 +45,7 @@
                             
                             <div class="activity-grid">
                                 <div class="app-tile staging-item ">
-                            <div class="file-selector" onclick="event.stopPropagation(); window.ipc.postMessage('app_toggle_select:38b83d42-b74b-4734-be71-ba2503fe2e3a')"></div>
+                            <div class="file-selector" onclick="event.stopPropagation(); window.ipc.postMessage('app_toggle_select:f8440d1f-6d93-43c3-b1a8-fe157a650805')"></div>
                             <div class="app-tile-header" onclick="window.ipc.postMessage('stage_command:focus TERMINAL')">
                                 <div class="app-tile-icon">⌨️</div>
                                 <div class="app-tile-info">
@@ -54,8 +59,8 @@
                                 <div class="stat">MEM: <1MB</div>
                             </div>
                             <div class="app-tile-actions">
-                                <button class="tile-btn" onclick="window.ipc.postMessage('signal_app:38b83d42-b74b-4734-be71-ba2503fe2e3a;INT')">SIGINT</button>
-                                <button class="tile-btn danger" onclick="window.ipc.postMessage('kill_app:38b83d42-b74b-4734-be71-ba2503fe2e3a')">KILL</button>
+                                <button class="tile-btn" onclick="window.ipc.postMessage('signal_app:f8440d1f-6d93-43c3-b1a8-fe157a650805;INT')">SIGINT</button>
+                                <button class="tile-btn danger" onclick="window.ipc.postMessage('kill_app:f8440d1f-6d93-43c3-b1a8-fe157a650805')">KILL</button>
                             </div>
                         </div>
                                 <div class="app-tile add-tile" onclick="window.ipc.postMessage('spawn_app')">

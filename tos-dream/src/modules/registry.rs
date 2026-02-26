@@ -8,7 +8,32 @@ use super::loader::ModuleLoader;
 use crate::{TosModule, TosState};
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
+use std::sync::{Arc, Mutex};
 use notify::{Watcher, RecursiveMode, Event};
+
+/// Wrapper for a module running in a container sandbox
+pub struct ContainerModule {
+    pub name: String,
+    pub version: String,
+    pub process: Arc<Mutex<std::process::Child>>,
+}
+
+impl std::fmt::Debug for ContainerModule {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "ContainerModule({}, {})", self.name, self.version)
+    }
+}
+
+impl TosModule for ContainerModule {
+    fn name(&self) -> String { self.name.clone() }
+    fn version(&self) -> String { self.version.clone() }
+    
+    fn on_unload(&mut self, _state: &mut TosState) {
+        if let Ok(mut lock) = self.process.lock() {
+            let _ = lock.kill();
+        }
+    }
+}
 
 /// Module loading state
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -155,13 +180,38 @@ impl ModuleRegistry {
                         super::manifest::ModuleType::ApplicationModel | 
                         super::manifest::ModuleType::SectorType |
                         super::manifest::ModuleType::SystemModule => {
+                            let is_containerized = info.manifest.is_containerized();
+                            
                             // Check if it's a script module
                             let is_script = match info.manifest.language.as_deref() {
                                 Some("javascript") | Some("js") | Some("lua") | Some("python") | Some("py") => true,
                                 _ => false,
                             };
 
-                            if is_script {
+                            if is_containerized {
+                                let entry_path = info.path.join(&info.manifest.entry);
+                                if let Some(cmd) = self.loader.build_container_command(&info.manifest, &entry_path) {
+                                    tracing::info!("Deploying sandbox for module {}: {:?}", name, cmd);
+                                    if let Ok(child) = std::process::Command::new(&cmd[0])
+                                        .args(&cmd[1..])
+                                        .spawn()
+                                    {
+                                        let cm = ContainerModule {
+                                            name: info.manifest.name.clone(),
+                                            version: info.manifest.version.clone(),
+                                            process: Arc::new(Mutex::new(child)),
+                                        };
+                                        Some(Box::new(cm) as Box<dyn TosModule>)
+                                    } else {
+                                        tracing::error!("Failed to deploy sandbox for module {}", name);
+                                        info.error = Some("Failed to deploy sandbox".to_string());
+                                        info.state = ModuleState::Error;
+                                        None
+                                    }
+                                } else {
+                                    None
+                                }
+                            } else if is_script {
                                 // Try to find the entry file
                                 let entry_path = info.path.join(&info.manifest.entry);
                                 if entry_path.exists() {

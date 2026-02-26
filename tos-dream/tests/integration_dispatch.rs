@@ -107,7 +107,7 @@ fn test_ipc_dangerous_command_block_integration() {
     // Verify renderer shows the dangerous overlay
     let html = s.render_current_view();
     assert!(html.contains("DANGEROUS COMMAND DETECTED"));
-    assert!(html.contains("EXECUTION BLOCKED"));
+    assert!(html.contains("PENDING COMMAND:"));
 }
 
 #[test]

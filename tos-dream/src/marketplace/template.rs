@@ -156,6 +156,7 @@ pub struct Geometry {
 }
 
 /// Template handler for export/import operations
+#[derive(Clone)]
 pub struct TemplateHandler {
     /// Cache directory for templates
     cache_dir: PathBuf,

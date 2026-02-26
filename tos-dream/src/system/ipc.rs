@@ -514,6 +514,122 @@ impl IpcDispatcher {
                     app.settings.insert(key.to_string(), val);
                 }
             }
+        } else if request.starts_with("marketplace_search:") {
+            let query = request[19..].to_string();
+            let state_arc = self.state.clone();
+            
+            tokio::spawn(async move {
+                let marketplace = {
+                    let state = state_arc.lock().expect("Lock failed");
+                    state.marketplace.clone()
+                };
+                let results = marketplace.search(&query).await;
+                
+                match results {
+                    Ok(packages) => {
+                        let mut state = state_arc.lock().expect("Lock failed");
+                        let (sector_index, hub_index) = {
+                            let viewport = &state.viewports[state.active_viewport_index];
+                            (viewport.sector_index, viewport.hub_index)
+                        };
+                        let hub = &mut state.sectors[sector_index].hubs[hub_index];
+                        hub.terminal_output.push(format!("MARKETPLACE // SEARCH RESULTS FOR '{}':", query));
+                        for pkg in packages {
+                            hub.terminal_output.push(format!(" - {} v{} ({})", pkg.name, pkg.version, pkg.package_type));
+                        }
+                    }
+                    Err(e) => tracing::error!("Marketplace search failed: {}", e),
+                }
+            });
+        } else if request.starts_with("marketplace_install:") {
+            let name = request[20..].to_string();
+            let state_arc = self.state.clone();
+            
+            tokio::spawn(async move {
+                let request = crate::marketplace::InstallRequest {
+                    package_name: name.clone(),
+                    version_constraint: "latest".to_string(),
+                    repository: None,
+                    auto_accept: true,
+                    skip_signature_check: false,
+                };
+                
+                let marketplace = {
+                    let state = state_arc.lock().expect("Lock failed");
+                    state.marketplace.clone()
+                };
+                let results = marketplace.install(request).await;
+                
+                let mut state = state_arc.lock().expect("Lock failed");
+                let (sector_index, hub_index) = {
+                    let viewport = &state.viewports[state.active_viewport_index];
+                    (viewport.sector_index, viewport.hub_index)
+                };
+                let hub = &mut state.sectors[sector_index].hubs[hub_index];
+                
+                match results {
+                    Ok(res) => {
+                        hub.terminal_output.push(format!("MARKETPLACE // INSTALLED: {} v{}", res.package.name, res.package.version));
+                        hub.terminal_output.push(format!("PATH // {}", res.install_path.display()));
+                        state.earcon_player.play(crate::system::audio::earcons::EarconEvent::CommandAccepted);
+                    }
+                    Err(e) => {
+                        hub.terminal_output.push(format!("MARKETPLACE // ERROR: {}", e));
+                        state.earcon_player.play(crate::system::audio::earcons::EarconEvent::TacticalAlert);
+                    }
+                }
+            });
+        } else if request.starts_with("marketplace_add_repo:") {
+            let parts: Vec<&str> = request[21..].split('|').collect();
+            if parts.len() >= 2 {
+                let name = parts[0];
+                let url = parts[1];
+                state.marketplace.add_repository(crate::marketplace::RepositoryConfig {
+                    name: name.to_string(),
+                    url: url.to_string(),
+                    enabled: true,
+                    priority: 5,
+                    auth_token: None,
+                });
+                let (sector_index, hub_index) = {
+                    let viewport = &state.viewports[state.active_viewport_index];
+                    (viewport.sector_index, viewport.hub_index)
+                };
+                state.sectors[sector_index].hubs[hub_index].terminal_output.push(
+                    format!("MARKETPLACE // REPOSITORY ADDED: {} ({})", name, url)
+                );
+            }
+        } else if request == "marketplace_discover" {
+            let state_arc = self.state.clone();
+            
+            tokio::spawn(async move {
+                let marketplace = {
+                    let state = state_arc.lock().expect("Lock failed");
+                    state.marketplace.clone()
+                };
+                let results = marketplace.discover_repositories().await;
+                
+                let mut state = state_arc.lock().expect("Lock failed");
+                let (sector_index, hub_index) = {
+                    let viewport = &state.viewports[state.active_viewport_index];
+                    (viewport.sector_index, viewport.hub_index)
+                };
+                let hub = &mut state.sectors[sector_index].hubs[hub_index];
+                
+                match results {
+                    Ok(repos) => {
+                        hub.terminal_output.push("MARKETPLACE // DISCOVERED REPOSITORIES:".to_string());
+                        for repo in repos {
+                            hub.terminal_output.push(format!(" - {} ({})", repo.name, repo.url));
+                        }
+                        state.earcon_player.play(crate::system::audio::earcons::EarconEvent::CommandAccepted);
+                    }
+                    Err(e) => {
+                        hub.terminal_output.push(format!("MARKETPLACE // DISCOVERY ERROR: {}", e));
+                        state.earcon_player.play(crate::system::audio::earcons::EarconEvent::TacticalAlert);
+                    }
+                }
+            });
         } else if request == "ui_ready" {
             state.force_redraw = true;
         } else {

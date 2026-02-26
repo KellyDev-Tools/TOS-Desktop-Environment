@@ -76,6 +76,7 @@ pub struct VersionEntry {
 }
 
 /// Manages multiple repositories
+#[derive(Clone)]
 pub struct RepositoryManager {
     /// Configured repositories
     repositories: HashMap<String, Repository>,
@@ -139,9 +140,34 @@ impl RepositoryManager {
         
         Ok(refreshed)
     }
+
+    /// Discover new repositories from a central discovery service
+    pub async fn discover_repositories(&self, discovery_url: &str) -> Result<Vec<RepositoryConfig>, MarketplaceError> {
+        let client = reqwest::Client::new();
+        let response = client.get(discovery_url).send().await?;
+        
+        if !response.status().is_success() {
+            return Err(MarketplaceError::Network(
+                format!("Discovery service returned {}: {}", response.status(), discovery_url)
+            ));
+        }
+        
+        let discovery: DiscoveryIndex = response.json().await?;
+        Ok(discovery.repositories)
+    }
+}
+
+/// Central discovery index format
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct DiscoveryIndex {
+    /// List of recommended repositories
+    pub repositories: Vec<RepositoryConfig>,
+    /// Discovery format version
+    pub version: String,
 }
 
 /// Individual repository
+#[derive(Clone)]
 pub struct Repository {
     /// Repository configuration
     config: RepositoryConfig,
@@ -443,5 +469,25 @@ mod tests {
         assert!(!repo.version_matches("0.9.0", ">=1.0.0")); // >= fail
         assert!(repo.version_matches("1.0.0", "~1.0")); // ~ compatible
         assert!(repo.version_matches("1.0.0", "^1")); // ^ compatible
+    }
+
+    #[tokio::test]
+    async fn test_discovery_serialization() {
+        let discovery = DiscoveryIndex {
+            repositories: vec![
+                RepositoryConfig {
+                    name: "official".to_string(),
+                    url: "https://marketplace.tos.dev".to_string(),
+                    enabled: true,
+                    priority: 1,
+                    auth_token: None,
+                }
+            ],
+            version: "1.0".to_string(),
+        };
+        
+        let json = serde_json::to_string(&discovery).unwrap();
+        assert!(json.contains("official"));
+        assert!(json.contains("marketplace.tos.dev"));
     }
 }

@@ -8,6 +8,7 @@ use serde::{Deserialize, Serialize};
 use std::collections::{HashMap, HashSet, VecDeque};
 
 /// Dependency resolver for package dependencies
+#[derive(Clone)]
 pub struct DependencyResolver {
     /// Maximum depth for dependency resolution
     max_depth: u32,
@@ -131,11 +132,32 @@ impl DependencyResolver {
             
             // Get package metadata
             let metadata = if let Some(node) = graph.nodes.get(&pkg_name) {
-                node.metadata.clone()
+                if let Some(ref meta) = node.metadata {
+                    Some(meta.clone())
+                } else {
+                    // Try to resolve from repositories
+                    match self.find_package_in_repos(&pkg_name, &node.version, _repository_manager).await {
+                        Ok(meta) => {
+                            // Update node in graph
+                            if let Some(node_mut) = graph.nodes.get_mut(&pkg_name) {
+                                node_mut.metadata = Some(meta.clone());
+                                node_mut.state = ResolutionState::Resolved;
+                            }
+                            Some(meta)
+                        }
+                        Err(e) => {
+                            tracing::error!("Failed to resolve dependency {}: {}", pkg_name, e);
+                            if let Some(node_mut) = graph.nodes.get_mut(&pkg_name) {
+                                node_mut.state = ResolutionState::Failed;
+                            }
+                            None
+                        }
+                    }
+                }
             } else {
                 None
             };
-            
+
             if let Some(metadata) = metadata {
                 // Resolve each dependency
                 let mut deps = Vec::new();
@@ -164,11 +186,6 @@ impl DependencyResolver {
                 }
                 
                 graph.edges.insert(pkg_name, deps);
-            } else {
-                // Mark as failed
-                if let Some(node) = graph.nodes.get_mut(&pkg_name) {
-                    node.state = ResolutionState::Failed;
-                }
             }
         }
         

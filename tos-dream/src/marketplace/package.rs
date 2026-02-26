@@ -89,6 +89,7 @@ pub struct PackageFile {
 }
 
 /// Package manager for downloads and caching
+#[derive(Clone)]
 pub struct PackageManager {
     /// Cache directory for downloaded packages
     cache_dir: PathBuf,

@@ -9,6 +9,7 @@ use std::collections::HashSet;
 use std::path::{Path, PathBuf};
 
 /// Signature verifier for package validation
+#[derive(Clone)]
 pub struct SignatureVerifier {
     /// Trusted public keys (base64 encoded)
     trusted_keys: HashSet<String>,
@@ -159,7 +160,12 @@ impl SignatureVerifier {
         // Read package data
         let package_data = std::fs::read(package_path)?;
         
-        // Try to verify with each trusted key
+        // Detect signature type
+        if signature_b64.starts_with("-----BEGIN PGP SIGNATURE-----") {
+            return self.verify_gpg(&package_data, signature_b64);
+        }
+
+        // Try to verify with each trusted key (Minisign)
         for key_b64 in &self.trusted_keys {
             match self.verify_with_key(&package_data, signature_b64, key_b64) {
                 Ok(key_id) => {
@@ -167,11 +173,11 @@ impl SignatureVerifier {
                         valid: true,
                         key_id: Some(key_id),
                         trusted: true,
-                        message: "Signature verified with trusted key".to_string(),
+                        message: "Signature verified with trusted minisign key".to_string(),
                     });
                 }
                 Err(e) => {
-                    tracing::debug!("Verification failed with key: {}", e);
+                    tracing::debug!("Minisign verification failed with key: {}", e);
                 }
             }
         }
@@ -183,7 +189,7 @@ impl SignatureVerifier {
                     valid: true,
                     key_id: Some(key_id),
                     trusted: false,
-                    message: "Signature valid but from untrusted key".to_string(),
+                    message: "Minisign signature valid but from untrusted key".to_string(),
                 });
             }
         }
@@ -191,6 +197,24 @@ impl SignatureVerifier {
         Err(MarketplaceError::Signature(
             "Signature verification failed with all trusted keys".to_string()
         ))
+    }
+
+    /// Verify GPG signature (STUB)
+    fn verify_gpg(&self, _data: &[u8], _signature_armored: &str) -> Result<VerificationResult, MarketplaceError> {
+        // In a real implementation, this would use gpgme or another GPG library
+        // For now, we return a validation error if we require strict GPG check
+        if self.allow_untrusted {
+            Ok(VerificationResult {
+                valid: true,
+                key_id: Some("gpg-stub-id".to_string()),
+                trusted: false,
+                message: "GPG signature detected (verification not implemented, allowed by policy)".to_string(),
+            })
+        } else {
+            Err(MarketplaceError::Signature(
+                "GPG signatures are not supported in this version".to_string()
+            ))
+        }
     }
     
     /// Verify signature with a specific key

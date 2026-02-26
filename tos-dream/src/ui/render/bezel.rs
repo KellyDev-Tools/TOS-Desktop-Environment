@@ -163,32 +163,7 @@ pub fn render_bezel(state: &TosState, viewport: &Viewport, level: HierarchyLevel
                         avatars = avatars_html
                     )
                 }
-                HierarchyLevel::ApplicationFocus => {
-                    // BZ-02: L2: Application Focus Bezel (Collapsed)
-                    format!(
-                        r#"<div class="tactical-bezel collapsed app-bezel {priority_class}" style="--bezel-accent:{color};">
-                            <div class="bezel-top">
-                                <div class="bezel-left">
-                                    <span class="bezel-icon">{icon}</span>
-                                    <span class="bezel-title">{title}</span>
-                                </div>
-                                <div class="bezel-right">
-                                    <div class="collaboration-avatars">
-                                        {avatars}
-                                    </div>
-                                    <div class="bezel-handle" onclick="window.ipc.postMessage('toggle_bezel')">
-                                        <div class="chevron"></div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>"#,
-                        priority_class = priority_class,
-                        color = accent_color,
-                        title = title,
-                        icon = icon,
-                        avatars = avatars_html
-                    )
-                }
+
                 HierarchyLevel::GlobalOverview => {
                     // BZ-04: L1: Global Overview Bezel
 

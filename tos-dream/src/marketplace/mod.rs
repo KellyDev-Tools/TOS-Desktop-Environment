@@ -44,6 +44,10 @@ pub struct MarketplaceConfig {
     pub auto_install_dependencies: bool,
     /// Trusted public keys for signature verification
     pub trusted_keys: Vec<String>,
+    /// Central discovery URL for finding repositories
+    pub discovery_url: String,
+    /// Whether to allow untrusted signatures (valid format but unknown key)
+    pub allow_untrusted_signatures: bool,
 }
 
 impl Default for MarketplaceConfig {
@@ -56,6 +60,8 @@ impl Default for MarketplaceConfig {
             verify_signatures: true,
             auto_install_dependencies: true,
             trusted_keys: Vec::new(),
+            discovery_url: "https://marketplace.tos.dev/discovery.json".to_string(),
+            allow_untrusted_signatures: false,
         }
     }
 }
@@ -243,6 +249,7 @@ impl From<zip::result::ZipError> for MarketplaceError {
 }
 
 /// Main marketplace manager
+#[derive(Clone)]
 pub struct Marketplace {
     /// Configuration
     pub config: MarketplaceConfig,
@@ -270,7 +277,8 @@ impl Marketplace {
         let repository_manager = RepositoryManager::new(config.repositories.clone());
         let package_manager = PackageManager::new(config.cache_dir.clone());
         let template_handler = template::TemplateHandler::new();
-        let signature_verifier = SignatureVerifier::new(config.trusted_keys.clone());
+        let signature_verifier = SignatureVerifier::new(config.trusted_keys.clone())
+            .with_allow_untrusted(config.allow_untrusted_signatures);
         let dependency_resolver = DependencyResolver::new();
         
         Self {
@@ -308,6 +316,11 @@ impl Marketplace {
         results.dedup_by(|a, b| a.name == b.name && a.version == b.version);
         
         Ok(results)
+    }
+    
+    /// Discover new repositories from the discovery service
+    pub async fn discover_repositories(&self) -> Result<Vec<RepositoryConfig>, MarketplaceError> {
+        self.repository_manager.discover_repositories(&self.config.discovery_url).await
     }
     
     /// Install a package

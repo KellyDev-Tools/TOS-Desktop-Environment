@@ -16,8 +16,8 @@ fn main() {
     println!("==========================================");
 
     // 1. Create Communication Channels
-    let (ui_tx, _ui_rx) = channel::<UiCommand>();
-    let (_input_tx, input_rx) = channel::<InputEvent>();
+    let (ui_tx, ui_rx) = channel::<UiCommand>();
+    let (input_tx, input_rx) = channel::<InputEvent>();
 
     let shell_tx = ui_tx.clone();
 

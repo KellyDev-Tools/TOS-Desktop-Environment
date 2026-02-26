@@ -1,64 +1,58 @@
-# TOS Traditional - Rust Implementation
+# TOS Traditional (Alpha-0) - Heritage Implementation
 
-This repository contains the **Rust implementation** of the TOS "Origin Idea" concepts.
-Designed for the **Native Desktop Architecture**, it uses a local WebView (`wry`) for the UI and Rust for the core logic/compositor.
+This directory contains the **Alpha-0 (Heritage)** Rust implementation of the TOS "Origin Idea" concepts. It represents the early foundational work on spatial navigation and native desktop integration before the pivot to the `alpha-1` production architecture.
 
-## Architecture Overview
+## 🛠 Legacy Restoration (Feb 2026)
+This project has been restored to a functional state. It was previously broken due to breaking changes in `wry`, `tao`, and `smithay`. It now uses a hybrid configuration that allows it to compile alongside modern dependencies while preserving its original logic.
 
-The system is split into two concurrent threads communicating via channels (IPC):
+**Key Fixes:**
+- Upgraded `wry` to `0.40` and `tao` to `0.27` to resolve `raw-window-handle` conflicts.
+- Refactored `src/ui/window.rs` to support the modern `wry` IPC handler and `tao` event loop.
+- Updated `src/main.rs` channel management for compiler compatibility.
+
+## 🏗 Architecture Overview
+
+The system runs two concurrent threads:
 
 1.  **The Brain (Logic Thread)**:
-    -   Runs the `DesktopEnvironment` loop.
-    -   Manages **Spatial Navigation** state (Zoom Levels).
-    -   Handles **Shell Integration** (parsing OSC 1337 sequences).
-    -   Simulates User Input and System Events.
+    -   Manages **Spatial Navigation** state (Recursive Zoom Levels).
+    -   Handles **Shell Integration** (parsing legacy OSC 1337 sequences).
+    -   Simulates user input and system events for the UI.
 
 2.  **The Face (UI Thread)**:
-    -   Runs the `wry` (WebView) Event Loop on the main thread.
-    -   Renders the **LCARS CSS Design System** (`ui/assets/css/lcars.css`).
-    -   Receives `UiEvent` messages from the Brain to update the DOM.
+    -   Runs the `wry` (WebView) Event Loop.
+    -   Renders the **Legacy LCARS CSS Design System**.
+    -   Injects state updates into the DOM via JavaScript.
 
-## Module Structure
+## 🚀 Running the Legacy System
 
--   `src/main.rs`: Entry point. Spawns the Brain thread and launches the UI.
--   `src/lib.rs`: The core library defining the `DesktopEnvironment` struct.
--   `src/navigation/`:
-    -   `zoom.rs`: Implements the recursive zoom hierarchy logic.
--   `src/ui/`:
-    -   `window.rs`: The `wry` integration (WebView setup and IPC loop).
-    -   `dashboard.rs`: The Widget system (Clock, System Monitor) returning HTML fragments.
--   `src/system/`:
-    -   `shell.rs`: The **OSC Parser** that translates shell output into UI commands.
-    -   `files.rs`: A mock Spatial File Browser.
-    -   `notifications.rs`: The priority-based notification manager.
-    -   `audio.rs`: Auditory feedback loop.
-
-## Building and Running
-
-### Prerequisites
--   Rust Toolchain (Latest Stable recommended, > 1.75).
--   System dependencies for Wry/Winit:
-    -   `libwebkit2gtk-4.0-dev` (or 4.1)
-    -   `libgtk-3-dev`
-    -   `libayatana-appindicator3-dev`
-
-### Known Issues
--   **Dependency Conflict**: The current environment has an issue with `getrandom v0.4.1` requiring Rust 2024 edition support.
--   **Workaround**: Update your Rust toolchain to the latest stable release:
-    ```bash
-    rustup update stable
-    ```
-
-### Running the Demo
-Once dependencies are satisfied:
+### Build Commands
 
 ```bash
-cargo run
+# Build the core library
+cargo build
+
+# Run the standard desktop demo (requires GUI)
+cargo run --features gui
+
+# Run the full infrastructure demo (with Dev Monitor)
+cargo run --features dev-monitor --bin demo-backend
 ```
 
-This will launch a window displaying the LCARS interface. In the terminal, you will see logs from the "Brain" thread simulating user actions (Zooming, Shell Commands), which will reflect in the UI window via JavaScript injection.
+### Dev Monitor
+The `alpha-0` version includes a specialized **Development Monitor** that provides a browser-based view into the system's internals (GPU stats, Wayland surfaces, and PTY sessions).
 
-## Project Files
--   **UI**: `ui/index.html`, `ui/assets/css/lcars.css`
--   **Rust Source**: `src/` directory.
--   **Config**: `Cargo.toml`
+To use the monitor:
+1. Start the server: `cargo run --features dev-monitor --bin dev-server`
+2. Open `http://127.0.0.1:3000` in your browser.
+3. Run the demo: `cargo run --features dev-monitor --bin demo-backend`
+
+## 📂 Project Structure
+
+- `src/compositor/`: Early Wayland compositor and GPU rendering tests.
+- `src/navigation/`: Original recursive zoom implementation.
+- `src/ui/`: `wry` window management and dashboard widgets.
+- `src/system/`: Legacy PTY handles, notification manager, and audio feedback.
+
+## ⚠️ Disclaimer
+`alpha-0` is preserved for **historical and conceptual reference**. Active development has shifted to the `alpha-1` directory, which features a more robust module system and multi-platform support.

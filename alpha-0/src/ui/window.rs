@@ -1,39 +1,37 @@
-use wry::{
-    application::{
-        event::{Event, StartCause, WindowEvent, ElementState},
-        event_loop::{ControlFlow, EventLoop},
-        window::WindowBuilder,
-        keyboard::VirtualKeyCode,
-    },
-    webview::WebViewBuilder,
+use tao::{
+    event::{Event, StartCause, WindowEvent, ElementState},
+    event_loop::{ControlFlow, EventLoop},
+    window::WindowBuilder,
+    keyboard::KeyCode as TaoKeyCode,
 };
+use wry::WebViewBuilder;
 use std::sync::mpsc::{Receiver, Sender};
 use crate::system::input::{InputEvent, KeyCode};
 use crate::UiCommand;
 
 // Map winit keys to our abstract KeyCode
-fn map_key(k: VirtualKeyCode) -> KeyCode {
+fn map_key(k: TaoKeyCode) -> KeyCode {
     match k {
-        VirtualKeyCode::Escape => KeyCode::Escape,
-        VirtualKeyCode::Space => KeyCode::Space,
-        VirtualKeyCode::Return => KeyCode::Enter,
-        VirtualKeyCode::Up => KeyCode::Up,
-        VirtualKeyCode::Down => KeyCode::Down,
-        VirtualKeyCode::Left => KeyCode::Left,
-        VirtualKeyCode::Right => KeyCode::Right,
-        VirtualKeyCode::Z => KeyCode::Char('z'),
-        VirtualKeyCode::S => KeyCode::Char('s'),
-        VirtualKeyCode::Q => KeyCode::Char('q'),
+        TaoKeyCode::Escape => KeyCode::Escape,
+        TaoKeyCode::Space => KeyCode::Space,
+        TaoKeyCode::Enter => KeyCode::Enter,
+        TaoKeyCode::ArrowUp => KeyCode::Up,
+        TaoKeyCode::ArrowDown => KeyCode::Down,
+        TaoKeyCode::ArrowLeft => KeyCode::Left,
+        TaoKeyCode::ArrowRight => KeyCode::Right,
+        TaoKeyCode::KeyZ => KeyCode::Char('z'),
+        TaoKeyCode::KeyS => KeyCode::Char('s'),
+        TaoKeyCode::KeyQ => KeyCode::Char('q'),
         _ => KeyCode::Unknown,
     }
 }
 
-pub fn run_ui(rx: Receiver<UiCommand>, tx: Sender<InputEvent>) -> wry::Result<()> {
+pub fn run_ui(rx: Receiver<UiCommand>, tx: Sender<InputEvent>) -> anyhow::Result<()> {
     let event_loop = EventLoop::new();
 
     let window = WindowBuilder::new()
         .with_title("TOS - Traditional Navigator")
-        .with_inner_size(wry::application::dpi::LogicalSize::new(1280.0, 720.0))
+        .with_inner_size(tao::dpi::LogicalSize::new(1280.0, 720.0))
         .build(&event_loop)?;
 
     let html_path = std::env::current_dir().unwrap().join("ui").join("index.html");
@@ -42,9 +40,10 @@ pub fn run_ui(rx: Receiver<UiCommand>, tx: Sender<InputEvent>) -> wry::Result<()
     // Clone tx for IPC handler
     let ipc_tx = tx.clone();
 
-    let webview = WebViewBuilder::new(window)?
-        .with_html(content)?
-        .with_ipc_handler(move |_, msg| {
+    let webview = WebViewBuilder::new(&window)
+        .with_html(content)
+        .with_ipc_handler(move |request: wry::http::Request<String>| {
+            let msg = request.body();
             println!("[UI Bridge] IPC Message: {}", msg);
             // Example: terminal:zoom 2
             if msg.starts_with("terminal:") {
@@ -110,12 +109,10 @@ pub fn run_ui(rx: Receiver<UiCommand>, tx: Sender<InputEvent>) -> wry::Result<()
 
             Event::WindowEvent { event, .. } => match event {
                 WindowEvent::CloseRequested => *control_flow = ControlFlow::Exit,
-                WindowEvent::KeyboardInput { input, .. } => {
-                    if let Some(vk) = input.virtual_keycode {
-                        if input.state == ElementState::Pressed {
-                            let code = map_key(vk);
-                            let _ = tx.send(InputEvent::KeyDown(code));
-                        }
+                WindowEvent::KeyboardInput { event: tao::event::KeyEvent { physical_key: vk, state, .. }, .. } => {
+                    if state == ElementState::Pressed {
+                        let code = map_key(vk);
+                        let _ = tx.send(InputEvent::KeyDown(code));
                     }
                 },
                 _ => (),

@@ -597,3 +597,58 @@
     filter: brightness(1.2);
     box-shadow: 0 0 10px var(--lcars-orange);
 }
+/* Collaboration Avatars */
+.collaboration-avatars {
+    display: flex;
+    flex-direction: row;
+    gap: 8px;
+    margin-right: 20px;
+    align-items: center;
+}
+
+.collab-avatar {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    border: 2px solid var(--avatar-color, var(--lcars-blue));
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(0, 0, 0, 0.4);
+    font-size: 0.7rem;
+    font-weight: 800;
+    color: var(--avatar-color, var(--lcars-blue));
+    cursor: help;
+    transition: all 0.3s ease;
+    overflow: hidden;
+}
+
+.collab-avatar.local {
+    box-shadow: 0 0 10px var(--avatar-color);
+}
+
+.collab-avatar:hover {
+    transform: scale(1.1);
+    z-index: 10;
+}
+
+.collab-avatar img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+/* Role-based restrictions */
+.bezel-btn:disabled,
+.toggle-segment.disabled {
+    opacity: 0.2;
+    cursor: not-allowed;
+    filter: grayscale(1);
+    pointer-events: none;
+}
+
+.toggle-segment.disabled::after {
+    content: "🔒";
+    font-size: 0.6rem;
+    margin-left: 4px;
+}

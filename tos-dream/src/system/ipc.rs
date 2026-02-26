@@ -729,6 +729,7 @@ impl IpcDispatcher {
             id: p_id,
             name: format!("Guest-{}", &token[..4]),
             color: "#00ffcc".to_string(),
+            avatar_url: None,
             role: role,
             cursor_position: None,
             following_host_id: None,

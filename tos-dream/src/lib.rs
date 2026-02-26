@@ -412,6 +412,8 @@ pub struct TosState {
     /// System-wide TOS Log (§14)
     #[serde(skip)]
     pub log_manager: system::log::LogManager,
+    /// ID of the local participant for this session
+    pub local_participant_id: uuid::Uuid,
 }
 
 impl std::fmt::Debug for TosState {
@@ -478,6 +480,16 @@ pub struct TemplateInfo {
 }
 
 impl TosState {
+    pub fn local_role(&self) -> system::collaboration::CollaborationRole {
+        self.collaboration_manager.participants.get(&self.local_participant_id)
+            .map(|p| p.role)
+            .unwrap_or(system::collaboration::CollaborationRole::Viewer)
+    }
+
+    pub fn can_perform(&self, action: system::collaboration::PermissionAction) -> bool {
+        self.collaboration_manager.check_permission(self.local_participant_id, action)
+    }
+
     pub fn get_available_templates(&self) -> Vec<TemplateInfo> {
         let mut templates = Vec::new();
         let home = std::env::var("HOME").unwrap_or_else(|_| env!("HOME").to_string());
@@ -636,6 +648,7 @@ impl TosState {
         if let Ok(loaded) = module_registry.scan_and_load() {
             tracing::info!("Loaded {} modules from filesystem", loaded.len());
         }
+        let local_id = uuid::Uuid::new_v4();
         let first_sector = Sector {
             id: uuid::Uuid::new_v4(),
             name: "Alpha Sector".to_string(),
@@ -673,9 +686,10 @@ impl TosState {
             host: "LOCAL".to_string(),
             connection_type: ConnectionType::Local,
             participants: vec![system::collaboration::Participant { 
-                id: uuid::Uuid::new_v4(),
+                id: local_id,
                 name: "Host".to_string(), 
                 color: "#ffcc00".to_string(), 
+                avatar_url: None,
                 role: system::collaboration::CollaborationRole::CoOwner,
                 cursor_position: None,
                 following_host_id: None,
@@ -839,10 +853,22 @@ impl TosState {
             ai_manager: system::ai::AiManager::new(),
             search_manager: system::search::SearchManager::new(),
             log_manager: system::log::LogManager::new(),
+            local_participant_id: local_id,
             #[cfg(feature = "saas")]
             cloud_manager: Some(saas::CloudResourceManager::new(saas::CloudConfig::default())),
         };
         
+        let mut state = state;
+        let local_participant = system::collaboration::Participant {
+             id: local_id,
+             name: "Host".to_string(),
+             color: "#ffcc00".to_string(),
+             avatar_url: None,
+             role: system::collaboration::CollaborationRole::CoOwner,
+             cursor_position: None,
+             following_host_id: None,
+        };
+        state.collaboration_manager.add_participant(local_participant, None);
         state
     }
 
@@ -1250,6 +1276,7 @@ impl TosState {
                 id: uuid::Uuid::new_v4(),
                 name: "Host".to_string(), 
                 color: "#ffcc00".to_string(), 
+                avatar_url: None,
                 role: system::collaboration::CollaborationRole::CoOwner,
                 cursor_position: None,
                 following_host_id: None,
@@ -1290,6 +1317,7 @@ impl TosState {
             id,
             name: name.clone(),
             color: color.clone(),
+            avatar_url: None,
             role: role_enum,
             cursor_position: None,
             following_host_id: None,

@@ -1,4 +1,6 @@
 use crate::{TosState, Viewport, HierarchyLevel};
+use crate::system::collaboration::Participant;
+use crate::system::collaboration::PermissionAction;
 
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub enum BezelState {
@@ -6,11 +8,41 @@ pub enum BezelState {
     Expanded,
 }
 
+/// Render collaboration avatars with priority for the local participant.
+fn render_avatars(participants: &[Participant], local_id: uuid::Uuid) -> String {
+    let mut html = String::new();
+    for p in participants {
+        let is_local = p.id == local_id;
+        let local_class = if is_local { "local" } else { "" };
+        let initials = p.name.chars().next().unwrap_or('?').to_uppercase().to_string();
+        
+        let content = if let Some(url) = &p.avatar_url {
+            format!(r#"<img src="{}" alt="{}" />"#, url, p.name)
+        } else {
+            format!(r#"<span>{}</span>"#, initials)
+        };
+
+        html.push_str(&format!(
+            r#"<div class="collab-avatar {local_class}" style="--avatar-color:{};" title="{} ({})">
+                {}
+            </div>"#,
+            p.color, p.name, p.role.as_str(), content
+        ));
+    }
+    html
+}
+
 /// Render the tactical bezel based on hierarchy level and expansion state.
 pub fn render_bezel(state: &TosState, viewport: &Viewport, level: HierarchyLevel, bezel_state: BezelState) -> String {
     let sector = &state.sectors[viewport.sector_index];
     let accent_color = &sector.color;
+    let local_id = state.local_participant_id;
     
+    let can_switch_mode = state.can_perform(PermissionAction::ModeSwitch);
+    let can_manage_sector = state.can_perform(PermissionAction::SectorReset); // Using Reset as proxy for management
+    let disabled_attr = |allowed: bool| if allowed { "" } else { "disabled" };
+    
+    let avatars_html = render_avatars(&sector.participants, local_id);
     let (title, icon) = if level == HierarchyLevel::ApplicationFocus {
         let hub = &sector.hubs[viewport.hub_index];
         let app = &hub.applications[viewport.active_app_index.unwrap_or(0)];
@@ -88,15 +120,18 @@ pub fn render_bezel(state: &TosState, viewport: &Viewport, level: HierarchyLevel
                                 <div class="bezel-left">
                                     <button class="bezel-btn mini toggle-left-region" onclick="window.ipc.postMessage('toggle_left_region')" title="Toggle Region">◧</button>
                                     <div class="three-way-toggle">
-                                        <div class="toggle-segment {cmd_active}" onclick="window.ipc.postMessage('set_mode:Command')">CMD</div>
-                                        <div class="toggle-segment {dir_active}" onclick="window.ipc.postMessage('set_mode:Directory')">DIR</div>
-                                        <div class="toggle-segment {act_active}" onclick="window.ipc.postMessage('set_mode:Activity')">ACT</div>
+                                        <div class="toggle-segment {cmd_active} {disabled_switch}" onclick="{cmd_onclick}">CMD</div>
+                                        <div class="toggle-segment {dir_active} {disabled_switch}" onclick="{dir_onclick}">DIR</div>
+                                        <div class="toggle-segment {act_active} {disabled_switch}" onclick="{act_onclick}">ACT</div>
                                     </div>
                                 </div>
                                 <div class="bezel-center">
                                     <span class="bezel-title">{title}</span>
                                 </div>
                                 <div class="bezel-right">
+                                    <div class="collaboration-avatars">
+                                        {avatars}
+                                    </div>
                                     <button class="bezel-btn mini toggle-output-mode" onclick="window.ipc.postMessage('toggle_output_mode')" title="Perspective Mode">⬚</button>
                                     <div class="bezel-handle" onclick="window.ipc.postMessage('toggle_bezel')">
                                         <div class="chevron"></div>
@@ -116,32 +151,30 @@ pub fn render_bezel(state: &TosState, viewport: &Viewport, level: HierarchyLevel
                         cmd_active = cmd_active,
                         dir_active = dir_active,
                         act_active = act_active,
+                        disabled_switch = if can_switch_mode { "" } else { "disabled" },
+                        cmd_onclick = if can_switch_mode { "window.ipc.postMessage('set_mode:Command')" } else { "" },
+                        dir_onclick = if can_switch_mode { "window.ipc.postMessage('set_mode:Directory')" } else { "" },
+                        act_onclick = if can_switch_mode { "window.ipc.postMessage('set_mode:Activity')" } else { "" },
                         drawer_active_class = drawer_active_class,
-                        suggestions = suggestions_html
+                        suggestions = suggestions_html,
+                        avatars = avatars_html
                     )
                 }
                 HierarchyLevel::GlobalOverview => {
                     // BZ-04: L1: Global Overview Bezel
-                    let mut avatars_html = String::new();
-                    for participant in &sector.participants {
-                        avatars_html.push_str(&format!(
-                            r#"<div class="collab-avatar" style="--avatar-color:{};" title="{}"></div>"#,
-                            participant.color, participant.name
-                        ));
-                    }
 
                     format!(
                         r#"<div class="tactical-bezel collapsed global-bezel {priority_class}" style="--bezel-accent:{color};">
                             <div class="bezel-top">
                                 <div class="bezel-left">
-                                    <button class="bezel-btn mini settings-gear" onclick="window.ipc.postMessage('open_settings')" title="Settings">⚙</button>
+                                    <button class="bezel-btn mini settings-gear" onclick="window.ipc.postMessage('open_settings')" title="Settings" {disabled_manage}>⚙</button>
                                     <span class="bezel-title">GLOBAL OVERVIEW</span>
                                 </div>
                                 <div class="bezel-right">
                                     <div class="collaboration-avatars">
                                         {avatars}
                                     </div>
-                                    <button class="bezel-btn mini add-sector" onclick="window.ipc.postMessage('add_sector')" title="Add Sector">+</button>
+                                    <button class="bezel-btn mini add-sector" onclick="window.ipc.postMessage('add_sector')" title="Add Sector" {disabled_manage}>+</button>
                                     <div class="bezel-handle" onclick="window.ipc.postMessage('toggle_bezel')">
                                         <div class="chevron"></div>
                                     </div>
@@ -150,7 +183,8 @@ pub fn render_bezel(state: &TosState, viewport: &Viewport, level: HierarchyLevel
                         </div>"#,
                         priority_class = priority_class,
                         color = accent_color,
-                        avatars = avatars_html
+                        avatars = avatars_html,
+                        disabled_manage = disabled_attr(can_manage_sector)
                     )
                 }
                 _ => {
@@ -281,7 +315,7 @@ pub fn render_bezel(state: &TosState, viewport: &Viewport, level: HierarchyLevel
                             <div class="bezel-group">
                                 <button class="bezel-btn mini" onclick="window.ipc.postMessage('semantic_event:ToggleMiniMap')">MINIMAP</button>
                                 <button class="bezel-btn mini" onclick="window.ipc.postMessage('semantic_event:ToggleComms')">COMMS</button>
-                                <button class="bezel-btn mini danger" onclick="window.ipc.postMessage('tactical_reset')">RESET</button>
+                                <button class="bezel-btn mini danger" onclick="window.ipc.postMessage('tactical_reset')" {disabled_manage}>RESET</button>
                             </div>
                         </div>
                     </div>
@@ -291,7 +325,8 @@ pub fn render_bezel(state: &TosState, viewport: &Viewport, level: HierarchyLevel
                 title = title.to_uppercase(),
                 slider = slider_html,
                 level_specific = level_specific_html,
-                fps = state.fps
+                fps = state.fps,
+                disabled_manage = disabled_attr(can_manage_sector)
             )
         }
     }

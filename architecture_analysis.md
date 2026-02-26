@@ -42,7 +42,7 @@ A concise comparison of the design documents (TOS Architectural Specification v1
 2. **[DONE]** Build tactile‑confirmation modal (slider / multi‑button).
 3. **[DONE]** Wire remote‑sector streaming and portal URL display.
 4. **[DONE]** Add collaboration avatar rendering and role‑based UI restrictions.
-5. **[PARTIAL]** Complete input‑to‑semantic mapping for XR controllers and voice.
+5. **[DONE]** Complete input‑to‑semantic mapping for XR controllers and voice.
 6. **[PARTIAL]** Finish marketplace discovery, GPG/minisign verification, and auto‑install.
 7. **[PARTIAL]** Deploy sandbox creation and enforcement for modules.
 8. **[PARTIAL]** Integrate platform‑specific accessibility APIs.

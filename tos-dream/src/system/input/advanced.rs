@@ -346,6 +346,31 @@ pub enum SemanticAction {
     TextAccept,
 }
 
+impl SemanticAction {
+    /// Convert semantic action to system-wide semantic event
+    pub fn to_semantic_event(&self) -> Option<crate::system::input::SemanticEvent> {
+        use crate::system::input::SemanticEvent;
+        match self {
+            Self::ZoomIn => Some(SemanticEvent::ZoomIn),
+            Self::ZoomOut => Some(SemanticEvent::ZoomOut),
+            Self::NextElement => Some(SemanticEvent::NextElement),
+            Self::PreviousElement => Some(SemanticEvent::PrevElement),
+            Self::Select => Some(SemanticEvent::Select),
+            Self::SecondarySelect => Some(SemanticEvent::SecondarySelect),
+            Self::MultiSelectToggle => Some(SemanticEvent::MultiSelectToggle),
+            Self::ToggleBezel => Some(SemanticEvent::ToggleBezel),
+            Self::GoBack => Some(SemanticEvent::ZoomOut),
+            Self::TacticalReset => Some(SemanticEvent::TacticalReset),
+            Self::CycleMode => Some(SemanticEvent::CycleMode),
+            Self::SetModeCommand => Some(SemanticEvent::ModeCommand),
+            Self::SetModeDirectory => Some(SemanticEvent::ModeDirectory),
+            Self::SetModeActivity => Some(SemanticEvent::ModeActivity),
+            Self::TextAccept => Some(SemanticEvent::SubmitPrompt),
+            _ => None,
+        }
+    }
+}
+
 /// Input mapping configuration for a device type
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct InputMapping {
@@ -565,7 +590,10 @@ impl AdvancedInputManager {
                 (HandGesture::Pinch, SemanticAction::Select),
                 (HandGesture::Grab, SemanticAction::Grab),
                 (HandGesture::OpenPalm, SemanticAction::Release),
-                (HandGesture::Point, SemanticAction::CursorMove),
+                (HandGesture::Point, SemanticAction::NextElement), // Changed from CursorMove to NextElement
+                (HandGesture::TwoHandSpread, SemanticAction::ZoomIn),
+                (HandGesture::PeaceSign, SemanticAction::CycleMode),
+                (HandGesture::ThumbsUp, SemanticAction::GoBack),
             ].into_iter().collect(),
             dwell_select_ms: 0,
             dwell_enabled: false,
@@ -837,13 +865,18 @@ impl AdvancedInputManager {
             }
         }
         
-        // Default gesture handling
-        match gesture {
-            HandGesture::Pinch => actions.push(SemanticAction::Select),
-            HandGesture::Grab => actions.push(SemanticAction::Grab),
-            HandGesture::OpenPalm => actions.push(SemanticAction::Release),
-            HandGesture::ThumbsUp => actions.push(SemanticAction::GoBack),
-            _ => {}
+        // Default gesture handling (only if not already mapped)
+        if actions.is_empty() {
+            match gesture {
+                HandGesture::Pinch => actions.push(SemanticAction::Select),
+                HandGesture::Grab => actions.push(SemanticAction::Grab),
+                HandGesture::OpenPalm => actions.push(SemanticAction::Release),
+                HandGesture::ThumbsUp => actions.push(SemanticAction::GoBack),
+                HandGesture::TwoHandSpread => actions.push(SemanticAction::ZoomIn),
+                HandGesture::PeaceSign => actions.push(SemanticAction::CycleMode),
+                HandGesture::Point => actions.push(SemanticAction::NextElement),
+                _ => {}
+            }
         }
         
         actions

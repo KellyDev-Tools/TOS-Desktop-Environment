@@ -722,9 +722,19 @@ impl VoiceCommandProcessor {
         }
 
         // Mini-map
-        if self.matches_any(&text, &words, &["mini-map", "map", "where am i", "location"]) {
-            // This would need a custom event, for now use toggle
-            return (SemanticEvent::ToggleBezel, 0.7);
+        if self.matches_any(&text, &words, &["mini-map", "map", "where am i", "location", "show map"]) {
+            return (SemanticEvent::ToggleMiniMap, 0.9);
+        }
+
+        // AI commands
+        if self.matches_any(&text, &words, &["ask", "submit", "send to ai", "process query"]) {
+            return (SemanticEvent::AiSubmit, 0.9);
+        }
+        if self.matches_any(&text, &words, &["stop", "cancel", "forget", "hush"]) {
+            return (SemanticEvent::AiStop, 0.85);
+        }
+        if self.matches_any(&text, &words, &["ai mode", "assistant mode", "switch to ai"]) {
+            return (SemanticEvent::AiModeToggle, 0.9);
         }
 
         // Unknown command

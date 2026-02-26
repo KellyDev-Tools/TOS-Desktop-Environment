@@ -1330,6 +1330,16 @@ impl TosState {
         self.collaboration_manager.add_participant(participant, None);
     }
 
+    /// Process advanced input from XR/Game controllers
+    pub fn handle_advanced_input(&mut self, event: system::input::advanced::AdvancedInputEvent) {
+        let actions = self.advanced_input.process_event(event);
+        for action in actions {
+            if let Some(semantic_event) = action.to_semantic_event() {
+                self.handle_semantic_event(semantic_event);
+            }
+        }
+    }
+
     pub fn update_performance_metrics(&mut self, current_fps: f32) {
         self.fps = current_fps;
         // Trigger alert if FPS is sustained below 30

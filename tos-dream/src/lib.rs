@@ -1632,6 +1632,13 @@ impl TosState {
         // Tactical Mini-Map (§6)
         html.push_str(&self.minimap.render(self));
 
+        // Security Confirmation Modal (Phase 1)
+        if let Some(session_id) = self.security.active_sessions.keys().next() {
+            if let Some(session) = self.security.active_sessions.get(session_id) {
+                 html.push_str(&ui::render::confirmation::render_confirmation_modal(session, self.security.config.confirmation_timeout_secs));
+            }
+        }
+
         html
     }
 

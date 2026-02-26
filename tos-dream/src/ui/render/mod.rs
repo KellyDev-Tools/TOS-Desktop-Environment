@@ -6,6 +6,7 @@ pub mod app;
 pub mod bezel;
 pub mod inspector;
 pub mod remote;
+pub mod confirmation;
 pub mod svg_engine;
 
 pub trait ViewRenderer {

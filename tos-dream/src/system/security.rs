@@ -298,6 +298,50 @@ impl SecurityConfig {
                 allow_override: false,
             },
             DangerousPattern {
+                name: "eval_obfuscation".to_string(),
+                pattern: r"eval\s+.*\$\(.*\).*".to_string(),
+                risk_level: RiskLevel::High,
+                message: "Dynamic command evaluation (eval) detected. Potential obfuscation.".to_string(),
+                required_confirmation: TactileMethod::Slider {
+                    distance_percent: 0.8,
+                    direction: SlideDirection::Right,
+                },
+                allow_override: true,
+            },
+            DangerousPattern {
+                name: "system_reset_commands".to_string(),
+                pattern: r"^(reboot|shutdown|halt|poweroff|init\s+[06])".to_string(),
+                risk_level: RiskLevel::High,
+                message: "System shutdown/restart requested.".to_string(),
+                required_confirmation: TactileMethod::Slider {
+                    distance_percent: 0.9,
+                    direction: SlideDirection::Right,
+                },
+                allow_override: true,
+            },
+            DangerousPattern {
+                name: "rm_rf_wildcard".to_string(),
+                pattern: r"rm\s+(-[a-zA-Z]*rf[a-zA-Z]*|-[a-zA-Z]*fr[a-zA-Z]*)\s+\*".to_string(),
+                risk_level: RiskLevel::High,
+                message: "This will recursively delete ALL files in the current directory!".to_string(),
+                required_confirmation: TactileMethod::Slider {
+                    distance_percent: 0.7,
+                    direction: SlideDirection::Right,
+                },
+                allow_override: true,
+            },
+            DangerousPattern {
+                name: "obfuscated_shell".to_string(),
+                pattern: r"base64\s+-d\s*\|\s*(ba)?sh".to_string(),
+                risk_level: RiskLevel::Critical,
+                message: "Potential obfuscated command execution detected via base64 pipe.".to_string(),
+                required_confirmation: TactileMethod::MultiButton {
+                    button_count: 2,
+                    buttons: vec!["ctrl".to_string(), "x".to_string()],
+                },
+                allow_override: false,
+            },
+            DangerousPattern {
                 name: "wget_pipe_sh".to_string(),
                 pattern: r"wget\s+.*\s*\|\s*(ba)?sh".to_string(),
                 risk_level: RiskLevel::Medium,

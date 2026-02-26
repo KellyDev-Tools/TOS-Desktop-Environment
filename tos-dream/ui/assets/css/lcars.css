@@ -23,5 +23,6 @@
 /* 7. System Fallbacks: Remote Desktop (HTTP) */
 @import "modules/remote.css";
 @import "modules/minimap.css";
+@import "modules/confirmation.css";
 @import "modules/ecosystem.css";
 @import "modules/custom_modules.css";

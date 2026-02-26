@@ -50,28 +50,7 @@ impl ViewRenderer for HubRenderer {
                    _ => {}
                }
 
-           html.push_str(r#"<div class="hub-content">"#);
-        if let Some(dangerous_cmd) = &hub.confirmation_required {
-            html.push_str(&format!(
-                r#"<div class="dangerous-overlay">
-                    <div class="alert-header">TACTICAL ALERT // DANGEROUS COMMAND DETECTED</div>
-                    <div class="alert-subline">EXECUTION BLOCKED PENDING TACTILE CONFIRMATION</div>
-                    <div class="dangerous-command">SPEC: {cmd}</div>
-                    <div class="confirmation-zone">
-                        <div class="slider-track">
-                            <input type="range" class="confirm-slider" min="0" max="100" value="0" 
-                                oninput="if(this.value == 100) {{ window.ipc.postMessage('prompt_submit:{cmd}'); }}"
-                                onchange="if(this.value < 100) {{ this.value = 0; }}">
-                            <div class="slider-label">SLIDE TO CONFIRM EXECUTION</div>
-                        </div>
-                    </div>
-                    <div class="bezel-btn danger" onclick="window.ipc.postMessage('stage_command:')">ABORT ACTION</div>
-                </div>"#,
-                cmd = dangerous_cmd
-            ));
-        }
-        // 2. Main Content Area (§2.3)
-        // (Removed redundant hub-content push as it's already pushed at line 81)
+        html.push_str(r#"<div class="hub-content">"#);
         
         // Terminal Output Background (§2.4)
         let mut output_html = String::new();

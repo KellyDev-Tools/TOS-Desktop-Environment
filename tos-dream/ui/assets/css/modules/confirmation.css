@@ -1,0 +1,365 @@
+/* 
+  TOS // CONFIRMATION MODULE
+  --------------------------
+  Scope: Tactile Confirmation System Modals
+  Responsibility: Rendering high-fidelity security prompts for dangerous commands.
+*/
+
+.confirmation-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background: rgba(0, 0, 0, 0.4);
+    backdrop-filter: blur(12px) saturate(180%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 10000;
+    animation: fade-in 0.3s ease-out;
+}
+
+.confirmation-modal {
+    background: linear-gradient(135deg, rgba(20, 20, 30, 0.85), rgba(40, 40, 60, 0.85));
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    border-radius: 24px;
+    padding: 2.5rem;
+    width: 650px;
+    box-shadow:
+        0 25px 50px -12px rgba(0, 0, 0, 0.5),
+        0 0 40px rgba(204, 102, 102, 0.1);
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+    position: relative;
+    overflow: hidden;
+    animation: modal-entrance 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes modal-entrance {
+    from {
+        transform: scale(0.9) translateY(20px);
+        opacity: 0;
+    }
+
+    to {
+        transform: scale(1) translateY(0);
+        opacity: 1;
+    }
+}
+
+@keyframes fade-in {
+    from {
+        opacity: 0;
+    }
+
+    to {
+        opacity: 1;
+    }
+}
+
+/* LCARS Corner Accents */
+.confirmation-modal::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 40px;
+    height: 40px;
+    border-top: 6px solid var(--lcars-orange);
+    border-left: 6px solid var(--lcars-orange);
+    border-top-left-radius: 20px;
+}
+
+.confirmation-modal::after {
+    content: "";
+    position: absolute;
+    bottom: 0;
+    right: 0;
+    width: 40px;
+    height: 40px;
+    border-bottom: 6px solid var(--lcars-red);
+    border-right: 6px solid var(--lcars-red);
+    border-bottom-right-radius: 20px;
+}
+
+.confirmation-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    padding-bottom: 1rem;
+}
+
+.header-left {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
+
+.risk-indicator {
+    padding: 4px 12px;
+    border-radius: 4px;
+    font-size: 0.7rem;
+    font-weight: 800;
+    letter-spacing: 0.1rem;
+    text-transform: uppercase;
+    color: #000;
+}
+
+.risk-low {
+    background-color: var(--lcars-orange);
+}
+
+.risk-medium {
+    background-color: var(--lcars-gold);
+}
+
+.risk-high {
+    background-color: var(--lcars-red);
+    color: white;
+}
+
+.risk-critical {
+    background-color: #ff0000;
+    color: white;
+    animation: pulse-red 1s infinite alternate;
+}
+
+@keyframes pulse-red {
+    from {
+        box-shadow: 0 0 5px #ff0000;
+    }
+
+    to {
+        box-shadow: 0 0 20px #ff0000;
+    }
+}
+
+.confirmation-title {
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: var(--lcars-gold);
+}
+
+.timer-display {
+    font-family: var(--font-mono);
+    font-size: 1.5rem;
+    color: var(--lcars-red);
+    font-weight: 700;
+}
+
+.command-container {
+    background: rgba(0, 0, 0, 0.4);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    border-radius: 12px;
+    padding: 1.5rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+.command-label {
+    font-size: 0.65rem;
+    color: rgba(255, 255, 255, 0.5);
+    letter-spacing: 0.05rem;
+}
+
+.command-text {
+    font-family: var(--font-mono);
+    font-size: 1rem;
+    color: #fff;
+    word-break: break-all;
+    line-height: 1.4;
+}
+
+.warning-box {
+    color: var(--lcars-red);
+    font-size: 0.85rem;
+    line-height: 1.5;
+    padding-left: 1rem;
+    border-left: 2px solid var(--lcars-red);
+}
+
+/* Tactile Slider Component */
+.tactile-interaction-area {
+    margin-top: 1rem;
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+}
+
+.slider-container {
+    position: relative;
+    padding: 20px 0;
+}
+
+.slider-track {
+    height: 60px;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 30px;
+    position: relative;
+    overflow: hidden;
+    cursor: pointer;
+}
+
+.slider-progress {
+    position: absolute;
+    top: 0;
+    left: 0;
+    height: 100%;
+    background: linear-gradient(90deg,
+            rgba(255, 153, 0, 0.2) 0%,
+            rgba(204, 102, 102, 0.4) 100%);
+    width: 0%;
+    transition: width 0.1s linear;
+}
+
+.slider-thumb {
+    position: absolute;
+    top: 5px;
+    left: 5px;
+    height: 50px;
+    width: 100px;
+    background: var(--lcars-orange);
+    border-radius: 25px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #000;
+    font-weight: 800;
+    font-size: 0.8rem;
+    cursor: grab;
+    transition: left 0.1s linear, background 0.3s ease;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
+    user-select: none;
+}
+
+.slider-thumb:active {
+    cursor: grabbing;
+    background: var(--lcars-red);
+}
+
+.slider-label {
+    position: absolute;
+    width: 100%;
+    text-align: center;
+    top: 50%;
+    transform: translateY(-50%);
+    pointer-events: none;
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: rgba(255, 255, 255, 0.3);
+    letter-spacing: 0.2rem;
+}
+
+/* Multi-Button Grid (Accessibility) */
+.multibutton-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1rem;
+}
+
+.confirm-btn {
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 12px;
+    padding: 1.2rem;
+    color: #fff;
+    font-weight: 700;
+    font-size: 0.85rem;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.confirm-btn .btn-key {
+    font-family: var(--font-mono);
+    font-size: 0.7rem;
+    color: rgba(255, 255, 255, 0.4);
+}
+
+.confirm-btn:hover {
+    background: rgba(255, 255, 255, 0.1);
+    transform: translateY(-2px);
+}
+
+.confirm-btn.active {
+    background: var(--lcars-orange);
+    color: #000;
+    border-color: var(--lcars-orange);
+}
+
+.confirm-btn.danger.active {
+    background: var(--lcars-red);
+    color: #fff;
+    box-shadow: 0 0 15px var(--lcars-red);
+}
+
+.modal-actions {
+    display: flex;
+    justify-content: flex-end;
+    margin-top: 1rem;
+}
+
+.abort-btn {
+    background: transparent;
+    border: 1px solid var(--lcars-red);
+    color: var(--lcars-red);
+    padding: 0.75rem 2rem;
+    border-radius: 8px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.abort-btn:hover {
+    background: var(--lcars-red);
+    color: #fff;
+}
+
+.abort-btn:active {
+    background: var(--lcars-red);
+    color: white;
+}
+
+/* Tactile Feedback Effects */
+.hold-track.charging-glow {
+    box-shadow: 0 0 20px var(--lcars-orange);
+    border-color: var(--lcars-red);
+}
+
+.charging-bar {
+    background: linear-gradient(90deg, var(--lcars-yellow), var(--lcars-orange), var(--lcars-red));
+    background-size: 200% 100%;
+    animation: charging-pulse 1.5s linear infinite;
+}
+
+@keyframes charging-pulse {
+    0% {
+        background-position: 200% 0;
+    }
+
+    100% {
+        background-position: 0% 0;
+    }
+}
+
+.submit-glow {
+    animation: success-flash 0.5s ease-out;
+}
+
+@keyframes success-flash {
+    0% {
+        background: white;
+    }
+
+    100% {
+        background: transparent;
+    }
+}

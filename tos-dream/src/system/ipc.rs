@@ -459,10 +459,46 @@ impl IpcDispatcher {
                 let files: Vec<String> = hub.selected_files.iter().cloned().collect();
                 hub.prompt = format!("rm {} ", files.join(" "));
             }
-        } else if request == "security:disable_deep_inspection" {
-            state.security.disable_deep_inspection("USER");
-        } else if request == "security:enable_deep_inspection" {
-            state.security.enable_deep_inspection("USER");
+        } else if request.starts_with("update_confirmation_progress:") {
+            let parts: Vec<&str> = request[29..].split(':').collect();
+            if parts.len() == 2 {
+                if let (Ok(id), Ok(progress)) = (Uuid::parse_str(parts[0]), parts[1].parse::<f32>()) {
+                    if let Some(complete) = state.security.update_progress(id, progress) {
+                        if complete {
+                            self.execute_confirmed_command(&mut state, id);
+                        }
+                    }
+                }
+            }
+            return;
+        } else if request.starts_with("confirm_command:") {
+            if let Ok(id) = Uuid::parse_str(&request[16..]) {
+                self.execute_confirmed_command(&mut state, id);
+            }
+            return;
+        } else if request.starts_with("cancel_confirmation:") {
+            if let Ok(id) = Uuid::parse_str(&request[20..]) {
+                state.security.active_sessions.remove(&id);
+            }
+        } else if request.starts_with("increment_hold:") {
+            if let Ok(id) = Uuid::parse_str(&request[15..]) {
+                if let Some(session) = state.security.active_sessions.get_mut(&id) {
+                    session.progress += 0.05; // 5% per 100ms
+                }
+                if let Some(session) = state.security.active_sessions.get(&id) {
+                    if session.progress >= 1.0 {
+                        self.execute_confirmed_command(&mut state, id);
+                    }
+                }
+            }
+            return;
+        } else if request.starts_with("reset_hold:") {
+            if let Ok(id) = Uuid::parse_str(&request[11..]) {
+                if let Some(session) = state.security.active_sessions.get_mut(&id) {
+                    session.progress = 0.0;
+                }
+            }
+            return;
         } else if request.starts_with("update_setting:") {
             let parts: Vec<&str> = request[15..].split(':').collect();
             if parts.len() >= 2 {
@@ -749,6 +785,25 @@ impl IpcDispatcher {
         println!("TOS // LOADING TEMPLATE: {}", name);
         // Mocking the load result
         state.sectors[state.viewports[state.active_viewport_index].sector_index].name = format!("TEMPLATE: {}", name);
+    }
+
+    fn execute_confirmed_command(&self, state: &mut TosState, session_id: Uuid) {
+        if let Some(session) = state.security.active_sessions.remove(&session_id) {
+            let cmd = session.command;
+            let hub_id = {
+                let viewport = &state.viewports[state.active_viewport_index];
+                state.sectors[viewport.sector_index].hubs[viewport.hub_index].id
+            };
+            
+            println!("TOS // COMMAND CONFIRMED: {}", cmd);
+            state.earcon_player.play(crate::system::audio::earcons::EarconEvent::CommandAccepted);
+            
+            if let Ok(ptys) = self.ptys.lock() {
+                if let Some(pty) = ptys.get(&hub_id) {
+                    pty.write(&format!("{}\n", cmd));
+                }
+            }
+        }
     }
 
     fn handle_kill_app(&self, state: &mut TosState, id_str: &str) {

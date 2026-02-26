@@ -665,3 +665,72 @@
     margin-left: 10px;
     font-size: 0.75rem;
 }
+
+/* ── Command Staging / Pick Mode ─────────────────────────────────────────── */
+
+/* Banner shown above the file grid when a command is staged */
+.staging-banner {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    background: linear-gradient(90deg, rgba(255, 153, 0, 0.15), rgba(255, 153, 0, 0.05));
+    border-left: 4px solid var(--lcars-orange);
+    border-radius: 0 8px 8px 0;
+    padding: 10px 16px;
+    margin-bottom: 12px;
+    font-family: var(--font-mono);
+    font-size: 0.85rem;
+    color: var(--lcars-orange);
+    animation: staging-pulse 2.5s ease-in-out infinite;
+}
+
+@keyframes staging-pulse {
+
+    0%,
+    100% {
+        border-left-color: var(--lcars-orange);
+        box-shadow: none;
+    }
+
+    50% {
+        border-left-color: #ffcc44;
+        box-shadow: 0 0 12px rgba(255, 153, 0, 0.3);
+    }
+}
+
+.staging-icon {
+    font-size: 1.1rem;
+    flex-shrink: 0;
+}
+
+.staging-cmd {
+    background: rgba(0, 0, 0, 0.4);
+    color: #ffdd88;
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-size: 0.9rem;
+    max-width: 300px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.staging-hint {
+    color: rgba(255, 255, 255, 0.55);
+    font-size: 0.78rem;
+    flex: 1;
+}
+
+/* Highlight on file/dir items when pick-mode is active */
+.file-item.pick-mode {
+    border-left-color: var(--lcars-orange);
+    background: rgba(255, 153, 0, 0.06);
+    transition: background 0.15s, transform 0.15s, box-shadow 0.15s;
+}
+
+.file-item.pick-mode:hover {
+    background: rgba(255, 153, 0, 0.18);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 16px rgba(255, 153, 0, 0.25);
+    cursor: crosshair;
+}

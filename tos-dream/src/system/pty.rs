@@ -6,6 +6,46 @@ use std::sync::{Arc, Mutex};
 use std::collections::HashMap;
 use serde::{Deserialize, Serialize};
 
+/// Strip ANSI/VT100 escape sequences from a string so it renders cleanly in the UI.
+pub fn strip_ansi(s: &str) -> String {
+    let mut out = String::with_capacity(s.len());
+    let mut chars = s.chars().peekable();
+    while let Some(c) = chars.next() {
+        if c == '\x1b' {
+            match chars.peek() {
+                Some('[') => {
+                    chars.next(); // consume '['
+                    // Consume until a letter (the final byte of a CSI sequence)
+                    while let Some(&ch) = chars.peek() {
+                        chars.next();
+                        if ch.is_ascii_alphabetic() { break; }
+                    }
+                }
+                Some(']') => {
+                    chars.next(); // consume ']'
+                    // Consume until BEL or ST
+                    while let Some(&ch) = chars.peek() {
+                        chars.next();
+                        if ch == '\x07' { break; }
+                        if ch == '\x1b' {
+                            if chars.peek() == Some(&'\\') { chars.next(); }
+                            break;
+                        }
+                    }
+                }
+                // Other ESC sequences: consume one more char
+                Some(_) => { chars.next(); }
+                None => {}
+            }
+        } else if matches!(c, '\x00'..='\x08' | '\x0b'..='\x0c' | '\x0e'..='\x1f') {
+            // Drop other non-printable control chars (keep \t, \n, \r)
+        } else {
+            out.push(c);
+        }
+    }
+    out
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub enum PtyEvent {
     Output(String),
@@ -248,10 +288,12 @@ impl PtyHandle {
 
                                             if let Some((sector_idx, hub_idx)) = indices {
                                                 let hub = &mut state_lock.sectors[sector_idx].hubs[hub_idx];
-                                                // Split output into lines for cleaner rendering and log management
                                                 for line in clean_output.lines() {
-                                                    hub.terminal_output.push(line.to_string());
-                                                    if hub.terminal_output.len() > 100 {
+                                                    // Strip ANSI escape sequences before storing
+                                                    let stripped = strip_ansi(line);
+                                                    if stripped.trim().is_empty() { continue; }
+                                                    hub.terminal_output.push(stripped);
+                                                    if hub.terminal_output.len() > 500 {
                                                         hub.terminal_output.remove(0);
                                                     }
                                                 }
@@ -260,7 +302,13 @@ impl PtyHandle {
                                     }
                                     PtyEvent::DirectoryChanged(path) => {
                                         let hub = &mut state_lock.sectors[sector_idx].hubs[hub_idx];
-                                        tracing::debug!("Hub {} directory changed to: {}", hub.id, path);
+                                        let new_path = std::path::PathBuf::from(&path);
+                                        if new_path.is_dir() {
+                                            hub.current_directory = new_path;
+                                            hub.selected_files.clear();
+                                            hub.shell_listing = None;
+                                            tracing::debug!("Hub {} directory changed to: {}", hub.id, path);
+                                        }
                                     }
                                     PtyEvent::ProcessExited(code) => {
                                         let hub = &mut state_lock.sectors[sector_idx].hubs[hub_idx];

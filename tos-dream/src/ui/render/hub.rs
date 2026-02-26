@@ -129,15 +129,32 @@ impl ViewRenderer for HubRenderer {
                 let cwd = &hub.current_directory;
                 let _cwd_display = cwd.display().to_string().to_uppercase();
 
-                html.push_str(r#"<div class="directory-view foreground-layer">
-                    <div class="path-bar breadcrumbs">"#);
-                
+                // Determine if a command is staged — affects click behaviour
+                let staging_command = hub.prompt.trim().to_string();
+                let is_staging = !staging_command.is_empty();
+
+                html.push_str(r#"<div class="directory-view foreground-layer">"#);
+
+                // Pick-mode banner shown when a command is waiting for file args
+                if is_staging {
+                    html.push_str(&format!(
+                        r#"<div class="staging-banner">
+                            <span class="staging-icon">&#x2328;</span>
+                            <code class="staging-cmd">{}</code>
+                            <span class="staging-hint">Click files/folders to append &mdash; press Enter to run</span>
+                        </div>"#,
+                        super::escape_html(&staging_command)
+                    ));
+                }
+
+                html.push_str(r#"<div class="path-bar breadcrumbs">"#);
+
                 let _path_str = hub.current_directory.to_string_lossy();
                 let mut current_path = std::path::PathBuf::new();
-                
+
                 // Add Root /
                 html.push_str(r#"<span class="breadcrumb" onclick="window.ipc.postMessage('dir_navigate:/')">ROOT</span>"#);
-                
+
                 for component in hub.current_directory.components() {
                     if let std::path::Component::Normal(name) = component {
                         let name_str = name.to_string_lossy();
@@ -151,7 +168,7 @@ impl ViewRenderer for HubRenderer {
                 }
                 html.push_str("</div>");
 
-                // Action Bar (§3.2 Action toolbar)
+                // Action Bar
                 html.push_str(r#"<div class="directory-actions">
                     <button class="bezel-btn" onclick="window.ipc.postMessage('stage_command:mkdir ')">NEW FOLDER</button>
                     <button class="bezel-btn" onclick="window.ipc.postMessage('dir_action_copy')">COPY</button>
@@ -164,10 +181,11 @@ impl ViewRenderer for HubRenderer {
 
                 html.push_str(r#"<div class="file-grid">"#);
 
-                // Always show parent directory entry
+                // Parent directory entry always navigates
                 html.push_str(r#"<div class="file-item staging-item" onclick="window.ipc.postMessage('dir_navigate:..')">
                     <span class="file-icon folder"></span> ..
                 </div>"#);
+
 
                 // Check if we have a shell-provided listing for this directory
                 let use_shell = sector.connection_type != crate::ConnectionType::Local || hub.shell_listing.is_some();
@@ -186,9 +204,16 @@ impl ViewRenderer for HubRenderer {
                             let display_name = entry.name.to_uppercase();
                             
                             if is_dir {
+                                // When staging a command, append path; otherwise navigate into dir
+                                let dir_onclick = if is_staging {
+                                    format!("window.ipc.postMessage('dir_pick_dir:{}')", escaped_name)
+                                } else {
+                                    format!("window.ipc.postMessage('dir_navigate:{}')", escaped_name)
+                                };
+                                let extra_class = if is_staging { " pick-mode" } else { "" };
                                 html.push_str(&format!(
-                                    r#"<div class="file-item staging-item {selected_class}" 
-                                        onclick="window.ipc.postMessage('dir_navigate:{escaped}')"
+                                    r#"<div class="file-item staging-item {selected_class}{extra_class}"
+                                        onclick="{dir_onclick}"
                                         oncontextmenu="event.preventDefault(); window.ipc.postMessage('dir_context:{escaped};' + event.clientX + ';' + event.clientY)">
                                         <div class="file-selector" onclick="event.stopPropagation(); window.ipc.postMessage('dir_toggle_select:{escaped}')"></div>
                                         <span class="file-icon folder"></span> {display}/
@@ -196,6 +221,8 @@ impl ViewRenderer for HubRenderer {
                                     escaped = escaped_name,
                                     display = display_name,
                                     selected_class = selected_class,
+                                    extra_class = extra_class,
+                                    dir_onclick = dir_onclick,
                                 ));
                             } else {
                                 let size_str = if entry.size > 1024 * 1024 {
@@ -203,9 +230,9 @@ impl ViewRenderer for HubRenderer {
                                 } else {
                                     format!("{}KB", entry.size / 1024)
                                 };
-                                
+                                let extra_class = if is_staging { " pick-mode" } else { "" };
                                 html.push_str(&format!(
-                                    r#"<div class="file-item staging-item {selected_class}" 
+                                    r#"<div class="file-item staging-item {selected_class}{extra_class}"
                                         onclick="window.ipc.postMessage('dir_pick_file:{escaped}')"
                                         oncontextmenu="event.preventDefault(); window.ipc.postMessage('dir_context:{escaped};' + event.clientX + ';' + event.clientY)">
                                         <div class="file-selector" onclick="event.stopPropagation(); window.ipc.postMessage('dir_toggle_select:{escaped}')"></div>
@@ -219,6 +246,7 @@ impl ViewRenderer for HubRenderer {
                                     display = display_name,
                                     size = size_str,
                                     selected_class = selected_class,
+                                    extra_class = extra_class,
                                 ));
                             }
                         }

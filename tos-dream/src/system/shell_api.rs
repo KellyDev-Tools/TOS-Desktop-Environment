@@ -701,12 +701,16 @@ impl ShellApi {
                 let viewport = &state.viewports[state.active_viewport_index];
                 let sector = &mut state.sectors[viewport.sector_index];
                 let hub = &mut sector.hubs[viewport.hub_index];
-                
+
                 // Store listing in hub for UI to pick up
                 hub.shell_listing = Some(listing.clone());
-                
-                // Log it
-                tracing::info!("Received directory listing: {} entries", listing.entries.len());
+                // Keep current_directory in sync with the listed path
+                hub.current_directory = std::path::PathBuf::from(&listing.path);
+                // Auto-switch to Directory mode so files are visible
+                hub.mode = crate::CommandHubMode::Directory;
+                hub.selected_files.clear();
+
+                tracing::info!("Received directory listing: {} entries, switched to Directory mode", listing.entries.len());
             }
             OscSequence::CommandResult { command, exit_status, output_preview } => {
                 // Update terminal output

@@ -64,20 +64,67 @@ impl IpcDispatcher {
                 hub.prompt.clear(); // Section 13.2: Clear prompt on submission
                 hub.confirmation_required = None;
                 hub.terminal_output.push(format!("> {}", cmd)); // Immediate local echo
-                if hub.terminal_output.len() > 100 { hub.terminal_output.remove(0); }
+                if hub.terminal_output.len() > 500 { hub.terminal_output.remove(0); }
                 hub.id
             };
+
+            // ─── Smart command detection: ls / cd ─────────────────────────────────
+            let cmd_trimmed = cmd.trim();
+            let cmd_lower = cmd_trimmed.to_lowercase();
+
+            // `ls` or `ls <path>` → switch to Directory mode, resolve target path
+            if cmd_lower == "ls" || cmd_lower.starts_with("ls ") {
+                let raw_path = if cmd_lower == "ls" {
+                    // No argument → list current directory
+                    None
+                } else {
+                    Some(cmd_trimmed[3..].trim().to_string())
+                };
+
+                let cwd = state.sectors[sector_idx].hubs[hub_idx].current_directory.clone();
+                let target_path = if let Some(ref p) = raw_path {
+                    let candidate = std::path::PathBuf::from(p);
+                    if candidate.is_absolute() { candidate } else { cwd.join(candidate) }
+                } else {
+                    cwd.clone()
+                };
+
+                let hub = &mut state.sectors[sector_idx].hubs[hub_idx];
+                // Switch to Directory mode and update the directory
+                hub.mode = crate::CommandHubMode::Directory;
+                hub.current_directory = target_path;
+                hub.shell_listing = None; // clear stale listing; will re-read from filesystem
+                hub.selected_files.clear();
+            }
+
+            // `cd <path>` → update current_directory and shell
+            if cmd_lower.starts_with("cd ") || cmd_lower == "cd" {
+                let raw_path = if cmd_lower == "cd" {
+                    dirs::home_dir().unwrap_or_default().to_string_lossy().to_string()
+                } else {
+                    cmd_trimmed[3..].trim().to_string()
+                };
+                let cwd = state.sectors[sector_idx].hubs[hub_idx].current_directory.clone();
+                let candidate = std::path::PathBuf::from(&raw_path);
+                let new_dir = if candidate.is_absolute() { candidate } else { cwd.join(candidate) };
+                if new_dir.is_dir() {
+                    let hub = &mut state.sectors[sector_idx].hubs[hub_idx];
+                    hub.current_directory = new_dir;
+                    hub.selected_files.clear();
+                    // If already in directory mode keep it; otherwise stay in current mode
+                }
+            }
+            // ─────────────────────────────────────────────────────────────────────
+
             self.handle_prompt_submit(&mut state, &cmd);
-            
-            // §13.2: If handle_prompt_submit didn't intercept (zoom/mode), write to PTY.
-            // But we must do it outside the state lock to avoid deadlocks with PtyHandle::poll_all
+
+            // §13.2: Write to PTY outside the state lock to avoid deadlocks.
             drop(state);
             if let Ok(ptys) = self.ptys.lock() {
                 if let Some(pty) = ptys.get(&hub_id) {
-                    // Check if it was a system command already handled
-                    let handled_system = ["zoom", "mode", "focus", "in", "out"].iter().any(|&s| cmd.starts_with(s));
+                    let handled_system = ["zoom", "mode", "focus"].iter().any(|&s| cmd_trimmed.starts_with(s));
                     if !handled_system {
-                         pty.write(&format!("{}\n", cmd));
+                        pty.write(&format!("{}\n", cmd_trimmed));
                     }
                 }
             }
@@ -336,16 +383,36 @@ impl IpcDispatcher {
             let sector_idx = state.viewports[state.active_viewport_index].sector_index;
             let hub_idx = state.viewports[state.active_viewport_index].hub_index;
             let hub = &mut state.sectors[sector_idx].hubs[hub_idx];
-            
+
             let full_path = hub.current_directory.join(name).to_string_lossy().to_string();
-            if hub.prompt.is_empty() {
-                hub.prompt = format!("view {} ", full_path);
+
+            if hub.prompt.trim().is_empty() {
+                // No command staged yet — just insert the path so user can prepend a command
+                hub.prompt = full_path;
+            } else {
+                // A command is already staged — append the path as an argument
+                if !hub.prompt.ends_with(' ') {
+                    hub.prompt.push(' ');
+                }
+                hub.prompt.push_str(&full_path);
+            }
+        } else if request.starts_with("dir_pick_dir:") {
+            // Append a directory path to the current prompt (used when a command is staged)
+            let name = &request[13..].replace("\\'", "'");
+            let sector_idx = state.viewports[state.active_viewport_index].sector_index;
+            let hub_idx = state.viewports[state.active_viewport_index].hub_index;
+            let hub = &mut state.sectors[sector_idx].hubs[hub_idx];
+
+            let full_path = hub.current_directory.join(name).to_string_lossy().to_string();
+            if hub.prompt.trim().is_empty() {
+                hub.prompt = full_path;
             } else {
                 if !hub.prompt.ends_with(' ') {
                     hub.prompt.push(' ');
                 }
                 hub.prompt.push_str(&full_path);
             }
+
         } else if request.starts_with("dir_toggle_select:") {
             let name = &request[18..].replace("\\'", "'");
             let sector_idx = state.viewports[state.active_viewport_index].sector_index;

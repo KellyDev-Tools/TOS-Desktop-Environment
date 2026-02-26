@@ -76,6 +76,8 @@ pub fn render_bezel(state: &TosState, viewport: &Viewport, level: HierarchyLevel
                                     <span class="bezel-title">{title}</span>
                                 </div>
                                 <div class="bezel-right">
+                                    <button class="bezel-btn mini settings-gear" onclick="window.ipc.postMessage('open_settings')" title="Settings">⚙</button>
+                                    <button class="bezel-btn mini logout" onclick="window.ipc.postMessage('logout')" title="Exit Session">⏻</button>
                                     <button class="bezel-btn mini zoom-out" onclick="window.ipc.postMessage('zoom_out')" title="Zoom Out (ESC)">▲</button>
                                     <div class="bezel-handle" onclick="window.ipc.postMessage('toggle_bezel')">
                                         <div class="chevron"></div>
@@ -136,6 +138,9 @@ pub fn render_bezel(state: &TosState, viewport: &Viewport, level: HierarchyLevel
                                         {avatars}
                                     </div>
                                     <button class="bezel-btn mini toggle-output-mode" onclick="window.ipc.postMessage('toggle_output_mode')" title="Perspective Mode">⬚</button>
+                                    <button class="bezel-btn mini settings-gear" onclick="window.ipc.postMessage('open_settings')" title="Settings">⚙</button>
+                                    <button class="bezel-btn mini logout" onclick="window.ipc.postMessage('logout')" title="Exit Session">⏻</button>
+                                    <button class="bezel-btn mini zoom-out" onclick="window.ipc.postMessage('zoom_out')" title="Zoom Out (ESC)">▲</button>
                                     <div class="bezel-handle" onclick="window.ipc.postMessage('toggle_bezel')">
                                         <div class="chevron"></div>
                                     </div>
@@ -179,6 +184,7 @@ pub fn render_bezel(state: &TosState, viewport: &Viewport, level: HierarchyLevel
                                         {avatars}
                                     </div>
                                     <button class="bezel-btn mini add-sector" onclick="window.ipc.postMessage('add_sector')" title="Add Sector" {disabled_manage}>+</button>
+                                    <button class="bezel-btn mini logout" onclick="window.ipc.postMessage('logout')" title="Exit Session">⏻</button>
                                     <div class="bezel-handle" onclick="window.ipc.postMessage('toggle_bezel')">
                                         <div class="chevron"></div>
                                     </div>
@@ -200,6 +206,9 @@ pub fn render_bezel(state: &TosState, viewport: &Viewport, level: HierarchyLevel
                                     <div class="collaboration-avatars">
                                         {avatars}
                                     </div>
+                                    <button class="bezel-btn mini settings-gear" onclick="window.ipc.postMessage('open_settings')" title="Settings">⚙</button>
+                                    <button class="bezel-btn mini logout" onclick="window.ipc.postMessage('logout')" title="Exit Session">⏻</button>
+                                    <button class="bezel-btn mini zoom-out" onclick="window.ipc.postMessage('zoom_out')" title="Zoom Out (ESC)">▲</button>
                                     <div class="bezel-handle" onclick="window.ipc.postMessage('toggle_bezel')">
                                         <div class="chevron"></div>
                                     </div>
@@ -331,6 +340,8 @@ pub fn render_bezel(state: &TosState, viewport: &Viewport, level: HierarchyLevel
                             <div class="bezel-group">
                                 <button class="bezel-btn mini" onclick="window.ipc.postMessage('semantic_event:ToggleMiniMap')">MINIMAP</button>
                                 <button class="bezel-btn mini" onclick="window.ipc.postMessage('semantic_event:ToggleComms')">COMMS</button>
+                                <button class="bezel-btn mini settings-gear" onclick="window.ipc.postMessage('open_settings')">SETTINGS</button>
+                                <button class="bezel-btn mini logout" onclick="window.ipc.postMessage('logout')">LOGOUT</button>
                                 <button class="bezel-btn mini danger" onclick="window.ipc.postMessage('tactical_reset')" {disabled_manage}>RESET</button>
                             </div>
                         </div>

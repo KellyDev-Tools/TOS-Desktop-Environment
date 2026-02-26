@@ -22,6 +22,9 @@
             </div>
                                     </div>
                                     <button class="bezel-btn mini toggle-output-mode" onclick="window.ipc.postMessage('toggle_output_mode')" title="Perspective Mode">⬚</button>
+                                    <button class="bezel-btn mini settings-gear" onclick="window.ipc.postMessage('open_settings')" title="Settings">⚙</button>
+                                    <button class="bezel-btn mini logout" onclick="window.ipc.postMessage('logout')" title="Exit Session">⏻</button>
+                                    <button class="bezel-btn mini zoom-out" onclick="window.ipc.postMessage('zoom_out')" title="Zoom Out (ESC)">▲</button>
                                     <div class="bezel-handle" onclick="window.ipc.postMessage('toggle_bezel')">
                                         <div class="chevron"></div>
                                     </div>
@@ -35,8 +38,8 @@
                             </div>
                         </div>
                 <div class="viewport-inner" style="flex:1; overflow:hidden; position:relative;">
-                    <div class="command-hub mode-activity   render-Full"><div class="hub-participants"><div class="participant-avatar" style="background-color: #ffcc00" title="Host (Co-Owner)" onclick="window.ipc.postMessage('follow_participant:3de7a22d-4a07-43f9-9a20-07309bbfdc8d')">H</div></div><div class="hub-mode-label" style="font-weight:800; color:var(--lcars-orange);">ACTIVITY</div><div class="hub-content"><div class="terminal-container background-layer">
-                <div class="terminal-output" id="hub-term-b48f46ff-14ae-4d5a-8bc0-cb389756d87c">
+                    <div class="command-hub mode-activity   render-Full"><div class="hub-participants"><div class="participant-avatar" style="background-color: #ffcc00" title="Host (Co-Owner)" onclick="window.ipc.postMessage('follow_participant:0957bfc2-e2d1-49e2-b7ad-f6f77508940e')">H</div></div><div class="hub-mode-label" style="font-weight:800; color:var(--lcars-orange);">ACTIVITY</div><div class="hub-content"><div class="terminal-container background-layer">
+                <div class="terminal-output" id="hub-term-bcb6e46a-64cc-44dc-bbab-6aa5d9881e84">
                     
                 </div>
             </div><div class="activity-view foreground-layer">
@@ -45,7 +48,7 @@
                             
                             <div class="activity-grid">
                                 <div class="app-tile staging-item ">
-                            <div class="file-selector" onclick="event.stopPropagation(); window.ipc.postMessage('app_toggle_select:99489290-038b-4766-9a81-35e4cc96eebb')"></div>
+                            <div class="file-selector" onclick="event.stopPropagation(); window.ipc.postMessage('app_toggle_select:6b22f8fb-2b59-4092-ab91-068d9d8a6b7e')"></div>
                             <div class="app-tile-header" onclick="window.ipc.postMessage('stage_command:focus TERMINAL')">
                                 <div class="app-tile-icon">⌨️</div>
                                 <div class="app-tile-info">
@@ -59,8 +62,8 @@
                                 <div class="stat">MEM: <1MB</div>
                             </div>
                             <div class="app-tile-actions">
-                                <button class="tile-btn" onclick="window.ipc.postMessage('signal_app:99489290-038b-4766-9a81-35e4cc96eebb;INT')">SIGINT</button>
-                                <button class="tile-btn danger" onclick="window.ipc.postMessage('kill_app:99489290-038b-4766-9a81-35e4cc96eebb')">KILL</button>
+                                <button class="tile-btn" onclick="window.ipc.postMessage('signal_app:6b22f8fb-2b59-4092-ab91-068d9d8a6b7e;INT')">SIGINT</button>
+                                <button class="tile-btn danger" onclick="window.ipc.postMessage('kill_app:6b22f8fb-2b59-4092-ab91-068d9d8a6b7e')">KILL</button>
                             </div>
                         </div>
                                 <div class="app-tile add-tile" onclick="window.ipc.postMessage('spawn_app')">

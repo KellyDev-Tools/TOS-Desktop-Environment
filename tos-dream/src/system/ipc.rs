@@ -268,6 +268,9 @@ impl IpcDispatcher {
             if let Some(val) = request.split(':').nth(1).and_then(|v| v.parse::<f32>().ok()) {
                 state.fps = val;
             }
+        } else if request == "logout" {
+            println!("TOS // INITIATING SECURE LOGOUT...");
+            std::process::exit(0);
         } else if request.starts_with("dir_navigate:") {
             let target = &request[13..];
             let sector_idx = state.viewports[state.active_viewport_index].sector_index;

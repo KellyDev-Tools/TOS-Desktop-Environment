@@ -66,6 +66,8 @@
                             <div class="bezel-group">
                                 <button class="bezel-btn mini" onclick="window.ipc.postMessage('semantic_event:ToggleMiniMap')">MINIMAP</button>
                                 <button class="bezel-btn mini" onclick="window.ipc.postMessage('semantic_event:ToggleComms')">COMMS</button>
+                                <button class="bezel-btn mini settings-gear" onclick="window.ipc.postMessage('open_settings')">SETTINGS</button>
+                                <button class="bezel-btn mini logout" onclick="window.ipc.postMessage('logout')">LOGOUT</button>
                                 <button class="bezel-btn mini danger" onclick="window.ipc.postMessage('tactical_reset')" >RESET</button>
                             </div>
                         </div>

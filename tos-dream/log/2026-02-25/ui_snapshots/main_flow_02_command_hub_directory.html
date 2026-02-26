@@ -22,6 +22,9 @@
             </div>
                                     </div>
                                     <button class="bezel-btn mini toggle-output-mode" onclick="window.ipc.postMessage('toggle_output_mode')" title="Perspective Mode">⬚</button>
+                                    <button class="bezel-btn mini settings-gear" onclick="window.ipc.postMessage('open_settings')" title="Settings">⚙</button>
+                                    <button class="bezel-btn mini logout" onclick="window.ipc.postMessage('logout')" title="Exit Session">⏻</button>
+                                    <button class="bezel-btn mini zoom-out" onclick="window.ipc.postMessage('zoom_out')" title="Zoom Out (ESC)">▲</button>
                                     <div class="bezel-handle" onclick="window.ipc.postMessage('toggle_bezel')">
                                         <div class="chevron"></div>
                                     </div>
@@ -35,8 +38,8 @@
                             </div>
                         </div>
                 <div class="viewport-inner" style="flex:1; overflow:hidden; position:relative;">
-                    <div class="command-hub mode-directory   render-Full"><div class="hub-participants"><div class="participant-avatar" style="background-color: #ffcc00" title="Host (Co-Owner)" onclick="window.ipc.postMessage('follow_participant:3de7a22d-4a07-43f9-9a20-07309bbfdc8d')">H</div></div><div class="hub-mode-label" style="font-weight:800; color:var(--lcars-gold);">DIRECTORY</div><div class="hub-content"><div class="terminal-container background-layer">
-                <div class="terminal-output" id="hub-term-b48f46ff-14ae-4d5a-8bc0-cb389756d87c">
+                    <div class="command-hub mode-directory   render-Full"><div class="hub-participants"><div class="participant-avatar" style="background-color: #ffcc00" title="Host (Co-Owner)" onclick="window.ipc.postMessage('follow_participant:0957bfc2-e2d1-49e2-b7ad-f6f77508940e')">H</div></div><div class="hub-mode-label" style="font-weight:800; color:var(--lcars-gold);">DIRECTORY</div><div class="hub-content"><div class="terminal-container background-layer">
+                <div class="terminal-output" id="hub-term-bcb6e46a-64cc-44dc-bbab-6aa5d9881e84">
                     
                 </div>
             </div><div class="directory-view foreground-layer">

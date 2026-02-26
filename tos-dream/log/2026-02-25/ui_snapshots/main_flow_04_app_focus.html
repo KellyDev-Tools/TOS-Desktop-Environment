@@ -9,6 +9,8 @@
                                     <span class="bezel-title">TERMINAL // SHELL</span>
                                 </div>
                                 <div class="bezel-right">
+                                    <button class="bezel-btn mini settings-gear" onclick="window.ipc.postMessage('open_settings')" title="Settings">⚙</button>
+                                    <button class="bezel-btn mini logout" onclick="window.ipc.postMessage('logout')" title="Exit Session">⏻</button>
                                     <button class="bezel-btn mini zoom-out" onclick="window.ipc.postMessage('zoom_out')" title="Zoom Out (ESC)">▲</button>
                                     <div class="bezel-handle" onclick="window.ipc.postMessage('toggle_bezel')">
                                         <div class="chevron"></div>

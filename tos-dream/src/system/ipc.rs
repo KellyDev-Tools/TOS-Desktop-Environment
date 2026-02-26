@@ -178,7 +178,9 @@ impl IpcDispatcher {
             state.handle_semantic_event(SemanticEvent::TacticalReset);
         } else if request == "open_settings" {
             println!("TOS // OPENING SECTOR SETTINGS... SYNCING CALIBRATION DATA");
-            state.toggle_bezel();
+            state.settings_open = true;
+        } else if request == "close_settings" {
+            state.settings_open = false;
         } else if request.starts_with("follow_participant:") {
             let host_id_str = &request[19..];
             if let Ok(host_id) = Uuid::parse_str(host_id_str) {

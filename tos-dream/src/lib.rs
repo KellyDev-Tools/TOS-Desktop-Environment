@@ -327,6 +327,8 @@ pub struct TosState {
     #[serde(default)]
     pub settings: std::collections::HashMap<String, String>,
     #[serde(skip)]
+    pub settings_open: bool,
+    #[serde(skip)]
     pub force_redraw: bool,
     #[serde(skip)]
     pub modules: Vec<Box<dyn TosModule>>,
@@ -829,6 +831,7 @@ impl TosState {
             fps: 60.0,
             performance_alert: false,
             settings: std::collections::HashMap::new(),
+            settings_open: false,
             modules: Vec::new(),
             portal_security_bypass: false,
             approval_requested_sector: None,
@@ -1685,6 +1688,9 @@ impl TosState {
                  html.push_str(&ui::render::confirmation::render_confirmation_modal(session, self.security.config.confirmation_timeout_secs));
             }
         }
+
+        // Settings Modal Overlay
+        html.push_str(&ui::render::settings::render_settings_modal(self));
 
         html
     }

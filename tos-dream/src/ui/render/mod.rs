@@ -8,6 +8,7 @@ pub mod inspector;
 pub mod remote;
 pub mod confirmation;
 pub mod svg_engine;
+pub mod settings;
 
 pub trait ViewRenderer {
     fn render(&self, state: &TosState, viewport: &Viewport, mode: RenderMode) -> String;

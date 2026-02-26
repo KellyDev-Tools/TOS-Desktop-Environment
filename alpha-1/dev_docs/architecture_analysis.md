@@ -1,7 +1,7 @@
 # Architecture Analysis: alpha-1 vs TOS Specification (v1.0/v1.2)
 
 ## 1. Overview
-A concise comparison of the design documents (TOS Architectural Specification v1.0 - Core, v1.2 - Extensions) with the actual implementation found in `/8TB/tos/alpha-1`.
+A concise comparison of the design documents (TOS Architectural Specification v1.0 - Core, v1.2 - Extensions) with the actual implementation found in `alpha-1`.
 
 ## 2. Architectural Alignment
 | Design Concept | Implementation in alpha-1 | Status |

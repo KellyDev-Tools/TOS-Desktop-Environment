@@ -1,0 +1,84 @@
+<div class="viewport-wrapper" style="height:100%; width:100%; position:relative; display:flex; flex-direction:column;">
+                <div class="tactical-bezel expanded priority-high" style="--bezel-accent:#ff9900;">
+                    <div class="bezel-chips top">
+                        <div class="chip"></div><div class="chip"></div><div class="chip"></div><div class="chip"></div>
+                    </div>
+                    <div class="bezel-top">
+                        <div class="bezel-left">
+                            <span class="bezel-title">TERMINAL // SHELL // EXPANDED TACTICAL VIEW</span>
+                        </div>
+                        <div class="bezel-right">
+                            <div class="collaboration-avatars">
+                                <div class="collab-avatar local" style="--avatar-color:#ffcc00;" title="Host (Co-owner)">
+                <span>H</span>
+            </div>
+                            </div>
+                            <div class="bezel-handle" onclick="window.ipc.postMessage('toggle_bezel')">
+                                <div class="chevron"></div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="bezel-expanded-content">
+                        
+                        <div class="bezel-section">
+                            <div class="section-label">PROCESS CALIBRATION</div>
+                            <div class="bezel-group sliders">
+                                 <div class="action-slider">
+                                    <span>PRIORITY</span>
+                                    <input type="range" min="1" max="10" step="1" value="5" oninput="window.ipc.postMessage('update_setting:priority:' + this.value)" >
+                                 </div>
+                                 <div class="action-slider">
+                                    <span>GAIN</span>
+                                    <input type="range" min="0" max="150" step="5" value="75" oninput="window.ipc.postMessage('update_setting:gain:' + this.value)" >
+                                 </div>
+                                 <div class="action-slider">
+                                    <span>SENSITIVITY</span>
+                                    <input type="range" min="0" max="100" step="1" value="40" oninput="window.ipc.postMessage('update_setting:sensitivity:' + this.value)" >
+                                 </div>
+                            </div>
+                        </div>
+                        <div class="bezel-section">
+                            <div class="section-label">PORTAL & CONNECTIVITY</div>
+                            <div class="bezel-group">
+                                <button class="bezel-btn " onclick="window.ipc.postMessage('toggle_portal')" >EXPORT PORTAL</button>
+                            </div>
+                            
+                        </div>
+                        <div class="bezel-section">
+                            <div class="section-label">NAVIGATION</div>
+                            <div class="bezel-group">
+                                <button class="bezel-btn" onclick="window.ipc.postMessage('zoom_out')" >ZOOM OUT</button>
+                                <button class="bezel-btn" onclick="window.ipc.postMessage('split_viewport')" >SPLIT VIEW</button>
+                                <button class="bezel-btn" onclick="window.ipc.postMessage('zoom_to:DetailInspector')" >INSPECT</button>
+                                <button class="bezel-btn danger" onclick="window.ipc.postMessage('kill_app')" >CLOSE PROCESS</button>
+                            </div>
+                        </div>
+                        <div class="bezel-section">
+                            <div class="section-label">LEVEL METRICS</div>
+                            <div class="bezel-group">
+                                <div class="footer-stat">FPS: 60.0</div>
+                                <div class="footer-stat">LATENCY: 0.4ms</div>
+                                <div class="footer-stat">SYNC: ACTIVE</div>
+                            </div>
+                        </div>
+                        <div class="bezel-section">
+                            <div class="section-label">QUICK ACTIONS</div>
+                            <div class="bezel-group">
+                                <button class="bezel-btn mini" onclick="window.ipc.postMessage('semantic_event:ToggleMiniMap')">MINIMAP</button>
+                                <button class="bezel-btn mini" onclick="window.ipc.postMessage('semantic_event:ToggleComms')">COMMS</button>
+                                <button class="bezel-btn mini settings-gear" onclick="window.ipc.postMessage('open_settings')">SETTINGS</button>
+                                <button class="bezel-btn mini logout" onclick="window.ipc.postMessage('logout')">LOGOUT</button>
+                                <button class="bezel-btn mini danger" onclick="window.ipc.postMessage('tactical_reset')" >RESET</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="viewport-inner" style="flex:1; overflow:hidden; position:relative;">
+                    <div class="application-container render-Full">
+                
+                <div class="application-surface" onclick="window.ipc.postMessage('zoom_in')">
+                    <pre class="terminal-content"></pre>
+                </div>
+            </div>
+                </div>
+            </div>

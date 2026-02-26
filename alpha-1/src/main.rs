@@ -114,7 +114,7 @@ fn main() -> anyhow::Result<()> {
     // 3. Setup UI Thread (Tao + Wry)
     let event_loop = EventLoop::new();
     let window = WindowBuilder::new()
-        .with_title("TOS Tactical Operating System — Dream Complete")
+        .with_title("TOS Tactical Operating System — Alpha 1 Complete")
         .with_inner_size(tao::dpi::LogicalSize::new(1280.0, 800.0))
         .with_maximized(true)
         .with_decorations(false)

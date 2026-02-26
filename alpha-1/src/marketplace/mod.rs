@@ -1,16 +1,16 @@
-//! TOS Marketplace and Templates System (Dream complete.md Section 15)
+//! TOS Marketplace and Templates System (TOS Architectural Specification v1.2 Section 16)
 //! 
-//! ## 15.1 Package Types
+//! ## 16.1 Package Types
 //! - **Sector Template** (`.tos-template`): Configuration only; exported from any sector.
 //! - **Sector Type** (`.tos-sector`): Module package.
 //! - **Application Model** (`.tos-appmodel`): Module package.
 //! 
-//! ## 15.2 Marketplace
+//! ## 16.2 Marketplace
 //! - User-configurable repository indices (JSON over HTTPS).
 //! - Manual download; installation shows warnings for code-containing packages and permission requests.
 //! - Dependencies checked and can be auto-installed from the same repository.
 //! 
-//! ## 15.3 Security
+//! ## 16.3 Security
 //! - Code packages sandboxed via module API and optional containerization.
 //! - Signatures (GPG/minisign) verifiable when user imports trusted keys.
 

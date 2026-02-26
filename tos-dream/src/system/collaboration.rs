@@ -67,6 +67,8 @@ pub struct PermissionSet {
     pub allow_participant_invite: bool,
     pub allow_viewport_control: bool,
     pub allow_mode_switch: bool,
+    pub allow_app_calibrate: bool,
+    pub allow_portal_manage: bool,
 }
 
 impl PermissionSet {
@@ -79,6 +81,8 @@ impl PermissionSet {
                 allow_participant_invite: true,
                 allow_viewport_control: true,
                 allow_mode_switch: true,
+                allow_app_calibrate: true,
+                allow_portal_manage: true,
             },
             CollaborationRole::Operator => Self {
                 allow_shell_input: true,
@@ -87,6 +91,8 @@ impl PermissionSet {
                 allow_participant_invite: false,
                 allow_viewport_control: true,
                 allow_mode_switch: true,
+                allow_app_calibrate: true,
+                allow_portal_manage: false,
             },
             CollaborationRole::Viewer => Self {
                 allow_shell_input: false,
@@ -95,6 +101,8 @@ impl PermissionSet {
                 allow_participant_invite: false,
                 allow_viewport_control: false,
                 allow_mode_switch: false,
+                allow_app_calibrate: false,
+                allow_portal_manage: false,
             },
         }
     }
@@ -108,6 +116,8 @@ impl PermissionSet {
             PermissionAction::ParticipantInvite => self.allow_participant_invite,
             PermissionAction::ViewportControl => self.allow_viewport_control,
             PermissionAction::ModeSwitch => self.allow_mode_switch,
+            PermissionAction::AppCalibrate => self.allow_app_calibrate,
+            PermissionAction::PortalManage => self.allow_portal_manage,
         }
     }
 }
@@ -121,6 +131,8 @@ pub enum PermissionAction {
     ParticipantInvite,
     ViewportControl,
     ModeSwitch,
+    AppCalibrate,
+    PortalManage,
 }
 
 impl std::fmt::Display for PermissionAction {
@@ -132,6 +144,8 @@ impl std::fmt::Display for PermissionAction {
             PermissionAction::ParticipantInvite => write!(f, "participant invite"),
             PermissionAction::ViewportControl => write!(f, "viewport control"),
             PermissionAction::ModeSwitch => write!(f, "mode switch"),
+            PermissionAction::AppCalibrate => write!(f, "app calibrate"),
+            PermissionAction::PortalManage => write!(f, "portal manage"),
         }
     }
 }

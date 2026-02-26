@@ -39,7 +39,10 @@ pub fn render_bezel(state: &TosState, viewport: &Viewport, level: HierarchyLevel
     let local_id = state.local_participant_id;
     
     let can_switch_mode = state.can_perform(PermissionAction::ModeSwitch);
-    let can_manage_sector = state.can_perform(PermissionAction::SectorReset); // Using Reset as proxy for management
+    let can_manage_sector = state.can_perform(PermissionAction::SectorReset);
+    let can_calibrate_app = state.can_perform(PermissionAction::AppCalibrate);
+    let can_manage_portal = state.can_perform(PermissionAction::PortalManage);
+    let can_control_viewport = state.can_perform(PermissionAction::ViewportControl);
     let disabled_attr = |allowed: bool| if allowed { "" } else { "disabled" };
     
     let avatars_html = render_avatars(&sector.participants, local_id);
@@ -160,6 +163,32 @@ pub fn render_bezel(state: &TosState, viewport: &Viewport, level: HierarchyLevel
                         avatars = avatars_html
                     )
                 }
+                HierarchyLevel::ApplicationFocus => {
+                    // BZ-02: L2: Application Focus Bezel (Collapsed)
+                    format!(
+                        r#"<div class="tactical-bezel collapsed app-bezel {priority_class}" style="--bezel-accent:{color};">
+                            <div class="bezel-top">
+                                <div class="bezel-left">
+                                    <span class="bezel-icon">{icon}</span>
+                                    <span class="bezel-title">{title}</span>
+                                </div>
+                                <div class="bezel-right">
+                                    <div class="collaboration-avatars">
+                                        {avatars}
+                                    </div>
+                                    <div class="bezel-handle" onclick="window.ipc.postMessage('toggle_bezel')">
+                                        <div class="chevron"></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>"#,
+                        priority_class = priority_class,
+                        color = accent_color,
+                        title = title,
+                        icon = icon,
+                        avatars = avatars_html
+                    )
+                }
                 HierarchyLevel::GlobalOverview => {
                     // BZ-04: L1: Global Overview Bezel
 
@@ -192,13 +221,19 @@ pub fn render_bezel(state: &TosState, viewport: &Viewport, level: HierarchyLevel
                         r#"<div class="tactical-bezel collapsed" style="--bezel-accent:{color};">
                             <div class="bezel-top">
                                 <span class="bezel-title">{title}</span>
-                                <div class="bezel-handle" onclick="window.ipc.postMessage('toggle_bezel')">
-                                    <div class="chevron"></div>
+                                <div class="bezel-right">
+                                    <div class="collaboration-avatars">
+                                        {avatars}
+                                    </div>
+                                    <div class="bezel-handle" onclick="window.ipc.postMessage('toggle_bezel')">
+                                        <div class="chevron"></div>
+                                    </div>
                                 </div>
                             </div>
                         </div>"#,
                         color = accent_color,
-                        title = title
+                        title = title,
+                        avatars = avatars_html
                     )
                 }
             }
@@ -245,32 +280,32 @@ pub fn render_bezel(state: &TosState, viewport: &Viewport, level: HierarchyLevel
                             <div class="bezel-group sliders">
                                  <div class="action-slider">
                                     <span>PRIORITY</span>
-                                    <input type="range" min="1" max="10" step="1" value="{priority}" oninput="window.ipc.postMessage('update_setting:priority:' + this.value)">
+                                    <input type="range" min="1" max="10" step="1" value="{priority}" oninput="window.ipc.postMessage('update_setting:priority:' + this.value)" {disabled_app}>
                                  </div>
                                  <div class="action-slider">
                                     <span>GAIN</span>
-                                    <input type="range" min="0" max="100" step="1" value="{gain}" oninput="window.ipc.postMessage('update_setting:gain:' + this.value)">
+                                    <input type="range" min="0" max="150" step="5" value="{gain}" oninput="window.ipc.postMessage('update_setting:gain:' + this.value)" {disabled_app}>
                                  </div>
                                  <div class="action-slider">
                                     <span>SENSITIVITY</span>
-                                    <input type="range" min="0" max="100" step="1" value="{sensitivity}" oninput="window.ipc.postMessage('update_setting:sensitivity:' + this.value)">
+                                    <input type="range" min="0" max="100" step="1" value="{sensitivity}" oninput="window.ipc.postMessage('update_setting:sensitivity:' + this.value)" {disabled_app}>
                                  </div>
                             </div>
                         </div>
                         <div class="bezel-section">
                             <div class="section-label">PORTAL & CONNECTIVITY</div>
                             <div class="bezel-group">
-                                <button class="bezel-btn {portal_active_class}" onclick="window.ipc.postMessage('toggle_portal')">{portal_label}</button>
+                                <button class="bezel-btn {portal_active_class}" onclick="window.ipc.postMessage('toggle_portal')" {disabled_portal}>{portal_label}</button>
                             </div>
                             {portal_url}
                         </div>
                         <div class="bezel-section">
                             <div class="section-label">NAVIGATION</div>
                             <div class="bezel-group">
-                                <button class="bezel-btn" onclick="window.ipc.postMessage('zoom_out')">ZOOM OUT</button>
-                                <button class="bezel-btn" onclick="window.ipc.postMessage('split_viewport')">SPLIT VIEW</button>
-                                <button class="bezel-btn" onclick="window.ipc.postMessage('zoom_to:DetailInspector')">INSPECT</button>
-                                <button class="bezel-btn danger" onclick="window.ipc.postMessage('kill_app')">CLOSE PROCESS</button>
+                                <button class="bezel-btn" onclick="window.ipc.postMessage('zoom_out')" {disabled_nav}>ZOOM OUT</button>
+                                <button class="bezel-btn" onclick="window.ipc.postMessage('split_viewport')" {disabled_nav}>SPLIT VIEW</button>
+                                <button class="bezel-btn" onclick="window.ipc.postMessage('zoom_to:DetailInspector')" {disabled_nav}>INSPECT</button>
+                                <button class="bezel-btn danger" onclick="window.ipc.postMessage('kill_app')" {disabled_app}>CLOSE PROCESS</button>
                             </div>
                         </div>"#,
                         priority = priority,
@@ -278,7 +313,10 @@ pub fn render_bezel(state: &TosState, viewport: &Viewport, level: HierarchyLevel
                         sensitivity = sensitivity,
                         portal_active_class = portal_active_class,
                         portal_label = portal_label,
-                        portal_url = portal_url
+                        portal_url = portal_url,
+                        disabled_app = disabled_attr(can_calibrate_app),
+                        disabled_portal = disabled_attr(can_manage_portal),
+                        disabled_nav = disabled_attr(can_control_viewport)
                     )
                 }
                 _ => String::new(),
@@ -294,6 +332,9 @@ pub fn render_bezel(state: &TosState, viewport: &Viewport, level: HierarchyLevel
                             <span class="bezel-title">{title} // EXPANDED TACTICAL VIEW</span>
                         </div>
                         <div class="bezel-right">
+                            <div class="collaboration-avatars">
+                                {avatars}
+                            </div>
                             <div class="bezel-handle" onclick="window.ipc.postMessage('toggle_bezel')">
                                 <div class="chevron"></div>
                             </div>
@@ -326,7 +367,8 @@ pub fn render_bezel(state: &TosState, viewport: &Viewport, level: HierarchyLevel
                 slider = slider_html,
                 level_specific = level_specific_html,
                 fps = state.fps,
-                disabled_manage = disabled_attr(can_manage_sector)
+                disabled_manage = disabled_attr(can_manage_sector),
+                avatars = avatars_html
             )
         }
     }

@@ -64,3 +64,25 @@ fn test_role_based_restrictions_owner() {
     // Settings and Add Sector should NOT be disabled for Owner
     assert!(!html.contains("disabled"), "Owner should NOT have disabled UI elements");
 }
+
+#[test]
+fn test_expanded_bezel_restrictions_viewer() {
+    let mut state = TosState::new_fresh();
+    
+    // Change local participant to Viewer
+    let local_id = state.local_participant_id;
+    if let Some(p) = state.collaboration_manager.participants.get_mut(&local_id) {
+        p.role = CollaborationRole::Viewer;
+    }
+    state.collaboration_manager.add_participant(state.collaboration_manager.participants.get(&local_id).unwrap().clone(), None);
+
+    let viewport = state.viewports[0].clone();
+    
+    // Test Application Focus Expanded Bezel
+    let html = render_bezel(&state, &viewport, HierarchyLevel::ApplicationFocus, BezelState::Expanded);
+    
+    // Calibration sliders and buttons should be disabled for Viewer
+    assert!(html.contains("disabled"), "Viewer should have disabled UI elements in expanded view");
+    assert!(html.contains("oninput"), "Inputs should still be present but marked disabled");
+    assert!(html.matches("disabled").count() >= 5, "Expected multiple disabled elements for Viewer");
+}

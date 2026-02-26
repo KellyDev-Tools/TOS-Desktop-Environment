@@ -43,7 +43,7 @@ pub fn render_settings_modal(state: &TosState) -> String {
                         <div class="bezel-group sliders" style="flex-direction: column; gap: 20px;">
                             <div class="action-slider">
                                 <span>TARGET FPS</span>
-                                <input type="range" min="30" max="144" step="1" value="{fps}" oninput="document.getElementById('fps-val-setting').innerText = this.value">
+                                <input type="range" min="30" max="144" step="1" value="{fps}" oninput="document.getElementById('fps-val-setting').innerText = this.value; window.ipc.postMessage('set_fps:' + this.value)">
                                 <span id="fps-val-setting" style="min-width: 40px; color: white;">{fps}</span>
                             </div>
                             <div class="bezel-group" style="padding-top: 10px;">
@@ -58,7 +58,7 @@ pub fn render_settings_modal(state: &TosState) -> String {
                         <div class="bezel-group sliders">
                             <div class="action-slider">
                                 <span>Master Volume</span>
-                                <input type="range" min="0" max="100" step="5" value="80">
+                                <input type="range" min="0" max="100" step="5" value="80" onchange="window.ipc.postMessage('set_master_volume:' + this.value)">
                             </div>
                             <div class="action-slider">
                                 <span>UI Feedback</span>

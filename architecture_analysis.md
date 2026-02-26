@@ -24,6 +24,7 @@ A concise comparison of the design documents (TOS Architectural Specification v1
 | Live‑feed / test recording | `LiveFeedServer`, active bandwidth adaptation, and streaming quality metrics. | **Complete** |
 | Container / sandbox isolation | `ContainerManager`, `SandboxManager`, `SandboxRegistry`. | **Infrastructure present; sandbox enforcement pending** |
 | SaaS / Cloud resource manager | `CloudResourceManager` field, `saas` feature. | **Placeholder only** |
+| Settings Management | Global `TosState` settings mapping, Per-Sector overrides, and Visual Configuration Modal overlay. | **Complete** |
 
 - **Marketplace automation**: Automatic installation and GPG verification.
 - **Sandbox enforcement**: Wiring local sandboxes to the process execution pipeline.
@@ -48,3 +49,4 @@ A concise comparison of the design documents (TOS Architectural Specification v1
 8. **[DONE]** Integrate platform‑specific accessibility APIs.
 9. **[DONE]** Provide earcon assets and spatial audio rendering.
 10. **[DONE]** Implement live‑feed message format and bandwidth adaptation.
+11. **[DONE]** Add hierarchical data models for settings overrides (global and per-sector) alongside the Global Settings View overlay.

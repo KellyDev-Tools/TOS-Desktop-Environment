@@ -256,6 +256,18 @@ impl IpcDispatcher {
         } else if request == "collaboration_invite" {
             // Default invite action
             self.handle_invite_participant(&mut state, "Viewer");
+        } else if request == "enable-deep-inspection" {
+            println!("TOS // ACTIVATING DEEP INSPECTION");
+            state.security.config.confirm_all_destructive = true;
+            state.earcon_player.play(crate::system::audio::earcons::EarconEvent::TacticalAlert);
+        } else if request.starts_with("set_master_volume:") {
+            if let Some(val) = request.split(':').nth(1).and_then(|v| v.parse::<f32>().ok()) {
+                state.earcon_player.set_master_volume(val / 100.0);
+            }
+        } else if request.starts_with("set_fps:") {
+            if let Some(val) = request.split(':').nth(1).and_then(|v| v.parse::<f32>().ok()) {
+                state.fps = val;
+            }
         } else if request.starts_with("dir_navigate:") {
             let target = &request[13..];
             let sector_idx = state.viewports[state.active_viewport_index].sector_index;

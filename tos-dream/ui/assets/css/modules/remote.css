@@ -76,3 +76,98 @@
     background: #222;
     border: 1px solid #444;
 }
+
+.remote-frame-buffer {
+    width: 100%;
+    height: 100%;
+    position: relative;
+    background: #000;
+}
+
+.remote-frame-buffer img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    filter: brightness(1.1) contrast(1.1);
+}
+
+/* Glassmorphism for the bezel in remote view */
+.remote-desktop-view .tactical-bezel {
+    background: rgba(10, 10, 10, 0.7) !important;
+    backdrop-filter: blur(12px) !important;
+    border: 1px solid rgba(255, 255, 255, 0.1) !important;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+}
+
+.remote-desktop-view .bezel-top {
+    background: rgba(20, 20, 20, 0.5);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.bezel-title {
+    font-family: var(--font-mono);
+    font-weight: 700;
+    letter-spacing: 1px;
+}
+
+.action-slider {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-bottom: 15px;
+}
+
+.action-slider span {
+    font-size: 0.7rem;
+    font-weight: 800;
+    color: var(--lcars-orange);
+    letter-spacing: 1px;
+    text-transform: uppercase;
+}
+
+.action-slider input[type="range"] {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 100%;
+    background: rgba(255, 255, 255, 0.1);
+    height: 4px;
+    border-radius: 2px;
+}
+
+.action-slider input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 16px;
+    height: 16px;
+    background: var(--lcars-orange);
+    border-radius: 50%;
+    cursor: pointer;
+    box-shadow: 0 0 8px rgba(255, 153, 0, 0.4);
+    transition: all 0.2s;
+}
+
+.action-slider input[type="range"]::-webkit-slider-thumb:hover {
+    transform: scale(1.2);
+    box-shadow: 0 0 15px rgba(255, 153, 0, 0.6);
+}
+
+.bezel-participants {
+    display: flex;
+    gap: 8px;
+    padding-right: 40px;
+}
+
+.participant-avatar {
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    border: 2px solid rgba(255, 255, 255, 0.2);
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
+    cursor: pointer;
+    transition: transform 0.2s;
+}
+
+.participant-avatar:hover {
+    transform: scale(1.2);
+    z-index: 10;
+}

@@ -123,6 +123,8 @@ pub struct RemoteConnection {
     pub stream: Option<Arc<TokioMutex<TcpStream>>>,
     /// Authentication state 
     pub authenticated: bool,
+    pub latency_ms: u64,
+    pub stream_quality: u8,
 }
 
 impl RemoteConnection {
@@ -135,6 +137,8 @@ impl RemoteConnection {
             #[cfg(feature = "remote-desktop")]
             stream: None,
             authenticated: false,
+            latency_ms: 0,
+            stream_quality: 100,
         }
     }
 

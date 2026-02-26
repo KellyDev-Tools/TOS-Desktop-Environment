@@ -245,6 +245,12 @@ impl IpcDispatcher {
                 let signal_type = parts[1];
                 self.handle_signal_app(&mut state, id_str, signal_type);
             }
+        } else if request == "terminate_remote_link" {
+            self.handle_terminate_link(&mut state);
+        } else if request.starts_with("set_stream_quality:") {
+            if let Some(val) = request.split(':').nth(1).and_then(|v| v.parse::<u8>().ok()) {
+                self.handle_set_stream_quality(&mut state, val);
+            }
         } else if request == "collaboration_invite" {
             // Default invite action
             self.handle_invite_participant(&mut state, "Viewer");
@@ -678,6 +684,7 @@ impl IpcDispatcher {
         let sector_id = state.sectors[sector_idx].id;
 
         let token = state.collaboration_manager.create_invitation(sector_id, role);
+        println!("TOS // COLLABORATION INVITE GENERATED: {}", token);
         println!("TOS // INVITATION CREATED FOR {:?}: {}", role, token);
         
         // Mock: Automatically add the participant for demo purposes
@@ -692,6 +699,39 @@ impl IpcDispatcher {
         });
         
         state.collaboration_manager.sessions.insert(p_id, PermissionSet::for_role(role));
+    }
+
+    fn handle_terminate_link(&self, state: &mut TosState) {
+        let sector_index = state.viewports[state.active_viewport_index].sector_index;
+        let sector_id = state.sectors[sector_index].id;
+        
+        // Remove active link
+        state.remote_manager.disconnect(sector_id);
+        
+        // Remove sector if remote
+        if state.sectors[sector_index].connection_type != ConnectionType::Local {
+            state.sectors.remove(sector_index);
+            state.viewports.retain(|v| v.sector_index != sector_index);
+            // Re-index remaining viewports
+            for v in &mut state.viewports {
+                if v.sector_index > sector_index {
+                    v.sector_index -= 1;
+                }
+            }
+            state.active_viewport_index = 0;
+            state.current_level = crate::HierarchyLevel::GlobalOverview;
+        }
+    }
+
+    fn handle_set_stream_quality(&self, state: &mut TosState, quality: u8) {
+        let sector_index = state.viewports[state.active_viewport_index].sector_index;
+        let sector_id = state.sectors[sector_index].id;
+        
+        if let Some(conn) = state.remote_manager.active_connections.get_mut(&sector_id) {
+            conn.stream_quality = quality;
+            println!("TOS // REMOTE STREAM QUALITY SET TO {}%", quality);
+            state.earcon_player.play(crate::system::audio::earcons::EarconEvent::CommandAccepted);
+        }
     }
 
     fn handle_save_template(&self, state: &mut TosState, name: &str) {

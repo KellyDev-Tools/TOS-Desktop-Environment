@@ -33,9 +33,15 @@ impl ViewRenderer for GlobalRenderer {
             };
 
             let portal_tag = if sector.portal_active {
-                r#"<div class="portal-tag">PORTAL ACTIVE</div>"#
+                let url = sector.portal_url.as_deref().unwrap_or("TOS://PORTAL");
+                format!(
+                    r#"<div class="portal-tag" onclick="event.stopPropagation(); window.open('{url}', '_blank')">
+                        <div class="portal-status">PORTAL ACTIVE</div>
+                        <div class="portal-url">{url}</div>
+                    </div>"#
+                )
             } else {
-                ""
+                String::new()
             };
 
             html.push_str(&format!(
@@ -89,8 +95,8 @@ impl ViewRenderer for GlobalRenderer {
                 participants = sector.participants.len(),
                 color_class = color_class,
                 color = sector.color,
-                remote_indicator = if remote_indicator.is_empty() { String::new() } else { remote_indicator.replace("class=\"remote-tag\"", "style=\"font-family:var(--font-mono);font-size:0.6rem;color:var(--lcars-orange);background:rgba(255,153,0,0.1);padding:2px 6px;border-radius:4px;font-weight:800;\"") },
-                portal_tag = if portal_tag.is_empty() { String::new() } else { portal_tag.replace("class=\"portal-tag\"", "style=\"font-family:var(--font-mono);font-size:0.6rem;color:var(--lcars-purple);background:rgba(204,153,204,0.1);padding:2px 6px;border-radius:4px;font-weight:800;\"") },
+                remote_indicator = remote_indicator,
+                portal_tag = portal_tag,
                 active_cmd = if sector.hubs[sector.active_hub_index].mode == crate::CommandHubMode::Command { "active" } else { "" },
                 active_dir = if sector.hubs[sector.active_hub_index].mode == crate::CommandHubMode::Directory { "active" } else { "" },
                 active_act = if sector.hubs[sector.active_hub_index].mode == crate::CommandHubMode::Activity { "active" } else { "" },

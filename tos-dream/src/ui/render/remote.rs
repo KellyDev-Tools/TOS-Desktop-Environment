@@ -46,11 +46,17 @@ impl ViewRenderer for RemoteDesktopRenderer {
             )
         };
 
+        let (latency, quality) = if let Some(conn) = state.remote_manager.active_connections.get(&sector.id) {
+            (conn.latency_ms, conn.stream_quality)
+        } else {
+            (0, 0)
+        };
+
         format!(
             r#"<div class="application-container remote-desktop-view render-{mode:?}">
                 <div class="tactical-bezel {bezel_class}">
                     <div class="bezel-top">
-                        <div class="bezel-title">{title} // {host} // {protocol}</div>
+                        <div class="bezel-title">{title} // {host} // {protocol} // {latency}MS // Q:{quality}%</div>
                         <div class="bezel-participants">{participants_html}</div>
                         <div class="bezel-handle" onclick="window.ipc.postMessage('toggle_bezel')">
                             <div class="chevron"></div>
@@ -64,7 +70,7 @@ impl ViewRenderer for RemoteDesktopRenderer {
                         <div class="bezel-group sliders">
                              <div class="action-slider">
                                 <span>STREAM QUALITY</span>
-                                <input type="range" min="1" max="100" value="85">
+                                <input type="range" min="1" max="100" value="{quality}" onchange="window.ipc.postMessage('set_stream_quality:' + this.value)">
                              </div>
                              <div class="action-slider">
                                 <span>LATENCY MITIGATION</span>
@@ -74,7 +80,7 @@ impl ViewRenderer for RemoteDesktopRenderer {
                         <div class="bezel-group">
                             <div class="bezel-btn" onclick="window.ipc.postMessage('invite_participant:Operator')">+ INVITE OPERATOR</div>
                             <div class="bezel-btn" onclick="window.ipc.postMessage('invite_participant:Viewer')">+ INVITE VIEWER</div>
-                            <div class="bezel-btn danger">TERMINATE LINK</div>
+                            <div class="bezel-btn danger" onclick="window.ipc.postMessage('terminate_remote_link')">TERMINATE LINK</div>
                         </div>
                     </div>
                 </div>
@@ -87,6 +93,8 @@ impl ViewRenderer for RemoteDesktopRenderer {
             title = app.title.to_uppercase(),
             host = sector.host,
             protocol = protocol_str,
+            latency = latency,
+            quality = quality,
             participants_html = participants_html,
             stream_content = stream_content
         )

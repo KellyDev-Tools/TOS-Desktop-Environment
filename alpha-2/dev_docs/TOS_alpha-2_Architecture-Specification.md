@@ -20,7 +20,7 @@
 7. [Command Hub – Level 2 (The Heart of TOS)](#7-command-hub--level-2-the-heart-of-tos) 
    7.1. Persistent Unified Prompt 
    7.2. Terminal Output as Primary Canvas (Powered by Terminal Output Module) 
-   7.3. Four Augmentation Modes 
+   7.3. Five Augmentation Modes 
    7.4. Dual‑Sided Chip Layout 
    7.5. Output Area Configurations (Provided by Modules) 
    7.6. Autocomplete Overlay 
@@ -255,7 +255,7 @@ A long press (touch) or secondary click (right‑click, or semantic event `secon
 |--------|-------------|---------------------------|
 | **Close Sector** | Terminates all processes in the sector and removes its tile from the overview. Equivalent to `tos sector close <name>`. | If any processes are running, a warning modal lists them (e.g., "3 running tasks: build.sh, server.py, tail -f log") and requires **tactile confirmation** (see §17.3). The user must perform a tactile confirmation slider, biometric prompt, or multi‑button press to proceed. |
 | **Freeze Sector** | Suspends all processes in the sector (SIGSTOP). The tile becomes dimmed (e.g., 50% opacity) and displays a frozen badge (e.g., snowflake icon) in the top border. Priority indicators pause updating. A subsequent "Resume" option replaces "Freeze" in the menu. | No additional confirmation required. |
-| **Clone Sector** | Creates a new sector with identical configuration (name, type, environment, favourites, and settings). Running processes are **not** duplicated – the clone starts with a fresh shell. The new sector tile appears adjacent to the original. | A simple confirmation dialog may be shown (user‑configurable). If the sector contains sensitive data, the user may be prompted to confirm. |
+| **Clone Sector** | Creates a new sector with identical configuration (name, type, environment, favourites, and settings). Running processes are **not** duplicated – the clone starts with a fresh shell (Note: Cloning does not duplicate running processes). The new sector tile appears adjacent to the original. | A simple confirmation dialog may be shown (user‑configurable). If the sector contains sensitive data, the user may be prompted to confirm. |
 
 Additional actions (e.g., Rename, Edit Settings, Share) may be added in future versions.
 
@@ -307,7 +307,7 @@ By default, TOS ships with a **Rectangular Terminal Output Module** that provide
 
 The output area occupies the full width between the left and right chip regions. It is rendered as a separate layer, behind the dynamic chip regions and bezel, but the user can temporarily bring it to the front using a bezel toggle (see §7.8).
 
-### 7.3 Four Augmentation Modes
+### 7.3 Five Augmentation Modes
 
 All modes are **overlays** that sit on top of the terminal, adding context without obscuring it.
 
@@ -764,7 +764,7 @@ A Terminal Output Module must implement a well‑defined interface (Rust trait o
 
 - Initialize a new instance for a given **context** (sector terminal or system output). The context determines whether the instance is interactive (accepts input and emits interaction events) or read‑only (for system background).
 - Receive a stream of lines, each with metadata:
-  - Text content (UTF‑8, ANSI codes optionally pre‑stripped or preserved).
+  - Text content (UTF‑8, receives raw output including ANSI codes; the module is responsible for rendering or stripping them as needed).
   - Timestamp.
   - Exit status of the command that produced the line (if applicable).
   - Whether the line is part of a command echo or output.
@@ -1058,8 +1058,9 @@ Spatial haptics in VR/AR (directional).
 
 ### 23.5 Theming & Configuration
 
-- Audio themes (`.tos-audio`) installable via Marketplace.
+- Audio themes (`.tos-audio`) installable via Marketplace (see §18.6 for relationship with Theme Modules).
 - Applications can contribute custom sounds.
+- Audio themes are managed as separate modules to ensure a modular sensory experience.
 - Configuration: master volume, per‑category toggles, test patterns, hearing‑impaired mode (route tactical to haptics).
 
 ---

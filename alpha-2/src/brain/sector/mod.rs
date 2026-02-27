@@ -33,6 +33,8 @@ impl SectorManager {
             }],
             active_hub_index: 0,
             frozen: false,
+            is_remote: false,
+            disconnected: false,
         };
 
         state.sectors.push(sector);

@@ -30,6 +30,8 @@ pub struct Sector {
     pub hubs: Vec<CommandHub>,
     pub active_hub_index: usize,
     pub frozen: bool, // §6.5: Freeze stops UI updates
+    pub is_remote: bool, // §12: Remote status
+    pub disconnected: bool, // §27.3: Connection status
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -111,6 +113,8 @@ impl Default for TosState {
             }],
             active_hub_index: 0,
             frozen: false,
+            is_remote: false,
+            disconnected: false,
         };
 
         Self {

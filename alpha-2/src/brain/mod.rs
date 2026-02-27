@@ -17,8 +17,12 @@ pub struct Brain {
 
 impl Brain {
     pub fn new() -> anyhow::Result<Self> {
-        let state = Arc::new(Mutex::new(TosState::default()));
-        let shell = Arc::new(Mutex::new(ShellApi::new(state.clone())?));
+        let state_val = TosState::default();
+        let sid = state_val.sectors[0].id;
+        let hid = state_val.sectors[0].hubs[0].id;
+        let state = Arc::new(Mutex::new(state_val));
+        
+        let shell = Arc::new(Mutex::new(ShellApi::new(state.clone(), sid, hid)?));
         let ipc = IpcHandler::new(state.clone(), shell.clone());
         
         Ok(Self { state, ipc, shell })

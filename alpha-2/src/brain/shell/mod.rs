@@ -7,12 +7,14 @@ use chrono::Local;
 
 pub struct ShellApi {
     _state: Arc<Mutex<TosState>>,
+    _sector_id: uuid::Uuid,
+    _hub_id: uuid::Uuid,
     writer: Box<dyn Write + Send>,
     _child: Box<dyn Child + Send + Sync>,
 }
 
 impl ShellApi {
-    pub fn new(state: Arc<Mutex<TosState>>) -> anyhow::Result<Self> {
+    pub fn new(state: Arc<Mutex<TosState>>, sector_id: uuid::Uuid, hub_id: uuid::Uuid) -> anyhow::Result<Self> {
         let pty_system = native_pty_system();
         let pair = pty_system.openpty(PtySize {
             rows: 24,
@@ -29,12 +31,17 @@ impl ShellApi {
         let writer = pair.master.take_writer()?;
 
         let state_clone = state.clone();
+        let sid_clone = sector_id;
+        let hid_clone = hub_id;
+        let handle = tokio::runtime::Handle::current();
         thread::spawn(move || {
-            Self::read_loop(reader, state_clone);
+            Self::read_loop(reader, state_clone, sid_clone, hid_clone, handle);
         });
 
         Ok(Self {
             _state: state,
+            _sector_id: sector_id,
+            _hub_id: hub_id,
             writer,
             _child: child,
         })
@@ -46,14 +53,39 @@ impl ShellApi {
         Ok(())
     }
 
-    fn read_loop(mut reader: Box<dyn Read + Send>, state: Arc<Mutex<TosState>>) {
+    fn read_loop(mut reader: Box<dyn Read + Send>, state: Arc<Mutex<TosState>>, sector_id: uuid::Uuid, hub_id: uuid::Uuid, handle: tokio::runtime::Handle) {
         let mut osc_parser = OscParser::new();
         let mut line_buffer = String::new();
         let mut buffer = [0u8; 4096];
 
         loop {
             match reader.read(&mut buffer) {
-                Ok(0) => break, // EOF
+                Ok(0) | Err(_) => {
+                    tracing::debug!("PTY Reader hit EOF or Error");
+                    // EOF or Error - handle disconnection logic §27.3
+                    let mut state_lock = state.lock().unwrap();
+                    if let Some(sector) = state_lock.sectors.iter_mut().find(|s| s.id == sector_id) {
+                        if sector.is_remote {
+                            sector.disconnected = true;
+                            tracing::warn!("Remote sector {} disconnected", sector_id);
+                            
+                            // 5 second auto-close timer
+                            let state_clone = state.clone();
+                            let sid = sector_id;
+                            handle.spawn(async move {
+                                tokio::time::sleep(std::time::Duration::from_secs(5)).await;
+                                let mut lock = state_clone.lock().unwrap();
+                                if let Some(pos) = lock.sectors.iter().position(|s| s.id == sid) {
+                                    if lock.sectors[pos].disconnected {
+                                        lock.sectors.remove(pos);
+                                        tracing::info!("Auto-closed disconnected sector {}", sid);
+                                    }
+                                }
+                            });
+                        }
+                    }
+                    break;
+                }
                 Ok(n) => {
                     let data = &buffer[..n];
                     let text = String::from_utf8_lossy(data);
@@ -63,19 +95,31 @@ impl ShellApi {
                         let mut line = line_buffer.drain(..=pos).collect::<String>();
                         line = line.trim_end_matches(['\r', '\n']).to_string();
                         
-                        tracing::debug!("PTY LINE: {:?}", line);
-                        let (clean_text, priority) = osc_parser.process(&line);
-                        tracing::debug!("CLEAN: {:?} PRIO: {}", clean_text, priority);
+                        let (clean_text, events) = osc_parser.process(&line);
                         
-                        if !clean_text.is_empty() {
-                            let mut state_lock = state.lock().unwrap();
-                            let idx = state_lock.active_sector_index;
-                            if let Some(sector) = state_lock.sectors.get_mut(idx) {
-                                let hub_idx = sector.active_hub_index;
-                                if let Some(hub) = sector.hubs.get_mut(hub_idx) {
+                        let mut state_lock = state.lock().unwrap();
+                        if let Some(sector) = state_lock.sectors.iter_mut().find(|s| s.id == sector_id) {
+                            if let Some(hub) = sector.hubs.iter_mut().find(|h| h.id == hub_id) {
+                                // Apply events (CWD, Priority, etc)
+                                for event in events {
+                                    match event {
+                                        OscEvent::Priority(p) => osc_parser.current_priority = p,
+                                        OscEvent::Cwd(path) => {
+                                            hub.current_directory = std::path::PathBuf::from(path);
+                                        }
+                                        OscEvent::DirectoryListing(listing) => {
+                                            hub.shell_listing = Some(listing);
+                                        }
+                                        OscEvent::CommandResult { command: _, status: _, output: _ } => {
+                                            // Handle result (e.g. logging)
+                                        }
+                                    }
+                                }
+
+                                if !clean_text.is_empty() {
                                     hub.terminal_output.push(TerminalLine {
                                         text: clean_text.to_string(),
-                                        priority,
+                                        priority: osc_parser.current_priority,
                                         timestamp: Local::now(),
                                     });
                                     
@@ -88,14 +132,24 @@ impl ShellApi {
                         }
                     }
                 }
-                Err(_) => break,
             }
         }
     }
 }
 
+pub enum OscEvent {
+    Priority(u8),
+    Cwd(String),
+    DirectoryListing(crate::common::DirectoryListing),
+    CommandResult {
+        command: String,
+        status: i32,
+        output: Option<String>,
+    },
+}
+
 pub struct OscParser {
-    current_priority: u8,
+    pub current_priority: u8,
 }
 
 impl OscParser {
@@ -103,18 +157,57 @@ impl OscParser {
         Self { current_priority: 0 }
     }
 
-    pub fn process(&mut self, input: &str) -> (String, u8) {
-        // Very basic OSC 9012 detection: ESC ] 9012 ; <level> BEL
-        // Note: Real world needs a robust state machine for escapes
-        if let Some(captures) = regex::Regex::new(r"\x1b\]9012;(\d)\x07").unwrap().captures(input) {
-            if let Some(level_match) = captures.get(1) {
-                self.current_priority = level_match.as_str().parse().unwrap_or(0);
+    pub fn process(&mut self, input: &str) -> (String, Vec<OscEvent>) {
+        let mut clean_text = input.to_string();
+        let mut events = Vec::new();
+
+        // §27.5: OSC 9012 Priority
+        let priority_re = regex::Regex::new(r"\x1b\]9012;(\d)\x07").unwrap();
+        for cap in priority_re.captures_iter(input) {
+            if let Ok(p) = cap[1].parse::<u8>() {
+                events.push(OscEvent::Priority(p));
             }
-            // Strip the OSC sequence from output
-            let clean = regex::Regex::new(r"\x1b\]9012;\d\x07").unwrap().replace_all(input, "");
-            (clean.to_string(), self.current_priority)
-        } else {
-            (input.to_string(), self.current_priority)
         }
+        clean_text = priority_re.replace_all(&clean_text, "").to_string();
+
+        // §27: OSC 9003 CWD tracking
+        let cwd_re = regex::Regex::new(r"\x1b\]9003;([^\x07]+)\x07").unwrap();
+        for cap in cwd_re.captures_iter(input) {
+            events.push(OscEvent::Cwd(cap[1].to_string()));
+        }
+        clean_text = cwd_re.replace_all(&clean_text, "").to_string();
+
+        // §27.1: OSC 9002 Command Result
+        let result_re = regex::Regex::new(r"\x1b\]9002;([^;]+);(\d+)(?:;([^\x07]+))?\x07").unwrap();
+        for cap in result_re.captures_iter(input) {
+            let command = cap[1].to_string();
+            let status = cap[2].parse::<i32>().unwrap_or(0);
+            let output = cap.get(3).map(|m| {
+                let decoded = base64::Engine::decode(&base64::prelude::BASE64_STANDARD, m.as_str()).unwrap_or_default();
+                String::from_utf8_lossy(&decoded).to_string()
+            });
+            events.push(OscEvent::CommandResult { command, status, output });
+        }
+        clean_text = result_re.replace_all(&clean_text, "").to_string();
+
+        // §27: OSC 9001 Directory Listing
+        let dl_re = regex::Regex::new(r"\x1b\]9001;([^;]+);([^\x07]+)\x07").unwrap();
+        for cap in dl_re.captures_iter(input) {
+            if let Ok(decoded) = base64::Engine::decode(&base64::prelude::BASE64_STANDARD, &cap[2]) {
+                if let Ok(listing) = serde_json::from_slice::<crate::common::DirectoryListing>(&decoded) {
+                    events.push(OscEvent::DirectoryListing(listing));
+                }
+            }
+        }
+        clean_text = dl_re.replace_all(&clean_text, "").to_string();
+
+        // Fallback: iTerm2 CWD (OSC 1337;CurrentDir=...)
+        let iterm_cwd_re = regex::Regex::new(r"\x1b\]1337;CurrentDir=([^\x07]+)\x07").unwrap();
+        for cap in iterm_cwd_re.captures_iter(input) {
+            events.push(OscEvent::Cwd(cap[1].to_string()));
+        }
+        clean_text = iterm_cwd_re.replace_all(&clean_text, "").to_string();
+
+        (clean_text, events)
     }
 }

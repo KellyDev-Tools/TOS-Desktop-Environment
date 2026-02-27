@@ -2,6 +2,7 @@ use crate::common::{TosState, CommandHubMode, HierarchyLevel};
 use std::sync::{Arc, Mutex};
 use uuid::Uuid;
 use std::path::PathBuf;
+use std::time::Instant;
 
 pub struct IpcHandler {
     state: Arc<Mutex<TosState>>,
@@ -15,6 +16,7 @@ impl IpcHandler {
 
     /// §3.3.1: Standardized Message Format: prefix:payload;payload...
     pub fn handle_request(&self, request: &str) {
+        let start = Instant::now();
         let parts: Vec<&str> = request.splitn(2, ':').collect();
         if parts.len() < 2 {
             tracing::warn!("Malformed IPC request: {}", request);
@@ -39,6 +41,13 @@ impl IpcHandler {
             "prompt_submit" => self.handle_prompt_submit(payload), // Entire payload is the command
             "update_confirmation_progress" => self.handle_update_confirmation_progress(args.get(0).copied(), args.get(1).copied()),
             _ => tracing::warn!("Unknown IPC prefix: {}", prefix),
+        }
+
+        let duration = start.elapsed();
+        if duration.as_millis() > 16 {
+            tracing::warn!("IPC LATENCY WARNING: {} took {:?}", prefix, duration);
+        } else {
+            tracing::debug!("IPC handled: {} ({:?})", prefix, duration);
         }
     }
 

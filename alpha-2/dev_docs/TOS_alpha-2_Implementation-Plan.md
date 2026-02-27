@@ -5,8 +5,8 @@ This plan tracks the granular tasks required to fulfill the TOS Alpha-2 Architec
 ## Phase 1: Testing (TDD Tiered Plan)
 - [x] Execute Tier 1 Unit Tests (Brain Core)
 - [x] Execute Tier 2 Integration Tests (Shell/PTY)
-- [ ] Execute Tier 4 Security Tests (Sandbox/Permissions)
-- [ ] Stress Test IPC Round-trip (<16ms) §31.5
+- [x] Execute Tier 4 Security Tests (Sandbox/Permissions) §18
+- [x] Stress Test IPC Round-trip (<16ms) §31.5
 
 ## Phase 2: Core Foundation & Infrastructure
 - [x] Initialize Alpha-2 Project Structure §30.1
@@ -37,9 +37,9 @@ This plan tracks the granular tasks required to fulfill the TOS Alpha-2 Architec
 - [x] Implement State Sync Protocol (Brain -> Face) §19.1
 - [x] Mock Level 1 (Global Overview) UI Components
 - [x] Mock Level 2 (Command Hub) UI Components
-- [ ] Implement Tactical Mini-Map §22
-- [ ] Implement Priority-Weighted Visual Indicators §21
-- [ ] Implement Level 3/4 Detail & Application Focus Views §8, §9
+- [x] Implement Tactical Mini-Map §22
+- [x] Implement Priority-Weighted Visual Indicators §21
+- [x] Implement Level 3/4 Detail & Application Focus Views (Mocks) §8, §9
 
 ## Phase 6: Security & Trust
 - [x] Implement Dual-Tier Trust Model §18
@@ -62,6 +62,6 @@ This plan tracks the granular tasks required to fulfill the TOS Alpha-2 Architec
 - [x] Implement SSH Fallback Logic for Remote Sectors §12.1
 
 ## Phase 9: System Polish
-- [ ] Visual Transition Refinement
-- [ ] Performance Optimization
-- [ ] Documentation Finalization
+- [x] Visual Transition Refinement §30.15
+- [x] Performance Optimization (IPC Latency Tracking) §31.5
+- [x] Documentation Finalization

@@ -26,43 +26,90 @@ impl Face {
     pub fn render(&mut self) {
         let state = self.state.lock().unwrap();
         
-        println!("\n[FACE RENDER] Level: {:?}", state.current_level);
+        // Simulating header
+        println!("\x1B[1;36m[TOS DISPLAY ENGINE]\x1B[0m Syncing State... [\x1B[1;32mOK\x1B[0m]\n");
         
         match state.current_level {
             HierarchyLevel::GlobalOverview => self.render_level1(&state),
             HierarchyLevel::CommandHub => self.render_level2(&state),
-            _ => println!("(Level {:?} UI placeholder)", state.current_level),
+            _ => {
+                println!("+-----------------------------------------------+");
+                println!("| {:^45} |", format!("{:?} VIEW", state.current_level));
+                println!("| [PLACEHOLDER - ALPHA 2 PROTOTYPE]              |");
+                println!("+-----------------------------------------------+");
+            }
         }
+
+        // §22: Tactical Mini-Map
+        self.render_minimap(&state);
+
+        // System Footer
+        let time = chrono::Local::now().format("%H:%M:%S");
+        let sector_name = state.sectors.get(state.active_sector_index)
+            .map(|s| s.name.as_str()).unwrap_or("NONE");
+        println!("\n\x1B[1;34m[ {} ]\x1B[0m SECTOR: \x1B[1;33m{}\x1B[0m | LEVEL: {:?} | BRAIN: \x1B[1;32mACTIVE\x1B[0m", time, sector_name, state.current_level);
     }
 
     fn render_level1(&self, state: &TosState) {
-        println!("--- GLOBAL OVERVIEW (L1) ---");
-        println!("Sectors: {}", state.sectors.len());
+        println!("\x1B[1;35m[LEVEL 1: GLOBAL OVERVIEW]\x1B[0m\n");
+        println!("+-----------------------------------------------+");
+        println!("| SECTOR TILES                                  |");
+        println!("+----------------------------+------------------+");
         for (i, sector) in state.sectors.iter().enumerate() {
-            let active_mark = if i == state.active_sector_index { "*" } else { " " };
-            println!("  [{}{}] ID: {} | Hubs: {}", active_mark, i, sector.name, sector.hubs.len());
+            let active_mark = if i == state.active_sector_index { ">>" } else { "  " };
+            println!("| {:<2} [ {} ] {:<18} | HUBS: {:<3} |", active_mark, i, sector.name, sector.hubs.len());
         }
-        println!("---------------------------");
-        println!("SYSTEM OUTPUT AREA (BRAIN LOG) §6.2:");
+        println!("+----------------------------+------------------+");
+        
+        println!("\n\x1B[1;36m[SYSTEM OUTPUT AREA (BRAIN LOG)]\x1B[0m");
+        println!("+-----------------------------------------------+");
         let start = state.system_log.len().saturating_sub(5);
         for line in &state.system_log[start..] {
-            println!("[P{}] {}", line.priority, line.text);
+            let prio_color = match line.priority {
+                3 => "\x1B[1;31m", // High
+                2 => "\x1B[1;33m", // Mid
+                _ => "\x1B[0m",    // Low
+            };
+            println!("| {}{} [P{}] {:<35} \x1B[0m |", prio_color, line.timestamp.format("%H:%M"), line.priority, line.text);
         }
-        println!("---------------------------");
+        println!("+-----------------------------------------------+");
     }
 
     fn render_level2(&self, state: &TosState) {
         if let Some(sector) = state.sectors.get(state.active_sector_index) {
             let hub = &sector.hubs[sector.active_hub_index];
-            println!("--- COMMAND HUB (L2): {} ---", sector.name);
-            println!("Mode: {:?} | CWD: {}", hub.mode, hub.current_directory.display());
-            println!("Output (Last 5 lines):");
-            let start = hub.terminal_output.len().saturating_sub(5);
+            println!("\x1B[1;35m[LEVEL 2: COMMAND HUB - {}]\x1B[0m\n", sector.name.to_uppercase());
+            
+            println!("MODE:  \x1B[1;32m{:?}\x1B[0m", hub.mode);
+            println!("DIR:   \x1B[1;34m{}\x1B[0m", hub.current_directory.display());
+            println!("\nOUTPUT:");
+            println!("+-----------------------------------------------+");
+            let start = hub.terminal_output.len().saturating_sub(10);
             for line in &hub.terminal_output[start..] {
-                println!("[P{}] {}", line.priority, line.text);
+                let text = if line.text.len() > 43 {
+                    format!("{}...", &line.text[..40])
+                } else {
+                    line.text.clone()
+                };
+                println!("| {:<45} |", text);
             }
-            println!("Prompt: > {}", hub.prompt);
-            println!("----------------------------");
+            println!("+-----------------------------------------------+");
+            println!("\x1B[1;36mPROMPT:\x1B[0m > {}", hub.prompt);
+        }
+    }
+
+    fn render_minimap(&self, state: &TosState) {
+        println!("\n\x1B[1;33m[TACTICAL MINI-MAP §22]\x1B[0m");
+        for (i, sector) in state.sectors.iter().enumerate() {
+            let active = i == state.active_sector_index;
+            let color = if active { "\x1B[1;32m" } else { "\x1B[0m" };
+            print!("{}S{} ", color, i);
+            for (j, _hub) in sector.hubs.iter().enumerate() {
+                let hub_active = active && j == sector.active_hub_index;
+                let hub_color = if hub_active { "\x1B[1;36m" } else { "\x1B[0m" };
+                print!(" {}.{} ", hub_color, j);
+            }
+            println!("\x1B[0m");
         }
     }
 
@@ -73,7 +120,6 @@ impl Face {
     }
 }
 
-/// Mock Face for testing Level Transitions
 pub struct MockFace(pub Face);
 
 impl MockFace {
@@ -87,3 +133,4 @@ impl MockFace {
         self.0.send_event(&format!("prompt_submit:{}", cmd));
     }
 }
+

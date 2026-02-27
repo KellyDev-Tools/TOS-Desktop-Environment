@@ -11,7 +11,7 @@ use self::shell::ShellApi;
 
 pub struct Brain {
     pub state: Arc<Mutex<TosState>>,
-    pub ipc: IpcHandler,
+    pub ipc: Arc<IpcHandler>,
     pub shell: Arc<Mutex<ShellApi>>,
 }
 
@@ -23,7 +23,7 @@ impl Brain {
         let state = Arc::new(Mutex::new(state_val));
         
         let shell = Arc::new(Mutex::new(ShellApi::new(state.clone(), sid, hid)?));
-        let ipc = IpcHandler::new(state.clone(), shell.clone());
+        let ipc = Arc::new(IpcHandler::new(state.clone(), shell.clone()));
         
         Ok(Self { state, ipc, shell })
     }

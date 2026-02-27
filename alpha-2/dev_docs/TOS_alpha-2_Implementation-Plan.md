@@ -32,9 +32,11 @@ This plan tracks the granular tasks required to fulfill the TOS Alpha-2 Architec
 - [x] Implement Shell Integration Script Generation (Fish/Bash/Zsh) §18.7
 
 ## Phase 5: Face (UI & Presentation Layer)
-- [ ] Define Renderer Traits (SystemServices §15.1)
-- [ ] Implement Level 1: Global Overview (Sector Tiles + System Log Layer) §6
-- [ ] Implement Level 2: Interactive Command Hub (Bezels + Persistent Prompt) §7
+- [x] Define Renderer Traits (SystemServices §15.1)
+- [x] Implement Bezel IPC Bridge (Face -> Brain) §28.2
+- [x] Implement State Sync Protocol (Brain -> Face) §19.1
+- [x] Mock Level 1 (Global Overview) UI Components
+- [x] Mock Level 2 (Command Hub) UI Components
 - [ ] Implement Tactical Mini-Map §22
 - [ ] Implement Priority-Weighted Visual Indicators §21
 - [ ] Implement Level 3/4 Detail & Application Focus Views §8, §9

@@ -172,3 +172,45 @@ async fn test_remote_session_disconnection() {
         assert!(state_lock.sectors.is_empty(), "Sector should be auto-closed after 5 seconds");
     }
 }
+
+#[tokio::test]
+async fn test_dangerous_command_interception() {
+    use tos_alpha2::brain::ipc_handler::IpcHandler;
+    let state_val = TosState::default();
+    let sid = state_val.sectors[0].id;
+    let hid = state_val.sectors[0].hubs[0].id;
+    let state = Arc::new(Mutex::new(state_val));
+    let shell = Arc::new(Mutex::new(ShellApi::new(state.clone(), sid, hid).unwrap()));
+    let ipc = IpcHandler::new(state.clone(), shell.clone());
+
+    // 1. Submit dangerous command
+    ipc.handle_request("prompt_submit:rm -rf /");
+
+    // 2. Verify it's pending confirmation
+    let conf_id = {
+        let state_lock = state.lock().unwrap();
+        let conf = state_lock.pending_confirmation.as_ref().expect("Should have pending confirmation");
+        assert!(conf.message.contains("DANGEROUS"));
+        conf.id
+    };
+
+    // 3. Simulate partial slider progress (should not execute)
+    ipc.handle_request(&format!("update_confirmation_progress:{};0.5", conf_id));
+    {
+        let state_lock = state.lock().unwrap();
+        assert!(state_lock.pending_confirmation.is_some());
+    }
+
+    // 4. Simulate full slider progress (execute)
+    ipc.handle_request(&format!("update_confirmation_progress:{};1.0", conf_id));
+    
+    // 5. Verify executed and cleared
+    sleep(Duration::from_millis(500)).await;
+    {
+        let state_lock = state.lock().unwrap();
+        assert!(state_lock.pending_confirmation.is_none(), "Confirmation should be cleared");
+        let hub = &state_lock.sectors[0].hubs[0];
+        // The command itself will be echoed by the shell if we wait a bit
+        assert!(hub.terminal_output.iter().any(|l| l.text.contains("rm -rf /")));
+    }
+}

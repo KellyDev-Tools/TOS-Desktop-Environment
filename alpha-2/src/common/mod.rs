@@ -22,6 +22,21 @@ pub enum CommandHubMode {
     Ai,
 }
 
+/// §18: Dual-Tier Trust Model
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+pub enum TrustTier {
+    Standard, // Sandboxed (§18.4)
+    System,   // Privileged (§18.7)
+}
+
+/// §17.3: Dangerous Command Handling
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ConfirmationRequest {
+    pub id: Uuid,
+    pub original_request: String,
+    pub message: String,
+    pub progress: f32, // 0.0 to 1.0 for tactile slider
+}
 /// TOC §10: Sectors and the Tree Model
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Sector {
@@ -32,6 +47,7 @@ pub struct Sector {
     pub frozen: bool, // §6.5: Freeze stops UI updates
     pub is_remote: bool, // §12: Remote status
     pub disconnected: bool, // §27.3: Connection status
+    pub trust_tier: TrustTier, // §18
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -93,6 +109,7 @@ pub struct TosState {
     pub sectors: Vec<Sector>,
     pub active_sector_index: usize,
     pub settings: std::collections::HashMap<String, String>,
+    pub pending_confirmation: Option<ConfirmationRequest>, // §17.3
 }
 
 impl Default for TosState {
@@ -115,6 +132,7 @@ impl Default for TosState {
             frozen: false,
             is_remote: false,
             disconnected: false,
+            trust_tier: TrustTier::System,
         };
 
         Self {
@@ -122,6 +140,7 @@ impl Default for TosState {
             sectors: vec![sector],
             active_sector_index: 0,
             settings: std::collections::HashMap::new(),
+            pending_confirmation: None,
         }
     }
 }

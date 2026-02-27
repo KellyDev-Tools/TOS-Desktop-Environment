@@ -35,6 +35,7 @@ impl SectorManager {
             frozen: false,
             is_remote: false,
             disconnected: false,
+            trust_tier: crate::common::TrustTier::System,
         };
 
         state.sectors.push(sector);

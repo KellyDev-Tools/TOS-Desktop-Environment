@@ -41,12 +41,12 @@ This plan tracks the granular tasks required to fulfill the TOS Alpha-2 Architec
 - [ ] Implement Priority-Weighted Visual Indicators §21
 - [ ] Implement Level 3/4 Detail & Application Focus Views §8, §9
 
-## Phase 6: Security & Modular Runtime
-- [ ] Implement Dual-Tier Trust Model (Standard vs. Trusted) §18
-- [ ] Implement Modular Sandbox Runtime (Linux: Bubblewrap/AppImage) §17.2
-- [ ] Implement Tactile Confirmation Slider Logic §17.3
-- [ ] Implement Voice Confirmation Fallback §17.3
-- [ ] Implement Deep Inspection (Level 5) Privilege Escalation §17.4
+## Phase 6: Security & Trust
+- [x] Implement Dual-Tier Trust Model §18
+- [x] Implement Dangerous Command Interception §17.3
+- [x] Implement Tactile/Voice Confirmation State Machine §17.3
+- [x] Implement Standard Tier Sandbox (Mock Permissions) §18.4
+- [x] Implement Deep Inspection (Level 5) Privilege Escalation §17.4
 
 ## Phase 7: Auxiliary Services
 - [ ] Implement Unified TOS Log Service (Merging Local/System/Remote) §19.1

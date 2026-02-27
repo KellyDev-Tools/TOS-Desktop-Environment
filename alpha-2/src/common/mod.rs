@@ -59,9 +59,23 @@ pub struct TosState {
 
 impl Default for TosState {
     fn default() -> Self {
+        let sector = Sector {
+            id: Uuid::new_v4(),
+            name: "Primary".to_string(),
+            hubs: vec![CommandHub {
+                id: Uuid::new_v4(),
+                mode: CommandHubMode::Command,
+                prompt: String::new(),
+                current_directory: std::env::current_dir().unwrap_or_else(|_| PathBuf::from("/")),
+                terminal_output: vec![],
+                buffer_limit: 500, // §29.2 default
+            }],
+            active_hub_index: 0,
+        };
+
         Self {
             current_level: HierarchyLevel::GlobalOverview,
-            sectors: vec![],
+            sectors: vec![sector],
             active_sector_index: 0,
             settings: std::collections::HashMap::new(),
         }

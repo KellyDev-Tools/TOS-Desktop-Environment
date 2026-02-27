@@ -4,11 +4,12 @@ use uuid::Uuid;
 
 pub struct IpcHandler {
     state: Arc<Mutex<TosState>>,
+    shell: Arc<Mutex<crate::brain::shell::ShellApi>>,
 }
 
 impl IpcHandler {
-    pub fn new(state: Arc<Mutex<TosState>>) -> Self {
-        Self { state }
+    pub fn new(state: Arc<Mutex<TosState>>, shell: Arc<Mutex<crate::brain::shell::ShellApi>>) -> Self {
+        Self { state, shell }
     }
 
     /// §3.3.1: Standardized Message Format: prefix:payload;payload...
@@ -99,7 +100,8 @@ impl IpcHandler {
             }
         }
         
-        // Final submission to PTY would happen here in a full implementation
-        println!("PTY EXEC: {}", command);
+        // Final submission to PTY
+        let mut shell = self.shell.lock().unwrap();
+        let _ = shell.write(&format!("{}\n", command));
     }
 }

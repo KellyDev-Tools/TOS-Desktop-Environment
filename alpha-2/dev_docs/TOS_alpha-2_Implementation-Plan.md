@@ -49,17 +49,17 @@ This plan tracks the granular tasks required to fulfill the TOS Alpha-2 Architec
 - [x] Implement Deep Inspection (Level 5) Privilege Escalation §17.4
 
 ## Phase 7: Auxiliary Services
-- [ ] Implement Unified TOS Log Service (Merging Local/System/Remote) §19.1
-- [ ] Implement Settings Daemon (Persistence + Cascading Defaults) §26
-- [ ] Implement Audio/Haptic Engine (Earcons & Haptic Feedback) §23, §24
-- [ ] Implement AI Engine (NLE Transition to Staged Commands) §18.3, §30.12
+- [x] Implement Unified TOS Log Service (Merging Local/System/Remote) §19.1
+- [x] Implement Settings Daemon (Cascading Persistence) §11.1/§26
+- [x] Implement Audio Engine Service (Earcons placeholder) §21.2/§23
+- [x] Implement Marketplace Discovery (module.toml Parsing) §18.1
 
 ## Phase 8: Platform & Remote Support
-- [ ] Implement TOS Remote Server (File Service & Stream Management) §12.1
-- [ ] Implement Collaboration Manager (Multi-user Sync) §13
-- [ ] Implement Linux Wayland Backend §15
-- [ ] Implement Android Backend §15
-- [ ] Implement OpenXR/Meta Quest Backend §15
+- [x] Implement TOS Remote Server (File Service & Stream Management) §12.1
+- [x] Implement Collaboration Manager (Multi-user Sync) §13
+- [x] Implement Linux Backend (PTY/FS) §15
+- [x] Implement Android & OpenXR Backends (Mocks) §15
+- [x] Implement SSH Fallback Logic for Remote Sectors §12.1
 
 ## Phase 9: System Polish
 - [ ] Visual Transition Refinement

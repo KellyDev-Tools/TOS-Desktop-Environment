@@ -13,6 +13,7 @@ pub struct Brain {
     pub state: Arc<Mutex<TosState>>,
     pub ipc: Arc<IpcHandler>,
     pub shell: Arc<Mutex<ShellApi>>,
+    pub services: Arc<crate::services::ServiceManager>,
 }
 
 impl Brain {
@@ -24,7 +25,23 @@ impl Brain {
         
         let shell = Arc::new(Mutex::new(ShellApi::new(state.clone(), sid, hid)?));
         let ipc = Arc::new(IpcHandler::new(state.clone(), shell.clone()));
+        let services = Arc::new(crate::services::ServiceManager::new(state.clone()));
         
-        Ok(Self { state, ipc, shell })
+        // Initial setup
+        match services.settings.load() {
+            Ok(loaded) => {
+                let mut lock = state.lock().unwrap();
+                lock.settings.extend(loaded);
+                services.logger.log("Persistent settings loaded.", 1);
+            }
+            Err(e) => {
+                services.logger.log(&format!("Failed to load settings: {}", e), 3);
+            }
+        }
+
+        services.logger.log("Brain Core Initialized.", 2);
+        services.audio.play_earcon("system_ready");
+        
+        Ok(Self { state, ipc, shell, services })
     }
 }

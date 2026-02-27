@@ -43,6 +43,12 @@ impl Face {
             println!("  [{}{}] ID: {} | Hubs: {}", active_mark, i, sector.name, sector.hubs.len());
         }
         println!("---------------------------");
+        println!("SYSTEM OUTPUT AREA (BRAIN LOG) §6.2:");
+        let start = state.system_log.len().saturating_sub(5);
+        for line in &state.system_log[start..] {
+            println!("[P{}] {}", line.priority, line.text);
+        }
+        println!("---------------------------");
     }
 
     fn render_level2(&self, state: &TosState) {

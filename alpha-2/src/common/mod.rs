@@ -110,6 +110,7 @@ pub struct TosState {
     pub active_sector_index: usize,
     pub settings: std::collections::HashMap<String, String>,
     pub pending_confirmation: Option<ConfirmationRequest>, // §17.3
+    pub system_log: Vec<TerminalLine>, // §6.2, §19.1
 }
 
 impl Default for TosState {
@@ -141,6 +142,7 @@ impl Default for TosState {
             active_sector_index: 0,
             settings: std::collections::HashMap::new(),
             pending_confirmation: None,
+            system_log: vec![],
         }
     }
 }

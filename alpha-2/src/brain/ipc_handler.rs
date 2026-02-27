@@ -1,6 +1,7 @@
 use crate::common::{TosState, CommandHubMode, HierarchyLevel};
 use std::sync::{Arc, Mutex};
 use uuid::Uuid;
+use std::path::PathBuf;
 
 pub struct IpcHandler {
     state: Arc<Mutex<TosState>>,
@@ -26,9 +27,15 @@ impl IpcHandler {
 
         match prefix {
             "set_mode" => self.handle_set_mode(args.get(0).copied()),
+            "zoom_in" => self.handle_zoom_in(),
+            "zoom_out" => self.handle_zoom_out(),
             "zoom_to" => self.handle_zoom_to(args.get(0).copied()),
             "set_setting" => self.handle_set_setting(args.get(0).copied(), args.get(1).copied()),
+            "sector_create" => self.handle_sector_create(args.get(0).copied()),
+            "sector_clone" => self.handle_sector_clone(args.get(0).copied()),
             "sector_close" => self.handle_sector_close(args.get(0).copied()),
+            "sector_freeze" => self.handle_sector_freeze(args.get(0).copied()),
+            "search" => self.handle_search(payload),
             "prompt_submit" => self.handle_prompt_submit(payload), // Entire payload is the command
             _ => tracing::warn!("Unknown IPC prefix: {}", prefix),
         }
@@ -50,8 +57,23 @@ impl IpcHandler {
             let hub_idx = sector.active_hub_index;
             if let Some(hub) = sector.hubs.get_mut(hub_idx) {
                 hub.mode = mode;
+                if mode == CommandHubMode::Directory {
+                    crate::brain::sector::SectorManager::refresh_directory_listing(&mut state);
+                } else if mode == CommandHubMode::Activity {
+                    crate::brain::sector::SectorManager::refresh_activity_listing(&mut state);
+                }
             }
         }
+    }
+
+    fn handle_zoom_in(&self) {
+        let mut state = self.state.lock().unwrap();
+        crate::brain::hierarchy::HierarchyManager::zoom_in(&mut state);
+    }
+
+    fn handle_zoom_out(&self) {
+        let mut state = self.state.lock().unwrap();
+        crate::brain::hierarchy::HierarchyManager::zoom_out(&mut state);
     }
 
     fn handle_zoom_to(&self, level_str: Option<&str>) {
@@ -65,7 +87,7 @@ impl IpcHandler {
         };
 
         let mut state = self.state.lock().unwrap();
-        state.current_level = level;
+        crate::brain::hierarchy::HierarchyManager::set_level(&mut state, level);
     }
 
     fn handle_set_setting(&self, key: Option<&str>, val: Option<&str>) {
@@ -75,13 +97,44 @@ impl IpcHandler {
         }
     }
 
+    fn handle_sector_create(&self, name: Option<&str>) {
+        let mut state = self.state.lock().unwrap();
+        crate::brain::sector::SectorManager::create_sector(
+            &mut state, 
+            name.unwrap_or("New Sector").to_string()
+        );
+    }
+
+    fn handle_sector_clone(&self, id_str: Option<&str>) {
+        if let Some(id_str) = id_str {
+            if let Ok(id) = Uuid::parse_str(id_str) {
+                let mut state = self.state.lock().unwrap();
+                crate::brain::sector::SectorManager::clone_sector(&mut state, id);
+            }
+        }
+    }
+
     fn handle_sector_close(&self, id_str: Option<&str>) {
         if let Some(id_str) = id_str {
             if let Ok(id) = Uuid::parse_str(id_str) {
                 let mut state = self.state.lock().unwrap();
-                state.sectors.retain(|s| s.id != id);
+                crate::brain::sector::SectorManager::close_sector(&mut state, id);
             }
         }
+    }
+
+    fn handle_sector_freeze(&self, id_str: Option<&str>) {
+        if let Some(id_str) = id_str {
+            if let Ok(id) = Uuid::parse_str(id_str) {
+                let mut state = self.state.lock().unwrap();
+                crate::brain::sector::SectorManager::toggle_freeze(&mut state, id);
+            }
+        }
+    }
+
+    fn handle_search(&self, query: &str) {
+        let mut state = self.state.lock().unwrap();
+        crate::brain::sector::SectorManager::perform_search(&mut state, query);
     }
 
     fn handle_prompt_submit(&self, command: &str) {
@@ -91,11 +144,26 @@ impl IpcHandler {
         let cmd_lower = command.to_lowercase();
 
         if cmd_lower.starts_with("ls") {
-            // Logic to switch to Directory mode
+            // §27.6: Resolve target path and switch to Directory mode
             if let Some(sector) = state.sectors.get_mut(idx) {
-                let hub_idx = sector.active_hub_index;
-                if let Some(hub) = sector.hubs.get_mut(hub_idx) {
+                if let Some(hub) = sector.hubs.get_mut(sector.active_hub_index) {
                     hub.mode = CommandHubMode::Directory;
+                }
+            }
+            crate::brain::sector::SectorManager::refresh_directory_listing(&mut state);
+        } else if cmd_lower.starts_with("cd ") {
+            // §27.6: Resolve target path and update current_directory
+            let new_path_str = &command[3..].trim();
+            if let Some(sector) = state.sectors.get_mut(idx) {
+                if let Some(hub) = sector.hubs.get_mut(sector.active_hub_index) {
+                    let mut new_path = hub.current_directory.clone();
+                    new_path.push(new_path_str);
+                    // Minimal validation: if it's absolute, use it
+                    if PathBuf::from(new_path_str).is_absolute() {
+                        hub.current_directory = PathBuf::from(new_path_str);
+                    } else {
+                        hub.current_directory = new_path;
+                    }
                 }
             }
         }

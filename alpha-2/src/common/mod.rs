@@ -29,6 +29,7 @@ pub struct Sector {
     pub name: String,
     pub hubs: Vec<CommandHub>,
     pub active_hub_index: usize,
+    pub frozen: bool, // §6.5: Freeze stops UI updates
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -39,6 +40,41 @@ pub struct CommandHub {
     pub current_directory: PathBuf,
     pub terminal_output: Vec<TerminalLine>,
     pub buffer_limit: usize,
+    pub shell_listing: Option<DirectoryListing>, // §27.3: Local/Remote directory data
+    pub activity_listing: Option<ActivityListing>, // §7.3: Activity mode data
+    pub search_results: Option<Vec<SearchResult>>, // §7.3: Search mode results
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct DirectoryListing {
+    pub path: String,
+    pub entries: Vec<DirectoryEntry>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct DirectoryEntry {
+    pub name: String,
+    pub is_dir: bool,
+    pub size: u64,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ActivityListing {
+    pub processes: Vec<ProcessEntry>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ProcessEntry {
+    pub pid: u32,
+    pub name: String,
+    pub cpu_usage: f32,
+    pub mem_usage: u64,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct SearchResult {
+    pub source_sector: String,
+    pub matches: Vec<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -69,8 +105,12 @@ impl Default for TosState {
                 current_directory: std::env::current_dir().unwrap_or_else(|_| PathBuf::from("/")),
                 terminal_output: vec![],
                 buffer_limit: 500, // §29.2 default
+                shell_listing: None,
+                activity_listing: None,
+                search_results: None,
             }],
             active_hub_index: 0,
+            frozen: false,
         };
 
         Self {

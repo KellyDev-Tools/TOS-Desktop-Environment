@@ -15,6 +15,7 @@ chrono = { version = "0.4", features = ["serde"] }
 regex = "1.10"
 base64 = "0.22"
 portable-pty = "0.8"
+sysinfo = "0.30"
 
 [lib]
 name = "tos_alpha2"

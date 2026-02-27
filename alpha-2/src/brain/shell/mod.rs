@@ -47,8 +47,9 @@ impl ShellApi {
     }
 
     fn read_loop(mut reader: Box<dyn Read + Send>, state: Arc<Mutex<TosState>>) {
-        let mut buffer = [0u8; 4096];
         let mut osc_parser = OscParser::new();
+        let mut line_buffer = String::new();
+        let mut buffer = [0u8; 4096];
 
         loop {
             match reader.read(&mut buffer) {
@@ -56,26 +57,32 @@ impl ShellApi {
                 Ok(n) => {
                     let data = &buffer[..n];
                     let text = String::from_utf8_lossy(data);
-                    
-                    // Simple line-by-line processing for logs for now
-                    // In a real impl, we'd handle ANSI/OSC properly
-                    let (clean_text, priority) = osc_parser.process(&text);
-                    
-                    if !clean_text.is_empty() {
-                        let mut state_lock = state.lock().unwrap();
-                        let idx = state_lock.active_sector_index;
-                        if let Some(sector) = state_lock.sectors.get_mut(idx) {
-                            let hub_idx = sector.active_hub_index;
-                            if let Some(hub) = sector.hubs.get_mut(hub_idx) {
-                                hub.terminal_output.push(TerminalLine {
-                                    text: clean_text.to_string(),
-                                    priority,
-                                    timestamp: Local::now(),
-                                });
-                                
-                                // FIFO enforcement
-                                if hub.terminal_output.len() > hub.buffer_limit {
-                                    hub.terminal_output.remove(0);
+                    line_buffer.push_str(&text);
+
+                    while let Some(pos) = line_buffer.find('\n') {
+                        let mut line = line_buffer.drain(..=pos).collect::<String>();
+                        line = line.trim_end_matches(['\r', '\n']).to_string();
+                        
+                        tracing::debug!("PTY LINE: {:?}", line);
+                        let (clean_text, priority) = osc_parser.process(&line);
+                        tracing::debug!("CLEAN: {:?} PRIO: {}", clean_text, priority);
+                        
+                        if !clean_text.is_empty() {
+                            let mut state_lock = state.lock().unwrap();
+                            let idx = state_lock.active_sector_index;
+                            if let Some(sector) = state_lock.sectors.get_mut(idx) {
+                                let hub_idx = sector.active_hub_index;
+                                if let Some(hub) = sector.hubs.get_mut(hub_idx) {
+                                    hub.terminal_output.push(TerminalLine {
+                                        text: clean_text.to_string(),
+                                        priority,
+                                        timestamp: Local::now(),
+                                    });
+                                    
+                                    // FIFO enforcement
+                                    if hub.terminal_output.len() > hub.buffer_limit {
+                                        hub.terminal_output.remove(0);
+                                    }
                                 }
                             }
                         }

@@ -54,7 +54,7 @@ This plan tracks the granular tasks required to fulfill the TOS Alpha-2 Architec
 - [ ] Implement OpenXR/Meta Quest Backend §15
 
 ## Phase 8: Testing & Polish (TDD Tiered Plan)
-- [ ] Execute Tier 1 Unit Tests (Brain Core)
-- [ ] Execute Tier 2 Integration Tests (Shell/PTY)
+- [x] Execute Tier 1 Unit Tests (Brain Core)
+- [x] Execute Tier 2 Integration Tests (Shell/PTY)
 - [ ] Execute Tier 4 Security Tests (Sandbox/Permissions)
 - [ ] Stress Test IPC Round-trip (<16ms) §31.5

@@ -13,6 +13,8 @@ Following the successful completion of the Alpha-2 functional prototype, the Alp
 - [x] **Cinematic Modules:** Implement the "Cinematic Triangular Module" with GPU-accelerated transitions.
 - [x] **Dynamic Theme Engine:** Implement runtime CSS variable injection and multi-sensory asset swapping (SFX/Haptics).
 - [x] **DMABUF Native Path:** Optimize the Linux backend for zero-copy frame buffer sharing with the Wayland compositor.
+- [x] **Configurable Bezel Architecture:** Implement omni-directional slots (Top, Left, Right) with modular component docking and downward/lateral slot projection.
+- [x] **Top Bezel Evolution:** Partition the Top Bezel into Left/Center/Right zones (Left: Handles, Center: Telemetry, Right: System Controls).
 
 ## Production-Grade Security & Isolation (§18.4)
 - [x] **Kernel-Level Sandboxing:** Move beyond mock permissions to actual Linux namespaces/cgroups for Standard Modules.

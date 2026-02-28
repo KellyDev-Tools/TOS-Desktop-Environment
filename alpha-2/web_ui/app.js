@@ -9,6 +9,30 @@ class TosUI {
         this.currentMode = 'global';
         this.ws = null;
         this.pendingRequests = new Map();
+
+        // Alpha-2.1 UI State (Symmetrical Bezel Segments)
+        // Alpha-2.1 UI State (Configurable Slot Architecture)
+        this.sidebarExpanded = false;
+        this.sidebarRightExpanded = false;
+
+        this.componentStates = {
+            minimap: { projected: false },
+            priority: { projected: false },
+            telemetry: { projected: false },
+            minilog: { projected: false },
+            screen_title: { projected: false },
+            brain_status: { projected: false },
+            status_badges: { projected: false }
+        };
+
+        this.slotConfigs = {
+            left: ['minimap'],
+            right: ['priority', 'minilog'],
+            top_left: ['screen_title'],
+            top_center: ['brain_status', 'telemetry'],
+            top_right: ['status_badges']
+        };
+
         this.init();
     }
 
@@ -35,23 +59,75 @@ class TosUI {
             });
         }
 
-        // Mode Navigation
-        document.querySelectorAll('.mode-btn').forEach(btn => {
+        // Mode Navigation (Hierarchy Levels)
+        document.querySelectorAll('.level-btn').forEach(btn => {
             btn.addEventListener('click', () => {
-                const mode = btn.dataset.mode;
-                this.setMode(mode);
+                const level = btn.dataset.level;
+                // Map level names to modes
+                const modeMap = {
+                    'GlobalOverview': 'global',
+                    'CommandHub': 'hubs',
+                    'ApplicationFocus': 'sectors'
+                };
+                this.setMode(modeMap[level] || 'global');
             });
         });
 
-        // Zoom Controls
-        document.getElementById('zoom-in')?.addEventListener('click', () => this.handleCommand('zoom_in:'));
-        document.getElementById('zoom-out')?.addEventListener('click', () => this.handleCommand('zoom_out:'));
+        // Global Keyboard Shortcuts (§14, §22)
+        document.addEventListener('keydown', (e) => {
+            // Projected Components
+            if (e.ctrlKey && e.key === 'm') {
+                e.preventDefault();
+                this.toggleMinimap();
+            }
+            if (e.ctrlKey && e.key === 'p') {
+                e.preventDefault();
+                this.togglePriority();
+            }
+            // Lateral Segment Expansion
+            if (e.ctrlKey && e.key === 's') {
+                e.preventDefault();
+                this.toggleSidebar();
+            }
+            if (e.ctrlKey && e.key === 'r') {
+                e.preventDefault();
+                this.toggleSidebarRight();
+            }
+        });
 
         // 6.4 Bezel Commands
-        document.getElementById('bezel-expand')?.addEventListener('click', () => this.handleCommand('bezel:expand'));
+        document.getElementById('bezel-expand-left')?.addEventListener('click', () => this.toggleSidebar());
+        document.getElementById('bezel-expand-right')?.addEventListener('click', () => this.toggleSidebarRight());
         document.getElementById('bezel-add-sector')?.addEventListener('click', () => this.handleCommand('bezel:add_sector'));
         document.getElementById('bezel-term-toggle')?.addEventListener('click', () => this.handleCommand('bezel:terminal_toggle'));
         document.getElementById('bezel-settings')?.addEventListener('click', () => this.handleCommand('bezel:settings'));
+    }
+
+    toggleComponent(id) {
+        if (!this.componentStates[id]) return;
+        this.componentStates[id].projected = !this.componentStates[id].projected;
+        this.render();
+        console.log(`[TOS UI] Component ${id}: ${this.componentStates[id].projected ? 'PROJECTED' : 'DOCKED'}`);
+    }
+
+    toggleMinimap() { this.toggleComponent('minimap'); }
+    togglePriority() { this.toggleComponent('priority'); }
+    toggleTelemetry() { this.toggleComponent('telemetry'); }
+    toggleMinilog() { this.toggleComponent('minilog'); }
+    toggleScreenTitle() { this.toggleComponent('screen_title'); }
+    toggleBrainStatus() { this.toggleComponent('brain_status'); }
+    toggleStatusBadges() { this.toggleComponent('status_badges'); }
+
+    toggleSidebar() {
+        this.sidebarExpanded = !this.sidebarExpanded;
+        const sidebar = document.querySelector('.lcars-sidebar:not(.lcars-sidebar-right)');
+        if (sidebar) sidebar.classList.toggle('expanded', this.sidebarExpanded);
+    }
+
+    toggleSidebarRight() {
+        this.sidebarRightExpanded = !this.sidebarRightExpanded;
+        const sidebar = document.querySelector('.lcars-sidebar-right');
+        if (sidebar) sidebar.classList.toggle('expanded', this.sidebarRightExpanded);
     }
 
     async setMode(mode) {
@@ -71,8 +147,14 @@ class TosUI {
         if (window.__TOS_IPC__) {
             window.__TOS_IPC__(`set_mode:${mode}`);
         }
-        document.querySelectorAll('.mode-btn').forEach(btn => {
-            btn.classList.toggle('active', btn.dataset.mode === mode);
+        document.querySelectorAll('.level-btn').forEach(btn => {
+            // Map level button state
+            const modeMap = {
+                'GlobalOverview': 'global',
+                'CommandHub': 'hubs',
+                'ApplicationFocus': 'sectors'
+            };
+            btn.classList.toggle('active', modeMap[btn.dataset.level] === mode);
         });
 
         this.render();
@@ -146,6 +228,20 @@ class TosUI {
         // Transmit to Rust Brain via IPC Bridge
         if (window.__TOS_IPC__) {
             try {
+                // Configurable Slot Reassignment via command (Mock Logic)
+                if (cmd.startsWith('dock:')) {
+                    const [_, compId, segmentId] = cmd.split(':');
+                    if (this.componentStates[compId] && this.slotConfigs[segmentId]) {
+                        // Remove from old segment
+                        Object.keys(this.slotConfigs).forEach(s => {
+                            this.slotConfigs[s] = this.slotConfigs[s].filter(id => id !== compId);
+                        });
+                        // Add to new segment
+                        this.slotConfigs[segmentId].push(compId);
+                        this.render();
+                    }
+                }
+
                 const response = await window.__TOS_IPC__(`prompt_submit:${cmd}`);
 
                 // Parse the real latency from the response (e.g., "SUBMITTED (122µs)")
@@ -221,18 +317,6 @@ class TosUI {
         const title = document.getElementById('view-title');
         const footer = document.querySelector('.lcars-footer');
 
-        // Render headers from state
-        const prefixEl = document.getElementById('sys-prefix');
-        const titleEl = document.getElementById('sys-title');
-        const statusEl = document.getElementById('status-brain');
-        const logEl = document.getElementById('mini-log');
-        const clockEl = document.getElementById('status-clock');
-
-        if (prefixEl) prefixEl.innerText = this.state.sys_prefix || "";
-        if (titleEl) titleEl.innerText = this.state.sys_title || "";
-        if (statusEl) statusEl.innerText = this.state.sys_status || "";
-        if (clockEl) clockEl.innerText = this.state.brain_time || "--:--:--";
-
         // Render Collaboration Indicators (6.4)
         const collabEl = document.querySelector('.collab-indicators');
         if (collabEl && this.state.collab_presence) {
@@ -241,23 +325,8 @@ class TosUI {
             ).join('');
         }
 
-        // Drive Mini-Log from system_log (Authoritative Telemetry)
-        if (logEl && (!this.lastFeedback || Date.now() - this.lastFeedback > 3000)) {
-            const lastLog = this.state.system_log && this.state.system_log.length > 0
-                ? this.state.system_log[this.state.system_log.length - 1]
-                : null;
-
-            if (lastLog && typeof lastLog === 'object' && lastLog.text) {
-                logEl.innerText = lastLog.text.toUpperCase();
-                logEl.style.color = lastLog.priority >= 3 ? 'var(--color-warning)' : 'var(--color-accent)';
-            } else if (typeof lastLog === 'string') {
-                logEl.innerText = lastLog.toUpperCase();
-                logEl.style.color = 'var(--color-accent)';
-            } else {
-                logEl.innerText = this.state.sys_ready || "SYSTEM READY.";
-                logEl.style.color = 'var(--color-success)';
-            }
-        }
+        // Dynamic Slot Rendering
+        this.renderAllSlots();
 
         if (!target || !title) return;
 
@@ -294,6 +363,119 @@ class TosUI {
                 </div>
             `;
         }
+    }
+
+    renderAllSlots() {
+        const containers = {
+            left: document.getElementById('left-slots'),
+            right: document.getElementById('right-slots'),
+            top_left: document.getElementById('top-left-slots'),
+            top_center: document.getElementById('top-center-slots'),
+            top_right: document.getElementById('top-right-slots')
+        };
+
+        Object.keys(this.slotConfigs).forEach(slotId => {
+            const container = containers[slotId];
+            if (!container) return;
+
+            container.innerHTML = this.slotConfigs[slotId].map(compId => this.renderComponent(compId)).join('');
+        });
+    }
+
+    renderComponent(id) {
+        const state = this.componentStates[id];
+        const isProjected = state?.projected;
+        const classNames = `slot-component ${isProjected ? '' : 'toggled-off'}`;
+
+        if (id === 'minimap') {
+            return `
+                <div class="${classNames}" id="comp-minimap">
+                    <div class="minimap-container ${isProjected ? '' : 'toggled-off'}" onclick="window.tos.toggleMinimap()">
+                        <div class="minimap-content">
+                            ${this.state.sectors.map((s, i) => `
+                                <div class="minimap-sector ${i === this.state.active_sector_index ? 'active' : ''}">
+                                    S${i} <div class="minimap-hub ${i === this.state.active_sector_index ? 'active' : ''}"></div>
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>
+                </div>`;
+        }
+
+        if (id === 'priority') {
+            return `
+                <div class="${classNames}" id="comp-priority">
+                    <div class="minimap-container ${isProjected ? '' : 'toggled-off'}" onclick="window.tos.togglePriority()">
+                        <div class="minimap-content">
+                            ${this.state.system_log.slice(-3).map(log => `
+                                <div class="minimap-sector" style="border-left: 2px solid var(--color-warning)">
+                                    ${log.text.toUpperCase()}
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>
+                </div>`;
+        }
+
+        if (id === 'telemetry') {
+            return `
+                <div class="${classNames}" id="comp-telemetry" onclick="window.tos.toggleTelemetry()">
+                    <div class="status-badge active" style="cursor:pointer">TELEMETRY</div>
+                    <div class="slot-overlay glass-panel">
+                        <div style="color:var(--color-primary); font-weight:800">SYSTEM TELEMETRY</div>
+                        <div style="font-size:0.8rem; margin-top:0.5rem">
+                            CPU: 12% | MEM: 4.2GB | NET: 1.2MB/s
+                        </div>
+                    </div>
+                </div>`;
+        }
+
+        if (id === 'minilog') {
+            const lastLog = this.state.system_log && this.state.system_log.length > 0
+                ? this.state.system_log[this.state.system_log.length - 1]
+                : { text: "SYSTEM READY.", priority: 0 };
+            const text = (lastLog.text || "").toUpperCase();
+
+            return `
+                <div class="${classNames}" id="comp-minilog" onclick="window.tos.toggleMinilog()">
+                    <div class="minimap-container ${isProjected ? '' : 'toggled-off'}" style="height: 0.5rem; border-color: var(--color-accent)">
+                        <div class="minimap-content" style="font-size: 0.6rem; white-space: nowrap; overflow: hidden; color: var(--color-success)">
+                            ${text}
+                        </div>
+                    </div>
+                </div>`;
+        }
+
+        if (id === 'screen_title') {
+            const prefix = this.state.sys_prefix || "";
+            const title = this.state.sys_title || "";
+            return `
+                <div class="${classNames} lcars-title-area" id="comp-screen-title" onclick="window.tos.toggleScreenTitle()">
+                    <span class="lcars-prefix" style="color:var(--color-primary); opacity: 0.7; font-weight: 300">${prefix}</span>
+                    <span class="lcars-title" style="font-weight:700; margin-left:1rem">${title}</span>
+                </div>`;
+        }
+
+        if (id === 'brain_status') {
+            const time = this.state.brain_time || "--:--:--";
+            const status = (this.state.sys_status || "DISCONNECTED").toUpperCase();
+            return `
+                <div class="${classNames} lcars-status" id="comp-brain-status" onclick="window.tos.toggleBrainStatus()" style="display:flex; align-items:center">
+                    <span style="font-size: 0.6rem; opacity: 0.5; margin-right: 0.5rem">BRAIN TIME</span>
+                    <span id="status-clock" style="font-family:monospace; margin-right:1rem">${time}</span>
+                    <span class="status-badge active" style="background: #000; color: var(--color-success); padding: 0.125rem 0.625rem; border-radius: 1rem; font-size: 0.75rem; border: 1px solid rgba(255, 255, 255, 0.1)">${status}</span>
+                </div>`;
+        }
+
+        if (id === 'status_badges') {
+            return `
+                <div class="${classNames} lcars-status" id="comp-status-badges" style="display:flex; gap:0.5rem; align-items:center">
+                    <button class="v-btn bezel-btn" title="Toggle Terminal" onclick="event.stopPropagation(); window.tos.handleCommand('bezel:term-toggle')">👁</button>
+                    <button class="v-btn bezel-btn" title="Settings" onclick="event.stopPropagation(); window.tos.handleCommand('bezel:settings')">⚙</button>
+                </div>`;
+        }
+
+        return '';
     }
 }
 

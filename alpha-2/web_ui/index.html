@@ -21,18 +21,18 @@
 
         <header class="lcars-header">
             <div class="lcars-bar lcars-bar-top">
-                <div class="lcars-title-area">
-                    <button class="v-btn bezel-btn" id="bezel-expand" title="Expand Bezel">▼</button>
-                    <button class="v-btn bezel-btn" id="bezel-add-sector" title="Add Sector">+</button>
-                    <span class="lcars-prefix" id="sys-prefix"></span>
-                    <span class="lcars-title" id="sys-title"></span>
+                <div id="top-left-slots" class="top-bezel-slots-left">
+                    <button class="v-btn bezel-btn" id="bezel-expand-left" title="Toggle Left Sidebar">◀</button>
+                    <!-- Screen Title lands here -->
                 </div>
-                <div class="lcars-status">
-                    <div class="collab-indicators"></div>
-                    <button class="v-btn bezel-btn" id="bezel-term-toggle" title="Toggle System Terminal">👁</button>
-                    <button class="v-btn bezel-btn" id="bezel-settings" title="Settings">⚙</button>
-                    <span id="status-clock">00:00:00</span>
-                    <span class="status-badge active" id="status-brain"></span>
+
+                <div id="top-center-slots" class="top-bezel-slots-center">
+                    <!-- Telemetry (Time, Resource) lands here -->
+                </div>
+
+                <div id="top-right-slots" class="top-bezel-slots-right">
+                    <button class="v-btn bezel-btn" id="bezel-expand-right" title="Toggle Right Sidebar">▶</button>
+                    <!-- System Controls (Status Badges) land here -->
                 </div>
             </div>
         </header>
@@ -40,10 +40,19 @@
         <main class="lcars-main">
             <nav class="lcars-sidebar">
                 <div class="sidebar-top">
-                    <button class="lcars-btn mode-btn active" id="btn-global" data-mode="global">GLOBAL</button>
-                    <button class="lcars-btn mode-btn" id="btn-hubs" data-mode="hubs">HUBS</button>
-                    <button class="lcars-btn mode-btn alt-1" id="btn-sectors" data-mode="sectors">SECTORS</button>
+                    <!-- Hierarchy Level Navigation -->
+                    <button class="lcars-btn level-btn active" id="btn-lvl1"
+                        data-level="GlobalOverview">OVERVIEW</button>
+                    <button class="lcars-btn level-btn" id="btn-lvl2" data-level="CommandHub">COMMAND HUB</button>
+                    <button class="lcars-btn level-btn alt-1" id="btn-lvl3" data-level="ApplicationFocus">APP
+                        FOCUS</button>
                 </div>
+
+                <!-- Configurable Vertical Slots (§8.1) -->
+                <div id="left-slots" class="sidebar-slot-stack">
+                    <!-- Modular components like Minimap dock here -->
+                </div>
+
                 <div class="sidebar-spacer"></div>
             </nav>
 
@@ -77,11 +86,18 @@
                             <input type="text" id="cmd-input" placeholder="ENTER COMMAND OR AI QUERY..."
                                 autocomplete="off">
                         </div>
-                        <div class="lcars-sys-log" id="mini-log"></div>
                         <div class="lcars-elbow bottom-right"></div>
                     </div>
                 </footer>
             </section>
+
+            <aside class="lcars-sidebar lcars-sidebar-right">
+                <!-- Configurable Vertical Slots (§8.1) -->
+                <div id="right-slots" class="sidebar-slot-stack">
+                    <!-- Modular components like Priority or Mini-Log dock here -->
+                </div>
+                <div class="sidebar-spacer"></div>
+            </aside>
         </main>
     </div>
     <script src="app.js?v=2.1.2"></script>

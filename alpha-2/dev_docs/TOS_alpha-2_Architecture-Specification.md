@@ -85,6 +85,15 @@ Additionally, TOS introduces a **system‑level terminal output** at the Global 
 TOS is built around a strictly vertical hierarchy of **levels**, a tree of **sectors**, and a **Persistent Unified Prompt** that drives all interaction. The system is composed of:
 
 - A **platform‑agnostic core** (the **Brain**) implementing the hierarchy, command execution, security, and coordination.
+- A **Unified Tactical Bezel** – a persistent frame that surrounds the entire viewport across all hierarchical levels. It is composed of segments:
+  - **Top Bezel Segment:** System controls(logout, shutdown, reboot, settings, etc), and dual expansion handles. Now hosts **Configurable Horizontal Slots** for high-level telemetry and quick-access tools.
+    - The Top Bezel Segment is divided into three sections: Left, Center, and Right. Each section has a different set of requirements, allowing for a flexible and customizable top-level interface.
+      - Left Section: the expand/collapse handles for the left lateral segment.
+      - Center Section: component slots for high-level telemetry and quick-access tools (time, date, cpu usage, memory usage, network status, etc).
+      - Right Section: the expand/collapse handles for the right lateral segment then in the right most section the system controls menu(logout, shutdown, reboot, settings, etc).
+  - **Bottom Bezel Segment:** The Persistent Unified Prompt (Locked assembly, no configurable slots).
+  - **Lateral Segments (Left & Right):** Slender vertical bars containing **Configurable Vertical Slots**. 
+  - **Configurability:** All component slots (Top, Left, Right) are user-definable. Any system tool (Minimap, AI Stage, Clock, etc.) can be docked to any slot via the Settings panel or direct manipulation.
 - **Platform backends** (Wayland, OpenXR, Android) providing rendering, input, and system services via three core traits: `Renderer`, `InputSource`, `SystemServices`.
 - **Remote connectivity** via the TOS Remote Server protocol, enabling remote sectors, collaboration, and web portals.
 - **Module system** for Application Models, Sector Types, AI backends, Terminal Output Modules, Theme Modules, and Shell Modules, all sandboxed and permissioned.
@@ -218,9 +227,9 @@ When the user activates the **"Bring Terminal to Front"** bezel command (see §6
 
 Selecting a sector tile smoothly expands its borders into the full Command Hub. During the transition, the System Output Area fades out or slides away, replaced by the sector's own terminal output area (also powered by the same Terminal Output Module, but with interactive capabilities). The System Output Area can still be accessed via a bezel shortcut after zooming.
 
-### 6.4 Global Overview Bezel
+### 6.4 Global Overview Bezel (Top Segment)
 
-The bezel at Level 1 provides system‑level controls and includes commands that are sent directly to the **Brain's terminal** (i.e., they affect the system console, not any sector). Bezel buttons use action identifiers as per §28.
+The **Top Bezel Segment** at Level 1 provides system‑level controls and includes commands that are sent directly to the **Brain's terminal** (i.e., they affect the system console, not any sector). Bezel buttons use action identifiers as per §28.
 
 **Collapsed:** Thin top strip with:
 - Settings icon (gear)
@@ -293,11 +302,14 @@ The context menu is triggered by the `secondary_select` semantic event (see §14
 
 When the user zooms into a sector, the System Output Area is replaced by the sector's own terminal output area. The sector's terminal is now the primary focus. The bezel provides a **Show System Output** button that temporarily overlays the system console (e.g., as a split or pop‑up) without leaving the sector.
 
-### 7.1 Persistent Unified Prompt
+### 7.1 Persistent Unified Prompt (Bottom Bezel Segment)
 
-- **Left Section:** Mode selector (CMD, SEARCH, AI). Even in non‑CMD modes, the prompt always contains text that can be edited and submitted as a command. For example, in SEARCH mode, typing `files:budget` populates the prompt; pressing Enter executes a `search` command (or a configured alias).
-- **Center Section:** The input field. It always reflects the current command-to-be. In CMD mode, it's a standard shell command; in SEARCH, it's a search query that will be wrapped into a `search` command; in AI, it's a natural language query that will be sent to the AI Engine and the resulting command staged.
-- **Right Section:** Mic and Stop buttons. Voice input transcribes into the prompt.
+The **Bottom Bezel Segment** houses the Persistent Unified Prompt, the primary interface for all system interaction. It is visible across all levels and modes. By architectural rule, this segment is **strictly static** and contains **no slots**. It does not support configurable component docking.
+
+- **Left Section (Origin):** **Universal Mode Selector** (CMD, SEARCH, AI, ACTIVITY). This is an integral part of the prompt assembly, not a dockable module.
+- **Center Section:** The input field. It always reflects the current command-to-be across different interaction modes.
+- **Right Section:** Mic and Stop buttons for voice-first interaction and command termination.
+- **Visual State:** The segment is **collapsed and unexpandable** at Level 1, **fully expanded** at Level 2, **collapsed yet expandable** (via hover/click) at Level 3, and **collapsed and unexpandable** at Levels 4 and 5.
 
 ### 7.2 Terminal Output as Primary Canvas (Powered by Terminal Output Module)
 
@@ -373,16 +385,30 @@ When using split viewports (§11), each viewport contains its own instance of th
 
 Applications occupy the full viewport, with the Tactical Bezel. A **System Output** button in the bezel can overlay the system console (similar to Level 2) for quick monitoring.
 
-### 8.1 Tactical Bezel (Collapsed & Expanded)
+### 8.1 Tactical Bezel (Configurable Slot Architecture)
 
-**Collapsed:** Thin top strip with Zoom Out, app icon/title, Expand handle (down chevron). 
-**Expanded:** Activated by dragging handle, clicking, or `Ctrl+Space`. Reveals a command strip with:
+By definition, the **Tactical Bezel** surrounds the entire viewport. It acts as the "bridge" between the user and the digital environment, providing a consistent set of controls and indicators regardless of the content.
 
-- **Navigation:** Zoom Out, Split, Teleport, Close.
-- **Window Controls:** Minimize, Full‑screen Toggle, Always on Top.
-- **App‑Specific Actions** (from Application Model).
-- **System Shortcuts:** Open Command Hub, Toggle Mini‑Map, Settings, Show System Output.
-- **Collaboration Indicators:** Avatars, share button.
+- **Unified Geometry:** The Bezel is a continuous, logically unified frame. While visual segments (Top, Bottom, Left, Right) may collapse or expand independently as contextual overlays, they maintain a stable screen percentage to prevent layout jitter.
+- **Configurable Slot System:**
+  - **Omni-Directional Slots:** Functional slots are available in the Top (Left, Center, Right sections), Left, and Right segments. 
+  - **User Assignment:** Components are not hard-coded to segments. A user may dock the Minimap to the Top Bezel or the Brain Status to the Right Bezel based on preference.
+  - **Default Layout:**
+    - **Left:** Hierarchy Navigation (Level 1-3), Tactical Mini-Map (§22).
+    - **Right:** Priority Indicators (§21), Mini-Log Telemetry, AI Suggestion Stage.
+    - **Top (Left):** Active Viewport Title.
+    - **Top (Center):** Brain Connection Status, Resource Telemetry.
+    - **Top (Right):** System Status Badges.
+- **Slot Projection Mechanism:**
+  - **Lateral Projection:** Components in Left/Right slots project horizontally into the main viewport.
+  - **Vertical Projection:** Components in Top slots project **downward** into the main viewport upon activation (e.g., clicking a status badge).
+  - **Constraint:** The underlying Bezel Segment remains fixed; only the projection (Glassmorphism Overlay) is dynamic.
+- **Navigation Controls (Left Segment):**
+  - **OVERVIEW:** Reverts the interface to Level 1.
+  - **COMMAND HUB:** Navigates to Level 2.
+  - **APP FOCUS:** Zooms into Level 3.
+- **Top Bezel Segment:** Handles system-wide expansions, global status, and configurable tool slots (divided into Left, Center, and Right zones as per §2).
+- **Bottom Bezel Segment:** Anchors the Persistent Unified Prompt (collapsed and unexpandable in Level 1, expanded in Level 2, collapsed and expandable in Level 3, and collapsed and unexpandable in Levels 4 and 5). Note: This segment contains no configurable slots.
 
 
 ### 8.2 Application Models
@@ -716,7 +742,7 @@ Level 5 access is disabled by default; requires explicit elevation (sudo/Polki
 
 ---
 
-## 18. Modules: Application Models, Sector Types, AI Backends, Terminal Output, Themes, and Shells
+## 18. Modules: Application Models, Sector Types, AI Backends, Terminal Output, Themes, Shells, and Bezel Components
 
 Modules are platform‑specific plugins (`.so` on Linux, `.apk` or dynamic modules on Android) that extend TOS functionality. 
 
@@ -885,7 +911,24 @@ Built‑in shell: TOS includes a reference shell module (Fish) with full OSC int
 
 
 
-### 18.8 Relationship with Other Modules
+### 18.8 Bezel Component Modules
+
+Bezel Components are modular UI elements that can be installed via the marketplace and docked into any available **Tactical Bezel Slot** (Top, Left, or Right). Note that the Bottom Bezel (Prompt Segment) is a static assembly and does not support component docking. They utilize the **Slot Projection** mechanism (§8.1) to expand their presence into the viewport when triggered.
+
+The following components are currently defined in the core system:
+
+1. **Tactical Mini-Map:** Provides high-level spatial overview, sector topology monitoring, and rapid teleportation (§22). Default: Left Segment Slot.
+2. **Priority Indicator:** Features dynamically ranked system alerts and notification badges (§21). Default: Right Segment Slot.
+3. **Resource Telemetry:** Monitoring tool for system performance metrics. Default: Top Segment Slot.
+4. **Collaboration Hub:** Manages multi-user presence and session-sharing (§12).
+5. **System Clock & Calendar:** Synchronized temporal anchor with integrated task overlays.
+6. **Mini-Log Telemetry:** Persistent readout of authoritative system state and command acknowledges. Default: Right Segment Slot.
+7. **Media Controller:** Global playback controls for system audio and remote stream synchronization.
+8. **Active Viewport Title:** Modular readout of current Hierarchical Level, Sector Name, or Application Focus. Default: Top Bezel (Left).
+9. **Brain Connection Status:** Real-time indicator of the local/remote Brain link state, including heartbeats and latency. Default: Top Bezel (Right).
+10. **System Status Badges:** Configurable array of toggles and indicators (e.g., Terminal visibility, Collaboration dots, Sandboxing toggles).
+
+### 18.9 Relationship with Other Modules
 
 - **Sector Types** may specify a preferred shell (e.g., a development sector might default to Zsh).
 - **Application Models** are shell‑agnostic; they interact with the Brain, not directly with the shell.
@@ -1018,6 +1061,13 @@ Optional overlay (toggle) showing live resource usage:
 - Level 2: All apps with CPU%, memory%, sparkline.
 - Level 3: Detailed stats for focused app + compact for others.
 - Throttled to 1–2 Hz.
+
+### 22.4 Bezel Integration (Slot Projection)
+
+The Tactical Mini-Map is docked within a slot in the **Left Bezel Segment**.
+- **Docked State:** Occupies the 1.5rem width of the left bezel, showing only high-alert status lines.
+- **Projected State:** When activated (e.g., `Ctrl+M`), it projects a wide glassmorphism overlay into the center of the screen without expanding the sidebar.
+- **Contextual Anchors:** Clicking tiles within the projected overlay triggers immediate level transitions.
 
 ---
 
@@ -1346,5 +1396,7 @@ Result must be valid printable UTF‑8.
 ## 31. Conclusion
 
 By unifying the terminal output experience across the Global Overview and Command Hubs through the same modular system, TOS reinforces its terminal‑first identity while enabling unprecedented customisation. The System Output Area at Level 1 serves as a dynamic, readable window into the Brain's operations, placed as a distinct layer that can be toggled to the front for detailed inspection. The addition of a sector tile context menu empowers users to manage their workspaces quickly and safely, with tactile confirmation for destructive actions. Combined with theme and shell modules, TOS offers a deeply personalisable yet coherent environment – a true "Terminated On Steroids" for the modern era. All future development should reference this document as the single source of truth. 
+
+
 
 

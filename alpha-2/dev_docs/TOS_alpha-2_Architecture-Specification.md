@@ -20,7 +20,7 @@
 7. [Command Hub – Level 2 (The Heart of TOS)](#7-command-hub--level-2-the-heart-of-tos) 
    7.1. Persistent Unified Prompt 
    7.2. Terminal Output as Primary Canvas (Powered by Terminal Output Module) 
-   7.3. Five Augmentation Modes 
+   7.3. Context-Aware Terminal Augmentation 
    7.4. Dual‑Sided Chip Layout 
    7.5. Output Area Configurations (Provided by Modules) 
    7.6. Autocomplete Overlay 
@@ -319,26 +319,28 @@ By default, TOS ships with a **Rectangular Terminal Output Module** that provide
 
 The output area occupies the full width between the left and right chip regions. It is rendered as a separate layer, behind the dynamic chip regions and bezel, but the user can temporarily bring it to the front using a bezel toggle (see §7.8).
 
-### 7.3 Five Augmentation Modes
+### 7.3 Context-Aware Terminal Augmentation
 
-All modes are **overlays** that sit on top of the terminal, adding context without obscuring it.
+Rather than utilizing separate graphical pop-ups, grids, or overlays for different tasks, TOS treats the **Terminal Canvas** and the **Dual-Sided Chip Layout** as a unified interface. The system mode dictates what appears in the terminal and how the chips are populated, ensuring a consistent function-over-form interaction model:
 
-| Mode | Purpose | Relationship to Terminal |
-|------|---------|--------------------------|
-| **CMD** | Standard shell interaction. The prompt accepts raw commands; terminal output shows results. | This is the base mode. |
-| **SEARCH** | Unified search across domains. The prompt is prefilled with a `search` command (e.g., `search files:budget`). Results appear as a temporary grid, but the terminal continues to show the `search` command's output. | The grid is a visualisation; the underlying terminal still contains the search command and its results. |
-| **AI** | Natural language to command conversion. The user types or speaks a request; the AI Engine suggests a command, which is staged in the prompt for confirmation. The terminal shows the AI's explanatory output if any. | AI never executes directly; it stages a command for the user to review and run. |
-| **Directory** | File manager view. The terminal continues to show `ls`, `cd`, etc. Clicking a file appends its path to the prompt. The file grid is a visualisation of `ls` output. | The grid is generated from the shell's directory listing (via OSC or fallback). The prompt always reflects the next command. |
-| **Activity** | Process manager view. The grid of processes is a visualisation of `ps` output. Selecting a process inserts its PID into the prompt. | Same principle: the grid is a helper; the terminal remains the source of truth. |
+| Context | Terminal Canvas | Chip Layout Integration |
+|---------|-----------------|-------------------------|
+| **Command** | Standard shell `stdout`/`stderr`. | Chips show command history, autocomplete suggestions, and tool flags. |
+| **Search** | Semantic or exact search results. | Chips populate with search scopes, filters, and quick-action buttons for results. |
+| **AI** | The LLM's rationale, thought process, or raw output. | Chips act as command staging buttons for the AI's suggested shell operations. |
+| **Directory** | Raw directory listing (`ls` / `cd`). | Chips dynamically populate with interactive file and folder paths for rapid prompt building. When applicable, chips also provide file or image previews. |
+| **Activity** | Raw process table (`top` / `ps`). | Chips populate with immediate process-handling actions (kill, renice, monitor). For applications with displays, chips show a 10Hz live thumbnail. |
 
 
 ### 7.4 Dual‑Sided Chip Layout
 
-**Left Region (Favourites & Context):** User‑pinned commands, directory‑aware chips, Application Model hooks, Sector Type defaults. Can be toggled off.
+In Level 2, the viewport features dynamic vertical chip columns floating over the terminal output (but inside the bounds of the Lateral Bezels). These chips physically manifest the Contextual Augmentations described above:
 
-**Right Region (Prioritized Chips):** Dynamically ranked suggestions based on priority scoring: eval‑help flags, history, completions, AI suggestions, alerts. Each chip may carry visual priority indicators.
+**Left Region (Context & Options):** Static or slowly changing context (Favorites, Pinned Paths, Directory Nav trees, File targets, Search Filters, Application Model hooks). Can be toggled off.
 
-**Interaction:** Tapping a left‑region chip populates/stages the command; tapping a right‑region chip appends its content at cursor (or replaces token). Flags that accept arguments may show secondary chips for possible values.
+**Right Region (Priority Stack & Actions):** Highly dynamic, predictive context (Command Completions, AI-suggested commands, Actionable alerts, Process kill-switches). Driven by the Priority Indicator engine.
+
+**Interaction:** Tapping a left‑region chip populates/stages the command or context; tapping a right‑region chip appends its action/argument at the cursor (or replaces the token). Flags that accept arguments may show secondary chips for possible values.
 
 ### 7.5 Output Area Configurations (Provided by Modules)
 

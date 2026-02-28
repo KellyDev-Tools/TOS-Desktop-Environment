@@ -1,4 +1,4 @@
-# TOS Alpha-2 Comprehensive Implementation Plan
+# TOS Alpha-2.0 Comprehensive Implementation Plan
 
 This plan tracks the granular tasks required to fulfill the TOS Alpha-2 Architectural Specification.
 

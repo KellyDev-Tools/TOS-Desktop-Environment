@@ -17,7 +17,7 @@ Following the successful completion of the Alpha-2 functional prototype, the Alp
 ## Phase 12: Production-Grade Security & Isolation (§18.4)
 - [x] **Kernel-Level Sandboxing:** Move beyond mock permissions to actual Linux namespaces/cgroups for Standard Modules.
 - [x] **Deep Inspection (Level 5) Audit:** Implement a cryptographic audit log for all privilege escalations.
-- [ ] **Manifest Signing:** Require signed `module.toml` for Marketplace installations to ensure supply-chain security.
+- [x] **Manifest Signing:** Require signed `module.toml` for Marketplace installations to ensure supply-chain security.
 
 ## Phase 13: Hardware & Mobile Finalization (§15)
 - [ ] **Android NDK Integration:** Replace the Android mock with the actual SurfaceControl and input event pipeline.

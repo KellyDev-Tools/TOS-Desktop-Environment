@@ -176,12 +176,14 @@ async fn test_remote_session_disconnection() {
 #[tokio::test]
 async fn test_dangerous_command_interception() {
     use tos_alpha2::brain::ipc_handler::IpcHandler;
+    use tos_alpha2::services::ServiceManager;
     let state_val = TosState::default();
     let sid = state_val.sectors[0].id;
     let hid = state_val.sectors[0].hubs[0].id;
     let state = Arc::new(Mutex::new(state_val));
     let shell = Arc::new(Mutex::new(ShellApi::new(state.clone(), sid, hid).unwrap()));
-    let ipc = IpcHandler::new(state.clone(), shell.clone());
+    let services = Arc::new(ServiceManager::new(state.clone()));
+    let ipc = IpcHandler::new(state.clone(), shell.clone(), services);
 
     // 1. Submit dangerous command
     ipc.handle_request("prompt_submit:rm -rf /");

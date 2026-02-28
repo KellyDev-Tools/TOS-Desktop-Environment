@@ -108,7 +108,6 @@ body {
     align-items: center;
     background-color: var(--color-accent);
     height: 2.5rem;
-    border-radius: 1.25rem;
     padding: 0 2.5rem;
     position: relative;
     color: #000;
@@ -119,11 +118,15 @@ body {
 
 .lcars-bar-top {
     background-color: var(--color-primary);
+    border-radius: 0;
+    margin-left: -1.25rem;
+    margin-right: -1.25rem;
 }
 
 .lcars-bar-bottom {
     background-color: var(--color-secondary);
     height: 3.75rem;
+    border-radius: 1.875rem;
     margin-top: auto;
 }
 
@@ -134,17 +137,7 @@ body {
     background-color: inherit;
 }
 
-.top-left {
-    top: 0;
-    left: -1.25rem;
-    border-radius: 1.25rem 0 0 1.25rem;
-}
-
-.top-right {
-    top: 0;
-    right: -1.25rem;
-    border-radius: 0 1.25rem 1.25rem 0;
-}
+/* Top elbows removed to resolve sub-pixel scaling tears. Bar spans full width natively. */
 
 .lcars-title-area {
     flex-grow: 1;
@@ -231,15 +224,17 @@ body {
 
 .mode-toggle-pill {
     display: flex;
+    align-items: stretch;
     background: rgba(10, 15, 25, 0.8);
     border: 1px solid rgba(255, 255, 255, 0.1);
     border-radius: 2rem;
-    padding: 0.25rem;
-    gap: 0.25rem;
+    padding: 0.125rem;
+    gap: 0.125rem;
     width: max-content;
-    box-shadow: 0 0.5rem 1.5rem rgba(0, 0, 0, 0.6);
+    box-shadow: 0 0.25rem 1rem rgba(0, 0, 0, 0.4);
     backdrop-filter: blur(10px);
-    margin-bottom: 0.625rem;
+    margin-right: 0.625rem;
+    height: 90%;
 }
 
 .pill-btn {
@@ -250,7 +245,7 @@ body {
     font-weight: 700;
     font-size: 0.75rem;
     letter-spacing: 1.5px;
-    padding: 0.625rem 1.25rem;
+    padding: 0.5rem 1.5rem;
     border-radius: 1.5rem;
     cursor: pointer;
     transition: var(--transition-smooth);
@@ -336,6 +331,22 @@ h1 {
 .v-btn:hover {
     background: var(--color-primary);
     color: #000;
+}
+
+.bezel-btn {
+    border-color: rgba(0, 0, 0, 0.3);
+    color: rgba(0, 0, 0, 0.7);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.8rem;
+    padding: 0;
+}
+
+.bezel-btn:hover {
+    background: rgba(0, 0, 0, 0.8);
+    color: var(--color-primary);
+    border-color: #000;
 }
 
 /* Input Area */

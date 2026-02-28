@@ -21,16 +21,19 @@
 
         <header class="lcars-header">
             <div class="lcars-bar lcars-bar-top">
-                <div class="lcars-elbow top-left"></div>
                 <div class="lcars-title-area">
+                    <button class="v-btn bezel-btn" id="bezel-expand" title="Expand Bezel">▼</button>
+                    <button class="v-btn bezel-btn" id="bezel-add-sector" title="Add Sector">+</button>
                     <span class="lcars-prefix" id="sys-prefix"></span>
                     <span class="lcars-title" id="sys-title"></span>
                 </div>
                 <div class="lcars-status">
+                    <div class="collab-indicators"></div>
+                    <button class="v-btn bezel-btn" id="bezel-term-toggle" title="Toggle System Terminal">👁</button>
+                    <button class="v-btn bezel-btn" id="bezel-settings" title="Settings">⚙</button>
                     <span id="status-clock">00:00:00</span>
                     <span class="status-badge active" id="status-brain"></span>
                 </div>
-                <div class="lcars-elbow top-right"></div>
             </div>
         </header>
 
@@ -42,13 +45,6 @@
                     <button class="lcars-btn mode-btn alt-1" id="btn-sectors" data-mode="sectors">SECTORS</button>
                 </div>
                 <div class="sidebar-spacer"></div>
-                <div class="sidebar-bottom">
-                    <div class="mode-toggle-pill">
-                        <button class="pill-btn active" id="mode-cmd">CMD</button>
-                        <button class="pill-btn" id="mode-search">SEARCH</button>
-                        <button class="pill-btn" id="mode-ai">AI</button>
-                    </div>
-                </div>
             </nav>
 
             <section class="lcars-content-area">
@@ -72,6 +68,11 @@
                     <div class="lcars-bar lcars-bar-bottom">
                         <div class="lcars-elbow bottom-left"></div>
                         <div class="lcars-input-area">
+                            <div class="mode-toggle-pill">
+                                <button class="pill-btn active" id="mode-cmd">CMD</button>
+                                <button class="pill-btn" id="mode-search">SEARCH</button>
+                                <button class="pill-btn" id="mode-ai">AI</button>
+                            </div>
                             <span class="prompt-symbol">&gt;</span>
                             <input type="text" id="cmd-input" placeholder="ENTER COMMAND OR AI QUERY..."
                                 autocomplete="off">

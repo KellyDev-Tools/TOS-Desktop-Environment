@@ -15,7 +15,7 @@ Following the successful completion of the Alpha-2 functional prototype, the Alp
 - [ ] **DMABUF Native Path:** Optimize the Linux backend for zero-copy frame buffer sharing with the Wayland compositor.
 
 ## Phase 12: Production-Grade Security & Isolation (§18.4)
-- [ ] **Kernel-Level Sandboxing:** Move beyond mock permissions to actual Linux namespaces/cgroups for Standard Modules.
+- [x] **Kernel-Level Sandboxing:** Move beyond mock permissions to actual Linux namespaces/cgroups for Standard Modules.
 - [x] **Deep Inspection (Level 5) Audit:** Implement a cryptographic audit log for all privilege escalations.
 - [ ] **Manifest Signing:** Require signed `module.toml` for Marketplace installations to ensure supply-chain security.
 

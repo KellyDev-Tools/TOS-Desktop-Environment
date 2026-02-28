@@ -22,6 +22,8 @@ This document outlines the organization of the source code for the Tactical Oper
 
 ## 3. Quality Assurance
 - **`tests/`**: Tiered test suites as defined in the **TDD Plan**.
-  - `tier1_brain`: Pure logic unit tests.
-  - `tier2_integration`: PTY/OSC integration tests.
-  - `tier4_security`: Sandbox and permission verification.
+  - `test-core`: Brain logic unit tests.
+  - `test-shell`: PTY/OSC integration tests.
+  - `test-sec`: Sandbox and permission verification.
+  - `test-brain`: Brain component tests.
+  - `test-ui`: Playwright-based frontend/bridge validation.

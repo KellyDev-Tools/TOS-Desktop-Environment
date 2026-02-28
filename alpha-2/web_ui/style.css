@@ -160,12 +160,18 @@ body {
     z-index: 5;
 }
 
+/* Spec 6: Level-Specific Visibility */
+.view-global .lcars-footer {
+    display: none;
+}
+
 .status-badge {
     background: #000;
     color: var(--color-success);
-    padding: 2px 0.625rem;
-    border-radius: 0.25rem;
+    padding: 0.125rem 0.625rem;
+    border-radius: 1rem;
     font-size: 0.75rem;
+    border: 1px solid rgba(255, 255, 255, 0.1);
 }
 
 /* Main Layout */
@@ -347,6 +353,19 @@ h1 {
     background: rgba(0, 0, 0, 0.8);
     color: var(--color-primary);
     border-color: #000;
+}
+
+.collab-indicators {
+    display: flex;
+    gap: 0.25rem;
+    margin: 0 0.625rem;
+}
+
+.collab-dot {
+    width: 0.5rem;
+    height: 0.5rem;
+    border-radius: 50%;
+    border: 1px solid rgba(255, 255, 255, 0.2);
 }
 
 /* Input Area */

@@ -113,6 +113,9 @@ pub struct TosState {
     pub settings: std::collections::HashMap<String, String>,
     pub pending_confirmation: Option<ConfirmationRequest>,
     pub system_log: Vec<TerminalLine>,
+    pub sys_prefix: String,
+    pub sys_title: String,
+    pub sys_status: String,
 }
 
 impl Default for TosState {
@@ -147,6 +150,9 @@ impl Default for TosState {
             settings: std::collections::HashMap::new(),
             pending_confirmation: None,
             system_log: vec![],
+            sys_prefix: "TOS // SYSTEM-BRAIN".to_string(),
+            sys_title: "ALPHA-2.1 // INTEL-DRIVEN".to_string(),
+            sys_status: "BRAIN: ACTIVE".to_string(),
         }
     }
 }

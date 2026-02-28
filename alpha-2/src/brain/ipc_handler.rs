@@ -29,6 +29,7 @@ impl IpcHandler {
         let args: Vec<&str> = payload.split(';').collect();
 
         let result = match prefix {
+            "get_state" => self.handle_get_state(),
             "set_mode" => self.handle_set_mode(args.get(0).copied()),
             "zoom_in" => self.handle_zoom_in(),
             "zoom_out" => self.handle_zoom_out(),
@@ -270,5 +271,10 @@ impl IpcHandler {
     fn handle_ai_suggestion_accept(&self) -> String {
         let _ = self.services.ai.accept_suggestion();
         "AI_SUGGESTION_ACCEPTED".to_string()
+    }
+
+    fn handle_get_state(&self) -> String {
+        let state = self.state.lock().unwrap();
+        serde_json::to_string(&*state).unwrap_or_else(|_| "ERROR: Serialization failed".to_string())
     }
 }

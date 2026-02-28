@@ -105,16 +105,34 @@ impl Renderer for LinuxRenderer {
         SurfaceHandle(handle_id)
     }
 
-    fn update_surface(&mut self, handle: SurfaceHandle, _content: &dyn SurfaceContent) {
+    fn update_surface(&mut self, handle: SurfaceHandle, content: &dyn SurfaceContent) {
         if let Some(buf) = self.surfaces.get_mut(&handle.0) {
             tracing::debug!("Synchronizing Wayland Buffer FD: {}", buf.fd);
-            // In a full implementation, content pixel data is copied directly to `buf.memory_ptr`
-            // and the compositor is notified via `wl_surface_attach` and `wl_surface_commit`.
+            
+            let data = content.pixel_data();
+            if !data.is_empty() && data.len() <= buf.size {
+                unsafe {
+                    std::ptr::copy_nonoverlapping(
+                        data.as_ptr(),
+                        buf.memory_ptr as *mut u8,
+                        data.len(),
+                    );
+                }
+                tracing::debug!("Copied {} bytes to Wayland SHM", data.len());
+            }
+
+            // Wayland Compositor attachment simulation
+            tracing::debug!("wl_surface_attach(surface, buffer, 0, 0)");
+            tracing::debug!("wl_surface_damage_buffer(surface, 0, 0, {}, {})", buf.width, buf.height);
+            tracing::debug!("wl_surface_commit(surface)");
         }
     }
 
     fn composite(&mut self) {
         tracing::debug!("Triggering native Wayland composition cycle.");
+        for (handle, buf) in &self.surfaces {
+            tracing::debug!("Compositing buffer {} (FD: {})", handle, buf.fd);
+        }
     }
 }
 

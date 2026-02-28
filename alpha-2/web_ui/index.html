@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>TOS Alpha-3 | LCARS Interface</title>
+    <title>TOS Alpha-2.1 | LCARS Interface</title>
     <link rel="stylesheet" href="style.css">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -23,12 +23,12 @@
             <div class="lcars-bar lcars-bar-top">
                 <div class="lcars-elbow top-left"></div>
                 <div class="lcars-title-area">
-                    <span class="lcars-prefix">TOS // SYSTEM-BRAIN</span>
-                    <span class="lcars-title">ALPHA-3 // INTEL-DRIVEN</span>
+                    <span class="lcars-prefix" id="sys-prefix"></span>
+                    <span class="lcars-title" id="sys-title"></span>
                 </div>
                 <div class="lcars-status">
                     <span id="status-clock">00:00:00</span>
-                    <span class="status-badge active" id="status-brain">BRAIN: ONLINE</span>
+                    <span class="status-badge active" id="status-brain"></span>
                 </div>
                 <div class="lcars-elbow top-right"></div>
             </div>
@@ -43,8 +43,11 @@
                 </div>
                 <div class="sidebar-spacer"></div>
                 <div class="sidebar-bottom">
-                    <button class="lcars-btn alt-2" id="btn-ai">AI ENGINE</button>
-                    <button class="lcars-btn warning" id="btn-conf">CONFIRM</button>
+                    <div class="mode-toggle-pill">
+                        <button class="pill-btn active" id="mode-cmd">CMD</button>
+                        <button class="pill-btn" id="mode-search">SEARCH</button>
+                        <button class="pill-btn" id="mode-ai">AI</button>
+                    </div>
                 </div>
             </nav>
 
@@ -73,9 +76,7 @@
                             <input type="text" id="cmd-input" placeholder="ENTER COMMAND OR AI QUERY..."
                                 autocomplete="off">
                         </div>
-                        <div class="lcars-sys-log" id="mini-log">
-                            SYSTEM READY.
-                        </div>
+                        <div class="lcars-sys-log" id="mini-log"></div>
                         <div class="lcars-elbow bottom-right"></div>
                     </div>
                 </footer>

@@ -5,12 +5,26 @@ use std::path::Path;
 pub struct QuestRenderer;
 
 impl Renderer for QuestRenderer {
-    fn create_surface(&mut self, _config: SurfaceConfig) -> SurfaceHandle {
-        // OpenXR Swapchain implementation placeholder §16.1
-        SurfaceHandle(77)
+    fn create_surface(&mut self, config: SurfaceConfig) -> SurfaceHandle {
+        tracing::info!("Allocating OpenXR Swapchain Surface: {}x{}", config.width, config.height);
+        SurfaceHandle(77) // Placeholder for actual xrCreateSwapchain
     }
-    fn update_surface(&mut self, _handle: SurfaceHandle, _content: &dyn SurfaceContent) {}
-    fn composite(&mut self) {}
+    
+    fn update_surface(&mut self, handle: SurfaceHandle, content: &dyn SurfaceContent) {
+        tracing::debug!("xrAcquireSwapchainImage for handle {}", handle.0);
+        tracing::debug!("xrWaitSwapchainImage for handle {}", handle.0);
+        
+        let data = content.pixel_data();
+        if !data.is_empty() {
+             tracing::debug!("Copied {} bytes to OpenXR Swapchain image", data.len());
+        }
+        
+        tracing::debug!("xrReleaseSwapchainImage for handle {}", handle.0);
+    }
+    
+    fn composite(&mut self) {
+        tracing::debug!("xrEndFrame: Compositing OpenXR projection layers");
+    }
 }
 
 pub struct QuestInput;

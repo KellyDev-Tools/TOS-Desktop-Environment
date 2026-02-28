@@ -1,4 +1,4 @@
-.PHONY: build check test test-tier1 test-tier2 test-all test-system test-component run clean help fmt clippy doc
+.PHONY: build check test test-tier1 test-tier2 test-tier3 test-tier4 test-all test-system test-component run run-web clean help fmt clippy doc
 
 # Default target
 help:
@@ -12,11 +12,14 @@ help:
 	@echo "  make test        - Run all standard tests"
 	@echo "  make test-tier1  - Run Unit tests (Brain Logic)"
 	@echo "  make test-tier2  - Run Integration tests (Shell/PTY)"
-	@echo "  make test-all    - Run Tier 1 + Tier 2 tests"
+	@echo "  make test-tier3  - Run Contextual AI Engine tests"
+	@echo "  make test-tier4  - Run Infrastructure/Security tests"
+	@echo "  make test-all    - Run all test tiers"
 	@echo "  make test-system - Run Single-process Comprehensive Test"
 	@echo "  make test-component - Run Two-process Component Test (Brain + Stimulator)"
 	@echo "  make doc         - Generate documentation"
 	@echo "  make run         - Run the TOS Brain + Mock Face Demo"
+	@echo "  make run-web     - Run the TOS Brain + Web UI Server concurrently"
 	@echo "  make clean       - Remove build artifacts"
 
 build:
@@ -39,7 +42,14 @@ test-tier1:
 test-tier2:
 	cargo test --test tier2_integration
 
-test-all: test-tier1 test-tier2
+test-tier3:
+	cargo test --test tier3_ai
+
+test-tier4:
+	cargo test --test tier4_security
+	cargo test --test tier4_security_manifest
+
+test-all: test-tier1 test-tier2 test-tier3 test-tier4
 
 test-system:
 	@mkdir -p logs
@@ -63,6 +73,13 @@ doc:
 
 run:
 	@mkdir -p logs
+	cargo run --bin tos-brain | tee logs/tos-brain.log
+
+run-web:
+	@mkdir -p logs
+	@echo "Starting Web UI Server on http://localhost:8080..."
+	@python3 -m http.server 8080 -d web_ui > logs/web_ui.log 2>&1 & WEB_PID=$$!; \
+	trap "kill $$WEB_PID" EXIT INT TERM; \
 	cargo run --bin tos-brain | tee logs/tos-brain.log
 
 clean:

@@ -15,7 +15,7 @@ async fn main() -> anyhow::Result<()> {
     let face_raw = Face::new(brain.state.clone(), brain.ipc.clone());
     let mut mock_face = MockFace(face_raw);
 
-    println!("\n--- PHASE 9: SYSTEM POLISH DEMO ---");
+    println!("\n--- SYSTEM POLISH DEMO ---");
     sleep(Duration::from_secs(1)).await;
 
     // 3. Render initial state (Level 1)

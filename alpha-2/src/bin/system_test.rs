@@ -14,8 +14,8 @@ async fn main() -> anyhow::Result<()> {
     let face_raw = Face::new(brain.state.clone(), brain.ipc.clone());
     let mut face = MockFace(face_raw);
 
-    // 2. PHASE 1: HIERARCHY & LIFECYCLE
-    println!("\x1B[1;33m[PHASE 1: HIERARCHY & LIFECYCLE]\x1B[0m");
+    // HIERARCHY & LIFECYCLE
+    println!("\x1B[1;33m[HIERARCHY & LIFECYCLE]\x1B[0m");
     face.0.render();
     sleep(Duration::from_millis(1500)).await;
 
@@ -29,8 +29,8 @@ async fn main() -> anyhow::Result<()> {
     face.0.render();
     sleep(Duration::from_millis(1500)).await;
 
-    // 3. PHASE 2: SHELL & DIRECTORY MODE
-    println!("\n\x1B[1;33m[PHASE 2: SHELL & DIRECTORY MODE]\x1B[0m");
+    // SHELL & DIRECTORY MODE
+    println!("\n\x1B[1;33m[SHELL & DIRECTORY MODE]\x1B[0m");
     println!("-> Action: cd /tmp");
     face.simulate_prompt_submit("cd /tmp");
     println!("-> Action: ls");
@@ -39,8 +39,8 @@ async fn main() -> anyhow::Result<()> {
     face.0.render();
     sleep(Duration::from_millis(1500)).await;
 
-    // 4. PHASE 3: SECURITY & TRUST
-    println!("\n\x1B[1;33m[PHASE 3: SECURITY INTERCEPTION]\x1B[0m");
+    // SECURITY & TRUST
+    println!("\n\x1B[1;33m[SECURITY INTERCEPTION]\x1B[0m");
     println!("-> Action: rm -rf / (Dangerous Command)");
     face.simulate_prompt_submit("rm -rf /");
     face.0.render();
@@ -52,8 +52,8 @@ async fn main() -> anyhow::Result<()> {
     }
     sleep(Duration::from_millis(1500)).await;
 
-    // 5. PHASE 4: GLOBAL SEARCH
-    println!("\n\x1B[1;33m[PHASE 4: GLOBAL SEARCH]\x1B[0m");
+    // GLOBAL SEARCH
+    println!("\n\x1B[1;33m[GLOBAL SEARCH]\x1B[0m");
     println!("-> Action: search:TOS");
     brain.ipc.handle_request("search:TOS");
     {
@@ -64,8 +64,8 @@ async fn main() -> anyhow::Result<()> {
     face.0.render();
     sleep(Duration::from_millis(1500)).await;
 
-    // 6. PHASE 5: SERVICES
-    println!("\n\x1B[1;33m[PHASE 5: AUXILIARY SERVICES]\x1B[0m");
+    // SERVICES
+    println!("\n\x1B[1;33m[AUXILIARY SERVICES]\x1B[0m");
     println!("-> Action: log priority 3 event");
     brain.services.logger.log("SYSTEM_TEST: PRIORITY 3 ALERT", 3);
     
@@ -78,8 +78,8 @@ async fn main() -> anyhow::Result<()> {
     face.0.render();
     sleep(Duration::from_millis(1500)).await;
 
-    // 7. FINAL VALIDATION
-    println!("\n\x1B[1;33m[PHASE 6: FINAL REDUCED STATE]\x1B[0m");
+    // FINAL VALIDATION
+    println!("\n\x1B[1;33m[FINAL REDUCED STATE]\x1B[0m");
     brain.ipc.handle_request("zoom_to:GlobalOverview");
     face.0.render();
     

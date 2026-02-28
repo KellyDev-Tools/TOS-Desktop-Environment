@@ -21,7 +21,11 @@ pub struct SurfaceConfig {
 
 pub struct SurfaceHandle(pub u32);
 
-pub trait SurfaceContent {}
+pub trait SurfaceContent {
+    fn pixel_data(&self) -> &[u8] {
+        &[]
+    }
+}
 
 pub trait Renderer {
     fn create_surface(&mut self, config: SurfaceConfig) -> SurfaceHandle;

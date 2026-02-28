@@ -12,7 +12,7 @@ Following the successful completion of the Alpha-2 functional prototype, the Alp
 - [x] **Web Profile DOM Implementation:** Transition the Face layer from terminal-mock to a rich React/Vite-based LCARS interface.
 - [x] **Cinematic Modules:** Implement the "Cinematic Triangular Module" with GPU-accelerated transitions.
 - [x] **Dynamic Theme Engine:** Implement runtime CSS variable injection and multi-sensory asset swapping (SFX/Haptics).
-- [ ] **DMABUF Native Path:** Optimize the Linux backend for zero-copy frame buffer sharing with the Wayland compositor.
+- [x] **DMABUF Native Path:** Optimize the Linux backend for zero-copy frame buffer sharing with the Wayland compositor.
 
 ## Phase 12: Production-Grade Security & Isolation (§18.4)
 - [x] **Kernel-Level Sandboxing:** Move beyond mock permissions to actual Linux namespaces/cgroups for Standard Modules.

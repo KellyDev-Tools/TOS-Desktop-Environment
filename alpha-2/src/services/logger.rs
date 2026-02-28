@@ -51,4 +51,13 @@ impl LoggerService {
 
         println!("[LOG P{}] {}", priority, text);
     }
+
+    /// §18.4: Deep Inspection (Level 5) Audit Log
+    pub fn audit_log(&self, actor: &str, action: &str, result: &str) {
+        let msg = format!("AUDIT [{}]: {} -> {}", actor, action, result);
+        self.log(&msg, 3); // Forced high priority
+        
+        // Final implementation would sign this entry cryptographically
+        tracing::warn!("SECURITY AUDIT ENTRY: {}", msg);
+    }
 }

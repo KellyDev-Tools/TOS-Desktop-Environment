@@ -117,6 +117,15 @@ impl Face {
             }
             println!("+----------------------------------------------------------------------------------+");
             println!("\x1B[1;36mPROMPT:\x1B[0m > {}", hub.prompt);
+
+            if let Some(staged) = &hub.staged_command {
+                println!("\n\x1B[1;33m[AI STAGED COMMAND §12]\x1B[0m");
+                println!("PROPOSAL: \x1B[1;32m{}\x1B[0m", staged);
+                if let Some(exp) = &hub.ai_explanation {
+                    println!("RATIONALE: {}", exp);
+                }
+                println!("\x1B[1;36m(Submit 'ai_suggestion_accept:' to promote this command)\x1B[0m");
+            }
         }
     }
 
@@ -154,5 +163,14 @@ impl MockFace {
         println!("(Face) User submitted prompt: {}", cmd);
         self.0.send_event(&format!("prompt_submit:{}", cmd));
     }
-}
 
+    pub fn simulate_ai_submit(&self, query: &str) {
+        println!("(Face) User submitted AI query: {}", query);
+        self.0.send_event(&format!("ai_submit:{}", query));
+    }
+
+    pub fn simulate_ai_accept(&self) {
+        println!("(Face) User accepted AI suggestion");
+        self.0.send_event("ai_suggestion_accept:");
+    }
+}

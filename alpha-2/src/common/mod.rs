@@ -61,6 +61,8 @@ pub struct CommandHub {
     pub shell_listing: Option<DirectoryListing>, // §27.3: Local/Remote directory data
     pub activity_listing: Option<ActivityListing>, // §7.3: Activity mode data
     pub search_results: Option<Vec<SearchResult>>, // §7.3: Search mode results
+    pub staged_command: Option<String>,           // §12: AI-proposed command
+    pub ai_explanation: Option<String>,           // §12: AI-side documentation
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -128,6 +130,8 @@ impl Default for TosState {
                 shell_listing: None,
                 activity_listing: None,
                 search_results: None,
+                staged_command: None,
+                ai_explanation: None,
             }],
             active_hub_index: 0,
             frozen: false,

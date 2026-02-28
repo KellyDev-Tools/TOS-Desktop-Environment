@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TOS Alpha-3 | LCARS Interface</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&family=Outfit:wght@300;500;700&display=swap"
+        rel="stylesheet">
+</head>
+
+<body class="tos-theme-dark">
+    <div id="app" class="lcars-container">
+        <!-- §16.2: Cinematic Triangular Modules -->
+        <div class="tri-module tri-top-left"></div>
+        <div class="tri-module tri-bottom-right"></div>
+
+        <header class="lcars-header">
+            <div class="lcars-bar lcars-bar-top">
+                <div class="lcars-elbow top-left"></div>
+                <div class="lcars-title-area">
+                    <span class="lcars-prefix">TOS // SYSTEM-BRAIN</span>
+                    <span class="lcars-title">ALPHA-3 // INTEL-DRIVEN</span>
+                </div>
+                <div class="lcars-status">
+                    <span id="status-clock">00:00:00</span>
+                    <span class="status-badge active" id="status-brain">BRAIN: ONLINE</span>
+                </div>
+                <div class="lcars-elbow top-right"></div>
+            </div>
+        </header>
+
+        <main class="lcars-main">
+            <nav class="lcars-sidebar">
+                <div class="sidebar-top">
+                    <button class="lcars-btn mode-btn active" id="btn-global" data-mode="global">GLOBAL</button>
+                    <button class="lcars-btn mode-btn" id="btn-hubs" data-mode="hubs">HUBS</button>
+                    <button class="lcars-btn mode-btn alt-1" id="btn-sectors" data-mode="sectors">SECTORS</button>
+                </div>
+                <div class="sidebar-spacer"></div>
+                <div class="sidebar-bottom">
+                    <button class="lcars-btn alt-2" id="btn-ai">AI ENGINE</button>
+                    <button class="lcars-btn warning" id="btn-conf">CONFIRM</button>
+                </div>
+            </nav>
+
+            <section class="lcars-content-area">
+                <div class="lcars-content-bezel">
+                    <div class="glass-panel" id="main-viewport">
+                        <div class="viewport-header">
+                            <h1 id="view-title">GLOBAL OVERVIEW</h1>
+                            <div class="viewport-controls">
+                                <button class="v-btn" id="zoom-in">+</button>
+                                <button class="v-btn" id="zoom-out">-</button>
+                            </div>
+                        </div>
+                        <div class="viewport-body" id="state-render-target">
+                            <!-- State-driven components land here -->
+                            <div class="loading-state">SYNCHRONIZING WITH BRAIN...</div>
+                        </div>
+                    </div>
+                </div>
+
+                <footer class="lcars-footer">
+                    <div class="lcars-bar lcars-bar-bottom">
+                        <div class="lcars-elbow bottom-left"></div>
+                        <div class="lcars-input-area">
+                            <span class="prompt-symbol">&gt;</span>
+                            <input type="text" id="cmd-input" placeholder="ENTER COMMAND OR AI QUERY..."
+                                autocomplete="off">
+                        </div>
+                        <div class="lcars-sys-log" id="mini-log">
+                            SYSTEM READY.
+                        </div>
+                        <div class="lcars-elbow bottom-right"></div>
+                    </div>
+                </footer>
+            </section>
+        </main>
+    </div>
+    <script src="app.js"></script>
+</body>
+
+</html>
+Riverside:

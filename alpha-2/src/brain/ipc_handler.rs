@@ -7,11 +7,12 @@ use std::time::Instant;
 pub struct IpcHandler {
     state: Arc<Mutex<TosState>>,
     shell: Arc<Mutex<crate::brain::shell::ShellApi>>,
+    services: Arc<crate::services::ServiceManager>,
 }
 
 impl IpcHandler {
-    pub fn new(state: Arc<Mutex<TosState>>, shell: Arc<Mutex<crate::brain::shell::ShellApi>>) -> Self {
-        Self { state, shell }
+    pub fn new(state: Arc<Mutex<TosState>>, shell: Arc<Mutex<crate::brain::shell::ShellApi>>, services: Arc<crate::services::ServiceManager>) -> Self {
+        Self { state, shell, services }
     }
 
     /// §3.3.1: Standardized Message Format: prefix:payload;payload...
@@ -40,6 +41,8 @@ impl IpcHandler {
             "search" => self.handle_search(payload),
             "prompt_submit" => self.handle_prompt_submit(payload), 
             "update_confirmation_progress" => self.handle_update_confirmation_progress(args.get(0).copied(), args.get(1).copied()),
+            "ai_submit" => self.handle_ai_submit(payload),
+            "ai_suggestion_accept" => self.handle_ai_suggestion_accept(),
             _ => "ERROR: Unknown prefix".to_string(),
         };
 
@@ -91,6 +94,7 @@ impl IpcHandler {
     fn handle_prompt_submit(&self, command: &str) -> String {
         // §17.3: Dangerous Command Handling
         if self.is_dangerous(command) {
+            self.services.logger.audit_log("SessionUser", "EXECUTE_DANGEROUS", command);
             let mut state = self.state.lock().unwrap();
             let id = Uuid::new_v4();
             state.pending_confirmation = Some(crate::common::ConfirmationRequest {
@@ -249,5 +253,19 @@ impl IpcHandler {
         let mut state = self.state.lock().unwrap();
         crate::brain::sector::SectorManager::perform_search(&mut state, query);
         format!("SEARCH_PERFORMED: {}", query)
+    }
+
+    fn handle_ai_submit(&self, query: &str) -> String {
+        let ai = self.services.ai.clone();
+        let query_owned = query.to_string();
+        tokio::spawn(async move {
+            let _ = ai.query(&query_owned).await;
+        });
+        "AI_PROCESSING".to_string()
+    }
+
+    fn handle_ai_suggestion_accept(&self) -> String {
+        let _ = self.services.ai.accept_suggestion();
+        "AI_SUGGESTION_ACCEPTED".to_string()
     }
 }

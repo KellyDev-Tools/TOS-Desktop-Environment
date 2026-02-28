@@ -1,21 +1,26 @@
 /**
- * TOS Alpha-3 | UI Controller
- * §11: High-Fidelity Rendering & State Sync
+ * TOS UI Controller
+ * High-Fidelity Rendering & State Sync
  */
+
 class TosUI {
     constructor() {
         this.state = null;
         this.currentMode = 'global';
         this.init();
     }
+
     init() {
         this.setupEventListeners();
         this.startClock();
         this.simulateState();
+
         // Internal state refresh loop
         setInterval(() => this.simulateState(), 3000);
+
         console.log("TOS UI // ALPHA-3 // LOADED");
     }
+
     setupEventListeners() {
         const cmdInput = document.getElementById('cmd-input');
         if (cmdInput) {
@@ -26,6 +31,7 @@ class TosUI {
                 }
             });
         }
+
         // Mode Navigation
         document.querySelectorAll('.mode-btn').forEach(btn => {
             btn.addEventListener('click', () => {
@@ -33,47 +39,60 @@ class TosUI {
                 this.setMode(mode);
             });
         });
+
         // Zoom Controls
         document.getElementById('zoom-in')?.addEventListener('click', () => this.handleCommand('zoom_in:'));
         document.getElementById('zoom_out')?.addEventListener('click', () => this.handleCommand('zoom_out:'));
     }
+
     async setMode(mode) {
         const target = document.getElementById('state-render-target');
         if (target) target.classList.add('transitioning');
-        // Cinematic Delay (§11)
+
+        // Cinematic Transition Delay
         await new Promise(r => setTimeout(r, 200));
+
         this.currentMode = mode;
         document.querySelectorAll('.mode-btn').forEach(btn => {
             btn.classList.toggle('active', btn.dataset.mode === mode);
         });
+
         this.render();
+
         if (target) target.classList.remove('transitioning');
+
         // Theme auto-switching based on mode (Demonstration)
         if (mode === 'sectors') this.setTheme('tactical');
         else if (mode === 'global') this.setTheme('default');
     }
+
     setTheme(theme) {
         document.body.classList.remove('theme-tactical', 'theme-alert');
         if (theme !== 'default') {
             document.body.classList.add(`theme-${theme}`);
         }
     }
+
     handleCommand(cmd) {
         const log = document.getElementById('mini-log');
         log.innerText = `TRANSMITTING: ${cmd.toUpperCase()}`;
         log.style.color = 'var(--color-primary)';
-        // §12: AI Intent Sniffing (UI-side simulation)
+
+        // AI Intent Sniffing (UI-side simulation)
         if (cmd.toLowerCase().includes('help') || cmd.length > 20) {
             log.innerText = "INVOKING AI ENGINE...";
             log.style.color = 'var(--color-accent)';
         }
+
         console.log(`[TOS IPC] -> ${cmd}`);
+
         // Visual feedback
         setTimeout(() => {
             log.innerText = "COMMAND ACKNOWLEDGED // 12ms LATENCY";
             log.style.color = 'var(--color-success)';
         }, 500);
     }
+
     simulateState() {
         // Mocking the TosState structure for Alpha-3 Prototype
         this.state = {
@@ -91,11 +110,14 @@ class TosUI {
         };
         this.render();
     }
+
     render() {
         if (!this.state) return;
+
         const target = document.getElementById('state-render-target');
         const title = document.getElementById('view-title');
         if (!target || !title) return;
+
         if (this.currentMode === 'global') {
             title.innerText = "GLOBAL OVERVIEW";
             target.innerHTML = `
@@ -135,9 +157,10 @@ class TosUI {
                 <div class="loading-state">
                     [TOPOLOGICAL MAP DATA LOADING...]
                 </div>
-             `;
+            `;
         }
     }
+
     startClock() {
         const clock = document.getElementById('status-clock');
         const update = () => {
@@ -148,8 +171,8 @@ class TosUI {
         setInterval(update, 1000);
     }
 }
+
 // Initializer
 document.addEventListener('DOMContentLoaded', () => {
     window.tos = new TosUI();
 });
-

@@ -10,9 +10,9 @@ impl AudioService {
         Self { _state: state }
     }
 
-    /// §21.2: Trigger specific earcon
-    pub fn play_earcon(&self, earcon_id: &str) {
+    /// Trigger a specific system earcon (audio notification).
+    pub fn play_earcon(&self, name: &str) {
         // Alpha-2 logic: just log for verification
-        println!("[EARCON TRIGGER] Playing cue: {}", earcon_id);
+        println!("[EARCON TRIGGER] Playing cue: {}", name);
     }
 }

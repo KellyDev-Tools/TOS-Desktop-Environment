@@ -10,7 +10,7 @@ impl AiService {
         Self { state }
     }
 
-    /// §12: Process natural language query and stage a command
+    /// Process natural language query and stage a command for user review.
     pub async fn query(&self, prompt: &str) -> anyhow::Result<()> {
         let (current_dir, sector_names) = {
             let state = self.state.lock().unwrap();
@@ -21,7 +21,7 @@ impl AiService {
             (dir, sectors)
         };
 
-        // §12: Contextual Awareness - Mock logic using gathered context
+        // Contextual Awareness - Mock logic using gathered system context
         let (command, explanation) = match prompt.to_lowercase().as_str() {
             p if p.contains("where") && p.contains("am") && p.contains("i") => {
                 ("pwd".to_string(), format!("You are currently in sector {} at path {}.", sector_names, current_dir))
@@ -30,7 +30,7 @@ impl AiService {
                 ("ls -la".to_string(), "I've staged a command to list all files in long format, including hidden ones.".to_string())
             },
             p if p.contains("search") || p.contains("find") => {
-                // §12: Natural Language Search transition
+                // Natural Language Search transition: Route to sector indexing
                 let term = prompt.split_whitespace().last().unwrap_or("everything");
                 let mut state = self.state.lock().unwrap();
                 crate::brain::sector::SectorManager::perform_search(&mut state, term);
@@ -54,7 +54,7 @@ impl AiService {
         Ok(())
     }
 
-    /// §12: Accept the staged command and promote it to the prompt or execute
+    /// Accept the staged command and promote it to the prompt area.
     pub fn accept_suggestion(&self) -> anyhow::Result<()> {
         let mut state = self.state.lock().unwrap();
         let s_idx = state.active_sector_index;

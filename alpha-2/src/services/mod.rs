@@ -27,7 +27,7 @@ impl ServiceManager {
         let audio = Arc::new(AudioService::new(state.clone()));
         let ai = Arc::new(AiService::new(state.clone()));
         
-        // Link services §21.2
+        // Establish cross-service dependencies (e.g., logging triggers audio cues)
         logger.set_audio_service(audio.clone());
         
         Self {

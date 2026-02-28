@@ -19,7 +19,7 @@ impl SettingsService {
         }
     }
 
-    /// §26.4: Save current settings bag to disk
+    /// Save the current settings collection to persistent storage.
     pub fn save(&self, settings: &HashMap<String, String>) -> anyhow::Result<()> {
         if let Some(parent) = self.config_path.parent() {
             std::fs::create_dir_all(parent)?;

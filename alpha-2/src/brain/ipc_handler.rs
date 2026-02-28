@@ -15,7 +15,7 @@ impl IpcHandler {
         Self { state, shell, services }
     }
 
-    /// §3.3.1: Standardized Message Format: prefix:payload;payload...
+    /// Standardized Message Format: prefix:payload;payload...
     pub fn handle_request(&self, request: &str) -> String {
         let start = Instant::now();
         let parts: Vec<&str> = request.splitn(2, ':').collect();
@@ -56,7 +56,7 @@ impl IpcHandler {
 
     fn is_dangerous(&self, command: &str) -> bool {
         let cmd = command.trim().to_lowercase();
-        // Simple list for Alpha-2 prototype §17.3
+        // Simple list for dangerous command detection
         cmd.starts_with("rm -rf") || 
         cmd.starts_with("format") || 
         cmd.starts_with("mkfs") || 
@@ -92,7 +92,7 @@ impl IpcHandler {
     }
 
     fn handle_prompt_submit(&self, command: &str) -> String {
-        // §17.3: Dangerous Command Handling
+        // Dangerous Command Handling: Intercept and request confirmation
         if self.is_dangerous(command) {
             self.services.logger.audit_log("SessionUser", "EXECUTE_DANGEROUS", command);
             let mut state = self.state.lock().unwrap();
@@ -107,13 +107,13 @@ impl IpcHandler {
             return format!("INTERCEPTED: {}", id);
         }
 
-        // §28.1: Prompt Interception Layer (sniffing for ls/cd)
+        // Prompt Interception Layer (sniffing for ls/cd)
         let mut state = self.state.lock().unwrap();
         let idx = state.active_sector_index;
         let cmd_lower = command.to_lowercase();
 
         if cmd_lower.starts_with("ls") {
-            // §27.6: Resolve target path and switch to Directory mode
+            // Resolve target path and switch to Directory mode
             if let Some(sector) = state.sectors.get_mut(idx) {
                 if let Some(hub) = sector.hubs.get_mut(sector.active_hub_index) {
                     hub.mode = CommandHubMode::Directory;
@@ -121,7 +121,7 @@ impl IpcHandler {
             }
             crate::brain::sector::SectorManager::refresh_directory_listing(&mut state);
         } else if cmd_lower.starts_with("cd ") {
-            // §27.6: Resolve target path and update current_directory
+            // Resolve target path and update current_directory
             let new_path_str = &command[3..].trim();
             if let Some(sector) = state.sectors.get_mut(idx) {
                 if let Some(hub) = sector.hubs.get_mut(sector.active_hub_index) {
@@ -144,6 +144,7 @@ impl IpcHandler {
     }
 
     fn handle_set_mode(&self, mode_str: Option<&str>) -> String {
+        // Context-Aware Mode Transitions
         let mode = match mode_str {
             Some("command") => CommandHubMode::Command,
             Some("directory") => CommandHubMode::Directory,
@@ -183,6 +184,7 @@ impl IpcHandler {
     }
 
     fn handle_zoom_to(&self, level_str: Option<&str>) -> String {
+        // Multi-Level Navigation
         let level = match level_str {
             Some("GlobalOverview") => HierarchyLevel::GlobalOverview,
             Some("CommandHub") => HierarchyLevel::CommandHub,
@@ -207,6 +209,7 @@ impl IpcHandler {
     }
 
     fn handle_sector_create(&self, name: Option<&str>) -> String {
+        // Dynamic Sector Allocation
         let mut state = self.state.lock().unwrap();
         let name = name.unwrap_or("New Sector");
         crate::brain::sector::SectorManager::create_sector(

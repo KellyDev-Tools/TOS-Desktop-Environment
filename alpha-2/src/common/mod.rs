@@ -2,7 +2,7 @@ use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 use std::path::PathBuf;
 
-/// TOC §5: The Extended Hierarchy
+/// The system hierarchy levels defining the visual depth of the interface.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum HierarchyLevel {
     GlobalOverview = 1,
@@ -12,7 +12,7 @@ pub enum HierarchyLevel {
     BufferView = 5,
 }
 
-/// TOC §7.3: Four Augmentation Modes
+/// The operational augmentation modes for the Command Hub.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum CommandHubMode {
     Command,
@@ -22,14 +22,14 @@ pub enum CommandHubMode {
     Ai,
 }
 
-/// §18: Dual-Tier Trust Model
+/// Defines the security trust level for operations.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum TrustTier {
-    Standard, // Sandboxed (§18.4)
-    System,   // Privileged (§18.7)
+    Standard, // Sandboxed
+    System,   // Privileged
 }
 
-/// §17.3: Dangerous Command Handling
+/// Security validation for execution of dangerous system commands.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ConfirmationRequest {
     pub id: Uuid,
@@ -37,17 +37,17 @@ pub struct ConfirmationRequest {
     pub message: String,
     pub progress: f32, // 0.0 to 1.0 for tactile slider
 }
-/// TOC §10: Sectors and the Tree Model
+/// Sectors and the hierarchical tree model structure.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Sector {
     pub id: Uuid,
     pub name: String,
     pub hubs: Vec<CommandHub>,
     pub active_hub_index: usize,
-    pub frozen: bool, // §6.5: Freeze stops UI updates
-    pub is_remote: bool, // §12: Remote status
-    pub disconnected: bool, // §27.3: Connection status
-    pub trust_tier: TrustTier, // §18
+    pub frozen: bool, // Freeze stops UI updates for this sector
+    pub is_remote: bool, // Remote vs Local status
+    pub disconnected: bool, // Connection status for remote sectors
+    pub trust_tier: TrustTier,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -58,11 +58,11 @@ pub struct CommandHub {
     pub current_directory: PathBuf,
     pub terminal_output: Vec<TerminalLine>,
     pub buffer_limit: usize,
-    pub shell_listing: Option<DirectoryListing>, // §27.3: Local/Remote directory data
-    pub activity_listing: Option<ActivityListing>, // §7.3: Activity mode data
-    pub search_results: Option<Vec<SearchResult>>, // §7.3: Search mode results
-    pub staged_command: Option<String>,           // §12: AI-proposed command
-    pub ai_explanation: Option<String>,           // §12: AI-side documentation
+    pub shell_listing: Option<DirectoryListing>, // Local or Remote directory data
+    pub activity_listing: Option<ActivityListing>, // Activity mode process data
+    pub search_results: Option<Vec<SearchResult>>, // Search mode matches
+    pub staged_command: Option<String>,           // AI-proposed command for review
+    pub ai_explanation: Option<String>,           // AI rationale/documentation
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -100,19 +100,19 @@ pub struct SearchResult {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct TerminalLine {
     pub text: String,
-    pub priority: u8, // §27.5: Line-Level Priority
+    pub priority: u8, // Line-Level Priority (1=Low, 3=High)
     pub timestamp: chrono::DateTime<chrono::Local>,
 }
 
-/// TOC §3.1: The Brain (Logic Process) State
+/// The system-wide state of the Brain core logic process.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct TosState {
     pub current_level: HierarchyLevel,
     pub sectors: Vec<Sector>,
     pub active_sector_index: usize,
     pub settings: std::collections::HashMap<String, String>,
-    pub pending_confirmation: Option<ConfirmationRequest>, // §17.3
-    pub system_log: Vec<TerminalLine>, // §6.2, §19.1
+    pub pending_confirmation: Option<ConfirmationRequest>,
+    pub system_log: Vec<TerminalLine>,
 }
 
 impl Default for TosState {
@@ -126,7 +126,7 @@ impl Default for TosState {
                 prompt: String::new(),
                 current_directory: std::env::current_dir().unwrap_or_else(|_| PathBuf::from("/")),
                 terminal_output: vec![],
-                buffer_limit: 500, // §29.2 default
+                buffer_limit: 500, // FIFO buffer limit
                 shell_listing: None,
                 activity_listing: None,
                 search_results: None,

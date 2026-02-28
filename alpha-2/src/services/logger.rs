@@ -21,7 +21,7 @@ impl LoggerService {
         *lock = Some(audio);
     }
 
-    /// §19.1: Log an event to the unified storage
+    /// Log an event to the unified system storage.
     pub fn log(&self, text: &str, priority: u8) {
         let mut state = self.state.lock().unwrap();
         
@@ -33,14 +33,14 @@ impl LoggerService {
 
         state.system_log.push(line);
         
-        // Enforce FIFO limit for system log (§29.2)
+        // Enforce FIFO limit for system log
         let limit = 1000;
         if state.system_log.len() > limit {
             let to_drain = state.system_log.len() - limit;
             state.system_log.drain(0..to_drain);
         }
 
-        // §21.2: Multi-sensory feedback based on priority
+        // Multi-sensory feedback based on priority level
         if let Some(audio) = &*self.audio.lock().unwrap() {
             if priority >= 3 {
                 audio.play_earcon("priority_high_alert");
@@ -52,7 +52,7 @@ impl LoggerService {
         println!("[LOG P{}] {}", priority, text);
     }
 
-    /// §18.4: Deep Inspection (Level 5) Audit Log
+    /// Deep Inspection Audit Log for security auditing.
     pub fn audit_log(&self, actor: &str, action: &str, result: &str) {
         let msg = format!("AUDIT [{}]: {} -> {}", actor, action, result);
         self.log(&msg, 3); // Forced high priority

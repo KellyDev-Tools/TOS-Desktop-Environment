@@ -22,7 +22,7 @@ impl Face {
         }
     }
 
-    /// §19.1 & §16.2: State Sync & Rendering
+    /// Synchronize system state and trigger rendering.
     pub fn render(&mut self) {
         let state = self.state.lock().unwrap();
         
@@ -40,7 +40,7 @@ impl Face {
             }
         }
 
-        // §22: Tactical Mini-Map
+        // Tactical Mini-Map visualization
         self.render_minimap(&state);
 
         // System Footer
@@ -119,7 +119,7 @@ impl Face {
             println!("\x1B[1;36mPROMPT:\x1B[0m > {}", hub.prompt);
 
             if let Some(staged) = &hub.staged_command {
-                println!("\n\x1B[1;33m[AI STAGED COMMAND §12]\x1B[0m");
+                println!("\n\x1B[1;33m[AI STAGED COMMAND]\x1B[0m");
                 println!("PROPOSAL: \x1B[1;32m{}\x1B[0m", staged);
                 if let Some(exp) = &hub.ai_explanation {
                     println!("RATIONALE: {}", exp);
@@ -130,7 +130,7 @@ impl Face {
     }
 
     fn render_minimap(&self, state: &TosState) {
-        println!("\n\x1B[1;33m[TACTICAL MINI-MAP §22]\x1B[0m");
+        println!("\n\x1B[1;33m[TACTICAL MINI-MAP]\x1B[0m");
         for (i, sector) in state.sectors.iter().enumerate() {
             let active = i == state.active_sector_index;
             let color = if active { "\x1B[1;32m" } else { "\x1B[0m" };
@@ -144,7 +144,7 @@ impl Face {
         }
     }
 
-    /// §28.2: Bezel IPC Bridge
+    /// Forward bezel button events to the Brain IPC dispatcher.
     pub fn send_event(&self, event: &str) {
         tracing::info!("Face Event -> Brain: {}", event);
         self.brain_ipc.handle_request(event);

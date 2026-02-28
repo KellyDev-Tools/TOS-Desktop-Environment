@@ -5,7 +5,7 @@ use std::path::PathBuf;
 pub struct SectorManager;
 
 impl SectorManager {
-    /// §6.5: Create a new sector with a default hub
+    /// Create a new sector with a default hub.
     pub fn create_sector(state: &mut TosState, name: String) -> Uuid {
         let sector_id = Uuid::new_v4();
         let hub_id = Uuid::new_v4();
@@ -44,7 +44,7 @@ impl SectorManager {
         sector_id
     }
 
-    /// §6.5: Clone an existing sector
+    /// Clone an existing sector, duplicating its state.
     pub fn clone_sector(state: &mut TosState, source_id: Uuid) -> Option<Uuid> {
         let source_index = state.sectors.iter().position(|s| s.id == source_id)?;
         let source_sector = &state.sectors[source_index];
@@ -63,7 +63,7 @@ impl SectorManager {
         Some(new_id)
     }
 
-    /// §6.5: Sector closure
+    /// Close a sector and reclaim its resources.
     pub fn close_sector(state: &mut TosState, id: Uuid) -> bool {
         let initial_len = state.sectors.len();
         state.sectors.retain(|s| s.id != id);
@@ -76,7 +76,7 @@ impl SectorManager {
         state.sectors.len() < initial_len
     }
 
-    /// §6.5: Sector freezing (stops PTY updates but keeps process running)
+    /// Toggle sector heart-beat/PTY update processing.
     pub fn toggle_freeze(state: &mut TosState, id: Uuid) {
         if let Some(sector) = state.sectors.iter_mut().find(|s| s.id == id) {
             sector.frozen = !sector.frozen;
@@ -84,7 +84,7 @@ impl SectorManager {
         }
     }
 
-    /// §27.3: Refresh listing via local filesystem fallback
+    /// Refresh directory listing via local filesystem interrogation.
     pub fn refresh_directory_listing(state: &mut TosState) {
         let idx = state.active_sector_index;
         if let Some(sector) = state.sectors.get_mut(idx) {
@@ -118,7 +118,7 @@ impl SectorManager {
         }
     }
 
-    /// §7.3: Refresh activity listing for Activity Mode
+    /// Refresh activity listing for process monitoring hub modes.
     pub fn refresh_activity_listing(state: &mut TosState) {
         use sysinfo::System;
         let idx = state.active_sector_index;
@@ -150,7 +150,7 @@ impl SectorManager {
         }
     }
 
-    /// §7.3: Perform global search across all sectors and hubs
+    /// Perform global search across all active sectors and their respective hubs.
     pub fn perform_search(state: &mut TosState, query: &str) {
         if query.is_empty() {
             return;

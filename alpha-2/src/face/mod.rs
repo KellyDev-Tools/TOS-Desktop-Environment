@@ -33,10 +33,10 @@ impl Face {
             HierarchyLevel::GlobalOverview => self.render_level1(&state),
             HierarchyLevel::CommandHub => self.render_level2(&state),
             _ => {
-                println!("+-----------------------------------------------+");
-                println!("| {:^45} |", format!("{:?} VIEW", state.current_level));
-                println!("| [PLACEHOLDER - ALPHA 2 PROTOTYPE]              |");
-                println!("+-----------------------------------------------+");
+                println!("+----------------------------------------------------------------------------------+");
+                println!("| {:^80} |", format!("{:?} VIEW", state.current_level));
+                println!("| [PLACEHOLDER - ALPHA 2 PROTOTYPE]                                                |");
+                println!("+----------------------------------------------------------------------------------+");
             }
         }
 
@@ -52,17 +52,29 @@ impl Face {
 
     fn render_level1(&self, state: &TosState) {
         println!("\x1B[1;35m[LEVEL 1: GLOBAL OVERVIEW]\x1B[0m\n");
-        println!("+-----------------------------------------------+");
-        println!("| SECTOR TILES                                  |");
-        println!("+----------------------------+------------------+");
+        println!("+----------------------------------------------------------------------------------+");
+        println!("| SECTOR TILES                                                                     |");
+        println!("+--------------------------------------------------------------+-------------------+");
         for (i, sector) in state.sectors.iter().enumerate() {
             let active_mark = if i == state.active_sector_index { ">>" } else { "  " };
-            println!("| {:<2} [ {} ] {:<18} | HUBS: {:<3} |", active_mark, i, sector.name, sector.hubs.len());
+            // The format string needs to account for the fixed parts and the variable parts
+            // Total width inside the frame is 80.
+            // Fixed parts: "| {:<2} [ {} ] {:<X} | HUBS: {:<Y} |"
+            // Let's calculate X and Y.
+            // active_mark: 2 chars
+            // i: max 2 chars (e.g., 99) -> "[ 99 ]" is 6 chars
+            // " | HUBS: " is 9 chars
+            // hubs.len(): max 3 chars (e.g., 999)
+            // So, 2 + 1 + 6 + 1 + X + 1 + 9 + 3 + 1 = 24 + X
+            // Total width for the two columns is 62 and 17.
+            // First column: 2 + 1 + 6 + 1 + X = 10 + X. So 10 + X = 62 -> X = 52.
+            // Second column: 9 + Y + 1 = 10 + Y. So 10 + Y = 17 -> Y = 7.
+            println!("| {:<2} [ {:<2} ] {:<52} | HUBS: {:<7} |", active_mark, i, sector.name, sector.hubs.len());
         }
-        println!("+----------------------------+------------------+");
+        println!("+--------------------------------------------------------------+-------------------+");
         
         println!("\n\x1B[1;36m[SYSTEM OUTPUT AREA (BRAIN LOG)]\x1B[0m");
-        println!("+-----------------------------------------------+");
+        println!("+----------------------------------------------------------------------------------+");
         let start = state.system_log.len().saturating_sub(5);
         for line in &state.system_log[start..] {
             let prio_color = match line.priority {
@@ -70,9 +82,15 @@ impl Face {
                 2 => "\x1B[1;33m", // Mid
                 _ => "\x1B[0m",    // Low
             };
-            println!("| {}{} [P{}] {:<35} \x1B[0m |", prio_color, line.timestamp.format("%H:%M"), line.priority, line.text);
+            // Fixed parts: "| {}{} [P{}] {:<X} \x1B[0m |"
+            // timestamp: 5 chars (HH:MM)
+            // priority: 1 char (P1)
+            // prio_color: 0 chars (ANSI escape codes don't count)
+            // Total width inside frame is 80.
+            // 5 + 1 + 4 + X + 1 = 11 + X. So 11 + X = 80 -> X = 69.
+            println!("| {}{} [P{}] {:<69} \x1B[0m |", prio_color, line.timestamp.format("%H:%M"), line.priority, line.text);
         }
-        println!("+-----------------------------------------------+");
+        println!("+----------------------------------------------------------------------------------+");
     }
 
     fn render_level2(&self, state: &TosState) {
@@ -83,17 +101,21 @@ impl Face {
             println!("MODE:  \x1B[1;32m{:?}\x1B[0m", hub.mode);
             println!("DIR:   \x1B[1;34m{}\x1B[0m", hub.current_directory.display());
             println!("\nOUTPUT:");
-            println!("+-----------------------------------------------+");
+            println!("+----------------------------------------------------------------------------------+");
             let start = hub.terminal_output.len().saturating_sub(10);
             for line in &hub.terminal_output[start..] {
-                let text = if line.text.len() > 43 {
-                    format!("{}...", &line.text[..40])
+                // Extended width to 80 chars
+                // The content inside the frame is 80 characters wide.
+                // If the text is longer than 80, we need to truncate it and add "..."
+                // So, if text.len() > 80, truncate to 77 and add "..."
+                let text = if line.text.len() > 80 {
+                    format!("{}...", &line.text[..77])
                 } else {
                     line.text.clone()
                 };
-                println!("| {:<45} |", text);
+                println!("| {:<80} |", text);
             }
-            println!("+-----------------------------------------------+");
+            println!("+----------------------------------------------------------------------------------+");
             println!("\x1B[1;36mPROMPT:\x1B[0m > {}", hub.prompt);
         }
     }

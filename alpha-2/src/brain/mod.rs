@@ -23,20 +23,27 @@ impl Brain {
         let hid = state_val.sectors[0].hubs[0].id;
         let state = Arc::new(Mutex::new(state_val));
         
-        let shell = Arc::new(Mutex::new(ShellApi::new(state.clone(), sid, hid)?));
+        let shell_obj = ShellApi::new(state.clone(), sid, hid)?;
+        let shell = Arc::new(Mutex::new(shell_obj));
         let ipc = Arc::new(IpcHandler::new(state.clone(), shell.clone()));
         let services = Arc::new(crate::services::ServiceManager::new(state.clone()));
         
-        // Initial setup
+        let mut loaded_settings = None;
         match services.settings.load() {
             Ok(loaded) => {
-                let mut lock = state.lock().unwrap();
-                lock.settings.extend(loaded);
-                services.logger.log("Persistent settings loaded.", 1);
+                loaded_settings = Some(loaded);
             }
             Err(e) => {
                 services.logger.log(&format!("Failed to load settings: {}", e), 3);
             }
+        }
+
+        if let Some(settings) = loaded_settings {
+            {
+                let mut lock = state.lock().unwrap();
+                lock.settings.extend(settings);
+            }
+            services.logger.log("Persistent settings loaded.", 1);
         }
 
         services.logger.log("Brain Core Initialized.", 2);

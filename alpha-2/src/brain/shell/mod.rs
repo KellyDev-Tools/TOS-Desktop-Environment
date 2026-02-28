@@ -61,15 +61,10 @@ impl ShellApi {
         loop {
             match reader.read(&mut buffer) {
                 Ok(0) | Err(_) => {
-                    tracing::debug!("PTY Reader hit EOF or Error");
-                    // EOF or Error - handle disconnection logic §27.3
                     let mut state_lock = state.lock().unwrap();
                     if let Some(sector) = state_lock.sectors.iter_mut().find(|s| s.id == sector_id) {
                         if sector.is_remote {
                             sector.disconnected = true;
-                            tracing::warn!("Remote sector {} disconnected", sector_id);
-                            
-                            // 5 second auto-close timer
                             let state_clone = state.clone();
                             let sid = sector_id;
                             handle.spawn(async move {
@@ -78,7 +73,6 @@ impl ShellApi {
                                 if let Some(pos) = lock.sectors.iter().position(|s| s.id == sid) {
                                     if lock.sectors[pos].disconnected {
                                         lock.sectors.remove(pos);
-                                        tracing::info!("Auto-closed disconnected sector {}", sid);
                                     }
                                 }
                             });
@@ -100,7 +94,6 @@ impl ShellApi {
                         let mut state_lock = state.lock().unwrap();
                         if let Some(sector) = state_lock.sectors.iter_mut().find(|s| s.id == sector_id) {
                             if let Some(hub) = sector.hubs.iter_mut().find(|h| h.id == hub_id) {
-                                // Apply events (CWD, Priority, etc)
                                 for event in events {
                                     match event {
                                         OscEvent::Priority(p) => osc_parser.current_priority = p,
@@ -110,9 +103,7 @@ impl ShellApi {
                                         OscEvent::DirectoryListing(listing) => {
                                             hub.shell_listing = Some(listing);
                                         }
-                                        OscEvent::CommandResult { command: _, status: _, output: _ } => {
-                                            // Handle result (e.g. logging)
-                                        }
+                                        OscEvent::CommandResult { .. } => {}
                                     }
                                 }
 
@@ -122,8 +113,6 @@ impl ShellApi {
                                         priority: osc_parser.current_priority,
                                         timestamp: Local::now(),
                                     });
-                                    
-                                    // FIFO enforcement
                                     if hub.terminal_output.len() > hub.buffer_limit {
                                         hub.terminal_output.remove(0);
                                     }
@@ -161,7 +150,6 @@ impl OscParser {
         let mut clean_text = input.to_string();
         let mut events = Vec::new();
 
-        // §27.5: OSC 9012 Priority
         let priority_re = regex::Regex::new(r"\x1b\]9012;(\d)\x07").unwrap();
         for cap in priority_re.captures_iter(input) {
             if let Ok(p) = cap[1].parse::<u8>() {
@@ -170,14 +158,12 @@ impl OscParser {
         }
         clean_text = priority_re.replace_all(&clean_text, "").to_string();
 
-        // §27: OSC 9003 CWD tracking
         let cwd_re = regex::Regex::new(r"\x1b\]9003;([^\x07]+)\x07").unwrap();
         for cap in cwd_re.captures_iter(input) {
             events.push(OscEvent::Cwd(cap[1].to_string()));
         }
         clean_text = cwd_re.replace_all(&clean_text, "").to_string();
 
-        // §27.1: OSC 9002 Command Result
         let result_re = regex::Regex::new(r"\x1b\]9002;([^;]+);(\d+)(?:;([^\x07]+))?\x07").unwrap();
         for cap in result_re.captures_iter(input) {
             let command = cap[1].to_string();
@@ -190,7 +176,6 @@ impl OscParser {
         }
         clean_text = result_re.replace_all(&clean_text, "").to_string();
 
-        // §27: OSC 9001 Directory Listing
         let dl_re = regex::Regex::new(r"\x1b\]9001;([^;]+);([^\x07]+)\x07").unwrap();
         for cap in dl_re.captures_iter(input) {
             if let Ok(decoded) = base64::Engine::decode(&base64::prelude::BASE64_STANDARD, &cap[2]) {
@@ -201,7 +186,6 @@ impl OscParser {
         }
         clean_text = dl_re.replace_all(&clean_text, "").to_string();
 
-        // Fallback: iTerm2 CWD (OSC 1337;CurrentDir=...)
         let iterm_cwd_re = regex::Regex::new(r"\x1b\]1337;CurrentDir=([^\x07]+)\x07").unwrap();
         for cap in iterm_cwd_re.captures_iter(input) {
             events.push(OscEvent::Cwd(cap[1].to_string()));

@@ -10,10 +10,10 @@ This roadmap tracks the progress of the visual, rendering, and interaction layer
 - [x] **Top Bezel Evolution:** Partition the Top Bezel into Left/Center/Right zones (Left: Handles, Center: Telemetry, Right: System Controls).
 
 ## Context-Aware Augmented UI (Pending)
-- [ ] **Directory Context Previews:** Implement inline file and image previews within the Dual-Sided Chip Layout when `ls` or `cd` is executed.
-- [ ] **Activity Context Live Thumbnails:** Render 10Hz live, low-resolution frame buffer thumbnails of application surfaces on right-side process chips during `top` or `ps`.
 - [ ] **Level 3-5 UI Rendering:** Currently, `ApplicationFocus`, `DetailView`, and `BufferView` fall perfectly flat on the terminal proxy UI. Replace with functional UI Overlays.
 - [ ] **Settings UI Panel:** Implement the LCARS-themed modal interfaces for configuring global parameters, toggling sandboxing rules, and mapping dual-sided chip behaviors.
+- [ ] **Directory Context Previews:** Implement inline file and image previews within the Dual-Sided Chip Layout when `ls` or `cd` is executed.
+- [ ] **Activity Context Live Thumbnails:** Render 10Hz live, low-resolution frame buffer thumbnails of application surfaces on right-side process chips during `top` or `ps`.
 
 ## Hardware Forms & Multi-Sensory (Pending)
 - [ ] **OpenXR Spatial UI Shell:** Implement the spatial UI shell for VR/XR sectors, enabling floating Command Hub windows and glassmorphism panels in 3D space.

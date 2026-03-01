@@ -2,13 +2,6 @@
 
 This roadmap tracks the development of the auxiliary services, modular ecosystem, and marketplace infrastructure that plug into the core logic of the TOS Brain.
 
-## Marketplace & Module Ecosystem (Ecosystem Spec §1 & §2)
-- [ ] **Application Models (`.tos-app`):** Define the manifest and interaction rules for deeply integrating standard Wayland/X11 applications into Level 3 (e.g., overriding controls, defining zoom behavior, and search indexing).
-- [ ] **Sector Types (`.tos-sector`):** Create the blueprint engine allowing users to spawn pre-configured hubs with specific shells, layouts, and pre-pinned dual-sided chips.
-- [ ] **Theme Packaging (`.tos-theme`):** Finalize the distribution mechanism for custom CSS variables, fonts, and Audio themes.
-- [ ] **Terminal Output Modules (`.tos-terminal`):** Isolate the React/CSS styling of the Terminal Canvas into installable packages to allow switching between Rectangular and Cinematic layouts.
-- [ ] **Marketplace Client:** Build a command-line utility (`tos-pkg`) and an accompanying visual application to browse, sign-verify, and install these modules.
-
 ## Auxiliary Services (§4)
 *The following services run as independent processes and communicate with the Brain via IPC.*
 
@@ -20,6 +13,13 @@ This roadmap tracks the development of the auxiliary services, modular ecosystem
 ## Shell ABI & Integrations (§27)
 - [ ] **Universal OSC Scripts:** Finalize shell integration scripts for `Bash`, `Zsh`, and `Fish` to automatically emit OSC 1337 sequences for directory changes, command timings, and exit codes.
 - [ ] **JSON Context Export:** Allow applications to write standard JSON to stdout formatted within an OSC sequence to populate the Left Chip Column dynamically.
+
+## Marketplace & Module Ecosystem (Ecosystem Spec §1 & §2)
+- [ ] **Application Models (`.tos-app`):** Define the manifest and interaction rules for deeply integrating standard Wayland/X11 applications into Level 3 (e.g., overriding controls, defining zoom behavior, and search indexing).
+- [ ] **Sector Types (`.tos-sector`):** Create the blueprint engine allowing users to spawn pre-configured hubs with specific shells, layouts, and pre-pinned dual-sided chips.
+- [ ] **Theme Packaging (`.tos-theme`):** Finalize the distribution mechanism for custom CSS variables, fonts, and Audio themes.
+- [ ] **Terminal Output Modules (`.tos-terminal`):** Isolate the React/CSS styling of the Terminal Canvas into installable packages to allow switching between Rectangular and Cinematic layouts.
+- [ ] **Marketplace Client:** Build a command-line utility (`tos-pkg`) and an accompanying visual application to browse, sign-verify, and install these modules.
 
 ## Collaboration Hub (§13)
 - [ ] **Multi-User Presence API:** Flesh out the WebRTC data channel payloads to sync dual-sided chip states, active viewport titles, and cursor metadata between connected users.

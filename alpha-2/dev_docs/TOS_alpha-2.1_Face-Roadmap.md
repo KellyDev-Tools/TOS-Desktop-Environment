@@ -21,3 +21,9 @@ This roadmap tracks the progress of the visual, rendering, and interaction layer
 
 ## Documentation
 - [ ] **End-to-End User Manual:** Finalize the user guide focusing on Face interactions, terminal configurations, and bezel docking.
+
+## Cross-Roadmap Dependencies
+- **Settings UI Panel** is blocked by the **Settings Daemon** (Ecosystem Roadmap) handling the JSON persistence layer and cascading state resolution.
+- **Activity Context Live Thumbnails** relies on Wayland frame buffers managed by the Backend Compositing (Brain Roadmap).
+- **Directory Context Previews** is blocked by **Universal OSC Scripts** and JSON context definitions (Ecosystem Roadmap) driving the shell.
+- **Multi-Sensory Audio Hooks** depends on the backend's **Multi-Sensory Audio Pipeline** initialization of OS audio sinks (Brain Roadmap).

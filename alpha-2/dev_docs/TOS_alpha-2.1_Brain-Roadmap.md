@@ -15,7 +15,7 @@ This roadmap tracks the progress of the TOS backend, specifically focusing on th
 - [x] **XR/Quest Swapchain:** Swapchain placeholder resolved.
 - [ ] **Android NDK/Intents:** Implement real SurfaceControl and Intent pipelines (currently mocked).
 
-## Production-Grade Security & Isolation (§18.4)
+## Production-Grade Security & Isolation (Ecosystem Spec §1.4)
 - [x] **Kernel-Level Sandboxing:** Move beyond mock permissions to actual Linux namespaces/cgroups for Standard Modules.
 - [x] **Deep Inspection (Level 5) Audit:** Implement a cryptographic audit log for all privilege escalations.
 - [x] **Manifest Signing:** Require signed `module.toml` for Marketplace installations to ensure supply-chain security.
@@ -34,3 +34,9 @@ This roadmap tracks the progress of the TOS backend, specifically focusing on th
 - [ ] **stimulator_brain_node IPC Port:** Fix test crash where the `tos-brain` doesn't bind an IPC server port alongside the web-server for testing mocks.
 - [ ] **Beta Branch Merge:** Consolidate all backends and services into the main production branch.
 - [ ] **Developer SDK Guide:** Finalize documentation for module creators.
+
+## Cross-Roadmap Dependencies
+- **Natural Language Search** relies on the index building provided by the **Global Search & Indexing Service** (Ecosystem Roadmap).
+- **Multi-Sensory Audio Pipeline** initialization blocks the **Multi-Sensory Audio Hooks** (Face Roadmap) from producing sound.
+- **Wayland DMABUF Logic** and compositing pipelines must be finalized to unblock the Face's **Activity Context Live Thumbnails** (Face Roadmap).
+- **Remote WebRTC Auto-Close** and **Remote Desktop Protocol (TDP)** stability block the advanced sync layers like **Multi-User Presence API** (Ecosystem Roadmap).

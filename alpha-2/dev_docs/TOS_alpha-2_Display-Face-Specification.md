@@ -89,7 +89,7 @@ In Level 2, the viewport features dynamic vertical chip columns floating over th
 ## 6. Aesthetics, Themes, and Multi-Sensory Design
 
 ### 6.1 Theme Modules
-The Face supports full re-theming via **Theme Modules** (`module.toml`, as defined in [Architecture Spec §18.6](./TOS_alpha-2_Architecture-Specification.md)). 
+The Face supports full re-theming via **Theme Modules** (`module.toml`, as defined in [Ecosystem Spec §1.6](./TOS_alpha-2_Ecosystem-Specification.md)). 
 *   Themes define CSS variables injected into the HTML root (colors, border radii, glassmorphism opacities).
 *   Can distribute custom fonts (`.ttf`/`.woff`) and icons.
 *   Includes accessibility metadata (High Contrast, Reduced Motion flags).

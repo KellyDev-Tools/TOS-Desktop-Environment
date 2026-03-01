@@ -2,7 +2,7 @@
 
 This roadmap tracks the development of the auxiliary services, modular ecosystem, and marketplace infrastructure that plug into the core logic of the TOS Brain.
 
-## Marketplace & Module Ecosystem (§18, §25)
+## Marketplace & Module Ecosystem (Ecosystem Spec §1 & §2)
 - [ ] **Application Models (`.tos-app`):** Define the manifest and interaction rules for deeply integrating standard Wayland/X11 applications into Level 3 (e.g., overriding controls, defining zoom behavior, and search indexing).
 - [ ] **Sector Types (`.tos-sector`):** Create the blueprint engine allowing users to spawn pre-configured hubs with specific shells, layouts, and pre-pinned dual-sided chips.
 - [ ] **Theme Packaging (`.tos-theme`):** Finalize the distribution mechanism for custom CSS variables, fonts, and Audio themes.
@@ -24,3 +24,9 @@ This roadmap tracks the development of the auxiliary services, modular ecosystem
 ## Collaboration Hub (§13)
 - [ ] **Multi-User Presence API:** Flesh out the WebRTC data channel payloads to sync dual-sided chip states, active viewport titles, and cursor metadata between connected users.
 - [ ] **Follow Mode:** Implement the logic forcing connected peers to match zoom levels and viewport context of the "host" user.
+
+## Cross-Roadmap Dependencies
+- **Settings Daemon** JSON persistence API must be completed to unblock the **Settings UI Panel** functionality (Face Roadmap).
+- **Global Search & Indexing Service** indexes must exist before the backend can implement **Natural Language Search** (Brain Roadmap) embedding routing.
+- **Universal OSC Scripts** and JSON Context definitions must be integrated into shells to unblock **Directory Context Previews** (Face Roadmap).
+- **Multi-User Presence API** mapping is blocked by the completion of strong **Remote WebRTC Auto-Close / Remote Desktop Protocols (TDP)** (Brain Roadmap).

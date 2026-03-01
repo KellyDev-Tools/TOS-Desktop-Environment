@@ -133,29 +133,71 @@ To ensure consistent parsing across all services, all IPC messages sent from the
 - **Payload:** Message-specific data. If multiple arguments are required, they MUST be delimited by **semicolons** (`;`).
 - **Example:** `set_setting:theme;lcars-dark` or `signal_app:uuid;SIGTERM`.
 
+#### 3.3.2 State Delta (Brain → Face)
+The Brain broadcasts state updates as JSON deltas to minimize bandwidth. A delta contains only changed fields or new objects.
+```json
+{
+  "type": "state_delta",
+  "timestamp": 1709300000,
+  "sectors": {
+    "sector_uuid": {
+      "status": "active",
+      "priority_score": 85,
+      "hubs": {
+        "hub_uuid": {
+          "mode": "CMD",
+          "terminal_lines": [
+            {"id": 1024, "content": "build successful", "type": "stdout", "priority": 2}
+          ],
+          "active_app_uuid": "app_uuid_1"
+        }
+      }
+    }
+  },
+  "global_priority_alerts": [
+    {"source": "power", "level": 4, "message": "Low Battery"}
+  ]
+}
+```
+
+#### 3.3.3 Settings IPC (Face ↔ Settings Daemon)
+Settings are managed via a dedicated IPC channel.
+- **Get Setting:** `get_setting:key` -> Response: `setting_val:key;value`
+- **Set Setting:** `set_setting:key;value` -> Response: `setting_status:key;success`
+- **Change Notification:** The Daemon broadcasts `setting_changed:key;value` to all subscribers (Brain, Face).
+
+#### 3.3.4 TOS Log Query (Face → Log Service)
+Log queries use a simplified SQL-like syntax or structured JSON.
+- **Query:** `log_query:{"surface": "browser", "since": "-10m", "limit": 50}`
+- **Response:**
+```json
+{
+  "query_id": "uuid",
+  "results": [
+    {"ts": 1709299400, "level": "INFO", "source": "browser", "event": "navigation", "data": "https://google.com"}
+  ]
+}
+```
+
 ---
 
 ## 4. Modular Service Architecture
 
 Beyond the Brain and Face, TOS decomposes functionality into a set of independent services. Each service runs as a separate OS process (or lightweight thread with strong isolation) and communicates with the Brain (and sometimes directly with the Face) via a well‑defined IPC protocol. This design provides fault isolation, resource management, testability, and flexibility.
 
-| Service | Responsibilities |
-|---------|------------------|
-| **Brain** | Core state machine, command execution, coordination (see §3.1). |
-| **Face** | UI rendering, input capture (see §3.2). |
-| **Marketplace Service** | Package index, download, installation, dependency resolution, signature verification, update monitoring. |
-| **Settings Daemon** | Store/retrieve configuration values, persistence, change notifications. |
-| **TOS Log Service** | Collect events from all components, manage log storage, retention, redaction, query interface. |
-| **AI Engine** | Load AI backends, process natural language queries, handle function calling, stream responses. |
-| **Collaboration Server** | Manage WebSocket connections to remote guests, WebRTC signalling, broadcast presence and cursors, enforce permissions. |
-| **File Sync Service** | Monitor directories, perform bidirectional sync, conflict resolution, progress reporting. |
-| **Input Hub** | Collect raw input from devices, normalize to semantic events, apply user mappings, forward to Brain. |
-| **Audio & Haptic Engine** | Mix three‑layer audio, play earcons, spatialise sound, trigger haptic patterns. |
-| **Update Daemon** | Check for updates, download in background, stage updates, coordinate restart. |
-| **Notification Center** | Aggregate notifications from all services, manage history, deliver to Face. |
-| **Power Monitor** | Track battery, thermal, power events; trigger alerts; advise power‑saving modes. |
-| **Accessibility Bridge** | Interface with platform accessibility services, translate events, provide screen reader output. |
-| **Module Runtimes** | Execute third‑party modules (Application Models, Sector Types, AI backends, Terminal Output Modules, Theme Modules, Shell Modules) in sandboxed processes. |
+| Service | Responsibilities | API / Protocol |
+|---------|------------------|----------------|
+| **Brain** | Core state machine, command execution, coordination (see §3.1). | JSON-RPC (IPC) |
+| **Face** | UI rendering, input capture (see §3.2). | JSON-RPC (IPC) |
+| **Marketplace Service** | Package index, download, installation, dependency resolution, signature verification, update monitoring. | `marketplace_search`, `marketplace_install` |
+| **Settings Daemon** | Store/retrieve configuration values, persistence, change notifications. | `get_setting`, `set_setting` |
+| **TOS Log Service** | Collect events from all components, manage log storage, retention, redaction, query interface. | `log_query` |
+| **AI Engine** | Load AI backends, process natural language queries, handle function calling, stream responses. | `ai_query` |
+| **File Sync Service** | Monitor directories, perform bidirectional sync, conflict resolution via WebDAV extensions. | WebDAV + Inotify/FSEvents |
+| **Search Service** | Indexing of file contents, logs, and metadata. Query syntax supports regex and semantic filters. | `search_query` |
+| **Notification Center** | Aggregate notifications, manage history, deliver to Face with priority levels (1-5). | `notify_push` |
+| **Update Daemon** | Atomic update check, download, and staging. Coordination of the "Yellow Alert" status. | `update_check`, `update_apply` |
+| **Audio & Haptic Engine** | Mix three‑layer audio, play earcons, trigger haptic patterns. | `play_earcon`, `trigger_haptic` |
 
 All services communicate with the Brain via IPC. The Brain maintains authoritative state and routes messages as needed. Some services may communicate directly with the Face for performance (e.g., Audio Engine, Input Hub), but semantic decisions are made or approved by the Brain.
 
@@ -494,7 +536,19 @@ Remote sectors are enabled by the **TOS Remote Server** daemon on the target mac
 
 ### 12.1 TOS Remote Server Protocol
 
-- **Control Channel:** WebSocket/TLS, JSON‑RPC or MessagePack.
+The protocol handles state synchronization, media streaming, and input forwarding between the Host (Server) and Client.
+
+- **Handshake & Auth:**
+  1. Client connects via TLS.
+  2. Server sends `auth_challenge:salt;nonce`.
+  3. Client responds with `auth_response:token` (HMAC/SSH-Signature).
+  4. Server sends `session_init:capabilities_json`.
+- **Control Channel (WebSocket):**
+  - Sends/receives IPC messages as defined in §3.3 (prefixed with `remote:`).
+  - `remote_sync_start`: Triggers full state dump of shared sector.
+- **WebRTC Signalling:**
+  - Messages: `webrtc_offer`, `webrtc_answer`, `webrtc_ice_candidate`.
+  - Payloads contain standard SDP or ICE details.
 - **Video/Audio Stream:** WebRTC (H.264/H.265) with hardware decoding.
 - **File Transfer:** WebDAV/HTTPS or custom protocol.
 - **Authentication:** SSH keys, passwords, time‑limited tokens (Android Keystore for credential storage).
@@ -559,6 +613,21 @@ Guests are notified if AI processes their actions.
 - Guest actions are recorded in the host’s TOS Log (tagged with guest identity). Guests do not see the host’s log unless granted.
 - Privacy notice shown upon joining.
 - Critical events (role changes, invite usage) are written to a non‑disableable audit log.
+
+### 13.7 Collaboration Data Channel Payloads
+Collaboration data is exchanged over a dedicated low-latency channel (WebRTC DataChannel).
+
+| Payload Type | Structure | Description |
+|--------------|-----------|-------------|
+| **Presence** | `{"user": "uuid", "status": "active|idle", "level": 2}` | Current location in hierarchy. |
+| **Cursor Sync** | `{"user": "uuid", "x": 0.5, "y": 0.2, "target": "element_id"}` | Normalized coordinates (0.0 to 1.0). |
+| **Following** | `{"follower": "u1", "leader": "u2", "sync": true}` | Viewport synchronization toggle. |
+| **Role Change** | `{"target": "u1", "new_role": "operator", "admin": "u3"}` | Role escalation/de-escalation. |
+
+### 13.8 Web Portal Security
+- **One-Time URLs:** Sectors exported to web portal use tokens: `https://tos.live/sector/<sector_uuid>?token=<short_lived_jwe>`.
+- **Expiry:** Tokens expire after 30 minutes of inactivity or manual session termination.
+- **MFA:** Can require biometrics or tactile confirmation on the host device before a portal guest can upgrade to "Operator" role.
 
 ---
 
@@ -635,28 +704,24 @@ pub trait SystemServices {
 
 
 ### 15.2 Linux Wayland Implementation
-
-- Custom Wayland compositor with layer shell for bezel.
-- Input via evdev/libinput, SDL2 for controllers, OpenXR for VR.
-- Shell integration via OSC escapes (Fish reference, Bash/Zsh providers).
-- Filesystem access via POSIX.
-- Sandboxing via bubblewrap (optional).
+- **Integration:** The Brain acts as the logical Wayland compositor for native surface orchestration.
+- **Composition:** Rendered via the Face (see **[Face Specification §7.1](./TOS_alpha-2_Display-Face-Specification.md)**).
+- **Communication:** Uses standard `wl_shm` or `dmabuf` for zero-copy texture transfer.
 
 ### 15.3 Android XR (OpenXR) Implementation
-
-- OpenXR 1.1 with extensions for foveation, spatial anchors, passthrough.
-- Input via OpenXR actions (gaze, pinch, hand tracking) + Android touch for phone mode.
-- Gemini AI for voice (on‑device transcription).
-- Hardware video decoding via `MediaCodec`.
-- File sync via Storage Access Framework; device‑aware (full sync on headsets, on‑demand on glasses).
+- **Integration:** The Brain manages 3D world space coordinate state.
+- **Rendering & Interaction:** Defined by the hardware-specific Face (see **[Face Specification §7.2](./TOS_alpha-2_Display-Face-Specification.md)**).
+- **Input:** Maps raw hardware actions to `SemanticEvent` objects.
 
 ### 15.4 Android Phone Implementation
+- **Platform:** Native Android activity or Compose view host.
+- **Input & Accessibility:** Managed by phone-tier Input Hub and platform services.
 
-- egui with Android backend or Jetpack Compose overlay.
-- Touch events from Android view system.
-- Voice via Google Speech Recognition.
-- File access via SAF.
-- Sandboxing via Android platform.
+### 15.6 Native Application Embedding (Wayland/X11)
+The logical orchestration of native apps involves:
+1. **Virtual Surfaces:** The Brain spawns and assigns virtual surfaces to Sector viewports.
+2. **Event Routing:** Input is captured by the Face (see **[Face Specification §7.3](./TOS_alpha-2_Display-Face-Specification.md)**), translated, and routed via the Brain to the native PID.
+3. **Lifecycle:** Managed via standard `xdg_shell` (Wayland) or window management hints (X11).
 
 ### 15.5 Native Horizon OS Client (Meta Quest)
 
@@ -708,6 +773,22 @@ If frame rate drops below target (e.g., 60 FPS desktop, 90 FPS VR) for >2s, a no
 - **Standard Modules:** Application Models, AI backends, Terminal Output Modules, and Theme Modules run in strictly sandboxed processes with declared permissions.
 - **Trusted System Modules:** Shell Modules and certain Sector Types (if using native code) are considered "Trusted." They run with the user's full shell privileges and have access to the PTY, enabling them to execute system commands directly without the sandbox overhead.
 
+### 17.2.1 Sandbox Profiles (Linux/Bubblewrap)
+TOS uses `bwrap` to enforce restrictions:
+- **Default:** `--unshare-all --dir /tmp --ro-bind /usr /usr --ro-bind /lib /lib --proc /proc`.
+- **Network Profile:** Adds `--share-net`.
+- **FileSystem Profile:** Adds `--bind ~/TOS/Sectors/<id> /mnt/sector`.
+
+### 17.2.2 Exhaustive Permission List
+Modules must declare:
+| Permission | Description | Enforcement |
+|------------|-------------|-------------|
+| `network:client` | Initiate outgoing connections. | `unshare-net` (off) |
+| `fs:read` | Read sector-specific directories. | `ro-bind` |
+| `fs:write` | Write to sector-specific directories. | `bind` (rw) |
+| `sys:camera` | Access to video input (XR passthrough). | `/dev/video*` bind |
+| `ai:stream` | Send telemetry to AI Backend. | Internal IPC gate |
+
 ### 17.3 Dangerous Command Handling (Tactile & Voice Confirmation)
 
 Commands marked as high‑risk trigger a modal overlay requiring a **Tactile Confirmation Slider** (drag 100% to right). For devices without touch/drag capabilities or users with motor impairments, TOS provides **Voice Confirmation** (speaking a unique, time‑limited passphrase displayed on screen) or **Secure Biometric Prompt** (Android). Shortcuts like `Ctrl+Enter` can bypass only if explicitly permitted in the security policy. This mechanism is also used for confirming sector closure when tasks are running (see §6.5).
@@ -719,7 +800,20 @@ Level 5 access is disabled by default; requires explicit elevation (sudo/Polki
 ### 17.5 Auditing
 
 - All commands, security events, role changes, and deep inspection accesses are logged.
-- Critical events go to a non‑disableable audit log (Linux: `/var/log/tos/`, Android: app‑private).
+- Critical events go to a non‑disableable audit log (Linux: `/var/log/tos/audit.log`, Android: app‑private).
+
+### 17.5.1 Audit Log Schema (JSON Lines)
+Each entry MUST include:
+```json
+{
+  "ts": 1709300000,
+  "actor": "user|guest_id|ai",
+  "action": "privilege_escalation|sector_close|exec",
+  "target": "res_id",
+  "status": "allowed|denied",
+  "details": "optional context"
+}
+```
 
 ---
 
@@ -1154,7 +1248,26 @@ Result must be valid printable UTF‑8.
 
 ---
 
-## 31. Conclusion
+---
+
+## 32. Glossary of Terms
+
+| Term | Definition |
+|------|------------|
+| **Sector** | A self-contained workspace with its own identity, environment variables, and process tree. |
+| **Command Hub** | The Level 2 interface within a sector, featuring a terminal, prompt, and chip regions. |
+| **Chip** | Contextual UI elements in Layer 2 that stage commands or provide quick actions. |
+| **Bezel Slot** | Defined areas in the Tactical Bezel (Top, Left, Right) where components can be docked. |
+| **Tactical Reset** | An emergency recovery action that flushes buffers and reverts to a clean state. |
+| **Brain** | The logical center of TOS; handles state, command execution, and coordination. |
+| **Face** | The visual and input frontend of TOS; handles rendering and event capture. |
+| **Earcon** | A unique auditory cue associated with a specific system event or state change. |
+| **Level** | A specific depth in the vertical hierarchy (1 to 5). |
+| **Projection** | The animation of a bezel component expanding inward to reveal more detail. |
+
+---
+
+## 33. Conclusion
 
 By unifying the terminal output experience across the Global Overview and Command Hubs through the same modular system, TOS reinforces its terminal‑first identity while enabling unprecedented customisation. The System Output Area at Level 1 serves as a dynamic, readable window into the Brain's operations, placed as a distinct layer that can be toggled to the front for detailed inspection. The addition of a sector tile context menu empowers users to manage their workspaces quickly and safely, with tactile confirmation for destructive actions. Combined with theme and shell modules, TOS offers a deeply personalisable yet coherent environment – a true "Terminated On Steroids" for the modern era. All future development should reference this document as the single source of truth. 
 

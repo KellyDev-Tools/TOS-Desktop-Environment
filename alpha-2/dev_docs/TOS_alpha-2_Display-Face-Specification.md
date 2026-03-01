@@ -106,3 +106,89 @@ The visual state is tightly coupled to non-visual feedback:
 *   Mode switching, command execution, and Level zooming emit distinct "Earcons".
 *   Scrolling the Cinematic Triangular terminal triggers subtle haptic detents.
 *   Voice Input state is visually represented by a glowing microphone icon that syncs to user amplitude.
+
+---
+
+## 7. Platform Implementation & Rendering
+
+This section defines how the Face composites the UI across different hardware environments.
+
+### 7.1 Linux Wayland Implementation
+- **Layer Shell:** The Face renders as a `wlr-layer-shell` on the `TOP` layer, ensuring it remains above all native applications unless explicitly toggled.
+- **Surface Embedding:** Native Wayland windows are rendered into Level 3 viewports using `dmabuf` sharing. The Face acts as a sub-compositor, projecting the application's buffer onto the LCARS-themed surface.
+- **Input Forwarding:** The Face intercepts all pointer/touch events. If an event occurs within a native application's bounds, the Face translates the coordinates and forwards the raw event to the application's `wl_surface`.
+
+### 7.2 Android XR (OpenXR) Implementation
+- **World Space Compositing:** The UI is not a 2D overlay but a set of three-dimensional cylinders and quads positioned in a "Cockpit" configuration around the user.
+- **Action Mapping:**
+  - `pinch_left`: Triggers `zoom_out`.
+  - `pinch_right`: Triggers `zoom_in`.
+  - `gaze_dwell`: Fires `select` semantic event.
+  - `wrist_tap`: Fires `open_hub` semantic event.
+- **Performance:** Uses `EGLImage` for high-throughput terminal rendering to avoid CPU pipeline stalls.
+
+### 7.3 Native Application Embedding (Wayland/X11)
+To embed native apps into the Level 3 focus:
+1. **Virtual Output:** TOS provides a virtual `wl_output`.
+2. **Composition:** Application textures are mapped to specific logical areas which are then composited into the Level 3 texture with a glassmorphism border.
+3. **Bezel Overlay:** The Tactical Bezel is rendered on top of the native app, providing system-level "Close" and "Inspect" triggers via `xdg_toplevel` signals.
+
+---
+
+## 8. UI Module Interaction APIs
+
+Terminal and Bezel modules interact with the Face via these specific UI-hooks:
+
+### 8.1 Terminal Output API
+- **`render(surface, lines)`:** The Face provides a `RenderSurface` (DOM or GPU buffer). The module is responsible for font-rendering and ANSI color application.
+- **`on_click(x, y)`:** Returns the line index and context-action (e.g., `copy`, `inspect_pid`).
+- **`on_scroll(delta)`:** Handles the visual transition of lines.
+
+### 8.2 Bezel Component API
+- **`update_view(html, data)`:** Components push their rendered state to the Face.
+- **`component_click(id, x, y)`:** The Face forwards clicks on specific component IDs to the underlying module.
+- **`request_projection(mode)`:** Components can request to "unfurl" a detailed panel (e.g., the Mini-Map expanding into the viewport).
+
+---
+
+## 9. User Interaction & Accessibility
+
+### 9.1 Default Keyboard Shortcuts
+The interaction model respects the vertical hierarchy.
+
+| Key Combination | Semantic Event | Description |
+|-----------------|----------------|-------------|
+| `Ctrl + [` | `zoom_out` | Move one level up in hierarchy. |
+| `Ctrl + ]` | `zoom_in` | Move one level down into focus. |
+| `Ctrl + Space` | `toggle_bezel` | Expand/Collapse the Top Bezel. |
+| `Ctrl + /` | `set_mode_ai` | Focus prompt and switch to AI mode. |
+| `Ctrl + T` | `new_sector` | Create a new sector. |
+| `Alt + [1-9]` | `switch_sector` | Rapidly switch between first 9 sectors. |
+| `Ctrl + M` | `toggle_minimap` | Show/Hide the Tactical Mini-Map. |
+| `Ctrl + Backspace`| `tactical_reset`| Trigger immediate reset of current sector. |
+
+Users can remap all shortcuts via the Settings panel, which provides a visual conflict detection interface.
+
+### 9.2 Voice Command Grammar
+Voice input is processed context-sensitively. Commands are structured as `Action + Target + [Modifier]`.
+
+| Command Pattern | Example | Logical Translation |
+|-----------------|---------|---------------------|
+| "Focus [Sector]" | "Focus Development" | `sector_zoom:dev_uuid` |
+| "Run [Command]" | "Run build script" | `prompt_submit:./build.sh` |
+| "Inspect [Target]" | "Inspect browser" | `zoom_to:level_4;pid_1234` |
+| "Alert Status" | "Report alert status" | TTS summary of priority chips. |
+| "Stop everything" | "Stop everything" | `tactical_reset_system` |
+
+### 9.3 Accessibility Profiles
+TOS supports several distinct interaction profiles for diverse user needs:
+- **Switch Scanning:** Automatically cycles focus through bezel components and chips. Supports 1-switch (timed) or 2-switch (move/select) modes.
+- **Dwell Clicking:** Used in Gaze and Head tracking scenarios. Staring at an element for 500ms (configurable) triggers a `select` event.
+- **High-Visibility Mode:** Forced thick borders, monochromatic glassmorphism for better contrast, and increased font sizes.
+- **Screen Reader Bridge:** Every UI element publishes a semantic role (button, line, chip) to the platform's accessibility bridge (AT-SPI / TalkBack).
+
+### 9.4 Notification Display Center
+Notifications appear in the **Right Lateral Bezel** and unfurl inward.
+- **Priority 1-2 (Normal):** Quiet slide-in, disappears after 5s.
+- **Priority 3 (Warning):** Amber pulse, remains until dismissed.
+- **Priority 4-5 (Critical):** Red border, accompanied by a tactical earcon and haptic pulse. Requires manual interaction or "Clear" voice command.

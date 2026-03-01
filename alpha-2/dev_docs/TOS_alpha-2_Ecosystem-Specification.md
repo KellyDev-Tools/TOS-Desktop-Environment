@@ -15,6 +15,23 @@ TOS employs a dual‑tier trust model for modules:
 1. **Standard Tier (Sandboxed):** Most modules run in an isolated environment and must declare required permissions in a manifest (`module.toml`). 
 2. **System Tier (Trusted):** Shell Modules and native Sector Types are trusted by the user and run without TOS‑enforced sandboxing to ensure full local system access.
 
+### 1.0 Package Format & Structure
+All TOS modules are distributed as signed archives (e.g., `.tar.gz`) with a `.tos-<type>` extension.
+
+**Directory Structure:**
+```
+package.tos-terminal/
+├── module.toml         # Canonical manifest
+├── signature.sig       # Ed25519 signature of the manifest + assets
+├── bin/                # Compiled binaries (if any)
+├── assets/             # CSS, icons, fonts, sounds
+├── etc/                # Default configuration files
+└── README.md           # Documentation
+```
+
+**Signature Scheme:**
+Modules must be signed by registered developers. The Marketplace Service verifies signatures against a trusted root CA before installation. Users can add custom public keys to allow "sideloading" of community-built modules.
+
 ### 1.1 Application Model
 Customizes an application’s integration at Level 3. Manifest includes: name, version, type = "app-model", icon, permissions, capabilities (bezel actions, searchable content, etc.).
 
@@ -24,16 +41,19 @@ Defines a sector’s default behaviour: command favourites, interesting director
 ### 1.3 AI Backend Modules
 Package type `.tos-ai`. Manifest includes: capabilities (chat, function_calling, vision, streaming), connection details (protocol, endpoint, auth_type), permissions, configuration options (model, temperature, etc.).
 
-Example:
-```toml
-name = "OpenAI GPT-4"
-version = "1.0.0"
-type = "ai-backend"
-capabilities.chat = true
-connection.default_endpoint = "https://api.openai.com/v1/chat/completions"
-auth_type = "api-key"
-permissions.network = ["api.openai.com"]
-``` 
+#### 1.3.1 AI Module API (JSON-RPC over IPC)
+The Brain invokes the AI module using the following message formats:
+- **Prompt:** `ai_query:{"prompt": "string", "context": [...], "stream": true}`
+- **Function Calling:** `ai_tool_call:{"name": "exec_cmd", "args": {"cmd": "ls"}}`
+- **Response Format:**
+```json
+{
+  "id": "msg_uuid",
+  "choice": {"role": "assistant", "content": "delta_text"},
+  "usage": {"tokens": 15},
+  "status": "streaming|complete|error"
+}
+```
 
 ### 1.4 Module Isolation & Permissions
 - Modules run in sandbox with limited access (network filtered, filesystem restricted).
@@ -52,14 +72,16 @@ A Terminal Output Module must implement a well‑defined interface (Rust trait o
   - Exit status of the command that produced the line (if applicable).
   - Whether the line is part of a command echo or output.
   - Priority/importance level (for highlighting).
-- **Render the output:** Modules render to a platform-appropriate surface provided by the Face.
-  - **Web Profile:** Render into a sandboxed DOM element.
-  - **Native Profile:** Render into a shared-memory buffer (e.g., DMABUF on Linux or EGLImage on Android) which the Face then composites into the GPU pipeline. Direct raw GPU access is prohibited for sandboxed modules.
-- Handle user interactions (only if context is interactive):
-  - Click/tap on a line (with coordinates) → return line index and optional context actions.
-  - Scroll requests (delta, to top/bottom).
-  - Hover events (for tooltips).
-- Provide configuration options (exposed via the Settings Daemon).
+- **Render the output:** Modules render to a surface provided by the Face. See **[Face Specification §8.1](./TOS_alpha-2_Display-Face-Specification.md)** for technical rendering and interaction contracts.
+- **Provide configuration options:** Exposed via the Settings Daemon.
+- **Rust Trait (Logic Interface):**
+```rust
+pub trait TerminalOutputModule {
+    fn init(&mut self, context: TerminalContext, config: ModuleConfig);
+    fn push_lines(&mut self, lines: Vec<TerminalLine>);
+    // UI-side rendering and event handling is defined in the Face Specification
+}
+```
 
 The Face is responsible for compositing the rendered output with chip regions, bezel, and other overlays.
 
@@ -94,7 +116,10 @@ supports_high_contrast = true    # Theme can adapt to high‑contrast mode
 supports_reduced_motion = true   # Respects reduced‑motion setting
 ```
 
-Interface: The Face applies the theme by loading the manifest and assets. The CSS file defines CSS custom properties (variables) that are injected into the UI's root. Icons are referenced by name and loaded from the module's asset directory. The theme may also provide JavaScript hooks for dynamic theming (e.g., animated transitions).
+Interface: The Face applies the theme by loading the manifest and assets. 
+- **CSS Injection:** The Face reads `theme.css` and injects its content into a `<style>` block at the root of the UI.
+- **Dynamic Updates:** Themes can react to system state (e.g., Alert Levels) via CSS classes applied to the `<body>` (e.g., `.alert-red`, `.alert-yellow`).
+- **Asset Resolution:** Icons are referenced by name and resolved to the module's `icons/` path.
 
 Permissions: Typically none, as themes are static assets. If a theme includes custom fonts or icons, they are bundled and do not require additional permissions. However, if a theme wishes to access external resources (e.g., web fonts), it must declare network permissions.
 
@@ -135,7 +160,13 @@ default_env = { LANG = "en_US.UTF-8" }
 rc_file = "etc/zshrc" # Default rc file to source
 ```
 
-Interface: The Brain, when creating a new sector's Command Hub, reads the selected shell module, spawns the executable with the given arguments, and attaches the PTY. The shell's output is fed to the Terminal Output Module, and input from the prompt is written to the PTY. The Brain also listens for OSC sequences emitted by the shell and updates state accordingly (e.g., directory changes, command results).
+Interface: The Brain, when creating a new sector's Command Hub, reads the selected shell module, spawns the executable with the given arguments, and attaches the PTY.
+- **PTY Lifecycle:**
+  - `spawn(config)`: Create PTY, set ENV, fork/exec.
+  - `write(input)`: Forward prompt characters to PTY stdin.
+  - `resize(cols, rows)`: Send `TIOCSWINSZ` to PTY.
+  - `signal(sig)`: Send `SIGINT`, `SIGTERM`, etc.
+- **OSC Expectations:** Shells MUST emit `ESC]1337;CurrentDir=<path>BEL` and `ESC]9002;...BEL` for status reporting.
 
 Permissions: Shell modules run as user processes with the same privileges as any shell. They are not sandboxed by TOS (the user's shell is trusted). However, if a shell module includes additional binaries or scripts, they inherit the user's permissions. The module may declare permissions for documentation purposes only.
 
@@ -148,7 +179,10 @@ Installation and switching:
 Built‑in shell: TOS includes a reference shell module (Fish) with full OSC integration. Additional modules (Bash, Zsh) are available via the Marketplace, with community‑maintained integration scripts.
 
 ### 1.8 Bezel Component Modules
-Bezel Components are modular UI elements that can be installed via the marketplace and docked into any available **Tactical Bezel Slot** (Top, Left, or Right). Note that the Bottom Bezel (Prompt Segment) is a static assembly and does not support component docking. They utilize the **Slot Projection** mechanism to expand their presence into the viewport when triggered.
+Bezel Components are modular UI elements that can be installed via the marketplace and docked into any available **Tactical Bezel Slot** (Top, Left, or Right).
+
+#### 1.8.1 Component API
+Each component runs as a background process or thread and communicates with the Face. The technical interface for DOM updates and interaction events is defined in the **[Face Specification §8.2](./TOS_alpha-2_Display-Face-Specification.md)**.
 
 For a complete list of core system components (e.g., Tactical Mini-Map, Resource Telemetry, Brain Connection Status) and their default slot assignments, refer to the [Face Specification §4](./TOS_alpha-2_Display-Face-Specification.md).
 
@@ -166,16 +200,46 @@ All modules coexist within the modular service architecture, communicating with 
 ## 2. Sector Templates and Marketplace
 
 ### 2.1 Package Types & Manifests
-- **Sector Template** (`.tos-template`): Configuration only.
-- **Sector Type** (`.tos-sector`): Module with code.
-- **Application Model** (`.tos-appmodel`): Module.
-- **AI Backend** (`.tos-ai`): Module.
-- **Terminal Output Module** (`.tos-terminal`): Module.
-- **Theme Module** (`.tos-theme`): Assets and CSS.
-- **Shell Module** (`.tos-shell`): Executable and scripts.
-- **Audio Theme** (`.tos-audio`): Sounds.
+- **Sector Template** (`.tos-template`): A blueprint for creating pre-configured workspaces.
+- **Sector Type** (`.tos-sector`): Module containing logic for special sector behavior.
+- **Application Model** (`.tos-appmodel`): Customizes Level 3 integration.
+- **AI Backend** (`.tos-ai`): Connection logic for LLMs.
+- **Terminal Output Module** (`.tos-terminal`): Visual terminal rendering logic.
+- **Theme Module** (`.tos-theme`): Global CSS and assets.
+- **Shell Module** (`.tos-shell`): PTY integration and shell binaries.
+- **Audio Theme** (`.tos-audio`): Earcons and ambient layers.
 
-Manifest (`module.toml`) includes name, version, type, icon, permissions, dependencies, configuration schema.
+#### 2.1.1 Sector Template Schema
+Sector templates define the "layout" of a new workspace.
+```toml
+name = "Rust Development"
+type = "template"
+description = "Pre-configured for Rust projects with terminal and lsp chips."
+
+[environment]
+PATH = "$PATH:$HOME/.cargo/bin"
+RUST_LOG = "info"
+
+[hubs.main]
+mode = "CMD"
+cwd = "~/projects"
+shell = "fish"
+terminal_module = "cinematic-triangular"
+
+[chips.left]
+pinned = ["~/projects", "/etc"]
+
+[chips.right]
+actions = ["cargo build", "cargo test", "cargo run"]
+```
+
+### 2.2 Installation & Atomic Updates
+The **Update Daemon** ensures updates are applied safely:
+1. **Download:** The new package is downloaded to a temporary buffer.
+2. **Verification:** Signature and checksum are verified.
+3. **Staging:** Files are extracted to a secondary directory.
+4. **Switching:** A symlink in `~/.local/share/tos/modules/active/` is updated atomically.
+5. **Reload:** The Brain receives a `reload_module:<id>` signal to hot-swap the logic where possible, or prompts for a Tactical Reset.
 
 ### 2.2 Installation Flow & Permissions
 1. Discovery (Search, Marketplace, direct file open).

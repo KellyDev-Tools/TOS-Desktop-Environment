@@ -1,13 +1,13 @@
 # TOS Alpha-2 Display & Face Specification
 
-**Purpose:** This document consolidates all architectural and design specifications related to the **Face** of the Tactical Operating System (TOS). It defines how the system looks, the visual mechanisms of user interaction, the layout of the UI elements, and the modular rendering systems that power the terminal and bezels.
+**Purpose:** This document consolidates all architectural and design specifications related to the **Face** of the Tactical Operating System (TOS). It defines how the system looks, the visual mechanisms of user interaction, the layout of the UI elements, and the modular rendering systems that power the terminal and bezels. For comprehensive details on system logic, process architecture, and IPC boundaries that drive these visual elements, refer to the [TOS Core Architecture Specification](./TOS_alpha-2_Architecture-Specification.md).
 
 ---
 
 ## 1. Core Visual Philosophy: Terminal First
 TOS is a terminal-centric environment. The command line and terminal output are the underlying graphical anchors. All visual augmentations (chips, modes, bezels) are overlays designed to empower the terminal, never to bypass or obscure it permanently. 
 
-The Face is built on standard web technologies (HTML/CSS/JS) acting as a dynamic graphical overlay to a native shell and Wayland/XR compositor backend. The design language heavily features LCARS-inspired elements with modern additions like glassmorphism and smooth kinetic transitions.
+The Face is built on standard web technologies (HTML/CSS/JS) acting as a dynamic graphical **frontend** to the **brain_node** (see the [Architecture Specification](./TOS_alpha-2_Architecture-Specification.md) for backend process separation, native shell, and Wayland/XR/Android composition). The design language heavily features LCARS-inspired elements with modern additions like glassmorphism and smooth kinetic transitions.
 
 ---
 
@@ -51,7 +51,7 @@ Modules docked within the Bezel use a projection mechanism to reveal detailed in
 ## 4. Bezel Component Modules
 The items that populate the Top, Left, and Right bezel slots are modular and user-assignable. The system ships with several built-in core UI components:
 
-1.  **Tactical Mini-Map (§22):** Provides high-level spatial overview, showing the topology of sectors and allowing rapid teleportation. (Default: Left Segment).
+1.  **Tactical Mini-Map:** Provides high-level spatial overview, showing the topology of sectors and allowing rapid teleportation (see [Architecture Spec §22](./TOS_alpha-2_Architecture-Specification.md)). (Default: Left Segment).
 2.  **Priority Indicator (§21):** Features dynamically ranked system alerts and notification badges. (Default: Right Segment).
 3.  **Resource Telemetry:** Real-time metrics for CPU, Memory, Network, and PTY latency. (Default: Top Center).
 4.  **Mini-Log Telemetry:** Persistent readout of the authoritative system state and the last executed command. (Default: Right Segment).
@@ -66,7 +66,7 @@ The items that populate the Top, Left, and Right bezel slots are modular and use
 ## 5. Command Hub & Terminal Canvas (Level 2)
 
 ### 5.1 Terminal Output Modules
-The aesthetic of the scrolling output is entirely decoupled from the shell logic. It is controlled by **Terminal Output Modules** (`.tos-terminal`):
+The aesthetic of the scrolling output is entirely decoupled from the shell logic (which is defined in the [Architecture Specification](./TOS_alpha-2_Architecture-Specification.md)). It is controlled by **Terminal Output Modules** (`.tos-terminal`):
 *   **Rectangular Module:** The standard, flat, full-width scrolling block typical of modern terminals.
 *   **Cinematic Triangular Module:** Adds 3D depth. Lines recede toward a vanishing point at the user's focus, scaling down as they get older. Includes a "pinwheel" layout for multi-viewport scenarios.
 
@@ -89,7 +89,7 @@ In Level 2, the viewport features dynamic vertical chip columns floating over th
 ## 6. Aesthetics, Themes, and Multi-Sensory Design
 
 ### 6.1 Theme Modules
-The Face supports full re-theming via **Theme Modules** (`module.toml`). 
+The Face supports full re-theming via **Theme Modules** (`module.toml`, as defined in [Architecture Spec §18.6](./TOS_alpha-2_Architecture-Specification.md)). 
 *   Themes define CSS variables injected into the HTML root (colors, border radii, glassmorphism opacities).
 *   Can distribute custom fonts (`.ttf`/`.woff`) and icons.
 *   Includes accessibility metadata (High Contrast, Reduced Motion flags).

@@ -344,21 +344,9 @@ In Level 2, the viewport features dynamic vertical chip columns floating over th
 
 ### 7.5 Output Area Configurations (Provided by Modules)
 
-The appearance and behaviour of the terminal output area are fully determined by the installed Terminal Output Module. Each module can offer multiple configuration options (e.g., font size, color scheme, animation speed). The user can switch between modules via the Settings panel or a bezel shortcut.
+The core mechanism for rendering terminal output is entirely decoupled from the shell logic. It is controlled by installable **Terminal Output Modules** (`.tos-terminal`). The system parses the raw PTY stream and hands it to the active module.
 
-**Built‑in Rectangular Module:**
-- Full‑width rectangle, uniform text, vertical scrolling.
-- Supports ANSI color rendering (configurable).
-- Lines are displayed in reverse chronological order (newest at bottom).
-- Clicking on a line may offer context actions (e.g., if it contains a file path, offer to open it).
-
-**Cinematic Triangular Module (optional, installable):**
-- Output lines recede toward a central vanishing point, creating a sense of depth.
-- The base of the triangle (most recent line) retains the full width of the prompt.
-- Previous lines progressively narrow as they scroll upward, eventually becoming too narrow to read.
-- Hovering over a narrow line expands it into a tooltip with full content.
-- The apex (top) of the triangle can be repositioned by the user (e.g., centered, left‑aligned, or following gaze in VR).
-- An optional "pinwheel" layout for multitasking (see §7.9) arranges multiple triangular terminals radially.
+TOS supports multiple modules (e.g., standard **Rectangular** or 3D **Cinematic Triangular**). For the complete visual design language and layout rules for these modules, see the [Face Specification §5.1](./TOS_alpha-2_Display-Face-Specification.md).
 
 ### 7.6 Autocomplete Overlay
 
@@ -366,10 +354,10 @@ When typing in CMD mode, a temporary overlay unfurls from the right side of the 
 
 ### 7.7 Context‑Aware Mode Switching
 
-Certain commands can trigger automatic mode switching (user‑configurable: Off / Suggest / Auto):
+Certain commands can trigger automatic context switching (user‑configurable: Off / Suggest / Auto):
 
-- Filesystem commands (`ls`, `cd`, `cp`, etc.) → Directory Mode.
-- Process commands (`kill`, `ps`, `top`, etc.) → Activity Mode.
+- Filesystem commands (`ls`, `cd`, `cp`, etc.) → Directory Context.
+- Process commands (`kill`, `ps`, `top`, etc.) → Activity Context.
 
 A chip may appear offering to switch, or the switch happens immediately. Visual/auditory feedback accompanies the transition.
 
@@ -387,24 +375,15 @@ When using split viewports (§11), each viewport contains its own instance of th
 
 Applications occupy the full viewport, with the Tactical Bezel. A **System Output** button in the bezel can overlay the system console (similar to Level 2) for quick monitoring.
 
-### 8.1 Tactical Bezel (Configurable Slot Architecture)
+### 8.1 Tactical Bezel (Logical Slot Architecture)
 
-By definition, the **Tactical Bezel** surrounds the entire viewport. It acts as the "bridge" between the user and the digital environment, providing a consistent set of controls and indicators regardless of the content.
+By definition, the **Tactical Bezel** surrounds the entire viewport at all levels. It acts as the "bridge" between the user and the digital environment.
 
-- **Unified Geometry:** The Bezel is a continuous, logically unified frame. While visual segments (Top, Bottom, Left, Right) may collapse or expand independently as contextual overlays, they maintain a stable screen percentage to prevent layout jitter.
-- **Configurable Slot System:**
-  - **Omni-Directional Slots:** Functional slots are available in the Top (Left, Center, Right sections), Left, and Right segments. 
-  - **User Assignment:** Components are not hard-coded to segments. A user may dock the Minimap to the Top Bezel or the Brain Status to the Right Bezel based on preference.
-  - **Default Layout:**
-    - **Left:** Hierarchy Navigation (Level 1-3), Tactical Mini-Map (§22).
-    - **Right:** Priority Indicators (§21), Mini-Log Telemetry, AI Suggestion Stage.
-    - **Top (Left):** Active Viewport Title.
-    - **Top (Center):** Brain Connection Status, Resource Telemetry.
-    - **Top (Right):** System Status Badges.
-- **Slot Projection Mechanism:**
-  - **Lateral Projection:** Components in Left/Right slots project horizontally into the main viewport.
-  - **Vertical Projection:** Components in Top slots project **downward** into the main viewport upon activation (e.g., clicking a status badge).
-  - **Constraint:** The underlying Bezel Segment remains fixed; only the projection (Glassmorphism Overlay) is dynamic.
+While the exact graphical representation, animations, and "Glassmorphism" projections are detailed in the [Face Specification §3](./TOS_alpha-2_Display-Face-Specification.md), the backend logically treats the Bezel as a system of **Configurable Slots**:
+
+- **Omni-Directional Logic:** The backend tracks components mapped to `Top_Left`, `Top_Center`, `Top_Right`, `Left_Sidebar`, and `Right_Sidebar` arrays (`app.js`/`state.rs`).
+- **Slot Isolation:** Dockable components are isolated logic modules (telemetry loops, marketplace modules). They publish their state to the central brain, which routes updates to the corresponding slot view.
+- **Unified Prompt:** The Bottom Bezel is handled uniquely by the backend as a non-slottable, highly secure prompt assembly.
 - **Navigation Controls (Left Segment):**
   - **OVERVIEW:** Reverts the interface to Level 1.
   - **COMMAND HUB:** Navigates to Level 2.
@@ -808,19 +787,11 @@ A Terminal Output Module must implement a well‑defined interface (Rust trait o
 
 The Face is responsible for compositing the rendered output with chip regions, bezel, and other overlays.
 
-#### 18.5.2 Built‑in Module: Rectangular Terminal
+#### 18.5.2 Built‑in and Optional Modules
 
-TOS includes a default Rectangular Terminal Module, implemented natively for performance. It provides a traditional terminal experience and serves as the fallback if no other module is installed.
+TOS includes a default **Rectangular Terminal Module** and supports advanced variants like the **Cinematic Triangular Terminal**. The visual configuration, animation policies, and pinwheel layouts for these modules are defined in the [Face Specification §5.1](./TOS_alpha-2_Display-Face-Specification.md).
 
-#### 18.5.3 Optional Module: Cinematic Triangular Terminal
-
-An example community‑developed module that implements the cinematic triangular perspective. It may offer additional features like:
-- Adjustable vanishing point.
-- Animation speed and easing.
-- Pinwheel multitasking layout.
-- Integration with priority indicators (e.g., highlighting important lines with glow).
-
-#### 18.5.4 Installation and Switching
+#### 18.5.3 Installation and Switching
 
 - Users browse the Marketplace for Terminal Output Modules.
 - After installation, the module appears in the Settings panel under "Appearance → Terminal Output".
@@ -829,12 +800,7 @@ An example community‑developed module that implements the cinematic triangular
 
 ### 18.6 Theme Modules
 
-Theme Modules define the visual appearance of TOS across all levels. They are packaged as `.tos-theme` files and control:
-
-- **Color palette:** Background, text, borders, chips, priority indicators, alert colors, and all LCARS‑style elements.
-- **Typography:** Font family, sizes, weights, line spacing for terminal output, chip labels, bezel text.
-- **Iconography:** Custom icon sets for mode indicators, bezel controls, status dots, and other UI elements.
-- **Optional audio integration:** A theme may reference an accompanying audio theme (`.tos-audio`) to provide a cohesive sensory experience, but audio themes are separate modules for modularity.
+Theme Modules define the visual appearance of TOS across all levels. They are packaged as `.tos-theme` files. For the complete scope of what a Theme Module controls (Color palette, Typography, Iconography, Audio integration), see the [Face Specification §6.1](./TOS_alpha-2_Display-Face-Specification.md).
 
 **Manifest example (`module.toml`):**
 ```toml
@@ -917,18 +883,7 @@ Built‑in shell: TOS includes a reference shell module (Fish) with full OSC int
 
 Bezel Components are modular UI elements that can be installed via the marketplace and docked into any available **Tactical Bezel Slot** (Top, Left, or Right). Note that the Bottom Bezel (Prompt Segment) is a static assembly and does not support component docking. They utilize the **Slot Projection** mechanism (§8.1) to expand their presence into the viewport when triggered.
 
-The following components are currently defined in the core system:
-
-1. **Tactical Mini-Map:** Provides high-level spatial overview, sector topology monitoring, and rapid teleportation (§22). Default: Left Segment Slot.
-2. **Priority Indicator:** Features dynamically ranked system alerts and notification badges (§21). Default: Right Segment Slot.
-3. **Resource Telemetry:** Monitoring tool for system performance metrics. Default: Top Segment Slot.
-4. **Collaboration Hub:** Manages multi-user presence and session-sharing (§12).
-5. **System Clock & Calendar:** Synchronized temporal anchor with integrated task overlays.
-6. **Mini-Log Telemetry:** Persistent readout of authoritative system state and command acknowledges. Default: Right Segment Slot.
-7. **Media Controller:** Global playback controls for system audio and remote stream synchronization.
-8. **Active Viewport Title:** Modular readout of current Hierarchical Level, Sector Name, or Application Focus. Default: Top Bezel (Left).
-9. **Brain Connection Status:** Real-time indicator of the local/remote Brain link state, including heartbeats and latency. Default: Top Bezel (Right).
-10. **System Status Badges:** Configurable array of toggles and indicators (e.g., Terminal visibility, Collaboration dots, Sandboxing toggles).
+For a complete list of core system components (e.g., Tactical Mini-Map, Resource Telemetry, Brain Connection Status) and their default slot assignments, refer to the [Face Specification §4](./TOS_alpha-2_Display-Face-Specification.md).
 
 ### 18.9 Relationship with Other Modules
 

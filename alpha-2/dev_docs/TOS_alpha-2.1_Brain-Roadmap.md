@@ -2,6 +2,11 @@
 
 This roadmap tracks the progress of the TOS backend, specifically focusing on the Logic Thread ("Brain"), AI engines, System Services, Sandboxing, and hardware-level compositor integrations.
 
+## Architectural Refactoring & IPC Enforcement
+- [ ] **ServiceManager State Decoupling:** Refactor `ServiceManager` (`logger`, `settings`, `audio`, `ai`) to drop the `Arc<Mutex<TosState>>` payload to eliminate lock contention on the global state tree.
+- [ ] **Service IPC Routing:** Force all extracted services to communicate with the Brain exclusively through JSON-RPC payloads on the `IpcDispatcher`.
+- [ ] **Standalone Service Binaries:** Extract `logger`, `settings`, and `marketplace` modules from the `tos-brain` codebase into standalone binary crates (e.g., `tos-settingsd`) that act as true external IPC clients.
+
 ## Backend Compositing & Wayland (§15)
 - [x] **DMABUF Native Path:** Optimize the Linux backend for zero-copy frame buffer sharing with the Wayland compositor.
 - [x] **Wayland DMABUF Logic:** Surface attachment and composite loop logic resolved.

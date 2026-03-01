@@ -21,6 +21,8 @@ The Brain's system-level hardware APIs and core connection protocols must be ini
     *   **Blocks [FACE]:** **Multi-Sensory Audio Hooks**. The React frontend cannot trigger "Earcons" upon zooming/mode-switching if the backend Rust audio sink is not open.
 *   **Remote WebRTC Auto-Close & Remote Desktop Protocol (TDP)** (Connection teardown and stability)
     *   **Blocks [ECOSYSTEM]:** **Multi-User Presence API**. The ecosystem cannot map cursor sharing, follow modes, or active viewport syncs if the underlying WebRTC socket transport drops randomly or fails to close properly.
+*   **ServiceManager State Decoupling** (Removing `Arc<Mutex<TosState>>`)
+    *   **Blocks [ECOSYSTEM]:** **Auxiliary Services**. The Ecosystem cannot transition the TOS Log Service, Settings Daemon, or AI Engine into true independent background processes until the core Brain releases its `TosState` ownership lock over them.
 
 ## 3. Recommended Execution Priority (Bottom-Up)
 To safely navigate these blockers, Alpha-2.1 development MUST proceed in this order:

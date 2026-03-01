@@ -1,0 +1,23 @@
+# TOS Alpha-2.1 Face (Frontend) Roadmap
+
+This roadmap tracks the progress of the visual, rendering, and interaction layers of the TOS Face, separating frontend-specific goals from the backend logic.
+
+## High-Fidelity Rendering & Themes
+- [x] **Web Profile DOM Implementation:** Transition the Face layer from terminal-mock to a rich React/Vite-based LCARS interface.
+- [x] **Cinematic Modules:** Implement the "Cinematic Triangular Module" with GPU-accelerated transitions.
+- [x] **Dynamic Theme Engine:** Implement runtime CSS variable injection and multi-sensory asset swapping (SFX/Haptics).
+- [x] **Configurable Bezel Architecture:** Implement omni-directional slots (Top, Left, Right) with modular component docking and downward/lateral slot projection.
+- [x] **Top Bezel Evolution:** Partition the Top Bezel into Left/Center/Right zones (Left: Handles, Center: Telemetry, Right: System Controls).
+
+## Context-Aware Augmented UI (Pending)
+- [ ] **Directory Context Previews:** Implement inline file and image previews within the Dual-Sided Chip Layout when `ls` or `cd` is executed.
+- [ ] **Activity Context Live Thumbnails:** Render 10Hz live, low-resolution frame buffer thumbnails of application surfaces on right-side process chips during `top` or `ps`.
+- [ ] **Level 3-5 UI Rendering:** Currently, `ApplicationFocus`, `DetailView`, and `BufferView` fall perfectly flat on the terminal proxy UI. Replace with functional UI Overlays.
+- [ ] **Settings UI Panel:** Implement the LCARS-themed modal interfaces for configuring global parameters, toggling sandboxing rules, and mapping dual-sided chip behaviors.
+
+## Hardware Forms & Multi-Sensory (Pending)
+- [ ] **OpenXR Spatial UI Shell:** Implement the spatial UI shell for VR/XR sectors, enabling floating Command Hub windows and glassmorphism panels in 3D space.
+- [ ] **Multi-Sensory Audio Hooks:** Connect UI interactions (Level zooming, mode switching) to distinct "Earcons".
+
+## Documentation
+- [ ] **End-to-End User Manual:** Finalize the user guide focusing on Face interactions, terminal configurations, and bezel docking.

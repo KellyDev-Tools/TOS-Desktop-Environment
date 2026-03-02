@@ -15,7 +15,7 @@ This roadmap tracks the progress of the TOS backend, specifically focusing on th
 - [ ] **Android NDK/Intents:** Implement real SurfaceControl and Intent pipelines (currently mocked).
 
 ## Services & Transports
-- [ ] **Multi-Sensory Audio Pipeline:** `AudioService::play_earcon` pipes to stdout; needs real `cpal`/`rodio` audio sink initialization.
+- [x] **Multi-Sensory Audio Pipeline:** `AudioService::play_earcon` pipes to stdout; needs real `cpal`/`rodio` audio sink initialization.
 - [ ] **Remote Desktop Protocol (TDP):** Finalize the custom TOS Display Protocol for low-latency (<50ms) remote sector streaming.
 - [ ] **Remote WebRTC Auto-Close:** Uses an arbitrary 5-second `tokio::time::sleep` on close without heartbeat negotiation. Needs true ICE teardown.
 - [ ] **Web Portal Security Protocol:** Implement the token generation, API validation, and WebRTC signalling endpoints for the Web Portal handshakes (§13.8).

@@ -1,20 +1,18 @@
 use std::collections::HashMap;
 use std::path::PathBuf;
-use std::sync::{Arc, Mutex};
-use crate::common::TosState;
+// use std::sync::{Arc, Mutex}; // Unused after TosState decoupling
+// use crate::common::TosState; // Unused after TosState decoupling
 
 pub struct SettingsService {
-    _state: Arc<Mutex<TosState>>,
     config_path: PathBuf,
 }
 
 impl SettingsService {
-    pub fn new(state: Arc<Mutex<TosState>>) -> Self {
+    pub fn new() -> Self {
         let mut home = dirs::home_dir().unwrap_or_else(|| PathBuf::from("/tmp"));
         home.push(".config/tos/settings.json");
         
         Self {
-            _state: state,
             config_path: home,
         }
     }

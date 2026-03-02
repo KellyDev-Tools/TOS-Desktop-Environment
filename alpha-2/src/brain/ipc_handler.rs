@@ -44,6 +44,8 @@ impl IpcHandler {
             "update_confirmation_progress" => self.handle_update_confirmation_progress(args.get(0).copied(), args.get(1).copied()),
             "ai_submit" => self.handle_ai_submit(payload),
             "ai_suggestion_accept" => self.handle_ai_suggestion_accept(),
+            "ai_stage_command" => self.handle_ai_stage_command(payload),
+            "system_log_append" => self.handle_system_log_append(args.get(0).copied(), args.get(1).copied()),
             _ => "ERROR: Unknown prefix".to_string(),
         };
 
@@ -269,12 +271,69 @@ impl IpcHandler {
     }
 
     fn handle_ai_suggestion_accept(&self) -> String {
-        let _ = self.services.ai.accept_suggestion();
+        let mut state = self.state.lock().unwrap();
+        let s_idx = state.active_sector_index;
+        if let Some(sector) = state.sectors.get_mut(s_idx) {
+            let h_idx = sector.active_hub_index;
+            if let Some(hub) = sector.hubs.get_mut(h_idx) {
+                if let Some(cmd) = hub.staged_command.take() {
+                    hub.prompt = cmd;
+                    hub.ai_explanation = None;
+                }
+            }
+        }
         "AI_SUGGESTION_ACCEPTED".to_string()
+    }
+
+    fn handle_ai_stage_command(&self, payload: &str) -> String {
+        if let Ok(parsed) = serde_json::from_str::<serde_json::Value>(payload) {
+            let mut state = self.state.lock().unwrap();
+            let s_idx = state.active_sector_index;
+            if let Some(sector) = state.sectors.get_mut(s_idx) {
+                let h_idx = sector.active_hub_index;
+                if let Some(hub) = sector.hubs.get_mut(h_idx) {
+                    if let Some(cmd) = parsed.get("command").and_then(|v| v.as_str()) {
+                        hub.staged_command = Some(cmd.to_string());
+                    }
+                    if let Some(expl) = parsed.get("explanation").and_then(|v| v.as_str()) {
+                        hub.ai_explanation = Some(expl.to_string());
+                    }
+                }
+            }
+            return "AI_COMMAND_STAGED".to_string();
+        }
+        "ERROR: Invalid JSON for ai_stage_command".to_string()
+    }
+
+    fn handle_system_log_append(&self, priority_str: Option<&str>, text_str: Option<&str>) -> String {
+        if let (Some(priority), Some(text)) = (priority_str, text_str) {
+            let mut state = self.state.lock().unwrap();
+            let priority = priority.parse::<u8>().unwrap_or(1);
+            let limit = 1000;
+            
+            state.system_log.push(crate::common::TerminalLine {
+                text: text.to_string(),
+                priority,
+                timestamp: chrono::Local::now(),
+            });
+            
+            if state.system_log.len() > limit {
+                let to_drain = state.system_log.len() - limit;
+                state.system_log.drain(0..to_drain);
+            }
+            return "LOGGED".to_string();
+        }
+        "ERROR: Invalid arguments for log".to_string()
     }
 
     fn handle_get_state(&self) -> String {
         let state = self.state.lock().unwrap();
         serde_json::to_string(&*state).unwrap_or_else(|_| "ERROR: Serialization failed".to_string())
+    }
+}
+
+impl crate::common::ipc_dispatcher::IpcDispatcher for IpcHandler {
+    fn dispatch(&self, request: &str) -> String {
+        self.handle_request(request)
     }
 }

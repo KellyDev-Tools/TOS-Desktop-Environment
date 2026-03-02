@@ -6,9 +6,19 @@ use tokio::time::sleep;
 #[tokio::test]
 async fn test_stimulate_brain_node() -> anyhow::Result<()> {
     println!("\x1B[1;35m[TOS STIMULATOR: stimulator_brain_node]\x1B[0m");
+
+    // Initialize Brain Core
+    let brain = tos_alpha2::brain::Brain::new()?;
+    let ipc = brain.ipc.clone();
+
+    // Start IPC Server for testing
+    let server = tos_alpha2::platform::RemoteServer::new(ipc);
+    tokio::spawn(async move {
+        let _ = server.run(7000).await;
+    });
+
     println!("Connecting to Brain Node at localhost:7000...");
 
-    // Try to connect with retries as the node might be booting
     let mut stream = None;
     for _ in 0..10 {
         if let Ok(s) = TcpStream::connect("127.0.0.1:7000").await {

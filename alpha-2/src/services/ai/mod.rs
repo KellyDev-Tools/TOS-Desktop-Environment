@@ -1,19 +1,48 @@
 use std::sync::{Arc, Mutex};
 use crate::common::TosState;
+use crate::common::ipc_dispatcher::IpcDispatcher;
+use serde_json::json;
 
 pub struct AiService {
-    state: Arc<Mutex<TosState>>,
+    ipc: Arc<Mutex<Option<Arc<dyn IpcDispatcher>>>>,
 }
 
 impl AiService {
-    pub fn new(state: Arc<Mutex<TosState>>) -> Self {
-        Self { state }
+    pub fn new() -> Self {
+        Self { ipc: Arc::new(Mutex::new(None)) }
+    }
+
+    pub fn set_ipc(&self, ipc: Arc<dyn IpcDispatcher>) {
+        let mut lock = self.ipc.lock().unwrap();
+        *lock = Some(ipc);
     }
 
     /// Process natural language query and stage a command for user review.
     pub async fn query(&self, prompt: &str) -> anyhow::Result<()> {
+        let ipc = {
+            let lock = self.ipc.lock().unwrap();
+            lock.clone()
+        };
+        let ipc = match ipc {
+            Some(i) => i,
+            None => return Err(anyhow::anyhow!("IPC dispatcher not set for AiService")),
+        };
+        let state_json = ipc.dispatch("get_state:");
+        let clean_json = if let Some(idx) = state_json.rfind(" (") {
+            &state_json[..idx]
+        } else {
+            &state_json
+        };
+
+        let state: TosState = match serde_json::from_str(clean_json) {
+            Ok(s) => s,
+            Err(e) => {
+                println!("[AiService] Failed to parse state JSON: {}", e);
+                return Err(e.into());
+            }
+        };
+        
         let (current_dir, sector_names) = {
-            let state = self.state.lock().unwrap();
             let s_idx = state.active_sector_index;
             let hub_idx = state.sectors[s_idx].active_hub_index;
             let dir = state.sectors[s_idx].hubs[hub_idx].current_directory.display().to_string();
@@ -32,8 +61,7 @@ impl AiService {
             p if p.contains("search") || p.contains("find") => {
                 // Natural Language Search transition: Route to sector indexing
                 let term = prompt.split_whitespace().last().unwrap_or("everything");
-                let mut state = self.state.lock().unwrap();
-                crate::brain::sector::SectorManager::perform_search(&mut state, term);
+                let _ = ipc.dispatch(&format!("search:{}", term));
                 ("zoom_to:CommandHub".to_string(), format!("Found matches for '{}'. Zooming to Command Hub results.", term))
             },
             _ => {
@@ -41,32 +69,13 @@ impl AiService {
             }
         };
 
-        let mut state = self.state.lock().unwrap();
-        let s_idx = state.active_sector_index;
-        if let Some(sector) = state.sectors.get_mut(s_idx) {
-            let h_idx = sector.active_hub_index;
-            if let Some(hub) = sector.hubs.get_mut(h_idx) {
-                hub.staged_command = Some(command);
-                hub.ai_explanation = Some(explanation);
-            }
-        }
+        let payload = json!({
+            "command": command,
+            "explanation": explanation
+        });
         
-        Ok(())
-    }
-
-    /// Accept the staged command and promote it to the prompt area.
-    pub fn accept_suggestion(&self) -> anyhow::Result<()> {
-        let mut state = self.state.lock().unwrap();
-        let s_idx = state.active_sector_index;
-        if let Some(sector) = state.sectors.get_mut(s_idx) {
-            let h_idx = sector.active_hub_index;
-            if let Some(hub) = sector.hubs.get_mut(h_idx) {
-                if let Some(cmd) = hub.staged_command.take() {
-                    hub.prompt = cmd;
-                    hub.ai_explanation = None;
-                }
-            }
-        }
+        let _ = ipc.dispatch(&format!("ai_stage_command:{}", payload.to_string()));
+        
         Ok(())
     }
 }

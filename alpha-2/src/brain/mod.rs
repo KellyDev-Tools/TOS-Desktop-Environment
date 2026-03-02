@@ -23,10 +23,12 @@ impl Brain {
         let hid = state_val.sectors[0].hubs[0].id;
         let state = Arc::new(Mutex::new(state_val));
         
-        let services = Arc::new(crate::services::ServiceManager::new(state.clone()));
+        let services = Arc::new(crate::services::ServiceManager::new());
         let shell_obj = ShellApi::new(state.clone(), sid, hid)?;
         let shell = Arc::new(Mutex::new(shell_obj));
         let ipc = Arc::new(IpcHandler::new(state.clone(), shell.clone(), services.clone()));
+        
+        services.set_ipc(ipc.clone());
         
         let mut loaded_settings = None;
         match services.settings.load() {

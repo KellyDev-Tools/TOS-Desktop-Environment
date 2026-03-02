@@ -10,8 +10,8 @@ pub use audio::AudioService;
 pub use marketplace::MarketplaceService;
 pub use ai::AiService;
 
-use std::sync::{Arc, Mutex};
-use crate::common::TosState;
+use std::sync::Arc; // Mutex unused after decoupling
+// use crate::common::TosState; // Unused after decoupling
 
 pub struct ServiceManager {
     pub logger: Arc<LoggerService>,
@@ -21,11 +21,11 @@ pub struct ServiceManager {
 }
 
 impl ServiceManager {
-    pub fn new(state: Arc<Mutex<TosState>>) -> Self {
-        let logger = Arc::new(LoggerService::new(state.clone()));
-        let settings = Arc::new(SettingsService::new(state.clone()));
-        let audio = Arc::new(AudioService::new(state.clone()));
-        let ai = Arc::new(AiService::new(state.clone()));
+    pub fn new() -> Self {
+        let logger = Arc::new(LoggerService::new());
+        let settings = Arc::new(SettingsService::new());
+        let audio = Arc::new(AudioService::new());
+        let ai = Arc::new(AiService::new());
         
         // Establish cross-service dependencies (e.g., logging triggers audio cues)
         logger.set_audio_service(audio.clone());
@@ -36,5 +36,10 @@ impl ServiceManager {
             audio,
             ai,
         }
+    }
+
+    pub fn set_ipc(&self, ipc: std::sync::Arc<dyn crate::common::ipc_dispatcher::IpcDispatcher>) {
+        self.logger.set_ipc(ipc.clone());
+        self.ai.set_ipc(ipc);
     }
 }

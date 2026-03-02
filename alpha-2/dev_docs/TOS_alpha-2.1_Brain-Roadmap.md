@@ -3,8 +3,8 @@
 This roadmap tracks the progress of the TOS backend, specifically focusing on the Logic Thread ("Brain"), AI engines, System Services, Sandboxing, and hardware-level compositor integrations.
 
 ## Architectural Refactoring & IPC Enforcement
-- [ ] **ServiceManager State Decoupling:** Refactor `ServiceManager` (`logger`, `settings`, `audio`, `ai`) to drop the `Arc<Mutex<TosState>>` payload to eliminate lock contention on the global state tree.
-- [ ] **Service IPC Routing:** Force all extracted services to communicate with the Brain exclusively through JSON-RPC payloads on the `IpcDispatcher`.
+- [x] **ServiceManager State Decoupling:** Refactor `ServiceManager` (`logger`, `settings`, `audio`, `ai`) to drop the `Arc<Mutex<TosState>>` payload to eliminate lock contention on the global state tree.
+- [x] **Service IPC Routing:** Force all extracted services to communicate with the Brain exclusively through JSON-RPC payloads on the `IpcDispatcher`.
 - [ ] **State Delta IPC Schema:** Adopt the granular State Delta JSON schema (§3.3.2) for Brain→Face updates to optimize rendering rather than cloning full state.
 - [ ] **Standalone Service Binaries:** Extract `logger`, `settings`, and `marketplace` modules from the `tos-brain` codebase into standalone binary crates (e.g., `tos-settingsd`) that act as true external IPC clients.
 
@@ -39,7 +39,7 @@ This roadmap tracks the progress of the TOS backend, specifically focusing on th
 
 ## Testing & Infrastructure
 - [ ] **Stress Testing:** Validate the <16ms IPC threshold under heavy load (20+ sectors).
-- [ ] **stimulator_brain_node IPC Port:** Fix test crash where the `tos-brain` doesn't bind an IPC server port alongside the web-server for testing mocks.
+- [x] **stimulator_brain_node IPC Port:** Fix test crash where the `tos-brain` doesn't bind an IPC server port alongside the web-server for testing mocks.
 - [ ] **Beta Branch Merge:** Consolidate all backends and services into the main production branch.
 - [ ] **Developer SDK Guide:** Finalize documentation for module creators.
 

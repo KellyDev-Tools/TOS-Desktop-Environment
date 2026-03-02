@@ -1,13 +1,11 @@
-use std::sync::{Arc, Mutex};
-use crate::common::TosState;
+// use std::sync::{Arc, Mutex}; // Unused after TosState decoupling
+// use crate::common::TosState; // Unused after TosState decoupling
 
-pub struct AudioService {
-    _state: Arc<Mutex<TosState>>,
-}
+pub struct AudioService {}
 
 impl AudioService {
-    pub fn new(state: Arc<Mutex<TosState>>) -> Self {
-        Self { _state: state }
+    pub fn new() -> Self {
+        Self {}
     }
 
     /// Trigger a specific system earcon (audio notification).

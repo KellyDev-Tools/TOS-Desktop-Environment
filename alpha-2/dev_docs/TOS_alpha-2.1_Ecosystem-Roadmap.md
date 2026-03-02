@@ -12,7 +12,7 @@ This roadmap tracks the development of the auxiliary services, modular ecosystem
 - [ ] **Priority Indicator Engine (§21):** Implement the scoring service that listens to system events, ranks alerts (1 to 5), and triggers visual or auditory haptic events for high-priority notifications.
 
 ## Shell ABI & Integrations (§27)
-- [ ] **Universal OSC Scripts:** Finalize shell integration scripts for `Bash`, `Zsh`, and `Fish` to automatically emit OSC 1337 sequences for directory changes, command timings, and exit codes.
+- [x] **Universal OSC Scripts:** Finalize shell integration scripts for `Bash`, `Zsh`, and `Fish` to automatically emit OSC 1337 sequences for directory changes, command timings, and exit codes.
 - [ ] **JSON Context Export:** Allow applications to write standard JSON to stdout formatted within an OSC sequence to populate the Left Chip Column dynamically.
 
 ## Marketplace & Module Ecosystem (Ecosystem Spec §1 & §2)

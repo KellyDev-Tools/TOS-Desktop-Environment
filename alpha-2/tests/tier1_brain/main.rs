@@ -22,7 +22,7 @@ fn test_hierarchy_transitions() {
     assert_eq!(state.current_level, HierarchyLevel::DetailView);
 
     // Enable deep inspection
-    state.settings.insert("deep_inspection".to_string(), "true".to_string());
+    state.settings.global.insert("deep_inspection".to_string(), "true".to_string());
     assert!(HierarchyManager::zoom_in(&mut state));
     assert_eq!(state.current_level, HierarchyLevel::BufferView);
 

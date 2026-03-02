@@ -35,6 +35,7 @@ impl IpcHandler {
             "zoom_out" => self.handle_zoom_out(),
             "zoom_to" => self.handle_zoom_to(args.get(0).copied()),
             "set_setting" => self.handle_set_setting(args.get(0).copied(), args.get(1).copied()),
+            "set_sector_setting" => self.handle_set_sector_setting(args.get(0).copied(), args.get(1).copied(), args.get(2).copied()),
             "sector_create" => self.handle_sector_create(args.get(0).copied()),
             "sector_clone" => self.handle_sector_clone(args.get(0).copied()),
             "sector_close" => self.handle_sector_close(args.get(0).copied()),
@@ -205,10 +206,23 @@ impl IpcHandler {
     fn handle_set_setting(&self, key: Option<&str>, val: Option<&str>) -> String {
         if let (Some(k), Some(v)) = (key, val) {
             let mut state = self.state.lock().unwrap();
-            state.settings.insert(k.to_string(), v.to_string());
+            state.settings.global.insert(k.to_string(), v.to_string());
+            // Implicit save - in production this would debounce via daemon
+            let _ = self.services.settings.save(&state.settings);
             return format!("SETTING_UPDATE: {}={}", k, v);
         }
         "ERROR: Invalid setting args".to_string()
+    }
+
+    fn handle_set_sector_setting(&self, sector_id: Option<&str>, key: Option<&str>, val: Option<&str>) -> String {
+        if let (Some(sec), Some(k), Some(v)) = (sector_id, key, val) {
+            let mut state = self.state.lock().unwrap();
+            let entry = state.settings.sectors.entry(sec.to_string()).or_insert_with(std::collections::HashMap::new);
+            entry.insert(k.to_string(), v.to_string());
+            let _ = self.services.settings.save(&state.settings);
+            return format!("SECTOR_SETTING_UPDATE: [{}] {}={}", sec, k, v);
+        }
+        "ERROR: Invalid sector setting args".to_string()
     }
 
     fn handle_sector_create(&self, name: Option<&str>) -> String {

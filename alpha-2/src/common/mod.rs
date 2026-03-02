@@ -104,13 +104,51 @@ pub struct TerminalLine {
     pub timestamp: chrono::DateTime<chrono::Local>,
 }
 
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct SettingsStore {
+    pub global: std::collections::HashMap<String, String>,
+    pub sectors: std::collections::HashMap<String, std::collections::HashMap<String, String>>,
+    pub applications: std::collections::HashMap<String, std::collections::HashMap<String, String>>,
+}
+
+impl Default for SettingsStore {
+    fn default() -> Self {
+        Self {
+            global: std::collections::HashMap::new(),
+            sectors: std::collections::HashMap::new(),
+            applications: std::collections::HashMap::new(),
+        }
+    }
+}
+
+impl SettingsStore {
+    /// Cascading resolution engine: Application -> Sector -> Global
+    pub fn resolve(&self, key: &str, sector_id: Option<&str>, app_id: Option<&str>) -> Option<String> {
+        if let Some(app) = app_id {
+            if let Some(app_settings) = self.applications.get(app) {
+                if let Some(val) = app_settings.get(key) {
+                    return Some(val.clone());
+                }
+            }
+        }
+        if let Some(sec) = sector_id {
+            if let Some(sec_settings) = self.sectors.get(sec) {
+                if let Some(val) = sec_settings.get(key) {
+                    return Some(val.clone());
+                }
+            }
+        }
+        self.global.get(key).cloned()
+    }
+}
+
 /// The system-wide state of the Brain core logic process.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct TosState {
     pub current_level: HierarchyLevel,
     pub sectors: Vec<Sector>,
     pub active_sector_index: usize,
-    pub settings: std::collections::HashMap<String, String>,
+    pub settings: SettingsStore,
     pub pending_confirmation: Option<ConfirmationRequest>,
     pub system_log: Vec<TerminalLine>,
     pub sys_prefix: String,
@@ -147,7 +185,7 @@ impl Default for TosState {
             current_level: HierarchyLevel::GlobalOverview,
             sectors: vec![sector],
             active_sector_index: 0,
-            settings: std::collections::HashMap::new(),
+            settings: SettingsStore::default(),
             pending_confirmation: None,
             system_log: vec![],
             sys_prefix: "TOS // SYSTEM-BRAIN".to_string(),

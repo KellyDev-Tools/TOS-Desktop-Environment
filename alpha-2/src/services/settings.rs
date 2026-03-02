@@ -1,4 +1,5 @@
 use std::collections::HashMap;
+use crate::common::SettingsStore;
 use std::path::PathBuf;
 // use std::sync::{Arc, Mutex}; // Unused after TosState decoupling
 // use crate::common::TosState; // Unused after TosState decoupling
@@ -18,7 +19,7 @@ impl SettingsService {
     }
 
     /// Save the current settings collection to persistent storage.
-    pub fn save(&self, settings: &HashMap<String, String>) -> anyhow::Result<()> {
+    pub fn save(&self, settings: &SettingsStore) -> anyhow::Result<()> {
         if let Some(parent) = self.config_path.parent() {
             std::fs::create_dir_all(parent)?;
         }
@@ -28,7 +29,7 @@ impl SettingsService {
     }
 
     /// Load settings from disk
-    pub fn load(&self) -> anyhow::Result<HashMap<String, String>> {
+    pub fn load(&self) -> anyhow::Result<SettingsStore> {
         if !self.config_path.exists() {
             return Ok(self.default_settings());
         }
@@ -37,7 +38,7 @@ impl SettingsService {
         Ok(settings)
     }
 
-    fn default_settings(&self) -> HashMap<String, String> {
+    fn default_settings(&self) -> SettingsStore {
         let mut map = HashMap::new();
         map.insert("theme".to_string(), "lcars-light".to_string());
         map.insert("default_shell".to_string(), "fish".to_string());
@@ -45,6 +46,11 @@ impl SettingsService {
         map.insert("master_volume".to_string(), "80".to_string());
         map.insert("logging_enabled".to_string(), "true".to_string());
         map.insert("terminal_buffer_limit".to_string(), "500".to_string());
-        map
+        
+        SettingsStore {
+            global: map,
+            sectors: HashMap::new(),
+            applications: HashMap::new(),
+        }
     }
 }

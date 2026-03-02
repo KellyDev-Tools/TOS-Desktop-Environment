@@ -43,7 +43,7 @@ impl Brain {
         if let Some(settings) = loaded_settings {
             {
                 let mut lock = state.lock().unwrap();
-                lock.settings.extend(settings);
+                lock.settings = settings;
             }
             services.logger.log("Persistent settings loaded.", 1);
         }

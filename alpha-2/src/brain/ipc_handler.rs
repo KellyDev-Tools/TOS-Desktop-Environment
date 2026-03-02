@@ -48,6 +48,8 @@ impl IpcHandler {
             "ai_suggestion_accept" => self.handle_ai_suggestion_accept(),
             "ai_stage_command" => self.handle_ai_stage_command(payload),
             "system_log_append" => self.handle_system_log_append(args.get(0).copied(), args.get(1).copied()),
+            "play_earcon" => self.handle_play_earcon(args.get(0).copied()),
+            "trigger_haptic" => self.handle_trigger_haptic(args.get(0).copied()),
             _ => "ERROR: Unknown prefix".to_string(),
         };
 
@@ -401,6 +403,22 @@ impl IpcHandler {
     fn handle_get_state(&self) -> String {
         let state = self.state.lock().unwrap();
         serde_json::to_string(&*state).unwrap_or_else(|_| "ERROR: Serialization failed".to_string())
+    }
+
+    fn handle_play_earcon(&self, name: Option<&str>) -> String {
+        if let Some(n) = name {
+            self.services.audio.play_earcon(n);
+            return format!("PLAYING_EARCON: {}", n);
+        }
+        "ERROR: Invalid earcon name".to_string()
+    }
+
+    fn handle_trigger_haptic(&self, name: Option<&str>) -> String {
+        if let Some(n) = name {
+            self.services.haptic.trigger_haptic(n);
+            return format!("HAPTIC_TRIGGERED: {}", n);
+        }
+        "ERROR: Invalid haptic cue".to_string()
     }
 }
 

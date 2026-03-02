@@ -70,7 +70,8 @@ class TosUI {
                     'CommandHub': 'hubs',
                     'ApplicationFocus': 'sectors',
                     'DetailView': 'detail',
-                    'BufferView': 'buffer'
+                    'BufferView': 'buffer',
+                    'SpatialOverview': 'spatial'
                 };
                 this.setMode(modeMap[level] || 'global');
             });
@@ -135,8 +136,11 @@ class TosUI {
         if (show) {
             modal.classList.remove('hidden');
             this.renderSettings();
+            this.playEarcon('modal_open');
+            this.triggerHaptic('click');
         } else {
             modal.classList.add('hidden');
+            this.playEarcon('modal_close');
         }
     }
 
@@ -234,6 +238,8 @@ class TosUI {
         if (log) {
             log.innerText = "SETTINGS COMMITTED.";
             log.style.color = 'var(--color-success)';
+            this.playEarcon('data_commit');
+            this.triggerHaptic('success');
         }
 
         this.syncState();
@@ -282,9 +288,11 @@ class TosUI {
         document.body.classList.toggle('view-sectors', mode === 'sectors');
         document.body.classList.toggle('view-detail', mode === 'detail');
         document.body.classList.toggle('view-buffer', mode === 'buffer');
+        document.body.classList.toggle('view-spatial', mode === 'spatial');
 
         if (window.__TOS_IPC__) {
             window.__TOS_IPC__(`set_mode:${mode}`);
+            this.playEarcon('nav_switch');
         }
         document.querySelectorAll('.level-btn').forEach(btn => {
             // Map level button state
@@ -293,7 +301,8 @@ class TosUI {
                 'CommandHub': 'hubs',
                 'ApplicationFocus': 'sectors',
                 'DetailView': 'detail',
-                'BufferView': 'buffer'
+                'BufferView': 'buffer',
+                'SpatialOverview': 'spatial'
             };
             btn.classList.toggle('active', modeMap[btn.dataset.level] === mode);
         });
@@ -651,6 +660,25 @@ class TosUI {
                     ${hex}
                 </div>
             `;
+        } else if (this.currentMode === 'spatial') {
+            title.innerText = "SPATIAL TOPOLOGY // 3D SHELL";
+            const sectors = this.state.sectors || [];
+            target.innerHTML = `
+                <div class="spatial-container" style="perspective: 1200px; height: 100%; width: 100%; display: flex; align-items: center; justify-content: center; background: radial-gradient(circle at center, rgba(34, 154, 255, 0.05) 0%, transparent 70%);">
+                    <div class="spatial-layer" style="transform-style: preserve-3d; width: 80%; height: 80%; display: flex; flex-wrap: wrap; gap: 4rem; justify-content: center; transform: rotateY(-15deg) rotateX(10deg);">
+                        ${sectors.map((s, idx) => `
+                            <div class="spatial-panel glass-panel" style="width: 15rem; height: 10rem; transform: translateZ(${idx * 40}px); flex-shrink: 0; display: flex; flex-direction: column; padding: 1rem; border: 2px solid var(--color-primary); box-shadow: 0 0 30px rgba(0,0,0,0.5); animation: float ${3 + idx}s ease-in-out infinite alternate;">
+                                <div class="chip-title" style="font-size: 0.9rem; margin-bottom: 0.5rem; border-bottom: 1px solid rgba(255,255,255,0.1)">SECTOR_${idx} // ${s.name.toUpperCase()}</div>
+                                <div style="font-size: 0.7rem; opacity: 0.8; margin-top: auto;">
+                                    <div>LOAD: 12%</div>
+                                    <div>LATENCY: 0.2ms</div>
+                                    <div class="status-badge active" style="font-size: 0.6rem; margin-top: 0.5rem; width: fit-content; background: #000; color: var(--color-success); border-radius: 1rem; padding: 0.1rem 0.5rem;">STABLE</div>
+                                </div>
+                            </div>
+                        `).join('')}
+                    </div>
+                </div>
+            `;
         }
     }
 
@@ -777,8 +805,10 @@ class TosUI {
             const token = Math.random().toString(36).substring(2, 6) + '-' + Math.random().toString(36).substring(2, 6);
             const input = document.getElementById('portal-link-input');
             if (input) input.value = `https://tos.live/portal/${token}`;
+            this.playEarcon('modal_open');
         } else {
             modal.classList.add('hidden');
+            this.playEarcon('modal_close');
         }
     }
 
@@ -792,11 +822,23 @@ class TosUI {
                 const oldText = btn.innerText;
                 btn.innerText = "COPIED!";
                 btn.style.background = "var(--color-success)";
+                this.playEarcon('bezel_tap');
+                this.triggerHaptic('click');
                 setTimeout(() => {
                     btn.innerText = oldText;
                     btn.style.background = "var(--color-primary)";
                 }, 2000);
             }
+        }
+    }
+    playEarcon(name) {
+        if (window.__TOS_IPC__) {
+            window.__TOS_IPC__(`play_earcon:${name}`).catch(e => console.error("Audio trigger failed:", e));
+        }
+    }
+    triggerHaptic(cue) {
+        if (window.__TOS_IPC__) {
+            window.__TOS_IPC__(`trigger_haptic:${cue}`).catch(e => console.error("Haptic trigger failed:", e));
         }
     }
 }

@@ -985,3 +985,13 @@ h1 {
 .buffer-hex-view::-webkit-scrollbar-thumb {
     background: var(--color-primary);
 }
+
+@keyframes float {
+    from {
+        transform: translateZ(0px) translateY(0px);
+    }
+
+    to {
+        transform: translateZ(20px) translateY(-10px);
+    }
+}

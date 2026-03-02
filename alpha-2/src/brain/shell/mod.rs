@@ -104,6 +104,9 @@ impl ShellApi {
                                             hub.shell_listing = Some(listing);
                                         }
                                         OscEvent::CommandResult { .. } => {}
+                                        OscEvent::JsonContext(json) => {
+                                            hub.json_context = Some(json);
+                                        }
                                     }
                                 }
 
@@ -135,6 +138,7 @@ pub enum OscEvent {
         status: i32,
         output: Option<String>,
     },
+    JsonContext(serde_json::Value),
 }
 
 pub struct OscParser {
@@ -191,6 +195,19 @@ impl OscParser {
             events.push(OscEvent::Cwd(cap[1].to_string()));
         }
         clean_text = iterm_cwd_re.replace_all(&clean_text, "").to_string();
+
+        let json_context_re = regex::Regex::new(r"\x1b\]9004;([^\x07]+)\x07").unwrap();
+        for cap in json_context_re.captures_iter(input) {
+            if let Ok(decoded) = base64::Engine::decode(&base64::prelude::BASE64_STANDARD, &cap[1]) {
+                if let Ok(json) = serde_json::from_slice::<serde_json::Value>(&decoded) {
+                    events.push(OscEvent::JsonContext(json));
+                }
+            } else if let Ok(json) = serde_json::from_str::<serde_json::Value>(&cap[1]) {
+                // Support both base64 and plain JSON
+                events.push(OscEvent::JsonContext(json));
+            }
+        }
+        clean_text = json_context_re.replace_all(&clean_text, "").to_string();
 
         (clean_text, events)
     }

@@ -13,7 +13,7 @@ This roadmap tracks the development of the auxiliary services, modular ecosystem
 
 ## Shell ABI & Integrations (§27)
 - [x] **Universal OSC Scripts:** Finalize shell integration scripts for `Bash`, `Zsh`, and `Fish` to automatically emit OSC 1337 sequences for directory changes, command timings, and exit codes.
-- [ ] **JSON Context Export:** Allow applications to write standard JSON to stdout formatted within an OSC sequence to populate the Left Chip Column dynamically.
+- [x] **JSON Context Export:** Allow applications to write standard JSON to stdout formatted within an OSC sequence to populate the Left Chip Column dynamically.
 
 ## Marketplace & Module Ecosystem (Ecosystem Spec §1 & §2)
 - [ ] **Application Models (`.tos-app`):** Define the manifest and interaction rules for deeply integrating standard Wayland/X11 applications into Level 3 (e.g., overriding controls, defining zoom behavior, and search indexing).

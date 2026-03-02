@@ -63,6 +63,7 @@ pub struct CommandHub {
     pub search_results: Option<Vec<SearchResult>>, // Search mode matches
     pub staged_command: Option<String>,           // AI-proposed command for review
     pub ai_explanation: Option<String>,           // AI rationale/documentation
+    pub json_context: Option<serde_json::Value>,  // Custom JSON exported via OSC 9004
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -173,6 +174,7 @@ impl Default for TosState {
                 search_results: None,
                 staged_command: None,
                 ai_explanation: None,
+                json_context: None,
             }],
             active_hub_index: 0,
             frozen: false,

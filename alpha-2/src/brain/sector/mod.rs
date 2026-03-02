@@ -32,6 +32,7 @@ impl SectorManager {
                 search_results: None,
                 staged_command: None,
                 ai_explanation: None,
+                json_context: None,
             }],
             active_hub_index: 0,
             frozen: false,

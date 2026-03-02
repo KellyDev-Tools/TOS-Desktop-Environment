@@ -50,22 +50,81 @@ impl AiService {
             (dir, sectors)
         };
 
-        // Contextual Awareness - Mock logic using gathered system context
-        let (command, explanation) = match prompt.to_lowercase().as_str() {
-            p if p.contains("where") && p.contains("am") && p.contains("i") => {
-                ("pwd".to_string(), format!("You are currently in sector {} at path {}.", sector_names, current_dir))
-            },
-            p if (p.contains("list") || p.contains("show")) && p.contains("files") => {
-                ("ls -la".to_string(), "I've staged a command to list all files in long format, including hidden ones.".to_string())
-            },
-            p if p.contains("search") || p.contains("find") => {
-                // Natural Language Search transition: Route to sector indexing
-                let term = prompt.split_whitespace().last().unwrap_or("everything");
-                let _ = ipc.dispatch(&format!("semantic_search:{}", term));
-                ("zoom_to:CommandHub".to_string(), format!("Found matches for '{}'. Zooming to Command Hub results.", term))
-            },
-            _ => {
-                (format!("echo 'AI suggest: {}'", prompt), "I've translated your request into a staged echo command for review.".to_string())
+        let api_key = std::env::var("OPENAI_API_KEY");
+        let api_base = std::env::var("OPENAI_API_BASE").unwrap_or_else(|_| "https://api.openai.com/v1".to_string());
+        
+        let (command, explanation) = if let Ok(key) = api_key {
+            // Real LLM HTTP Request mapping
+            let client = reqwest::Client::new();
+            
+            let system_prompt = format!(
+                "You are the TOS Alpha-2 Brain AI (command-line contextual assistant). \
+                 The user is in sector '{}' at path '{}'. \
+                 Translate the user's natural language request into a single shell command. \
+                 Always respond with a raw JSON object containing exactly two keys: 'command' and 'explanation'. \
+                 'command' must be the exact shell command to execute. If they ask to 'search' or 'find' semantics, \
+                 return a command formatted as exactly: `semantic_search:<term>` \
+                 'explanation' should be a concise overview of whatever your command does.",
+                sector_names, current_dir
+            );
+
+            let req_body = json!({
+                "model": "gpt-3.5-turbo",
+                "messages": [
+                    { "role": "system", "content": system_prompt },
+                    { "role": "user", "content": prompt }
+                ],
+                "response_format": { "type": "json_object" }
+            });
+
+            match client.post(format!("{}/chat/completions", api_base))
+                .header("Authorization", format!("Bearer {}", key))
+                .json(&req_body)
+                .send()
+                .await 
+            {
+                Ok(resp) => {
+                    if let Ok(resp_json) = resp.json::<serde_json::Value>().await {
+                        let content = resp_json["choices"][0]["message"]["content"].as_str().unwrap_or("{}");
+                        let parsed = serde_json::from_str::<serde_json::Value>(content).unwrap_or(json!({"command": "echo 'AI API Parse Error'", "explanation": ""}));
+                        
+                        let cmd = parsed["command"].as_str().unwrap_or("echo 'Error'").to_string();
+                        let expl = parsed["explanation"].as_str().unwrap_or("No LLM explanation").to_string();
+                        
+                        // Parse potential API-requested semantic search
+                        if cmd.starts_with("semantic_search:") {
+                            let term = cmd.replace("semantic_search:", "").trim().to_string();
+                            let _ = ipc.dispatch(&format!("semantic_search:{}", term));
+                            ("zoom_to:CommandHub".to_string(), format!("Found matches for '{}'. Zooming to Command Hub results.", term))
+                        } else {
+                            (cmd, expl)
+                        }
+                    } else {
+                        // JSON parsing failed
+                        ("echo 'LLM Error: JSON decoding failed'".to_string(), "The AI API returned an invalid JSON response.".to_string())
+                    }
+                },
+                Err(e) => {
+                    (format!("echo 'LLM Network Error: {}'", e), "The AI network request failed to execute.".to_string())
+                }
+            }
+        } else {
+            // Contextual Awareness - Mock logic using gathered system context (Testing Fallback)
+            match prompt.to_lowercase().as_str() {
+                p if p.contains("where") && p.contains("am") && p.contains("i") => {
+                    ("pwd".to_string(), format!("You are currently in sector {} at path {}.", sector_names, current_dir))
+                },
+                p if (p.contains("list") || p.contains("show")) && p.contains("files") => {
+                    ("ls -la".to_string(), "I've staged a command to list all files in long format, including hidden ones.".to_string())
+                },
+                p if p.contains("search") || p.contains("find") => {
+                    let term = prompt.split_whitespace().last().unwrap_or("everything");
+                    let _ = ipc.dispatch(&format!("semantic_search:{}", term));
+                    ("zoom_to:CommandHub".to_string(), format!("Found matches for '{}'. Zooming to Command Hub results.", term))
+                },
+                _ => {
+                    (format!("echo 'AI suggest: {}'", prompt), "I've translated your request into a staged echo command for review.".to_string())
+                }
             }
         };
 

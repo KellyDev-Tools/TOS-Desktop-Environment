@@ -5,7 +5,8 @@ This roadmap tracks the development of the auxiliary services, modular ecosystem
 ## Auxiliary Services (§4)
 *The following services run as independent processes and communicate with the Brain via IPC.*
 
-- [ ] **TOS Log Service (§19):** Implement the unified logging daemon. It must aggregate standard stdout/stderr from user applications, background telemetry from the Brain, and remote sector events into a unified, queryable database (`~/.local/share/tos/logs/`).
+- [ ] **TOS Log Service (§19):** Implement the unified logging daemon. It must aggregate standard stdout/stderr from user applications, background telemetry from the Brain, and remote sector events.
+- [ ] **Log Query Engine:** Implement the standardized TOS Log Query syntax (JSON response schemas) for fetching aggregated system logs (§3.3.4).
 - [ ] **Settings Daemon (§26):** Finalize the JSON persistence layer and cascading resolution engine (Global -> Sector -> Application bounds) for user settings, themes, and sandboxing toggles.
 - [ ] **Global Search & Indexing Service:** Develop the background worker responsible for indexing local file systems, application content, and the unified log. Expose a gRPC/IPC interface for the Brain's generic SEARCH context.
 - [ ] **Priority Indicator Engine (§21):** Implement the scoring service that listens to system events, ranks alerts (1 to 5), and triggers visual or auditory haptic events for high-priority notifications.
@@ -20,10 +21,12 @@ This roadmap tracks the development of the auxiliary services, modular ecosystem
 - [ ] **Theme Packaging (`.tos-theme`):** Finalize the distribution mechanism for custom CSS variables, fonts, and Audio themes.
 - [ ] **Terminal Output Modules (`.tos-terminal`):** Isolate the React/CSS styling of the Terminal Canvas into installable packages to allow switching between Rectangular and Cinematic layouts.
 - [ ] **Marketplace Client:** Build a command-line utility (`tos-pkg`) and an accompanying visual application to browse, sign-verify, and install these modules.
+- [ ] **Module Contract Implementation:** Formalize the Rust traits and JSON boundaries for external Shell PTY binaries and AI LLM backends (Ecosystem Spec §1).
 
 ## Collaboration Hub (§13)
 - [ ] **Multi-User Presence API:** Flesh out the WebRTC data channel payloads to sync dual-sided chip states, active viewport titles, and cursor metadata between connected users.
 - [ ] **Follow Mode:** Implement the logic forcing connected peers to match zoom levels and viewport context of the "host" user.
+- [ ] **Web Portal Management:** Build the background API routines that issue web portal links and track the expiration sequence of WebRTC tokens (§13.8).
 
 ## Cross-Roadmap Dependencies
 - **Settings Daemon** JSON persistence API must be completed to unblock the **Settings UI Panel** functionality (Face Roadmap).

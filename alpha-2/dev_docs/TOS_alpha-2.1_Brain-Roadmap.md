@@ -5,6 +5,7 @@ This roadmap tracks the progress of the TOS backend, specifically focusing on th
 ## Architectural Refactoring & IPC Enforcement
 - [ ] **ServiceManager State Decoupling:** Refactor `ServiceManager` (`logger`, `settings`, `audio`, `ai`) to drop the `Arc<Mutex<TosState>>` payload to eliminate lock contention on the global state tree.
 - [ ] **Service IPC Routing:** Force all extracted services to communicate with the Brain exclusively through JSON-RPC payloads on the `IpcDispatcher`.
+- [ ] **State Delta IPC Schema:** Adopt the granular State Delta JSON schema (§3.3.2) for Brain→Face updates to optimize rendering rather than cloning full state.
 - [ ] **Standalone Service Binaries:** Extract `logger`, `settings`, and `marketplace` modules from the `tos-brain` codebase into standalone binary crates (e.g., `tos-settingsd`) that act as true external IPC clients.
 
 ## Backend Compositing & Wayland (§15)
@@ -17,12 +18,14 @@ This roadmap tracks the progress of the TOS backend, specifically focusing on th
 - [ ] **Multi-Sensory Audio Pipeline:** `AudioService::play_earcon` pipes to stdout; needs real `cpal`/`rodio` audio sink initialization.
 - [ ] **Remote Desktop Protocol (TDP):** Finalize the custom TOS Display Protocol for low-latency (<50ms) remote sector streaming.
 - [ ] **Remote WebRTC Auto-Close:** Uses an arbitrary 5-second `tokio::time::sleep` on close without heartbeat negotiation. Needs true ICE teardown.
+- [ ] **Web Portal Security Protocol:** Implement the token generation, API validation, and WebRTC signalling endpoints for the Web Portal handshakes (§13.8).
 - [ ] **Default Shell Hardening:** `std::env::var("SHELL")` fallback misses valid binary verification.
 
 ## Production-Grade Security & Isolation (Ecosystem Spec §1.4)
 - [x] **Kernel-Level Sandboxing:** Move beyond mock permissions to actual Linux namespaces/cgroups for Standard Modules.
 - [x] **Deep Inspection (Level 5) Audit:** Implement a cryptographic audit log for all privilege escalations.
 - [x] **Manifest Signing:** Require signed `module.toml` for Marketplace installations to ensure supply-chain security.
+- [ ] **Sandbox Profile Expansion:** Strictly define and enforce Bubblewrap (`bwrap`) profiles mapping to specific `module.toml` granular permissions.
 - [ ] **Signature Forging:** `verify_manifest_signature` returns a hardcoded `true`. Must check real Edwards-curve signatures.
 - [ ] **Interception Loophole:** `is_dangerous` uses naïve string matching (`rm -rf`); `rm -r /` bypasses it. Needs abstract semantic analysis.
 - [ ] **Trusted Root Key:** `get_trusted_public_key()` hardcodes an Ed25519 hash literal purely to pass tests.

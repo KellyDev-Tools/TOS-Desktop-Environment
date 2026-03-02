@@ -50,6 +50,9 @@ impl IpcHandler {
             "system_log_append" => self.handle_system_log_append(args.get(0).copied(), args.get(1).copied()),
             "play_earcon" => self.handle_play_earcon(args.get(0).copied()),
             "trigger_haptic" => self.handle_trigger_haptic(args.get(0).copied()),
+            "portal_create" => self.handle_portal_create(),
+            "portal_revoke" => self.handle_portal_revoke(args.get(0).copied()),
+            "get_state_delta" => self.handle_get_state_delta(args.get(0).copied()),
             _ => "ERROR: Unknown prefix".to_string(),
         };
 
@@ -63,11 +66,34 @@ impl IpcHandler {
 
     fn is_dangerous(&self, command: &str) -> bool {
         let cmd = command.trim().to_lowercase();
-        // Simple list for dangerous command detection
-        cmd.starts_with("rm -rf") || 
-        cmd.starts_with("format") || 
-        cmd.starts_with("mkfs") || 
-        cmd.contains("> /dev/sd")
+        
+        // 1. Root or System Wide recursive deletion
+        let rm_regex = regex::Regex::new(r"rm\s+-[rfv\s]*[rf][rfv\s]*\s+/").unwrap();
+        if rm_regex.is_match(&cmd) { 
+            tracing::warn!("SECURITY INTERCEPT: Attempt to recursively delete root!");
+            return true; 
+        }
+
+        // 2. Raw device manipulation
+        if cmd.contains("dd ") && (cmd.contains("if=/dev/sd") || cmd.contains("if=/dev/nvme") || cmd.contains("of=/dev/sd") || cmd.contains("of=/dev/nvme")) {
+            tracing::warn!("SECURITY INTERCEPT: Attempt to perform raw device I/O!");
+            return true;
+        }
+
+        // 3. Destructive formatting
+        let format_regex = regex::Regex::new(r"(mkfs|mkswap|fdisk|parted|format)").unwrap();
+        if format_regex.is_match(&cmd) {
+            tracing::warn!("SECURITY INTERCEPT: Attempt to reformat or manipulate partitions!");
+            return true;
+        }
+
+        // 4. Direct overwrite of critical nodes
+        if cmd.contains("> /dev/sd") || cmd.contains("> /dev/nvme") || cmd.contains("> /etc/") {
+             tracing::warn!("SECURITY INTERCEPT: Attempt to overwrite system nodes!");
+             return true;
+        }
+
+        false
     }
 
     fn handle_update_confirmation_progress(&self, id_str: Option<&str>, val_str: Option<&str>) -> String {
@@ -419,6 +445,38 @@ impl IpcHandler {
             return format!("HAPTIC_TRIGGERED: {}", n);
         }
         "ERROR: Invalid haptic cue".to_string()
+    }
+
+    fn handle_portal_create(&self) -> String {
+        let state = self.state.lock().unwrap();
+        let sector_id = if let Some(sector) = state.sectors.get(state.active_sector_index) {
+            sector.id
+        } else {
+            return "ERROR: No active sector".to_string();
+        };
+        
+        // Drop lock before service call if possible (though PortalService has its own internal sync)
+        let token = self.services.portal.create_token(sector_id);
+        format!("PORTAL_CREATED: {}", token)
+    }
+
+    fn handle_portal_revoke(&self, token: Option<&str>) -> String {
+        if let Some(t) = token {
+            self.services.portal.revoke_token(t);
+            return format!("PORTAL_REVOKED: {}", t);
+        }
+        "ERROR: Token required".to_string()
+    }
+
+    fn handle_get_state_delta(&self, last_version_str: Option<&str>) -> String {
+        let last_version = last_version_str.and_then(|s| s.parse::<u64>().ok()).unwrap_or(0);
+        let state = self.state.lock().unwrap();
+        
+        if state.version == last_version {
+            return "NO_CHANGE".to_string();
+        }
+        
+        serde_json::to_string(&*state).unwrap_or_else(|_| "ERROR: Serialization failed".to_string())
     }
 }
 

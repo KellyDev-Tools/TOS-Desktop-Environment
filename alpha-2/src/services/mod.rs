@@ -5,6 +5,7 @@ pub mod marketplace;
 pub mod ai;
 pub mod search;
 pub mod haptic;
+pub mod portal;
 
 pub use logger::LoggerService;
 pub use settings::SettingsService;
@@ -13,6 +14,7 @@ pub use marketplace::MarketplaceService;
 pub use ai::AiService;
 pub use search::SearchService;
 pub use haptic::HapticService;
+pub use portal::PortalService;
 
 use std::sync::Arc; // Mutex unused after decoupling
 // use crate::common::TosState; // Unused after decoupling
@@ -24,6 +26,7 @@ pub struct ServiceManager {
     pub ai: Arc<AiService>,
     pub search: Arc<SearchService>,
     pub haptic: Arc<HapticService>,
+    pub portal: Arc<PortalService>,
 }
 
 impl ServiceManager {
@@ -34,6 +37,7 @@ impl ServiceManager {
         let ai = Arc::new(AiService::new());
         let search = Arc::new(SearchService::new());
         let haptic = Arc::new(HapticService::new());
+        let portal = Arc::new(PortalService::new());
         
         // Establish cross-service dependencies (e.g., logging triggers audio cues)
         logger.set_audio_service(audio.clone());
@@ -45,6 +49,7 @@ impl ServiceManager {
             ai,
             search,
             haptic,
+            portal,
         }
     }
 }

@@ -94,7 +94,8 @@ class TosUI {
         // Portal Modal Listeners
         document.getElementById('portal-close')?.addEventListener('click', () => this.togglePortalModal(false));
         document.getElementById('portal-copy')?.addEventListener('click', () => this.copyPortalLink());
-        document.getElementById('portal-revoke')?.addEventListener('click', () => this.togglePortalModal(false));
+        document.getElementById('portal-revoke')?.addEventListener('click', () => this.revokePortalToken());
+
 
 
         // Global Keyboard Shortcuts (§14, §22)
@@ -796,20 +797,41 @@ class TosUI {
         return '';
     }
 
-    togglePortalModal(show) {
+    async togglePortalModal(show) {
         const modal = document.getElementById('portal-modal');
         if (!modal) return;
         if (show) {
             modal.classList.remove('hidden');
-            // Generate a random token for the mock UI
-            const token = Math.random().toString(36).substring(2, 6) + '-' + Math.random().toString(36).substring(2, 6);
             const input = document.getElementById('portal-link-input');
-            if (input) input.value = `https://tos.live/portal/${token}`;
+            if (input) {
+                input.value = "GENERATING TOKEN...";
+                if (window.__TOS_IPC__) {
+                    const response = await window.__TOS_IPC__('portal_create');
+                    if (response.startsWith('PORTAL_CREATED:')) {
+                        const token = response.split(': ')[1];
+                        input.value = `https://tos.live/portal/${token}`;
+                        this.currentToken = token;
+                    } else {
+                        input.value = "ERROR: GENERATION FAILED";
+                    }
+                }
+            }
             this.playEarcon('modal_open');
+            this.triggerHaptic('click');
         } else {
             modal.classList.add('hidden');
             this.playEarcon('modal_close');
         }
+    }
+
+    async revokePortalToken() {
+        if (this.currentToken && window.__TOS_IPC__) {
+            await window.__TOS_IPC__(`portal_revoke:${this.currentToken}`);
+            this.currentToken = null;
+            const input = document.getElementById('portal-link-input');
+            if (input) input.value = "TOKEN REVOKED";
+        }
+        this.togglePortalModal(false);
     }
 
     copyPortalLink() {

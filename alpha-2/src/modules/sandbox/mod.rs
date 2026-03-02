@@ -87,7 +87,22 @@ impl SandboxManager {
 
     /// Check if a module manifest signature is valid.
     pub fn verify_manifest_signature(manifest_path: &str) -> bool {
-        tracing::info!("Verifying cryptographic signature for manifest: {}", manifest_path);
-        true // Simulated validation
+        use crate::services::marketplace::MarketplaceService;
+        
+        let path = Path::new(manifest_path);
+        let dir = match path.parent() {
+            Some(p) => p.to_path_buf(),
+            None => return false,
+        };
+
+        match MarketplaceService::discover_module(dir) {
+            Ok(manifest) => {
+                match MarketplaceService::get_trusted_public_key() {
+                    Ok(pk) => MarketplaceService::verify_manifest(&manifest, &pk),
+                    Err(_) => false,
+                }
+            }
+            Err(_) => false,
+        }
     }
 }

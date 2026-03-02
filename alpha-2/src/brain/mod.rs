@@ -51,6 +51,18 @@ impl Brain {
         services.logger.log("Brain Core Initialized.", 2);
         services.audio.play_earcon("system_ready");
         
+        // Spawn the background logic thread for state heartbeats
+        let state_clock = state.clone();
+        thread::spawn(move || {
+            loop {
+                thread::sleep(std::time::Duration::from_secs(1));
+                if let Ok(mut lock) = state_clock.lock() {
+                    lock.brain_time = chrono::Local::now().format("%H:%M:%S").to_string();
+                    lock.version += 1;
+                }
+            }
+        });
+
         Ok(Self { state, ipc, shell, services })
     }
 }

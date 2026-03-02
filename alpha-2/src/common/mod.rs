@@ -48,6 +48,7 @@ pub struct Sector {
     pub is_remote: bool, // Remote vs Local status
     pub disconnected: bool, // Connection status for remote sectors
     pub trust_tier: TrustTier,
+    pub version: u64,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -64,6 +65,7 @@ pub struct CommandHub {
     pub staged_command: Option<String>,           // AI-proposed command for review
     pub ai_explanation: Option<String>,           // AI rationale/documentation
     pub json_context: Option<serde_json::Value>,  // Custom JSON exported via OSC 9004
+    pub version: u64,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -156,6 +158,8 @@ pub struct TosState {
     pub sys_prefix: String,
     pub sys_title: String,
     pub sys_status: String,
+    pub brain_time: String,
+    pub version: u64,
 }
 
 impl Default for TosState {
@@ -176,12 +180,14 @@ impl Default for TosState {
                 staged_command: None,
                 ai_explanation: None,
                 json_context: None,
+                version: 0,
             }],
             active_hub_index: 0,
             frozen: false,
             is_remote: false,
             disconnected: false,
             trust_tier: TrustTier::System,
+            version: 0,
         };
 
         Self {
@@ -194,6 +200,8 @@ impl Default for TosState {
             sys_prefix: "TOS // SYSTEM-BRAIN".to_string(),
             sys_title: "ALPHA-2.1 // INTEL-DRIVEN".to_string(),
             sys_status: "BRAIN: ACTIVE".to_string(),
+            brain_time: "00:00:00".to_string(),
+            version: 0,
         }
     }
 }

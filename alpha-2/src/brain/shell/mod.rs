@@ -23,8 +23,19 @@ impl ShellApi {
             pixel_height: 0,
         })?;
 
-        let shell = std::env::var("SHELL").unwrap_or_else(|_| "sh".to_string());
-        let cmd = CommandBuilder::new(shell);
+        let shell = std::env::var("SHELL").unwrap_or_else(|_| "/bin/bash".to_string());
+        let verified_shell = if std::path::Path::new(&shell).exists() {
+            shell
+        } else {
+            let fallbacks = ["/bin/bash", "/bin/zsh", "/bin/sh", "/usr/bin/bash", "/usr/bin/sh"];
+            fallbacks.iter()
+                .find(|&&path| std::path::Path::new(path).exists())
+                .map(|&s| s.to_string())
+                .unwrap_or_else(|| "sh".to_string())
+        };
+
+        tracing::info!("SHELL INIT: Using verified binary: {}", verified_shell);
+        let cmd = CommandBuilder::new(verified_shell);
         let child = pair.slave.spawn_command(cmd)?;
 
         let reader = pair.master.try_clone_reader()?;
@@ -65,14 +76,21 @@ impl ShellApi {
                     if let Some(sector) = state_lock.sectors.iter_mut().find(|s| s.id == sector_id) {
                         if sector.is_remote {
                             sector.disconnected = true;
+                            state_lock.version += 1;
                             let state_clone = state.clone();
                             let sid = sector_id;
+                            
+                            // §12.1: Graceful ICE Teardown window
                             handle.spawn(async move {
-                                tokio::time::sleep(std::time::Duration::from_secs(5)).await;
+                                tracing::info!("REMOTE: Initiating graceful teardown for sector: {}", sid);
+                                tokio::time::sleep(std::time::Duration::from_millis(500)).await;
+                                
                                 let mut lock = state_clone.lock().unwrap();
                                 if let Some(pos) = lock.sectors.iter().position(|s| s.id == sid) {
                                     if lock.sectors[pos].disconnected {
+                                        tracing::info!("REMOTE: Sector {} teardown complete.", sid);
                                         lock.sectors.remove(pos);
+                                        lock.version += 1;
                                     }
                                 }
                             });
@@ -119,6 +137,8 @@ impl ShellApi {
                                     if hub.terminal_output.len() > hub.buffer_limit {
                                         hub.terminal_output.remove(0);
                                     }
+                                    hub.version += 1;
+                                    state_lock.version += 1;
                                 }
                             }
                         }

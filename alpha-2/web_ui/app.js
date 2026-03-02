@@ -33,6 +33,7 @@ class TosUI {
             top_right: ['status_badges']
         };
 
+        this.settingsActiveTab = 'global';
         this.init();
     }
 
@@ -73,6 +74,20 @@ class TosUI {
             });
         });
 
+        // Settings Modal Listeners
+        document.getElementById('settings-close')?.addEventListener('click', () => this.toggleSettingsModal(false));
+        document.querySelectorAll('.settings-nav-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                this.settingsActiveTab = btn.dataset.tab;
+                this.renderSettings();
+                document.querySelectorAll('.settings-nav-btn').forEach(b => b.classList.toggle('active', b === btn));
+            });
+        });
+
+        document.getElementById('settings-save')?.addEventListener('click', () => {
+            this.commitSettings();
+        });
+
         // Global Keyboard Shortcuts (§14, §22)
         document.addEventListener('keydown', (e) => {
             // Projected Components
@@ -93,14 +108,127 @@ class TosUI {
                 e.preventDefault();
                 this.toggleSidebarRight();
             }
+            // Settings shortcut
+            if (e.key === 'Escape') {
+                this.toggleSettingsModal(false);
+            }
         });
 
         // 6.4 Bezel Commands
         document.getElementById('bezel-expand-left')?.addEventListener('click', () => this.toggleSidebar());
         document.getElementById('bezel-expand-right')?.addEventListener('click', () => this.toggleSidebarRight());
-        document.getElementById('bezel-add-sector')?.addEventListener('click', () => this.handleCommand('bezel:add_sector'));
-        document.getElementById('bezel-term-toggle')?.addEventListener('click', () => this.handleCommand('bezel:terminal_toggle'));
-        document.getElementById('bezel-settings')?.addEventListener('click', () => this.handleCommand('bezel:settings'));
+    }
+
+    toggleSettingsModal(show) {
+        const modal = document.getElementById('settings-modal');
+        if (!modal) return;
+
+        if (show) {
+            modal.classList.remove('hidden');
+            this.renderSettings();
+        } else {
+            modal.classList.add('hidden');
+        }
+    }
+
+    renderSettings() {
+        const pane = document.getElementById('settings-pane-content');
+        if (!pane || !this.state || !this.state.settings) return;
+
+        let html = '';
+        const settings = this.state.settings;
+
+        if (this.settingsActiveTab === 'global') {
+            html = `
+                <div class="settings-group">
+                    <div class="settings-group-title">GLOBAL CORE PARAMETERS</div>
+                    ${Object.entries(settings.global || {}).map(([k, v]) => `
+                        <div class="settings-item">
+                            <label class="settings-label">${k.toUpperCase()}</label>
+                            <input type="text" class="settings-input" data-key="${k}" data-scope="global" value="${v}">
+                        </div>
+                    `).join('')}
+                    ${Object.keys(settings.global || {}).length === 0 ? '<div style="opacity:0.5; font-style:italic">NO GLOBAL SETTINGS DEFINED</div>' : ''}
+                    <div class="settings-item">
+                        <label class="settings-label" style="color:var(--color-accent)">ADD NEW PARAMETER</label>
+                        <div style="display:flex; gap:0.5rem">
+                            <input type="text" id="new-param-key" class="settings-input" placeholder="KEY..." style="width:6rem">
+                            <input type="text" id="new-param-val" class="settings-input" placeholder="VALUE..." style="width:6rem">
+                        </div>
+                    </div>
+                </div>
+            `;
+        } else if (this.settingsActiveTab === 'sectors') {
+            const currentSector = this.state.sectors[this.state.active_sector_index];
+            const sectorId = currentSector?.id;
+            const sectorSettings = sectorId ? (settings.sectors[sectorId] || {}) : {};
+
+            html = `
+                <div class="settings-group">
+                    <div class="settings-group-title">SECTOR PARAMETERS // ${currentSector?.name.toUpperCase() || 'UNKNOWN'}</div>
+                    ${Object.entries(sectorSettings).map(([k, v]) => `
+                        <div class="settings-item">
+                            <label class="settings-label">${k.toUpperCase()}</label>
+                            <input type="text" class="settings-input" data-key="${k}" data-scope="sector" data-id="${sectorId}" value="${v}">
+                        </div>
+                    `).join('')}
+                    ${Object.keys(sectorSettings).length === 0 ? '<div style="opacity:0.5; font-style:italic">NO SECTOR-SPECIFIC OVERRIDES</div>' : ''}
+                </div>
+            `;
+        } else if (this.settingsActiveTab === 'interface') {
+            html = `
+                <div class="settings-group">
+                    <div class="settings-group-title">INTERFACE CALIBRATION</div>
+                    <div class="settings-item">
+                        <label class="settings-label">UI FEEDBACK SCALE</label>
+                        <input type="range" class="settings-input" style="width:10rem">
+                    </div>
+                    <div class="settings-item">
+                        <label class="settings-label">CINEMATIC TRANSITIONS</label>
+                        <button class="status-badge active">ENABLED</button>
+                    </div>
+                    <div class="settings-item">
+                        <label class="settings-label">HAPTIC OVERRIDE</label>
+                        <button class="status-badge">DISABLED</button>
+                    </div>
+                </div>
+            `;
+        }
+
+        pane.innerHTML = html;
+    }
+
+    async commitSettings() {
+        const inputs = document.querySelectorAll('.settings-input[data-key]');
+        const log = document.getElementById('mini-log');
+
+        for (const input of inputs) {
+            const key = input.dataset.key;
+            const val = input.value;
+            const scope = input.dataset.scope;
+
+            if (scope === 'global') {
+                await window.__TOS_IPC__(`set_setting:${key};${val}`);
+            } else if (scope === 'sector') {
+                const id = input.dataset.id;
+                await window.__TOS_IPC__(`set_sector_setting:${id};${key};${val}`);
+            }
+        }
+
+        // Handle new global parameter if filled
+        const newKey = document.getElementById('new-param-key')?.value;
+        const newVal = document.getElementById('new-param-val')?.value;
+        if (newKey && newVal) {
+            await window.__TOS_IPC__(`set_setting:${newKey};${newVal}`);
+        }
+
+        if (log) {
+            log.innerText = "SETTINGS COMMITTED.";
+            log.style.color = 'var(--color-success)';
+        }
+
+        this.syncState();
+        this.toggleSettingsModal(false);
     }
 
     toggleComponent(id) {
@@ -228,6 +356,12 @@ class TosUI {
         // Transmit to Rust Brain via IPC Bridge
         if (window.__TOS_IPC__) {
             try {
+                // Bezel Commands Interception
+                if (cmd === 'bezel:settings') {
+                    this.toggleSettingsModal(true);
+                    return;
+                }
+
                 // Configurable Slot Reassignment via command (Mock Logic)
                 if (cmd.startsWith('dock:')) {
                     const [_, compId, segmentId] = cmd.split(':');
@@ -306,7 +440,8 @@ class TosUI {
             active_sector_index: 0,
             sectors: [{ name: "Local", hubs: [{ mode: 'Command' }] }],
             system_log: [{ text: "NO CONNECTION TO BRAIN", priority: 1, timestamp: new Date().toISOString() }],
-            terminal_output: []
+            terminal_output: [],
+            settings: { global: {}, sectors: {}, applications: {} }
         };
     }
 

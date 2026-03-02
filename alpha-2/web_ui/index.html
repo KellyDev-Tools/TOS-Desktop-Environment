@@ -100,7 +100,32 @@
             </aside>
         </main>
     </div>
-    <script src="app.js?v=2.1.2"></script>
+        <!-- Settings Modal (§3.3.3) -->
+        <div id="settings-modal" class="modal-overlay hidden">
+            <div class="modal-container glass-panel">
+                <div class="modal-header">
+                    <div class="lcars-elbow top-left"></div>
+                    <div class="modal-title">SYSTEM SETTINGS // CONFIGURATION</div>
+                    <button class="v-btn modal-close" id="settings-close">×</button>
+                </div>
+                <div class="modal-content">
+                    <div class="settings-sidebar">
+                        <button class="settings-nav-btn active" data-tab="global">GLOBAL</button>
+                        <button class="settings-nav-btn" data-tab="sectors">SECTOR</button>
+                        <button class="settings-nav-btn" data-tab="interface">INTERFACE</button>
+                    </div>
+                    <div class="settings-pane" id="settings-pane-content">
+                        <!-- Dynamic settings items land here -->
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <div class="lcars-elbow bottom-right"></div>
+                    <button class="lcars-btn warning" id="settings-save">COMMIT CHANGES</button>
+                </div>
+            </div>
+        </div>
+
+        <script src="app.js?v=2.1.2"></script>
 </body>
 
 </html>

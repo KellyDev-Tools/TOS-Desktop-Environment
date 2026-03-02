@@ -346,13 +346,69 @@ class TosUI {
             `;
         } else if (this.currentMode === 'hubs') {
             title.innerText = "HUB VIEW // COMMAND";
-            const outputs = this.state.terminal_output ?
-                this.state.terminal_output.map(l => `<div style="color: ${l.color || 'inherit'}">${l.text}</div>`).join('') : '';
+
+            let activeHub = null;
+            if (this.state.sectors && this.state.sectors[this.state.active_sector_index]) {
+                const sector = this.state.sectors[this.state.active_sector_index];
+                if (sector.hubs && sector.hubs[sector.active_hub_index]) {
+                    activeHub = sector.hubs[sector.active_hub_index];
+                }
+            }
+
+            const termOutputs = (activeHub && activeHub.terminal_output ? activeHub.terminal_output : (this.state.terminal_output || []))
+                .map(l => `<div style="color: ${l.color || 'inherit'}">${l.text || ''}</div>`).join('');
+
+            let leftColumnHTML = '';
+
+            if (activeHub) {
+                if (activeHub.json_context) {
+                    const ctx = activeHub.json_context;
+                    leftColumnHTML = `
+                        <div class="context-chip glass-panel">
+                            <div class="chip-title">JSON CONTEXT // ${ctx.type || 'DATA'}</div>
+                            <div class="chip-row"><strong>NAME:</strong> ${ctx.name || '--'}</div>
+                            ${ctx.state ? `<div class="chip-row"><strong>STATE:</strong> <span class="status-badge active" style="display:inline-block; padding:0.125rem 0.625rem; margin-top:0.2rem; background: #000; color: var(--color-success); border-radius: 1rem; border: 1px solid rgba(255, 255, 255, 0.1); font-size: 0.75rem;">${ctx.state}</span></div>` : ''}
+                            ${ctx.active_file ? `<div class="chip-row"><strong>FILE:</strong> ${ctx.active_file}</div>` : ''}
+                            ${ctx.metadata ? `<div class="chip-metadata">
+                                ${Object.entries(ctx.metadata).map(([k, v]) => `<div><strong>${k.toUpperCase()}:</strong> ${v}</div>`).join('')}
+                            </div>` : ''}
+                        </div>
+                    `;
+                } else if (activeHub.shell_listing) {
+                    const dir = activeHub.shell_listing;
+                    leftColumnHTML = `
+                        <div class="context-chip glass-panel">
+                            <div class="chip-title" style="color: var(--color-primary)">DIR PREVIEW // ${dir.path}</div>
+                            <div class="directory-list">
+                                ${dir.entries.map(e => `
+                                    <div class="chip-row" style="font-family: var(--font-mono); font-size: 0.8rem; display: flex; align-items: center; justify-content: space-between;">
+                                        <span><span style="color: ${e.is_dir ? 'var(--color-primary)' : 'inherit'}; min-width: 40px; display: inline-block;">${e.is_dir ? '[DIR]' : '&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;'}</span> <span style="font-weight: ${e.is_dir ? '700' : '300'}">${e.name}</span></span>
+                                        <span style="opacity: 0.5">${e.is_dir ? '' : e.size + ' B'}</span>
+                                    </div>
+                                `).join('')}
+                            </div>
+                        </div>
+                    `;
+                } else {
+                    leftColumnHTML = `
+                        <div class="context-chip glass-panel empty-chip" style="display: flex; align-items: center; justify-content: center; height: 100%;">
+                            <div style="opacity: 0.5; text-align: center; font-style: italic; font-weight: 300;">AWAITING CONTEXT EXPORT...</div>
+                        </div>
+                    `;
+                }
+            }
 
             target.innerHTML = `
-                <div class="terminal-container" style="font-family: monospace; font-size: 0.9rem; line-height: 1.6">
-                    ${outputs}
-                    <div style="animation: blink 1s infinite">_</div>
+                <div class="dual-column-layout">
+                    <div class="left-chip-column">
+                        ${leftColumnHTML}
+                    </div>
+                    <div class="right-terminal-column">
+                        <div class="terminal-container" style="font-family: var(--font-mono); font-size: 0.9rem; line-height: 1.6; height: 100%;">
+                            ${termOutputs}
+                            <div style="animation: blink 1s infinite">_</div>
+                        </div>
+                    </div>
                 </div>
             `;
         } else if (this.currentMode === 'sectors') {

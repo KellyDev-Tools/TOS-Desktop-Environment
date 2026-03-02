@@ -29,9 +29,16 @@ impl LoggerService {
 
     /// Log an event to the unified system storage.
     pub fn log(&self, text: &str, priority: u8) {
-        if let Some(ipc) = &*self.ipc.lock().unwrap() {
-            // Forward log to the IPC handler for state append
-            let _ = ipc.dispatch(&format!("system_log_append:{};{}", priority, text));
+        // §19.1: Remote Log Submission (tos-loggerd)
+        // If the daemon is active, it handles the state broadcast to the Brain via Port 7000.
+        if let Ok(mut stream) = std::net::TcpStream::connect_timeout(&"127.0.0.1:7003".parse().unwrap(), std::time::Duration::from_millis(50)) {
+            use std::io::Write;
+            let _ = stream.write_all(format!("log:{};{}\n", text, priority).as_bytes());
+        } else {
+            // Fallback: Local IPC notification for state append (Face visualization)
+            if let Some(ipc) = &*self.ipc.lock().unwrap() {
+                let _ = ipc.dispatch(&format!("system_log_append:{};{}", priority, text));
+            }
         }
 
         // Multi-sensory feedback based on priority level

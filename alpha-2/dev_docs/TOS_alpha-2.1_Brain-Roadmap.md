@@ -6,7 +6,7 @@ This roadmap tracks the progress of the TOS backend, specifically focusing on th
 - [x] **ServiceManager State Decoupling:** Refactor `ServiceManager` (`logger`, `settings`, `audio`, `ai`) to drop the `Arc<Mutex<TosState>>` payload to eliminate lock contention on the global state tree.
 - [x] **Service IPC Routing:** Force all extracted services to communicate with the Brain exclusively through JSON-RPC payloads on the `IpcDispatcher`.
 - [x] **State Delta IPC Schema:** Implemented global and granular (Hub/Sector) versioning with `handle_get_state_delta` for optimized synchronization (§3.3.2).
-- [ ] **Standalone Service Binaries:** Extract `logger`, `settings`, and `marketplace` modules from the `tos-brain` codebase into standalone binary crates (e.g., `tos-settingsd`) that act as true external IPC clients.
+- [x] **Standalone Service Binaries:** Extracted `logger`, `settings`, and `marketplace` into standalone daemons (`tos-loggerd`, `tos-settingsd`, `tos-marketplaced`) that act as true external IPC clients via Port 7000.
 
 ## Backend Compositing & Wayland (§15)
 - [x] **DMABUF Native Path:** Optimize the Linux backend for zero-copy frame buffer sharing with the Wayland compositor.

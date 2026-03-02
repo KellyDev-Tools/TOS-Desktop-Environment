@@ -33,12 +33,14 @@ impl SectorManager {
                 staged_command: None,
                 ai_explanation: None,
                 json_context: None,
+                version: 0,
             }],
             active_hub_index: 0,
             frozen: false,
             is_remote: false,
             disconnected: false,
             trust_tier: crate::common::TrustTier::System,
+            version: 0,
         };
 
         state.sectors.push(sector);

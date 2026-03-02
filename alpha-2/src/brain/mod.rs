@@ -5,6 +5,7 @@ pub mod state;
 pub mod shell;
 
 use std::sync::{Arc, Mutex};
+use std::thread;
 use crate::common::TosState;
 use self::ipc_handler::IpcHandler;
 use self::shell::ShellApi;

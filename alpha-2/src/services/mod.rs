@@ -1,3 +1,4 @@
+
 pub mod logger;
 pub mod settings;
 pub mod audio;
@@ -52,7 +53,6 @@ impl ServiceManager {
             portal,
         }
     }
-}
     pub fn set_ipc(&self, ipc: std::sync::Arc<dyn crate::common::ipc_dispatcher::IpcDispatcher>) {
         self.logger.set_ipc(ipc.clone());
         self.ai.set_ipc(ipc);

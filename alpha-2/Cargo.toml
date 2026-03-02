@@ -36,3 +36,15 @@ path = "src/lib.rs"
 [[bin]]
 name = "tos-brain"
 path = "src/main.rs"
+
+[[bin]]
+name = "tos-settingsd"
+path = "src/bin/settingsd.rs"
+
+[[bin]]
+name = "tos-loggerd"
+path = "src/bin/loggerd.rs"
+
+[[bin]]
+name = "tos-marketplaced"
+path = "src/bin/marketplaced.rs"

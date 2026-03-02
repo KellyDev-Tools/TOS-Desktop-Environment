@@ -1,36 +1,36 @@
 use uuid::Uuid;
 use std::collections::HashMap;
-use std::time::{Instant, Duration};
+use std::time::{SystemTime, UNIX_EPOCH};
 use serde::{Serialize, Deserialize};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct PortalToken {
     pub token: String,
     pub sector_id: Uuid,
-    #[serde(skip)]
-    pub expires_at: Instant,
+    pub expires_at_ms: u64,
 }
 
 pub struct PortalService {
     active_tokens: std::sync::Mutex<HashMap<String, PortalToken>>,
-    ttl: Duration,
+    ttl_ms: u64,
 }
 
 impl PortalService {
     pub fn new() -> Self {
         Self {
             active_tokens: std::sync::Mutex::new(HashMap::new()),
-            ttl: Duration::from_secs(900), // 15 minutes as per UI spec
+            ttl_ms: 900 * 1000, // 15 minutes as per UI spec
         }
     }
 
     /// Generate a secure one-time token for a sector.
     pub fn create_token(&self, sector_id: Uuid) -> String {
+        let now_ms = SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_millis() as u64;
         let token = format!("{:x}-{:x}", Uuid::new_v4().as_u128() as u64, Uuid::new_v4().as_u128() as u64);
         let portal_token = PortalToken {
             token: token.clone(),
             sector_id,
-            expires_at: Instant::now() + self.ttl,
+            expires_at_ms: now_ms + self.ttl_ms,
         };
         
         let mut tokens = self.active_tokens.lock().unwrap();
@@ -43,17 +43,14 @@ impl PortalService {
     /// Validate a token and return the associated sector ID if valid.
     pub fn validate_token(&self, token: &str) -> Option<Uuid> {
         let mut tokens = self.active_tokens.lock().unwrap();
+        let now_ms = SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_millis() as u64;
         
         // Cleanup expired tokens
-        let now = Instant::now();
-        tokens.retain(|_, v| v.expires_at > now);
+        tokens.retain(|_, v| v.expires_at_ms > now_ms);
 
         if let Some(t) = tokens.get(token) {
             tracing::info!("WEB PORTAL: Handshake successful for token {}", token);
-            let sector_id = t.sector_id;
-            // Consumption: Tokens are one-time use
-            // tokens.remove(token); 
-            return Some(sector_id);
+            return Some(t.sector_id);
         }
         
         None

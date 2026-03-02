@@ -90,6 +90,7 @@ pub struct ProcessEntry {
     pub name: String,
     pub cpu_usage: f32,
     pub mem_usage: u64,
+    pub snapshot: Option<String>, // Base64 low-res frame buffer thumbnail
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

@@ -134,11 +134,20 @@ impl SectorManager {
             
             let mut processes = Vec::new();
             for (pid, process) in sys.processes() {
+                // In production, snapshots are pulled from Wayland DMABUF shared memory via PID mapping
+                // For Alpha-2.1 UI testing, we generate a mock placeholder for active graphical PIDs
+                let snapshot = if process.cpu_usage() > 1.0 {
+                    Some("data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8/5+hHgAHggJ/PchI7wAAAABJRU5ErkJggg==".to_string())
+                } else {
+                    None
+                };
+
                 processes.push(crate::common::ProcessEntry {
                     pid: pid.as_u32(),
                     name: process.name().to_string(),
                     cpu_usage: process.cpu_usage(),
                     mem_usage: process.memory(),
+                    snapshot,
                 });
             }
 

@@ -68,7 +68,9 @@ class TosUI {
                 const modeMap = {
                     'GlobalOverview': 'global',
                     'CommandHub': 'hubs',
-                    'ApplicationFocus': 'sectors'
+                    'ApplicationFocus': 'sectors',
+                    'DetailView': 'detail',
+                    'BufferView': 'buffer'
                 };
                 this.setMode(modeMap[level] || 'global');
             });
@@ -87,6 +89,12 @@ class TosUI {
         document.getElementById('settings-save')?.addEventListener('click', () => {
             this.commitSettings();
         });
+
+        // Portal Modal Listeners
+        document.getElementById('portal-close')?.addEventListener('click', () => this.togglePortalModal(false));
+        document.getElementById('portal-copy')?.addEventListener('click', () => this.copyPortalLink());
+        document.getElementById('portal-revoke')?.addEventListener('click', () => this.togglePortalModal(false));
+
 
         // Global Keyboard Shortcuts (§14, §22)
         document.addEventListener('keydown', (e) => {
@@ -111,6 +119,7 @@ class TosUI {
             // Settings shortcut
             if (e.key === 'Escape') {
                 this.toggleSettingsModal(false);
+                this.togglePortalModal(false);
             }
         });
 
@@ -271,6 +280,8 @@ class TosUI {
         document.body.classList.toggle('view-global', mode === 'global');
         document.body.classList.toggle('view-hubs', mode === 'hubs');
         document.body.classList.toggle('view-sectors', mode === 'sectors');
+        document.body.classList.toggle('view-detail', mode === 'detail');
+        document.body.classList.toggle('view-buffer', mode === 'buffer');
 
         if (window.__TOS_IPC__) {
             window.__TOS_IPC__(`set_mode:${mode}`);
@@ -280,7 +291,9 @@ class TosUI {
             const modeMap = {
                 'GlobalOverview': 'global',
                 'CommandHub': 'hubs',
-                'ApplicationFocus': 'sectors'
+                'ApplicationFocus': 'sectors',
+                'DetailView': 'detail',
+                'BufferView': 'buffer'
             };
             btn.classList.toggle('active', modeMap[btn.dataset.level] === mode);
         });
@@ -361,6 +374,11 @@ class TosUI {
                     this.toggleSettingsModal(true);
                     return;
                 }
+                if (cmd === 'bezel:portal') {
+                    this.togglePortalModal(true);
+                    return;
+                }
+
 
                 // Configurable Slot Reassignment via command (Mock Logic)
                 if (cmd.startsWith('dock:')) {
@@ -524,6 +542,32 @@ class TosUI {
                             </div>
                         </div>
                     `;
+                } else if (activeHub.activity_listing) {
+                    const act = activeHub.activity_listing;
+                    leftColumnHTML = `
+                        <div class="activity-chip-stack">
+                            <div class="chip-title" style="color: var(--color-warning)">SYSTEM ACTIVITY LUNGS // RECENT</div>
+                            <div style="overflow-y: auto; flex-grow: 1; padding-right: 0.5rem;">
+                                ${act.processes.slice(0, 10).map(p => `
+                                    <div class="context-chip glass-panel activity-chip ${p.snapshot ? 'has-snapshot' : ''}" style="margin-bottom: 0.75rem; flex-direction: row; align-items: center; justify-content: space-between; min-height: 4rem;">
+                                        <div class="process-meta">
+                                            <div class="chip-row"><strong style="color: var(--color-accent)">PID ${p.pid}:</strong> ${p.name.toUpperCase()}</div>
+                                            <div class="chip-row" style="font-size: 0.75rem; opacity: 0.7; font-family: var(--font-mono)">CPU: ${p.cpu_usage.toFixed(1)}% | MEM: ${(p.mem_usage / 1024 / 1024).toFixed(1)} MB</div>
+                                        </div>
+                                        ${p.snapshot ? `
+                                            <div class="process-snapshot" style="width: 4rem; height: 2.5rem; border: 1px solid rgba(255,255,255,0.1); border-radius: 0.25rem; overflow: hidden; background: #000; display: flex; align-items: center; justify-content: center;">
+                                                <img src="${p.snapshot}" style="width: 100%; height: 100%; object-fit: cover; opacity: 0.8;" alt="Process View" />
+                                            </div>
+                                        ` : `
+                                            <div class="process-snapshot" style="width: 4rem; height: 2.5rem; border: 1px solid rgba(255,255,255,0.05); border-radius: 0.25rem; background: rgba(0,0,0,0.3); display: flex; align-items:center; justify-content:center; font-size: 0.5rem; color: rgba(255,255,255,0.2)">
+                                                NO FRAME
+                                            </div>
+                                        `}
+                                    </div>
+                                `).join('')}
+                            </div>
+                        </div>
+                    `;
                 } else {
                     leftColumnHTML = `
                         <div class="context-chip glass-panel empty-chip" style="display: flex; align-items: center; justify-content: center; height: 100%;">
@@ -547,10 +591,64 @@ class TosUI {
                 </div>
             `;
         } else if (this.currentMode === 'sectors') {
-            title.innerText = "SECTOR TOPOLOGY";
+            const currentSector = this.state.sectors[this.state.active_sector_index];
+            title.innerText = `APPLICATION FOCUS // ${currentSector?.name.toUpperCase() || 'UNKNOWN'}`;
             target.innerHTML = `
-                <div class="loading-state">
-                    [TOPOLOGICAL MAP DATA LOADING...]
+                <div class="focal-app-container glass-panel">
+                    <div class="app-chrome">
+                        <div class="app-title">MAIN_SURFACE // BINARY_X86_64</div>
+                        <div class="app-controls">
+                            <span class="dot"></span>
+                            <span class="dot"></span>
+                        </div>
+                    </div>
+                    <div class="app-content-overlay">
+                        <div class="terminal-container" style="padding: 2rem; font-size: 1.1rem; color: var(--color-success);">
+                            [APPLICATION SURFACE ACTIVE]
+                            <br/><br/>
+                            $ ./run_sector_agent --mode=autonomous
+                            <br/>
+                            INITIALIZING NEURAL NET... OK
+                            <br/>
+                            MAPPING TOPOLOGICAL SPACE... OK
+                            <br/>
+                            AWAITING OPERATOR INPUT_
+                        </div>
+                    </div>
+                </div>
+            `;
+        } else if (this.currentMode === 'detail') {
+            title.innerText = "DETAIL INSPECTOR // LEVEL 4";
+            target.innerHTML = `
+                <div class="dual-column-layout" style="gap: 2rem;">
+                    <div class="glass-panel" style="flex: 1; padding: 1.5rem;">
+                        <div class="chip-title">METADATA PROPERTIES</div>
+                        <div class="chip-row"><strong>NAME:</strong> TOS_SEC_0.BIN</div>
+                        <div class="chip-row"><strong>TYPE:</strong> ENCRYPTED_BUFFER</div>
+                        <div class="chip-row"><strong>SIZE:</strong> 4.2 MB</div>
+                        <div class="chip-row"><strong>CREATED:</strong> 2026-03-01T20:32:15Z</div>
+                        <div class="chip-row"><strong>OWNER:</strong> SYSTEM (TRUST_TIER_5)</div>
+                    </div>
+                    <div class="glass-panel" style="flex: 1; padding: 1.5rem;">
+                        <div class="chip-title">CRYPTO HASHING</div>
+                        <div class="chip-row" style="word-break: break-all; font-family: var(--font-mono); font-size: 0.8rem;">
+                            SHA256: 4e3b1c2d3e4f5a6b7c8d9e0f1a2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b
+                        </div>
+                        <div class="chip-row"><strong>STATUS:</strong> VERIFIED ✅</div>
+                    </div>
+                </div>
+            `;
+        } else if (this.currentMode === 'buffer') {
+            title.innerText = "RAW DATA BUFFER // LEVEL 5";
+            let hex = '';
+            for (let i = 0; i < 400; i++) {
+                hex += Math.floor(Math.random() * 256).toString(16).padStart(2, '0') + ' ';
+                if ((i + 1) % 16 === 0) hex += '<br/>';
+            }
+            target.innerHTML = `
+                <div class="buffer-hex-view glass-panel" style="padding: 1.5rem; font-family: var(--font-mono); font-size: 0.75rem; color: var(--color-primary); overflow-y: auto; height: 100%;">
+                    <div class="chip-title" style="margin-bottom: 1rem; color: var(--color-warning)">TELEMETRY_STREAM_HEX_0XFC23A</div>
+                    ${hex}
                 </div>
             `;
         }
@@ -576,41 +674,41 @@ class TosUI {
     renderComponent(id) {
         const state = this.componentStates[id];
         const isProjected = state?.projected;
-        const classNames = `slot-component ${isProjected ? '' : 'toggled-off'}`;
+        const classNames = `slot - component ${isProjected ? '' : 'toggled-off'} `;
 
         if (id === 'minimap') {
             return `
-                <div class="${classNames}" id="comp-minimap">
-                    <div class="minimap-container ${isProjected ? '' : 'toggled-off'}" onclick="window.tos.toggleMinimap()">
-                        <div class="minimap-content">
-                            ${this.state.sectors.map((s, i) => `
+                        < div class="${classNames}" id = "comp-minimap" >
+                            <div class="minimap-container ${isProjected ? '' : 'toggled-off'}" onclick="window.tos.toggleMinimap()">
+                                <div class="minimap-content">
+                                    ${this.state.sectors.map((s, i) => `
                                 <div class="minimap-sector ${i === this.state.active_sector_index ? 'active' : ''}">
                                     S${i} <div class="minimap-hub ${i === this.state.active_sector_index ? 'active' : ''}"></div>
                                 </div>
                             `).join('')}
-                        </div>
-                    </div>
-                </div>`;
+                                </div>
+                            </div>
+                </div > `;
         }
 
         if (id === 'priority') {
             return `
-                <div class="${classNames}" id="comp-priority">
-                    <div class="minimap-container ${isProjected ? '' : 'toggled-off'}" onclick="window.tos.togglePriority()">
-                        <div class="minimap-content">
-                            ${this.state.system_log.slice(-3).map(log => `
+                        < div class="${classNames}" id = "comp-priority" >
+                            <div class="minimap-container ${isProjected ? '' : 'toggled-off'}" onclick="window.tos.togglePriority()">
+                                <div class="minimap-content">
+                                    ${this.state.system_log.slice(-3).map(log => `
                                 <div class="minimap-sector" style="border-left: 2px solid var(--color-warning)">
                                     ${log.text.toUpperCase()}
                                 </div>
                             `).join('')}
-                        </div>
-                    </div>
-                </div>`;
+                                </div>
+                            </div>
+                </div > `;
         }
 
         if (id === 'telemetry') {
             return `
-                <div class="${classNames}" id="comp-telemetry" onclick="window.tos.toggleTelemetry()">
+                        < div class="${classNames}" id = "comp-telemetry" onclick = "window.tos.toggleTelemetry()" >
                     <div class="status-badge active" style="cursor:pointer">TELEMETRY</div>
                     <div class="slot-overlay glass-panel">
                         <div style="color:var(--color-primary); font-weight:800">SYSTEM TELEMETRY</div>
@@ -618,7 +716,7 @@ class TosUI {
                             CPU: 12% | MEM: 4.2GB | NET: 1.2MB/s
                         </div>
                     </div>
-                </div>`;
+                </div > `;
         }
 
         if (id === 'minilog') {
@@ -628,23 +726,23 @@ class TosUI {
             const text = (lastLog.text || "").toUpperCase();
 
             return `
-                <div class="${classNames}" id="comp-minilog" onclick="window.tos.toggleMinilog()">
-                    <div class="minimap-container ${isProjected ? '' : 'toggled-off'}" style="height: 0.5rem; border-color: var(--color-accent)">
-                        <div class="minimap-content" style="font-size: 0.6rem; white-space: nowrap; overflow: hidden; color: var(--color-success)">
-                            ${text}
-                        </div>
-                    </div>
-                </div>`;
+                        < div class="${classNames}" id = "comp-minilog" onclick = "window.tos.toggleMinilog()" >
+                            <div class="minimap-container ${isProjected ? '' : 'toggled-off'}" style="height: 0.5rem; border-color: var(--color-accent)">
+                                <div class="minimap-content" style="font-size: 0.6rem; white-space: nowrap; overflow: hidden; color: var(--color-success)">
+                                    ${text}
+                                </div>
+                            </div>
+                </div > `;
         }
 
         if (id === 'screen_title') {
             const prefix = this.state.sys_prefix || "";
             const title = this.state.sys_title || "";
             return `
-                <div class="${classNames} lcars-title-area" id="comp-screen-title" onclick="window.tos.toggleScreenTitle()">
+                        < div class="${classNames} lcars-title-area" id = "comp-screen-title" onclick = "window.tos.toggleScreenTitle()" >
                     <span class="lcars-prefix" style="color:var(--color-primary); opacity: 0.7; font-weight: 300">${prefix}</span>
                     <span class="lcars-title" style="font-weight:700; margin-left:1rem">${title}</span>
-                </div>`;
+                </div > `;
         }
 
         if (id === 'brain_status') {
@@ -662,11 +760,44 @@ class TosUI {
             return `
                 <div class="${classNames} lcars-status" id="comp-status-badges" style="display:flex; gap:0.5rem; align-items:center">
                     <button class="v-btn bezel-btn" title="Toggle Terminal" onclick="event.stopPropagation(); window.tos.handleCommand('bezel:term-toggle')">👁</button>
+                    <button class="v-btn bezel-btn" title="Web Portal" onclick="event.stopPropagation(); window.tos.handleCommand('bezel:portal')">📡</button>
                     <button class="v-btn bezel-btn" title="Settings" onclick="event.stopPropagation(); window.tos.handleCommand('bezel:settings')">⚙</button>
                 </div>`;
         }
 
         return '';
+    }
+
+    togglePortalModal(show) {
+        const modal = document.getElementById('portal-modal');
+        if (!modal) return;
+        if (show) {
+            modal.classList.remove('hidden');
+            // Generate a random token for the mock UI
+            const token = Math.random().toString(36).substring(2, 6) + '-' + Math.random().toString(36).substring(2, 6);
+            const input = document.getElementById('portal-link-input');
+            if (input) input.value = `https://tos.live/portal/${token}`;
+        } else {
+            modal.classList.add('hidden');
+        }
+    }
+
+    copyPortalLink() {
+        const input = document.getElementById('portal-link-input');
+        if (input) {
+            input.select();
+            document.execCommand('copy');
+            const btn = document.getElementById('portal-copy');
+            if (btn) {
+                const oldText = btn.innerText;
+                btn.innerText = "COPIED!";
+                btn.style.background = "var(--color-success)";
+                setTimeout(() => {
+                    btn.innerText = oldText;
+                    btn.style.background = "var(--color-primary)";
+                }, 2000);
+            }
+        }
     }
 }
 

@@ -46,6 +46,8 @@
                     <button class="lcars-btn level-btn" id="btn-lvl2" data-level="CommandHub">COMMAND HUB</button>
                     <button class="lcars-btn level-btn alt-1" id="btn-lvl3" data-level="ApplicationFocus">APP
                         FOCUS</button>
+                    <button class="lcars-btn level-btn alt-2" id="btn-lvl4" data-level="DetailView">DETAIL</button>
+                    <button class="lcars-btn level-btn warning" id="btn-lvl5" data-level="BufferView">BUFFER</button>
                 </div>
 
                 <!-- Configurable Vertical Slots (§8.1) -->
@@ -100,32 +102,63 @@
             </aside>
         </main>
     </div>
-        <!-- Settings Modal (§3.3.3) -->
-        <div id="settings-modal" class="modal-overlay hidden">
-            <div class="modal-container glass-panel">
-                <div class="modal-header">
-                    <div class="lcars-elbow top-left"></div>
-                    <div class="modal-title">SYSTEM SETTINGS // CONFIGURATION</div>
-                    <button class="v-btn modal-close" id="settings-close">×</button>
+    <!-- Settings Modal (§3.3.3) -->
+    <div id="settings-modal" class="modal-overlay hidden">
+        <div class="modal-container glass-panel">
+            <div class="modal-header">
+                <div class="lcars-elbow top-left"></div>
+                <div class="modal-title">SYSTEM SETTINGS // CONFIGURATION</div>
+                <button class="v-btn modal-close" id="settings-close">×</button>
+            </div>
+            <div class="modal-content">
+                <div class="settings-sidebar">
+                    <button class="settings-nav-btn active" data-tab="global">GLOBAL</button>
+                    <button class="settings-nav-btn" data-tab="sectors">SECTOR</button>
+                    <button class="settings-nav-btn" data-tab="interface">INTERFACE</button>
                 </div>
-                <div class="modal-content">
-                    <div class="settings-sidebar">
-                        <button class="settings-nav-btn active" data-tab="global">GLOBAL</button>
-                        <button class="settings-nav-btn" data-tab="sectors">SECTOR</button>
-                        <button class="settings-nav-btn" data-tab="interface">INTERFACE</button>
-                    </div>
-                    <div class="settings-pane" id="settings-pane-content">
-                        <!-- Dynamic settings items land here -->
-                    </div>
-                </div>
-                <div class="modal-footer">
-                    <div class="lcars-elbow bottom-right"></div>
-                    <button class="lcars-btn warning" id="settings-save">COMMIT CHANGES</button>
+                <div class="settings-pane" id="settings-pane-content">
+                    <!-- Dynamic settings items land here -->
                 </div>
             </div>
+            <div class="modal-footer">
+                <div class="lcars-elbow bottom-right"></div>
+                <button class="lcars-btn warning" id="settings-save">COMMIT CHANGES</button>
+            </div>
         </div>
+    </div>
 
-        <script src="app.js?v=2.1.2"></script>
+    <!-- Web Portal Modal (§13.8) -->
+    <div id="portal-modal" class="modal-overlay hidden">
+        <div class="modal-container glass-panel" style="width: 35rem; height: 22rem;">
+            <div class="modal-header" style="background: var(--color-accent);">
+                <div class="lcars-elbow top-left" style="background: var(--color-accent);"></div>
+                <div class="modal-title">WEB PORTAL // SECURE LINK</div>
+                <button class="v-btn modal-close" id="portal-close">×</button>
+            </div>
+            <div class="modal-content"
+                style="flex-direction: column; justify-content: center; align-items: center; text-align: center; gap: 1rem;">
+                <div style="font-size: 0.8rem; color: var(--color-primary); font-weight: 700;">GENERATING SECURE ACCESS
+                    TOKEN...</div>
+                <div class="portal-link-box" style="width: 100%; box-sizing: border-box;">
+                    <input type="text" id="portal-link-input" class="settings-input"
+                        style="width: 100%; text-align: center; font-size: 1.1rem; padding: 0.75rem; border-color: var(--color-accent);"
+                        readonly value="https://tos.live/portal/x92j-k8l2-m0n1">
+                </div>
+                <div style="font-size: 0.7rem; opacity: 0.6;">THIS LINK EXPIRES IN 15 MINUTES OR AFTER ONE SUCCESSFUL
+                    HANDSHAKE.</div>
+                <div style="display: flex; gap: 1rem; margin-top: 1rem;">
+                    <button class="lcars-btn" id="portal-copy"
+                        style="background: var(--color-primary); color: #000;">COPY LINK</button>
+                    <button class="lcars-btn warning" id="portal-revoke">REVOKE</button>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <div class="lcars-elbow bottom-right" style="background: var(--color-secondary);"></div>
+            </div>
+        </div>
+    </div>
+
+    <script src="app.js?v=2.1.2"></script>
 </body>
 
 </html>

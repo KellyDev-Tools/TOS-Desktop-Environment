@@ -909,3 +909,79 @@ h1 {
     border-radius: 0 2rem 2rem 0;
     background: var(--color-secondary);
 }
+
+/* Activity Hub Styling */
+.activity-chip-stack {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    overflow: hidden;
+}
+
+.activity-chip {
+    transition: transform 0.2s ease, border-color 0.2s ease;
+}
+
+.activity-chip:hover {
+    border-color: var(--color-warning);
+    transform: translateX(5px);
+}
+
+.process-snapshot img {
+    image-rendering: pixelated;
+    /* LCARS aesthetic for low-res buffers */
+    filter: sepia(0.5) hue-rotate(-20deg) brightness(1.2);
+    /* Integrated look */
+}
+
+/* Level 3: Application Focus */
+.focal-app-container {
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    border: 2px solid var(--color-primary);
+    box-shadow: 0 0 20px rgba(255, 154, 34, 0.1);
+}
+
+.app-chrome {
+    background: var(--color-primary);
+    color: #000;
+    padding: 0.25rem 1rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 0.8rem;
+    font-weight: 800;
+}
+
+.app-controls {
+    display: flex;
+    gap: 0.5rem;
+}
+
+.app-controls .dot {
+    width: 0.6rem;
+    height: 0.6rem;
+    border-radius: 50%;
+    background: #000;
+    opacity: 0.5;
+}
+
+.app-content-overlay {
+    flex-grow: 1;
+    background: rgba(0, 0, 0, 0.5);
+    overflow: hidden;
+}
+
+/* Level 5: Buffer Hex View */
+.buffer-hex-view {
+    line-height: 1.8;
+}
+
+.buffer-hex-view::-webkit-scrollbar {
+    width: 6px;
+}
+
+.buffer-hex-view::-webkit-scrollbar-thumb {
+    background: var(--color-primary);
+}

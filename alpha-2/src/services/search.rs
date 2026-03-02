@@ -79,4 +79,35 @@ impl SearchService {
             .cloned()
             .collect()
     }
+
+    /// Simulates semantic embedding-based retrieval by tokenising natural language queries
+    /// and performing an overlap scoring, mimicking TF-IDF or dot-product embeddings for Alpha-2
+    pub fn semantic_query(&self, prompt: &str) -> Vec<SearchHit> {
+        let lock = match self.index.read() {
+            Ok(l) => l,
+            Err(_) => return vec![],
+        };
+
+        let stop_words = ["find", "search", "where", "is", "for", "the", "my", "a", "an", "all", "show", "me"];
+        let words: Vec<String> = prompt.split_whitespace()
+            .map(|w| w.trim_matches(|c: char| !c.is_alphanumeric()).to_lowercase())
+            .filter(|w| !w.is_empty() && !stop_words.contains(&w.as_str()))
+            .collect();
+
+        if words.is_empty() {
+            return vec![];
+        }
+
+        let mut scored_hits: Vec<(&SearchHit, usize)> = lock.iter().map(|hit| {
+            let path_lower = hit.path.to_lowercase();
+            // Score by how many semantic tokens exist in the file path
+            let score = words.iter().filter(|w| path_lower.contains(*w)).count();
+            (hit, score)
+        }).filter(|(_, score)| *score > 0).collect();
+
+        // Sort by highest overlap (mock highest cosine similarity)
+        scored_hits.sort_by(|a, b| b.1.cmp(&a.1));
+
+        scored_hits.into_iter().take(20).map(|(h, _)| h.clone()).collect()
+    }
 }

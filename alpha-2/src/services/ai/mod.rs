@@ -61,7 +61,7 @@ impl AiService {
             p if p.contains("search") || p.contains("find") => {
                 // Natural Language Search transition: Route to sector indexing
                 let term = prompt.split_whitespace().last().unwrap_or("everything");
-                let _ = ipc.dispatch(&format!("search:{}", term));
+                let _ = ipc.dispatch(&format!("semantic_search:{}", term));
                 ("zoom_to:CommandHub".to_string(), format!("Found matches for '{}'. Zooming to Command Hub results.", term))
             },
             _ => {

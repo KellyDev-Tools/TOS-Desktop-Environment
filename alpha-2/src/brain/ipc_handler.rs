@@ -41,6 +41,7 @@ impl IpcHandler {
             "sector_close" => self.handle_sector_close(args.get(0).copied()),
             "sector_freeze" => self.handle_sector_freeze(args.get(0).copied()),
             "search" => self.handle_search(payload),
+            "semantic_search" => self.handle_semantic_search(payload),
             "prompt_submit" => self.handle_prompt_submit(payload), 
             "update_confirmation_progress" => self.handle_update_confirmation_progress(args.get(0).copied(), args.get(1).copied()),
             "ai_submit" => self.handle_ai_submit(payload),
@@ -299,6 +300,37 @@ impl IpcHandler {
         }
         
         format!("SEARCH_PERFORMED: {}", query)
+    }
+
+    fn handle_semantic_search(&self, prompt: &str) -> String {
+        let mut state = self.state.lock().unwrap();
+        crate::brain::sector::SectorManager::perform_search(&mut state, prompt);
+        
+        // Add mocked LLM semantic embeddings search matches
+        let indexed_hits = self.services.search.semantic_query(prompt);
+        if !indexed_hits.is_empty() {
+            let idx = state.active_sector_index;
+            if let Some(sector) = state.sectors.get_mut(idx) {
+                let hub = &mut sector.hubs[sector.active_hub_index];
+                
+                let matches: Vec<String> = indexed_hits.iter()
+                    .map(|h| format!("{} [{}]", h.path, if h.is_dir { "DIR" } else { "FILE" }))
+                    .collect();
+                    
+                let semantic_result = crate::common::SearchResult {
+                    source_sector: "AI Semantic Engine".to_string(),
+                    matches,
+                };
+
+                if let Some(ref mut results) = hub.search_results {
+                    results.insert(0, semantic_result);
+                } else {
+                    hub.search_results = Some(vec![semantic_result]);
+                }
+            }
+        }
+        
+        format!("SEMANTIC_SEARCH_COMPLETED")
     }
 
     fn handle_ai_submit(&self, query: &str) -> String {

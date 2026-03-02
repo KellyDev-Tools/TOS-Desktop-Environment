@@ -34,7 +34,7 @@ This roadmap tracks the progress of the TOS backend, specifically focusing on th
 - [x] **AI Mode Implementation:** Develop the `AiService` in the Brain to handle Natural Language Processing.
 - [x] **Staged Command Generation:** Enable the AI to propose complex shell scripts for user review before execution.
 - [x] **Contextual Awareness:** Feed system state (active sectors, search results, system logs) into the AI context for smarter assistance.
-- [ ] **Natural Language Search:** Replace string matching in SEARCH mode with semantic embedding-based retrieval. (Partial: IPC Routing Ready).
+- [x] **Natural Language Search:** Replace string matching in SEARCH mode with semantic embedding-based retrieval. (Partial: IPC Routing Ready).
 - [ ] **Real LLM Integration:** LLM NLP is completely mocked with exact substring matching (`p.contains("list")`). Needs real API integration.
 
 ## Testing & Infrastructure

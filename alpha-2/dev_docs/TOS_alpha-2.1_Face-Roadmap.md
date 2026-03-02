@@ -22,7 +22,7 @@ This roadmap tracks the progress of the visual, rendering, and interaction layer
 - [x] **Tactical Vibration Hooks:** Implemented the `HapticService` with IPC haptic pulsing for tactile user feedback.
 
 ## Documentation
-- [ ] **End-to-End User Manual:** Finalize the user guide focusing on Face interactions, terminal configurations, and bezel docking.
+- [x] **End-to-End User Manual:** Finalized the user guide in `dev_docs/TOS-Alpha-2.1_User-Manual.md` focusing on Face interactions, terminal configurations, and bezel docking.
 
 ## Cross-Roadmap Dependencies
 - **Settings UI Panel** is blocked by the **Settings Daemon** (Ecosystem Roadmap) handling the JSON persistence layer and cascading state resolution.

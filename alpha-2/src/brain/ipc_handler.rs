@@ -272,6 +272,32 @@ impl IpcHandler {
     fn handle_search(&self, query: &str) -> String {
         let mut state = self.state.lock().unwrap();
         crate::brain::sector::SectorManager::perform_search(&mut state, query);
+        
+        // Add globally indexed file matches
+        let indexed_hits = self.services.search.query(query);
+        if !indexed_hits.is_empty() {
+            let idx = state.active_sector_index;
+            if let Some(sector) = state.sectors.get_mut(idx) {
+                let hub = &mut sector.hubs[sector.active_hub_index];
+                
+                let matches: Vec<String> = indexed_hits.iter()
+                    .map(|h| format!("{} [{}]", h.path, if h.is_dir { "DIR" } else { "FILE" }))
+                    .collect();
+                    
+                if let Some(ref mut results) = hub.search_results {
+                    results.insert(0, crate::common::SearchResult {
+                        source_sector: "Global FS Index".to_string(),
+                        matches,
+                    });
+                } else {
+                    hub.search_results = Some(vec![crate::common::SearchResult {
+                        source_sector: "Global FS Index".to_string(),
+                        matches,
+                    }]);
+                }
+            }
+        }
+        
         format!("SEARCH_PERFORMED: {}", query)
     }
 

@@ -3,12 +3,14 @@ pub mod settings;
 pub mod audio;
 pub mod marketplace;
 pub mod ai;
+pub mod search;
 
 pub use logger::LoggerService;
 pub use settings::SettingsService;
 pub use audio::AudioService;
 pub use marketplace::MarketplaceService;
 pub use ai::AiService;
+pub use search::SearchService;
 
 use std::sync::Arc; // Mutex unused after decoupling
 // use crate::common::TosState; // Unused after decoupling
@@ -18,6 +20,7 @@ pub struct ServiceManager {
     pub settings: Arc<SettingsService>,
     pub audio: Arc<AudioService>,
     pub ai: Arc<AiService>,
+    pub search: Arc<SearchService>,
 }
 
 impl ServiceManager {
@@ -26,6 +29,7 @@ impl ServiceManager {
         let settings = Arc::new(SettingsService::new());
         let audio = Arc::new(AudioService::new());
         let ai = Arc::new(AiService::new());
+        let search = Arc::new(SearchService::new());
         
         // Establish cross-service dependencies (e.g., logging triggers audio cues)
         logger.set_audio_service(audio.clone());
@@ -35,6 +39,7 @@ impl ServiceManager {
             settings,
             audio,
             ai,
+            search,
         }
     }
 

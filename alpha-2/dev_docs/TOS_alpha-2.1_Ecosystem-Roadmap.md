@@ -8,7 +8,7 @@ This roadmap tracks the development of the auxiliary services, modular ecosystem
 - [ ] **TOS Log Service (§19):** Implement the unified logging daemon. It must aggregate standard stdout/stderr from user applications, background telemetry from the Brain, and remote sector events.
 - [ ] **Log Query Engine:** Implement the standardized TOS Log Query syntax (JSON response schemas) for fetching aggregated system logs (§3.3.4).
 - [x] **Settings Daemon (§26):** Finalize the JSON persistence layer and cascading resolution engine (Global -> Sector -> Application bounds) for user settings, themes, and sandboxing toggles.
-- [ ] **Global Search & Indexing Service:** Develop the background worker responsible for indexing local file systems, application content, and the unified log. Expose a gRPC/IPC interface for the Brain's generic SEARCH context.
+- [x] **Global Search & Indexing Service:** Develop the background worker responsible for indexing local file systems, application content, and the unified log. Expose a gRPC/IPC interface for the Brain's generic SEARCH context.
 - [ ] **Priority Indicator Engine (§21):** Implement the scoring service that listens to system events, ranks alerts (1 to 5), and triggers visual or auditory haptic events for high-priority notifications.
 
 ## Shell ABI & Integrations (§27)

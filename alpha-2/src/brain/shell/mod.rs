@@ -10,6 +10,7 @@ pub struct ShellApi {
     _sector_id: uuid::Uuid,
     _hub_id: uuid::Uuid,
     writer: Box<dyn Write + Send>,
+    master: Box<dyn portable_pty::MasterPty + Send>,
     _child: Box<dyn Child + Send + Sync>,
 }
 
@@ -72,6 +73,7 @@ impl ShellApi {
             _sector_id: sector_id,
             _hub_id: hub_id,
             writer,
+            master: pair.master,
             _child: child,
         })
     }
@@ -79,6 +81,32 @@ impl ShellApi {
     pub fn write(&mut self, data: &str) -> anyhow::Result<()> {
         self.writer.write_all(data.as_bytes())?;
         self.writer.flush()?;
+        Ok(())
+    }
+
+    pub fn resize(&self, rows: u16, cols: u16) -> anyhow::Result<()> {
+        self.master.resize(PtySize {
+            rows,
+            cols,
+            pixel_width: 0,
+            pixel_height: 0,
+        })?;
+        Ok(())
+    }
+
+    pub fn send_signal(&mut self, signal: &str) -> anyhow::Result<()> {
+        match signal {
+            "INT" | "SIGINT" => {
+                // Send Ctrl+C sequence to PTY
+                self.write("\x03")?;
+            }
+            "TERM" | "SIGTERM" => {
+                // Common to send Ctrl+D for EOF or similar, but SIGTERM normally kills.
+                // For PTY, we might need OS-specific handles.
+                self.write("\x04")?; // Ctrl+D (EOT)
+            }
+            _ => return Err(anyhow::anyhow!("Unsupported signal: {}", signal)),
+        }
         Ok(())
     }
 
@@ -200,6 +228,16 @@ impl OscParser {
         }
         clean_text = priority_re.replace_all(&clean_text, "").to_string();
 
+        // §1.7: Support Universal OSC 7 (CurrentDir)
+        let osc7_re = regex::Regex::new(r"\x1b\]7;file://[a-zA-Z0-9.\-]*([^\x07\x1b]+)(?:\x07|\x1b\\)").unwrap();
+        for cap in osc7_re.captures_iter(input) {
+            let path = cap[1].to_string();
+            // URL decode path if necessary (simple for now)
+            let path = path.replace("%20", " ");
+            events.push(OscEvent::Cwd(path));
+        }
+        clean_text = osc7_re.replace_all(&clean_text, "").to_string();
+
         let cwd_re = regex::Regex::new(r"\x1b\]9003;([^\x07]+)\x07").unwrap();
         for cap in cwd_re.captures_iter(input) {
             events.push(OscEvent::Cwd(cap[1].to_string()));
@@ -233,6 +271,12 @@ impl OscParser {
             events.push(OscEvent::Cwd(cap[1].to_string()));
         }
         clean_text = iterm_cwd_re.replace_all(&clean_text, "").to_string();
+
+        let iterm_cwd_generic_re = regex::Regex::new(r"\x1b\]1337;RemoteHost=[^;]+;CurrentDir=([^\x07]+)\x07").unwrap();
+        for cap in iterm_cwd_generic_re.captures_iter(input) {
+             events.push(OscEvent::Cwd(cap[1].to_string()));
+        }
+        clean_text = iterm_cwd_generic_re.replace_all(&clean_text, "").to_string();
 
         let json_context_re = regex::Regex::new(r"\x1b\]9004;([^\x07]+)\x07").unwrap();
         for cap in json_context_re.captures_iter(input) {

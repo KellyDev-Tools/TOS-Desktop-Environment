@@ -63,6 +63,8 @@ impl IpcHandler {
             "set_terminal_module" => self.handle_set_terminal_module(args.get(0).copied()),
             "set_theme" => self.handle_set_theme(args.get(0).copied()),
             "market" => self.handle_market_command(payload),
+            "terminal_resize" => self.handle_terminal_resize(args.get(0).copied(), args.get(1).copied()),
+            "terminal_signal" => self.handle_terminal_signal(args.get(0).copied()),
             _ => "ERROR: Unknown prefix".to_string(),
         };
 
@@ -746,6 +748,29 @@ impl IpcHandler {
             }
         }
         "ERROR: Invalid WebRTC payload".to_string()
+    }
+    fn handle_terminal_signal(&self, signal: Option<&str>) -> String {
+        if let Some(sig) = signal {
+            let mut shell = self.shell.lock().unwrap();
+            match shell.send_signal(sig) {
+                Ok(_) => return format!("SIGNAL_SENT: {}", sig),
+                Err(e) => return format!("ERROR: Signal failed: {}", e),
+            }
+        }
+        "ERROR: Missing signal ID".to_string()
+    }
+
+    fn handle_terminal_resize(&self, rows: Option<&str>, cols: Option<&str>) -> String {
+        if let (Some(r), Some(c)) = (rows, cols) {
+            if let (Ok(r_n), Ok(c_n)) = (r.parse::<u16>(), c.parse::<u16>()) {
+                let shell = self.shell.lock().unwrap();
+                match shell.resize(r_n, c_n) {
+                    Ok(_) => return format!("TERMINAL_RESIZED: {}x{}", r_n, c_n),
+                    Err(e) => return format!("ERROR: Resize failed: {}", e),
+                }
+            }
+        }
+        "ERROR: Invalid dimensions".to_string()
     }
 }
 

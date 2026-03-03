@@ -43,6 +43,9 @@ class TosUI {
         this.setMode('global'); // Establish default view layering
         this.syncState();
 
+        // Broadcast active presence after boot
+        setTimeout(() => this.broadcastPresence(), 2000);
+
         // High-frequency state synchronization loop
         setInterval(() => this.syncState(), 1000);
 
@@ -74,6 +77,7 @@ class TosUI {
                     'SpatialOverview': 'spatial'
                 };
                 this.setMode(modeMap[level] || 'global');
+                this.broadcastPresence();
             });
         });
 
@@ -128,6 +132,41 @@ class TosUI {
         // 6.4 Bezel Commands
         document.getElementById('bezel-expand-left')?.addEventListener('click', () => this.toggleSidebar());
         document.getElementById('bezel-expand-right')?.addEventListener('click', () => this.toggleSidebarRight());
+
+        // §13.7 WebRTC Cursor Tracking
+        document.addEventListener('mousemove', (e) => {
+            if (this.currentMode === 'global') return; // Optimize: don't track on root level
+            const normalizedX = e.clientX / window.innerWidth;
+            const normalizedY = e.clientY / window.innerHeight;
+
+            // Throttle and dispatch to IPC for WebRTC channel broadcast
+            if (!this.lastCursorSync || (Date.now() - this.lastCursorSync) > 100) {
+                this.lastCursorSync = Date.now();
+                if (window.__TOS_IPC__) {
+                    const payload = {
+                        type: 'cursor_sync',
+                        x: normalizedX,
+                        y: normalizedY,
+                        target: e.target?.id || null
+                    };
+                    window.__TOS_IPC__(`webrtc_presence:${JSON.stringify(payload)}`);
+                }
+            }
+        });
+    }
+
+    // §13.7 Presence Broadcasting
+    broadcastPresence() {
+        if (!window.__TOS_IPC__) return;
+        const payload = {
+            type: 'presence',
+            status: 'active',
+            level: this.currentMode === 'global' ? 1 : 2,
+            active_viewport_title: this.currentMode.toUpperCase(),
+            left_chip_state: null,
+            right_chip_state: null
+        };
+        window.__TOS_IPC__(`webrtc_presence:${JSON.stringify(payload)}`);
     }
 
     toggleSettingsModal(show) {

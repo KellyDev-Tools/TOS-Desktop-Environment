@@ -24,7 +24,7 @@ This roadmap tracks the development of the auxiliary services, modular ecosystem
 - [x] **Module Contract Implementation:** Formalize the Rust traits and JSON boundaries for external Shell PTY binaries and AI LLM backends (Ecosystem Spec §1).
 
 ## Collaboration Hub (§13)
-- [ ] **Multi-User Presence API:** Flesh out the WebRTC data channel payloads to sync dual-sided chip states, active viewport titles, and cursor metadata between connected users.
+- [x] **Multi-User Presence API:** Flesh out the WebRTC data channel payloads to sync dual-sided chip states, active viewport titles, and cursor metadata between connected users.
 - [ ] **Follow Mode:** Implement the logic forcing connected peers to match zoom levels and viewport context of the "host" user.
 - [x] **Web Portal Management:** Implemented the `PortalService` and IPC routines for secure, timed token generation and revocation (§13.8).
 

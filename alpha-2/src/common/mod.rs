@@ -139,6 +139,8 @@ pub struct HubTemplate {
     pub shell: String,
 }
 
+pub mod collaboration;
+
 /// Sectors and the hierarchical tree model structure.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Sector {
@@ -153,6 +155,10 @@ pub struct Sector {
     pub priority: u8, // Tactical Priority (1-5)
     pub active_apps: Vec<AppInstance>,
     pub active_app_index: usize,
+    
+    // §13: Multi-User Collaboration State
+    pub participants: Vec<collaboration::Participant>,
+    
     pub version: u64,
 }
 
@@ -299,6 +305,7 @@ impl Default for TosState {
             priority: 1,
             active_apps: vec![],
             active_app_index: 0,
+            participants: vec![],
             version: 0,
         };
 

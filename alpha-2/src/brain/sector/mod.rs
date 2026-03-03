@@ -43,6 +43,7 @@ impl SectorManager {
             priority: 1,
             active_apps: vec![],
             active_app_index: 0,
+            participants: vec![],
             version: 0,
         };
 
@@ -94,6 +95,7 @@ impl SectorManager {
             priority: 1,
             active_apps: vec![],
             active_app_index: 0,
+            participants: vec![],
             version: 0,
         };
 

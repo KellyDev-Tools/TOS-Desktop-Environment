@@ -218,6 +218,18 @@ class TosUI {
                         </div>
                     `).join('')}
                 </div>
+                <div class="settings-group">
+                    <div class="settings-group-title">SYSTEM THEME MODULE</div>
+                    ${(this.state.available_themes || []).map(t => `
+                        <div class="settings-item">
+                            <label class="settings-label">${t.name.toUpperCase()}</label>
+                            <button class="status-badge ${this.state.active_theme === t.id ? 'active' : ''}" 
+                                    onclick="window.tos.setThemeId('${t.id}')">
+                                ${this.state.active_theme === t.id ? 'ACTIVE' : 'SELECT'}
+                            </button>
+                        </div>
+                    `).join('')}
+                </div>
             `;
         }
 
@@ -444,6 +456,14 @@ class TosUI {
         }
     }
 
+    async setThemeId(themeId) {
+        if (window.__TOS_IPC__) {
+            await window.__TOS_IPC__(`set_theme:${themeId}`);
+            this.playEarcon('data_commit');
+            this.syncState();
+        }
+    }
+
     handleSectorClick(index) {
         this.handleCommand(`switch_sector:${index}`);
 
@@ -495,6 +515,13 @@ class TosUI {
 
     render() {
         if (!this.state) return;
+
+        // Apply Global Theme from Packet
+        if (this.state.active_theme) {
+            const themes = (this.state.available_themes || []).map(t => `theme-pack-${t.id}`);
+            document.body.classList.remove(...themes);
+            document.body.classList.add(`theme-pack-${this.state.active_theme}`);
+        }
 
         const target = document.getElementById('state-render-target');
         const title = document.getElementById('view-title');

@@ -36,6 +36,24 @@ pub enum TerminalLayoutType {
     Cinematic,
 }
 
+/// Metadata for installable theme modules.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ThemeModule {
+    pub id: String,
+    pub name: String,
+    pub version: String,
+    pub author: String,
+    pub description: String,
+    pub assets: ThemeAssetDefinition,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ThemeAssetDefinition {
+    pub css: String,
+    pub fonts: Vec<String>,
+    pub icons: String,
+}
+
 /// The operational augmentation modes for the Command Hub.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum CommandHubMode {
@@ -246,6 +264,8 @@ pub struct TosState {
     pub brain_time: String,
     pub active_terminal_module: String,
     pub available_modules: Vec<TerminalOutputModule>,
+    pub active_theme: String,
+    pub available_themes: Vec<ThemeModule>,
     pub version: u64,
 }
 
@@ -308,6 +328,33 @@ impl Default for TosState {
                     layout: TerminalLayoutType::Cinematic,
                     supports_high_contrast: false,
                     supports_reduced_motion: false,
+                }
+            ],
+            active_theme: "tos-classic-lcars".to_string(),
+            available_themes: vec![
+                ThemeModule {
+                    id: "tos-classic-lcars".to_string(),
+                    name: "Classic LCARS".to_string(),
+                    version: "1.0.0".to_string(),
+                    author: "TOS Core".to_string(),
+                    description: "Standard LCARS color scheme (Blue/Purple/Gold)".to_string(),
+                    assets: ThemeAssetDefinition {
+                        css: "theme-classic.css".to_string(),
+                        fonts: vec!["Outfit-Regular.ttf".to_string()],
+                        icons: "assets/icons/classic/".to_string(),
+                    },
+                },
+                ThemeModule {
+                    id: "tos-tactical-amber".to_string(),
+                    name: "Tactical Amber".to_string(),
+                    version: "1.0.0".to_string(),
+                    author: "TOS Core".to_string(),
+                    description: "High-contrast amber tactical interface".to_string(),
+                    assets: ThemeAssetDefinition {
+                        css: "theme-tactical.css".to_string(),
+                        fonts: vec!["Outfit-Bold.ttf".to_string()],
+                        icons: "assets/icons/tactical/".to_string(),
+                    },
                 }
             ],
             version: 0,

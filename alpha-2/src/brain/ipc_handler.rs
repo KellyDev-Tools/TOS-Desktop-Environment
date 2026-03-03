@@ -59,6 +59,7 @@ impl IpcHandler {
             "get_sector_templates" => self.handle_get_sector_templates(),
             "get_state_delta" => self.handle_get_state_delta(args.get(0).copied()),
             "set_terminal_module" => self.handle_set_terminal_module(args.get(0).copied()),
+            "set_theme" => self.handle_set_theme(args.get(0).copied()),
             _ => "ERROR: Unknown prefix".to_string(),
         };
 
@@ -378,6 +379,17 @@ impl IpcHandler {
             }
         }
         "ERROR: Invalid terminal module ID".to_string()
+    }
+
+    fn handle_set_theme(&self, theme_id: Option<&str>) -> String {
+        if let Some(id) = theme_id {
+            let mut state = self.state.lock().unwrap();
+            if state.available_themes.iter().any(|t| t.id == id) {
+                state.active_theme = id.to_string();
+                return format!("THEME_SET: {}", id);
+            }
+        }
+        "ERROR: Invalid theme ID".to_string()
     }
 
     fn handle_search(&self, query: &str) -> String {

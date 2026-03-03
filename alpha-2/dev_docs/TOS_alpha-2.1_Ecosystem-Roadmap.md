@@ -18,7 +18,7 @@ This roadmap tracks the development of the auxiliary services, modular ecosystem
 ## Marketplace & Module Ecosystem (Ecosystem Spec §1 & §2)
 - [x] **Application Models (`.tos-appmodel`):** Defined the manifest and interaction rules for deeply integrating standard Wayland/X11 applications into Level 3 (§8.2). Implemented `launch_app` and `close_app` with vertical hierarchy transitions.
 - [x] **Sector Types (§2.1.1):** Created the blueprint engine (`SectorTemplate`) allowing users to spawn pre-configured hubs with specific shells, layouts, and initial environments via IPC.
-- [ ] **Theme Packaging (`.tos-theme`):** Finalize the distribution mechanism for custom CSS variables, fonts, and Audio themes.
+- [x] **Theme Packaging (`.tos-theme`):** Defined the `.tos-theme` manifest and asset resolution logic. Implemented IPC-driven global theme switching (e.g., Classic LCARS to Tactical Amber) with real-time CSS variable injection in the Face.
 - [x] **Terminal Output Modules (`.tos-terminal`):** Isolated the visual styling of the Terminal Canvas into modular layouts. Implemented IPC-driven hotswapping between Rectangular and Cinematic 3D terminal rendering engines.
 - [ ] **Marketplace Client:** Build a command-line utility (`tos-pkg`) and an accompanying visual application to browse, sign-verify, and install these modules.
 - [ ] **Module Contract Implementation:** Formalize the Rust traits and JSON boundaries for external Shell PTY binaries and AI LLM backends (Ecosystem Spec §1).

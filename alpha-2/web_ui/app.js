@@ -608,7 +608,13 @@ class TosUI {
             }
 
             const termOutputs = (activeHub && activeHub.terminal_output ? activeHub.terminal_output : (this.state.terminal_output || []))
-                .map(l => `<div style="color: ${l.color || 'inherit'}">${l.text || ''}</div>`).join('');
+                .map(l => {
+                    let color = 'inherit';
+                    if (l.priority === 3) color = 'var(--color-warning)'; // High Priority
+                    if (l.priority === 2) color = 'var(--color-primary)'; // Medium Priority
+                    if (l.priority === 1) color = 'var(--color-success)'; // Low/Normal Priority
+                    return `<div style="color: ${color}">${l.text || ''}</div>`;
+                }).join('');
 
             let leftColumnHTML = '';
 
@@ -795,41 +801,41 @@ class TosUI {
     renderComponent(id) {
         const state = this.componentStates[id];
         const isProjected = state?.projected;
-        const classNames = `slot - component ${isProjected ? '' : 'toggled-off'} `;
+        const classNames = `slot-component ${isProjected ? 'projected' : 'toggled-off'}`;
 
         if (id === 'minimap') {
             return `
-                        < div class="${classNames}" id = "comp-minimap" >
-                            <div class="minimap-container ${isProjected ? '' : 'toggled-off'}" onclick="window.tos.toggleMinimap()">
-                                <div class="minimap-content">
-                                    ${this.state.sectors.map((s, i) => `
+                <div class="${classNames}" id="comp-minimap">
+                    <div class="minimap-container ${isProjected ? '' : 'toggled-off'}" onclick="window.tos.toggleMinimap()">
+                        <div class="minimap-content">
+                            ${this.state.sectors.map((s, i) => `
                                 <div class="minimap-sector ${i === this.state.active_sector_index ? 'active' : ''}">
                                     S${i} <div class="minimap-hub ${i === this.state.active_sector_index ? 'active' : ''}"></div>
                                 </div>
                             `).join('')}
-                                </div>
-                            </div>
-                </div > `;
+                        </div>
+                    </div>
+                </div>`;
         }
 
         if (id === 'priority') {
             return `
-                        < div class="${classNames}" id = "comp-priority" >
-                            <div class="minimap-container ${isProjected ? '' : 'toggled-off'}" onclick="window.tos.togglePriority()">
-                                <div class="minimap-content">
-                                    ${this.state.system_log.slice(-3).map(log => `
+                <div class="${classNames}" id="comp-priority">
+                    <div class="minimap-container ${isProjected ? '' : 'toggled-off'}" onclick="window.tos.togglePriority()">
+                        <div class="minimap-content">
+                            ${this.state.system_log.slice(-3).map(log => `
                                 <div class="minimap-sector" style="border-left: 2px solid var(--color-warning)">
                                     ${log.text.toUpperCase()}
                                 </div>
                             `).join('')}
-                                </div>
-                            </div>
-                </div > `;
+                        </div>
+                    </div>
+                </div>`;
         }
 
         if (id === 'telemetry') {
             return `
-                        < div class="${classNames}" id = "comp-telemetry" onclick = "window.tos.toggleTelemetry()" >
+                <div class="${classNames}" id="comp-telemetry" onclick="window.tos.toggleTelemetry()">
                     <div class="status-badge active" style="cursor:pointer">TELEMETRY</div>
                     <div class="slot-overlay glass-panel">
                         <div style="color:var(--color-primary); font-weight:800">SYSTEM TELEMETRY</div>
@@ -837,7 +843,7 @@ class TosUI {
                             CPU: 12% | MEM: 4.2GB | NET: 1.2MB/s
                         </div>
                     </div>
-                </div > `;
+                </div>`;
         }
 
         if (id === 'minilog') {
@@ -847,23 +853,23 @@ class TosUI {
             const text = (lastLog.text || "").toUpperCase();
 
             return `
-                        < div class="${classNames}" id = "comp-minilog" onclick = "window.tos.toggleMinilog()" >
-                            <div class="minimap-container ${isProjected ? '' : 'toggled-off'}" style="height: 0.5rem; border-color: var(--color-accent)">
-                                <div class="minimap-content" style="font-size: 0.6rem; white-space: nowrap; overflow: hidden; color: var(--color-success)">
-                                    ${text}
-                                </div>
-                            </div>
-                </div > `;
+                <div class="${classNames}" id="comp-minilog" onclick="window.tos.toggleMinilog()">
+                    <div class="minimap-container ${isProjected ? '' : 'toggled-off'}" style="height: 0.5rem; border-color: var(--color-accent)">
+                        <div class="minimap-content" style="font-size: 0.6rem; white-space: nowrap; overflow: hidden; color: var(--color-success)">
+                            ${text}
+                        </div>
+                    </div>
+                </div>`;
         }
 
         if (id === 'screen_title') {
             const prefix = this.state.sys_prefix || "";
             const title = this.state.sys_title || "";
             return `
-                        < div class="${classNames} lcars-title-area" id = "comp-screen-title" onclick = "window.tos.toggleScreenTitle()" >
+                <div class="${classNames} lcars-title-area" id="comp-screen-title" onclick="window.tos.toggleScreenTitle()">
                     <span class="lcars-prefix" style="color:var(--color-primary); opacity: 0.7; font-weight: 300">${prefix}</span>
                     <span class="lcars-title" style="font-weight:700; margin-left:1rem">${title}</span>
-                </div > `;
+                </div>`;
         }
 
         if (id === 'brain_status') {

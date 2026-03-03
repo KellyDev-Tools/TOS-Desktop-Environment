@@ -229,6 +229,16 @@ impl OscParser {
         }
         clean_text = json_context_re.replace_all(&clean_text, "").to_string();
 
+        // §29.1: Strip remaining CSI sequences (Colors, Cursor control, etc)
+        // Match ESC [ followed by any number of parameter bytes (0x30–0x3F),
+        // any number of intermediate bytes (0x20–0x2F), then a final byte (0x40–0x7E).
+        let csi_re = regex::Regex::new(r"\x1b\[[0-9;?]*[A-Za-z]").unwrap();
+        clean_text = csi_re.replace_all(&clean_text, "").to_string();
+
+        // Strip any remaining unhandled OSC sequences (ESC ] ... BEL/ST)
+        let misc_osc_re = regex::Regex::new(r"\x1b\].*?(\x07|\x1b\\)").unwrap();
+        clean_text = misc_osc_re.replace_all(&clean_text, "").to_string();
+
         (clean_text, events)
     }
 }

@@ -29,10 +29,12 @@ help:
 	@echo "  make test-brain-component  Two-process Stimulator/Node test"
 	@echo "  make test-ui-component     Playwright-based UI Component verification"
 	@echo "  make test-self            Internal Brain Self-Test Sequence"
+	@echo "  make test-health          Verify orchestration reachability (Tier 5)"
 	@echo ""
 	@echo "\033[1;33mExecution Targets:\033[0m"
 	@echo "  make run             Direct launch of TOS Brain + Terminal Face"
 	@echo "  make run-web         Orchestrate full stack (Brain + Web UI Server)"
+	@echo "  make run-services    Spawn auxiliary background daemons"
 	@echo ""
 	@echo "\033[1;33mMaintenance:\033[0m"
 	@echo "  make clean           Purge build artifacts and logs"
@@ -62,7 +64,7 @@ docs:
 
 test: test-all
 
-test-all: test-core test-shell test-ai test-sec
+test-all: test-core test-shell test-ai test-sec test-health
 
 test-core:
 	cargo test --test tier1_brain
@@ -103,6 +105,10 @@ test-ui-component:
 test-self:
 	cargo run -- --self-test
 
+test-health:
+	@echo "[TOS] Running Orchestration Health Check (Tier 5)..."
+	cargo test --test tier5_orchestration -- --nocapture
+
 # -----------------------------------------------------------------------------
 # 4. EXECUTION
 # -----------------------------------------------------------------------------
@@ -112,15 +118,28 @@ run:
 	@pkill -f tos-brain || true
 	cargo run --bin tos-brain | tee logs/tos-brain.log
 
-run-web:
+run-web: run-services
 	@mkdir -p logs
-	@pkill -f tos-brain || true
-	@pkill -f "http.server 8080" || true
+	@pkill -x tos-brain || true
+	@pkill -f "[h]ttp.server 8080" || true
 	@echo "[TOS] Initializing Web UI Server (8080)..."
 	@python3 -m http.server 8080 -d web_ui > logs/web_ui.log 2>&1 & WEB_PID=$$!; \
 	echo "[TOS] Synchronizing Brain Core (7000/7001)..."; \
-	trap "kill $$WEB_PID; pkill -f tos-brain; exit" EXIT INT TERM; \
+	trap "kill $$WEB_PID; pkill -x tos-brain; exit" EXIT INT TERM; \
 	cargo run --bin tos-brain | tee logs/tos-brain.log
+
+run-services:
+	@echo "[TOS] Initializing Auxiliary Daemons..."
+	@mkdir -p logs
+	@pkill -x tos-settingsd || true
+	@pkill -x tos-loggerd || true
+	@pkill -x tos-marketplaced || true
+	@pkill -x tos-priorityd || true
+	@cargo run --bin tos-settingsd > logs/settingsd.log 2>&1 &
+	@cargo run --bin tos-loggerd > logs/loggerd.log 2>&1 &
+	@cargo run --bin tos-marketplaced > logs/marketplaced.log 2>&1 &
+	@cargo run --bin tos-priorityd > logs/priorityd.log 2>&1 &
+	@echo "[TOS] Auxiliary Constellation: ONLINE"
 
 # -----------------------------------------------------------------------------
 # 5. MAINTENANCE

@@ -85,12 +85,11 @@ impl AiService {
                          }
                     }
                     Err(e) => {
-                        println!("[AiService] Module query failed: {}", e);
-                        ("echo 'AI Module Error'".to_string(), format!("Execution failed: {}", e))
+                        println!("[AiService] Module query failed: {}. Falling back.", e);
+                        self.fallback_query(prompt, &sector_names, &current_dir).await
                     }
                 }
             } else {
-                // ...existing OpenAI / Fallback logic...
                 self.fallback_query(prompt, &sector_names, &current_dir).await
             }
         } else {

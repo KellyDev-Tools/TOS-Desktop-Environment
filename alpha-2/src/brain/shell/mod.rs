@@ -14,7 +14,7 @@ pub struct ShellApi {
 }
 
 impl ShellApi {
-    pub fn new(state: Arc<Mutex<TosState>>, sector_id: uuid::Uuid, hub_id: uuid::Uuid) -> anyhow::Result<Self> {
+    pub fn new(state: Arc<Mutex<TosState>>, modules: Arc<crate::brain::module_manager::ModuleManager>, sector_id: uuid::Uuid, hub_id: uuid::Uuid) -> anyhow::Result<Self> {
         let pty_system = native_pty_system();
         let pair = pty_system.openpty(PtySize {
             rows: 24,
@@ -23,19 +23,37 @@ impl ShellApi {
             pixel_height: 0,
         })?;
 
-        let shell = std::env::var("SHELL").unwrap_or_else(|_| "/bin/bash".to_string());
-        let verified_shell = if std::path::Path::new(&shell).exists() {
-            shell
-        } else {
-            let fallbacks = ["/bin/bash", "/bin/zsh", "/bin/sh", "/usr/bin/bash", "/usr/bin/sh"];
-            fallbacks.iter()
-                .find(|&&path| std::path::Path::new(path).exists())
-                .map(|&s| s.to_string())
-                .unwrap_or_else(|| "sh".to_string())
+        // Resolve shell from modules if possible
+        let shell_id = {
+            let lock = state.lock().unwrap();
+            lock.sectors.iter()
+                .find(|s| s.id == sector_id)
+                .and_then(|s| s.hubs.iter().find(|h| h.id == hub_id))
+                .and_then(|h| h.shell_module.clone())
+                .unwrap_or_else(|| "tos-shell-fish".to_string())
         };
 
-        tracing::info!("SHELL INIT: Using verified binary: {}", verified_shell);
-        let cmd = CommandBuilder::new(verified_shell);
+        let (verified_shell, args) = if let Ok(shell_mod) = modules.load_shell(&shell_id) {
+            let path = shell_mod.get_executable_path().to_string_lossy().to_string();
+            let args = shell_mod.get_default_args().to_vec();
+            (path, args)
+        } else {
+            let shell = std::env::var("SHELL").unwrap_or_else(|_| "/bin/bash".to_string());
+            let verified = if std::path::Path::new(&shell).exists() {
+                shell
+            } else {
+                let fallbacks = ["/bin/bash", "/bin/zsh", "/bin/sh", "/usr/bin/bash", "/usr/bin/sh"];
+                fallbacks.iter()
+                    .find(|&&path| std::path::Path::new(path).exists())
+                    .map(|&s| s.to_string())
+                    .unwrap_or_else(|| "sh".to_string())
+            };
+            (verified, vec!["--login".to_string()])
+        };
+
+        tracing::info!("SHELL INIT: Using verified binary: {} with args: {:?}", verified_shell, args);
+        let mut cmd = CommandBuilder::new(verified_shell);
+        cmd.args(args);
         let child = pair.slave.spawn_command(cmd)?;
 
         let reader = pair.master.try_clone_reader()?;

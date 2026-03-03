@@ -185,6 +185,7 @@ pub struct CommandHub {
     pub staged_command: Option<String>,           // AI-proposed command for review
     pub ai_explanation: Option<String>,           // AI rationale/documentation
     pub json_context: Option<serde_json::Value>,  // Custom JSON exported via OSC 9004
+    pub shell_module: Option<String>,             // Preferred Shell Module ID
     pub version: u64,
 }
 
@@ -306,6 +307,7 @@ impl Default for TosState {
                 staged_command: None,
                 ai_explanation: None,
                 json_context: None,
+                shell_module: Some("tos-shell-fish".to_string()),
                 version: 0,
             }],
             active_hub_index: 0,

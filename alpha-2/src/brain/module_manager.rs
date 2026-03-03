@@ -90,6 +90,31 @@ impl ModuleManager {
             capabilities: caps,
         }))
     }
+
+    /// Instantiates a TerminalOutputModule from a manifest.
+    pub fn load_terminal_output(&self, id: &str) -> anyhow::Result<Box<dyn crate::common::modules::TerminalOutputModule>> {
+        let manifest = self.get_manifest(id).ok_or_else(|| anyhow::anyhow!("Module not found"))?;
+        if manifest.module_type != "TerminalOutput" {
+            return Err(anyhow::anyhow!("Module is not a terminal output module"));
+        }
+
+        Ok(Box::new(GenericTerminalOutputModule {
+            id: id.to_string(),
+        }))
+    }
+}
+
+struct GenericTerminalOutputModule {
+    id: String,
+}
+
+impl crate::common::modules::TerminalOutputModule for GenericTerminalOutputModule {
+    fn init(&mut self, _context: crate::common::TerminalContext, _config: serde_json::Value) {}
+    fn push_lines(&mut self, _lines: Vec<crate::common::TerminalLine>) {
+        // Logically, the Brain doesn't render; it just passes lines through.
+        // In a headless system, this could pipe to a log or external surface.
+    }
+    fn get_id(&self) -> &str { &self.id }
 }
 
 // Internal generic implementation for built-in or simple shell modules

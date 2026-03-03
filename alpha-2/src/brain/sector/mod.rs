@@ -33,6 +33,7 @@ impl SectorManager {
                 staged_command: None,
                 ai_explanation: None,
                 json_context: None,
+                shell_module: Some("tos-shell-fish".to_string()),
                 version: 0,
             }],
             active_hub_index: 0,
@@ -73,6 +74,7 @@ impl SectorManager {
                 staged_command: None,
                 ai_explanation: None,
                 json_context: None,
+                shell_module: Some(hub_tmpl.shell.clone()),
                 version: 0,
             });
         }

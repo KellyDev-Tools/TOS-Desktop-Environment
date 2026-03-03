@@ -49,21 +49,21 @@ pub struct ShellIntegration {
 }
 
 /// §1.5.1: Terminal Output Module Logic Contract
-pub trait TerminalOutputModule {
+pub trait TerminalOutputModule: Send + Sync {
     fn init(&mut self, context: super::TerminalContext, config: serde_json::Value);
     fn push_lines(&mut self, lines: Vec<TerminalLine>);
     fn get_id(&self) -> &str;
 }
 
 /// §1.7: Shell Module Logic Contract
-pub trait ShellModule {
+pub trait ShellModule: Send + Sync {
     fn get_executable_path(&self) -> &std::path::Path;
     fn get_default_args(&self) -> &[String];
     fn get_integration_config(&self) -> &ShellIntegration;
 }
 
 /// §1.3: AI Backend Logic Contract
-pub trait AiModule {
+pub trait AiModule: Send + Sync {
     fn query(&self, request: AiQuery) -> anyhow::Result<AiResponse>;
     fn name(&self) -> &str;
     fn capabilities(&self) -> &[String];

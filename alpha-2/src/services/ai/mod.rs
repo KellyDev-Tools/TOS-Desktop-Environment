@@ -5,16 +5,25 @@ use serde_json::json;
 
 pub struct AiService {
     ipc: Arc<Mutex<Option<Arc<dyn IpcDispatcher>>>>,
+    modules: Arc<Mutex<Option<Arc<crate::brain::module_manager::ModuleManager>>>>,
 }
 
 impl AiService {
     pub fn new() -> Self {
-        Self { ipc: Arc::new(Mutex::new(None)) }
+        Self { 
+            ipc: Arc::new(Mutex::new(None)),
+            modules: Arc::new(Mutex::new(None)),
+        }
     }
 
     pub fn set_ipc(&self, ipc: Arc<dyn IpcDispatcher>) {
         let mut lock = self.ipc.lock().unwrap();
         *lock = Some(ipc);
+    }
+
+    pub fn set_module_manager(&self, modules: Arc<crate::brain::module_manager::ModuleManager>) {
+        let mut lock = self.modules.lock().unwrap();
+        *lock = Some(modules);
     }
 
     /// Process natural language query and stage a command for user review.
@@ -50,13 +59,61 @@ impl AiService {
             (dir, sectors)
         };
 
+        let _api_key = std::env::var("OPENAI_API_KEY");
+        let _api_base = std::env::var("OPENAI_API_BASE").unwrap_or_else(|_| "https://api.openai.com/v1".to_string());
+        
+        let (command, explanation) = if let Some(modules) = { let lock = self.modules.lock().unwrap(); lock.clone() } {
+            // Check if there is an active AI module in the state that we can load
+            let mod_id = &state.active_ai_module;
+            if let Ok(ai_mod) = modules.load_ai(mod_id) {
+                let context = vec![format!("sector:{}", sector_names), format!("path:{}", current_dir)];
+                let req = crate::common::modules::AiQuery {
+                    prompt: prompt.to_string(),
+                    context,
+                    stream: false,
+                };
+                match ai_mod.query(req) {
+                    Ok(resp) => {
+                         // Parse the response content expecting JSON with command and explanation
+                         if let Ok(parsed) = serde_json::from_str::<serde_json::Value>(&resp.choice.content) {
+                            let cmd = parsed["command"].as_str().unwrap_or("echo 'Error'").to_string();
+                            let expl = parsed["explanation"].as_str().unwrap_or("No module explanation").to_string();
+                            (cmd, expl)
+                         } else {
+                            // Fallback to raw content if not JSON
+                            (format!("echo '{}'", resp.choice.content), "Raw response from AI module".to_string())
+                         }
+                    }
+                    Err(e) => {
+                        println!("[AiService] Module query failed: {}", e);
+                        ("echo 'AI Module Error'".to_string(), format!("Execution failed: {}", e))
+                    }
+                }
+            } else {
+                // ...existing OpenAI / Fallback logic...
+                self.fallback_query(prompt, &sector_names, &current_dir).await
+            }
+        } else {
+             self.fallback_query(prompt, &sector_names, &current_dir).await
+        };
+
+        let payload = json!({
+            "command": command,
+            "explanation": explanation
+        });
+        
+        let _ = ipc.dispatch(&format!("ai_stage_command:{}", payload.to_string()));
+        
+        Ok(())
+    }
+
+    async fn fallback_query(&self, prompt: &str, sector_names: &str, current_dir: &str) -> (String, String) {
         let api_key = std::env::var("OPENAI_API_KEY");
         let api_base = std::env::var("OPENAI_API_BASE").unwrap_or_else(|_| "https://api.openai.com/v1".to_string());
-        
-        let (command, explanation) = if let Ok(key) = api_key {
-            // Real LLM HTTP Request mapping
+        let ipc = self.ipc.lock().unwrap().clone();
+
+        if let Ok(key) = api_key {
             let client = reqwest::Client::new();
-            
             let system_prompt = format!(
                 "You are the TOS Alpha-2 Brain AI (command-line contextual assistant). \
                  The user is in sector '{}' at path '{}'. \
@@ -94,14 +151,15 @@ impl AiService {
                         // Parse potential API-requested semantic search
                         if cmd.starts_with("semantic_search:") {
                             let term = cmd.replace("semantic_search:", "").trim().to_string();
-                            let _ = ipc.dispatch(&format!("semantic_search:{}", term));
+                            if let Some(i) = ipc {
+                                let _ = i.dispatch(&format!("semantic_search:{}", term));
+                            }
                             ("zoom_to:CommandHub".to_string(), format!("Found matches for '{}'. Zooming to Command Hub results.", term))
                         } else {
                             (cmd, expl)
                         }
                     } else {
-                        // JSON parsing failed
-                        ("echo 'LLM Error: JSON decoding failed'".to_string(), "The AI API returned an invalid JSON response.".to_string())
+                         ("echo 'LLM Error: JSON decoding failed'".to_string(), "The AI API returned an invalid JSON response.".to_string())
                     }
                 },
                 Err(e) => {
@@ -109,7 +167,6 @@ impl AiService {
                 }
             }
         } else {
-            // Contextual Awareness - Mock logic using gathered system context (Testing Fallback)
             match prompt.to_lowercase().as_str() {
                 p if p.contains("where") && p.contains("am") && p.contains("i") => {
                     ("pwd".to_string(), format!("You are currently in sector {} at path {}.", sector_names, current_dir))
@@ -119,23 +176,16 @@ impl AiService {
                 },
                 p if p.contains("search") || p.contains("find") => {
                     let term = prompt.split_whitespace().last().unwrap_or("everything");
-                    let _ = ipc.dispatch(&format!("semantic_search:{}", term));
+                    if let Some(i) = ipc {
+                        let _ = i.dispatch(&format!("semantic_search:{}", term));
+                    }
                     ("zoom_to:CommandHub".to_string(), format!("Found matches for '{}'. Zooming to Command Hub results.", term))
                 },
                 _ => {
                     (format!("echo 'AI suggest: {}'", prompt), "I've translated your request into a staged echo command for review.".to_string())
                 }
             }
-        };
-
-        let payload = json!({
-            "command": command,
-            "explanation": explanation
-        });
-        
-        let _ = ipc.dispatch(&format!("ai_stage_command:{}", payload.to_string()));
-        
-        Ok(())
+        }
     }
 }
 

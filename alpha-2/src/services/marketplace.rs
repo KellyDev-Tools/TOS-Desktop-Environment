@@ -173,4 +173,28 @@ impl MarketplaceService {
         }
         themes
     }
+
+    /// Lists AI modules installed in the system modules directory.
+    pub fn list_ai_modules() -> Vec<crate::common::AiModuleMetadata> {
+        let mut modules = Vec::new();
+        let mut base_path = dirs::home_dir().unwrap_or_else(|| PathBuf::from("/tmp"));
+        base_path.push(".config/tos/modules/ai");
+
+        if let Ok(entries) = std::fs::read_dir(base_path) {
+            for entry in entries.flatten() {
+                if let Ok(manifest) = Self::discover_module_local(entry.path()) {
+                    if manifest.module_type == "AI" || manifest.module_type == "ai" {
+                        modules.push(crate::common::AiModuleMetadata {
+                            id: manifest.id,
+                            name: manifest.name,
+                            version: manifest.version,
+                            author: manifest.author,
+                            capabilities: manifest.capabilities.unwrap_or_default(),
+                        });
+                    }
+                }
+            }
+        }
+        modules
+    }
 }

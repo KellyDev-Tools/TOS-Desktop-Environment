@@ -56,6 +56,15 @@ pub struct ThemeAssetDefinition {
     pub icons: String,
 }
 
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct AiModuleMetadata {
+    pub id: String,
+    pub name: String,
+    pub version: String,
+    pub author: String,
+    pub capabilities: Vec<String>,
+}
+
 /// The operational augmentation modes for the Command Hub.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum CommandHubMode {
@@ -272,6 +281,8 @@ pub struct TosState {
     pub brain_time: String,
     pub active_terminal_module: String,
     pub available_modules: Vec<TerminalOutputModule>,
+    pub active_ai_module: String,
+    pub available_ai_modules: Vec<AiModuleMetadata>,
     pub active_theme: String,
     pub available_themes: Vec<ThemeModule>,
     pub version: u64,
@@ -337,6 +348,16 @@ impl Default for TosState {
                     layout: TerminalLayoutType::Cinematic,
                     supports_high_contrast: false,
                     supports_reduced_motion: false,
+                }
+            ],
+            active_ai_module: "tos-ai-standard".to_string(),
+            available_ai_modules: vec![
+                AiModuleMetadata {
+                    id: "tos-ai-standard".to_string(),
+                    name: "Standard AI Core".to_string(),
+                    version: "1.0.0".to_string(),
+                    author: "TOS Core".to_string(),
+                    capabilities: vec!["chat".to_string(), "streaming".to_string()],
                 }
             ],
             active_theme: "tos-classic-lcars".to_string(),

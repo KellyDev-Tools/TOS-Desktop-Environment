@@ -29,6 +29,8 @@ impl Brain {
         
         let services = Arc::new(crate::services::ServiceManager::new());
         let modules = Arc::new(ModuleManager::new(std::path::PathBuf::from("./modules")));
+        services.ai.set_module_manager(modules.clone());
+        
         let shell_obj = ShellApi::new(state.clone(), sid, hid)?;
         let shell = Arc::new(Mutex::new(shell_obj));
         let ipc = Arc::new(IpcHandler::new(state.clone(), shell.clone(), services.clone()));

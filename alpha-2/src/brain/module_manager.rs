@@ -77,9 +77,15 @@ impl ModuleManager {
         }
 
         let caps = manifest.capabilities.clone().unwrap_or_default();
+        let path = manifest.executable.as_ref().map(|exe| {
+            let mut p = self.base_path.clone();
+            p.push(id);
+            p.push(&exe.path);
+            p
+        });
 
         Ok(Box::new(GenericAiModule {
-            id: id.to_string(),
+            path,
             name: manifest.name.clone(),
             capabilities: caps,
         }))
@@ -100,15 +106,45 @@ impl ShellModule for GenericShellModule {
 }
 
 struct GenericAiModule {
-    id: String,
+    path: Option<PathBuf>,
     name: String,
     capabilities: Vec<String>,
 }
 
 impl AiModule for GenericAiModule {
-    fn query(&self, _request: crate::common::modules::AiQuery) -> anyhow::Result<crate::common::modules::AiResponse> {
-        // Real implementation would involve calling an external process or network API
-        Err(anyhow::anyhow!("AI Module execution not yet implemented (Mock Mode)"))
+    fn query(&self, request: crate::common::modules::AiQuery) -> anyhow::Result<crate::common::modules::AiResponse> {
+        let path = match &self.path {
+            Some(p) => p,
+            None => return Err(anyhow::anyhow!("AI Module '{}' has no executable path", self.name)),
+        };
+
+        if !path.exists() {
+            return Err(anyhow::anyhow!("AI Module executable not found at: {}", path.display()));
+        }
+
+        use std::io::Write;
+        use std::process::{Command, Stdio};
+
+        let mut child = Command::new(path)
+            .stdin(Stdio::piped())
+            .stdout(Stdio::piped())
+            .stderr(Stdio::piped())
+            .spawn()?;
+
+        let mut stdin = child.stdin.take().ok_or_else(|| anyhow::anyhow!("Failed to open stdin"))?;
+        let request_json = serde_json::to_string(&request)?;
+        stdin.write_all(request_json.as_bytes())?;
+        stdin.write_all(b"\n")?;
+        drop(stdin); // Signal EOF
+
+        let output = child.wait_with_output()?;
+        if !output.status.success() {
+            let err = String::from_utf8_lossy(&output.stderr);
+            return Err(anyhow::anyhow!("AI Module execution failed: {}", err));
+        }
+
+        let response: crate::common::modules::AiResponse = serde_json::from_slice(&output.stdout)?;
+        Ok(response)
     }
     fn name(&self) -> &str { &self.name }
     fn capabilities(&self) -> &[String] { &self.capabilities }

@@ -206,6 +206,18 @@ class TosUI {
                         <button class="status-badge">DISABLED</button>
                     </div>
                 </div>
+                <div class="settings-group">
+                    <div class="settings-group-title">TERMINAL OUTPUT MODULE</div>
+                    ${(this.state.available_modules || []).map(m => `
+                        <div class="settings-item">
+                            <label class="settings-label">${m.name.toUpperCase()}</label>
+                            <button class="status-badge ${this.state.active_terminal_module === m.id ? 'active' : ''}" 
+                                    onclick="window.tos.setTerminalModule('${m.id}')">
+                                ${this.state.active_terminal_module === m.id ? 'ACTIVE' : 'SELECT'}
+                            </button>
+                        </div>
+                    `).join('')}
+                </div>
             `;
         }
 
@@ -424,6 +436,14 @@ class TosUI {
         }
     }
 
+    async setTerminalModule(moduleId) {
+        if (window.__TOS_IPC__) {
+            await window.__TOS_IPC__(`set_terminal_module:${moduleId}`);
+            this.playEarcon('data_commit');
+            this.syncState();
+        }
+    }
+
     handleSectorClick(index) {
         this.handleCommand(`switch_sector:${index}`);
 
@@ -587,8 +607,11 @@ class TosUI {
                 }
             }
 
+            const activeModule = (this.state.available_modules || []).find(m => m.id === this.state.active_terminal_module);
+            const layoutClass = activeModule ? `terminal-layout-${activeModule.layout.toLowerCase()}` : 'terminal-layout-rectangular';
+
             target.innerHTML = `
-                <div class="dual-column-layout">
+                <div class="dual-column-layout ${layoutClass}">
                     <div class="left-chip-column">
                         ${leftColumnHTML}
                     </div>

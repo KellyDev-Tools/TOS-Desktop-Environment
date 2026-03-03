@@ -12,6 +12,30 @@ pub enum HierarchyLevel {
     BufferView = 5,
 }
 
+/// Context for terminal module execution.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+pub enum TerminalContext {
+    Interactive,
+    ReadOnly,
+}
+
+/// Metadata for installable terminal rendering modules.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct TerminalOutputModule {
+    pub id: String,
+    pub name: String,
+    pub version: String,
+    pub layout: TerminalLayoutType,
+    pub supports_high_contrast: bool,
+    pub supports_reduced_motion: bool,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+pub enum TerminalLayoutType {
+    Rectangular,
+    Cinematic,
+}
+
 /// The operational augmentation modes for the Command Hub.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum CommandHubMode {
@@ -220,6 +244,8 @@ pub struct TosState {
     pub sys_title: String,
     pub sys_status: String,
     pub brain_time: String,
+    pub active_terminal_module: String,
+    pub available_modules: Vec<TerminalOutputModule>,
     pub version: u64,
 }
 
@@ -265,6 +291,25 @@ impl Default for TosState {
             sys_title: "ALPHA-2.1 // INTEL-DRIVEN".to_string(),
             sys_status: "BRAIN: ACTIVE".to_string(),
             brain_time: "00:00:00".to_string(),
+            active_terminal_module: "tos-standard-rect".to_string(),
+            available_modules: vec![
+                TerminalOutputModule {
+                    id: "tos-standard-rect".to_string(),
+                    name: "Standard Rectangular".to_string(),
+                    version: "1.0.0".to_string(),
+                    layout: TerminalLayoutType::Rectangular,
+                    supports_high_contrast: true,
+                    supports_reduced_motion: true,
+                },
+                TerminalOutputModule {
+                    id: "tos-cinematic-tri".to_string(),
+                    name: "Cinematic Triangular".to_string(),
+                    version: "1.0.0".to_string(),
+                    layout: TerminalLayoutType::Cinematic,
+                    supports_high_contrast: false,
+                    supports_reduced_motion: false,
+                }
+            ],
             version: 0,
         }
     }

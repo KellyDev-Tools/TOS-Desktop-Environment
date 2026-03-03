@@ -58,6 +58,7 @@ impl IpcHandler {
             "portal_revoke" => self.handle_portal_revoke(args.get(0).copied()),
             "get_sector_templates" => self.handle_get_sector_templates(),
             "get_state_delta" => self.handle_get_state_delta(args.get(0).copied()),
+            "set_terminal_module" => self.handle_set_terminal_module(args.get(0).copied()),
             _ => "ERROR: Unknown prefix".to_string(),
         };
 
@@ -366,6 +367,17 @@ impl IpcHandler {
             }
         }
         "ERROR: Invalid IDs for app close".to_string()
+    }
+
+    fn handle_set_terminal_module(&self, module_id: Option<&str>) -> String {
+        if let Some(id) = module_id {
+            let mut state = self.state.lock().unwrap();
+            if state.available_modules.iter().any(|m| m.id == id) {
+                state.active_terminal_module = id.to_string();
+                return format!("TERMINAL_MODULE_SET: {}", id);
+            }
+        }
+        "ERROR: Invalid terminal module ID".to_string()
     }
 
     fn handle_search(&self, query: &str) -> String {

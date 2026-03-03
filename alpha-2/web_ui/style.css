@@ -995,3 +995,27 @@ h1 {
         transform: translateZ(20px) translateY(-10px);
     }
 }
+/* Terminal Module: Cinematic (Triangular/Skewed) */
+.terminal-layout-cinematic {
+    perspective: 1000px;
+}
+
+.terminal-layout-cinematic .terminal-container {
+    transform: rotateX(2deg) rotateY(-5deg) skewY(-1deg);
+    background: linear-gradient(90deg, rgba(0,0,0,0.8), rgba(20,20,40,0.4)) !important;
+    border-left: 3px solid var(--color-primary) !important;
+    box-shadow: -20px 0 50px rgba(0,0,0,0.5);
+    padding: 2rem !important;
+    mask-image: linear-gradient(to bottom, black 80%, transparent 100%);
+}
+
+.terminal-layout-cinematic .terminal-container div {
+    text-shadow: 0 0 5px var(--color-primary);
+    margin-bottom: 0.5rem;
+}
+
+/* Terminal Module: Rectangular (Standard) */
+.terminal-layout-rectangular .terminal-container {
+    border-left: 1px solid rgba(255,255,255,0.1) !important;
+    background: rgba(0,0,0,0.4) !important;
+}

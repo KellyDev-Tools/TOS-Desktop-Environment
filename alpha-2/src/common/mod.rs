@@ -364,6 +364,18 @@ impl Default for TosState {
                         fonts: vec!["Outfit-Bold.ttf".to_string()],
                         icons: "assets/icons/tactical/".to_string(),
                     },
+                },
+                ThemeModule {
+                    id: "tos-red-alert".to_string(),
+                    name: "Red Alert".to_string(),
+                    version: "1.0.0".to_string(),
+                    author: "TOS Core".to_string(),
+                    description: "High-intensity emergency mode".to_string(),
+                    assets: ThemeAssetDefinition {
+                        css: "theme-red.css".to_string(),
+                        fonts: vec!["Outfit-Bold.ttf".to_string()],
+                        icons: "assets/icons/red/".to_string(),
+                    },
                 }
             ],
             version: 0,

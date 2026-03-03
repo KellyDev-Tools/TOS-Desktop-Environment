@@ -413,6 +413,54 @@ impl IpcHandler {
     fn handle_set_theme(&self, theme_id: Option<&str>) -> String {
         if let Some(id) = theme_id {
             let mut state = self.state.lock().unwrap();
+            
+            // Refresh themes from disk
+            let mut themes = MarketplaceService::list_theme_modules();
+            // Ensure built-ins are also there
+            if !themes.iter().any(|t| t.id == "tos-classic-lcars") {
+                themes.push(crate::common::ThemeModule {
+                    id: "tos-classic-lcars".to_string(),
+                    name: "Classic LCARS".to_string(),
+                    version: "1.0.0".to_string(),
+                    author: "TOS Core".to_string(),
+                    description: "Standard LCARS color scheme (Blue/Purple/Gold)".to_string(),
+                    assets: crate::common::ThemeAssetDefinition {
+                        css: "theme-classic.css".to_string(),
+                        fonts: vec!["Outfit-Regular.ttf".to_string()],
+                        icons: "assets/icons/classic/".to_string(),
+                    },
+                });
+            }
+            if !themes.iter().any(|t| t.id == "tos-tactical-amber") {
+                themes.push(crate::common::ThemeModule {
+                    id: "tos-tactical-amber".to_string(),
+                    name: "Tactical Amber".to_string(),
+                    version: "1.0.0".to_string(),
+                    author: "TOS Core".to_string(),
+                    description: "High-contrast amber tactical interface".to_string(),
+                    assets: crate::common::ThemeAssetDefinition {
+                        css: "theme-tactical.css".to_string(),
+                        fonts: vec!["Outfit-Bold.ttf".to_string()],
+                        icons: "assets/icons/tactical/".to_string(),
+                    },
+                });
+            }
+            if !themes.iter().any(|t| t.id == "tos-red-alert") {
+                themes.push(crate::common::ThemeModule {
+                    id: "tos-red-alert".to_string(),
+                    name: "Red Alert".to_string(),
+                    version: "1.0.0".to_string(),
+                    author: "TOS Core".to_string(),
+                    description: "High-intensity emergency mode".to_string(),
+                    assets: crate::common::ThemeAssetDefinition {
+                        css: "theme-red.css".to_string(),
+                        fonts: vec!["Outfit-Bold.ttf".to_string()],
+                        icons: "assets/icons/red/".to_string(),
+                    },
+                });
+            }
+            state.available_themes = themes;
+
             if state.available_themes.iter().any(|t| t.id == id) {
                 state.active_theme = id.to_string();
                 return format!("THEME_SET: {}", id);

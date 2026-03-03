@@ -146,4 +146,31 @@ impl MarketplaceService {
         }
         modules
     }
+
+    /// Lists theme modules installed in the system modules directory.
+    pub fn list_theme_modules() -> Vec<crate::common::ThemeModule> {
+        let mut themes = Vec::new();
+        let mut base_path = dirs::home_dir().unwrap_or_else(|| PathBuf::from("/tmp"));
+        base_path.push(".config/tos/modules/themes");
+
+        if let Ok(entries) = std::fs::read_dir(base_path) {
+            for entry in entries.flatten() {
+                if let Ok(manifest) = Self::discover_module_local(entry.path()) {
+                    if manifest.module_type == "Theme" {
+                        if let Some(assets) = manifest.assets {
+                            themes.push(crate::common::ThemeModule {
+                                id: manifest.id,
+                                name: manifest.name,
+                                version: manifest.version,
+                                author: manifest.author,
+                                description: manifest.description.unwrap_or_default(),
+                                assets,
+                            });
+                        }
+                    }
+                }
+            }
+        }
+        themes
+    }
 }

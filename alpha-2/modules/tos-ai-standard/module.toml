@@ -1,0 +1,8 @@
+id = "tos-ai-standard"
+name = "Standard AI Core"
+version = "1.0.0"
+module_type = "ai"
+author = "TOS Core"
+description = "Default local AI backend for command translation."
+
+capabilities = ["chat", "function_calling", "streaming"]

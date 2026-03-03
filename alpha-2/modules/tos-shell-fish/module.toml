@@ -1,0 +1,15 @@
+id = "tos-shell-fish"
+name = "Fish Shell"
+version = "3.6.1"
+module_type = "shell"
+author = "TOS Core"
+description = "Reference Fish shell with full OSC integration."
+
+[executable]
+path = "/usr/bin/fish"
+args = ["--login"]
+
+[integration]
+osc_directory = true
+osc_command_result = true
+osc_suggestions = true

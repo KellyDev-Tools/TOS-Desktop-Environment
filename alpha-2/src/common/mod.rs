@@ -2,6 +2,8 @@ use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 use std::path::PathBuf;
 
+pub mod modules;
+
 /// The system hierarchy levels defining the visual depth of the interface.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum HierarchyLevel {
@@ -47,7 +49,7 @@ pub struct ThemeModule {
     pub assets: ThemeAssetDefinition,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub struct ThemeAssetDefinition {
     pub css: String,
     pub fonts: Vec<String>,

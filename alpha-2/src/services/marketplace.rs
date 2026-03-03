@@ -9,10 +9,29 @@ pub struct ModuleManifest {
     pub id: String,
     pub name: String,
     pub version: String,
-    pub module_type: String, // "Application", "TerminalOutput", "Theme", etc.
+    pub module_type: String, // "Application", "TerminalOutput", "Theme", "Shell", "AI", etc.
     pub author: String,
+    pub description: Option<String>,
+    pub icon: Option<String>,
+    
+    // §1.7: Shell Specifics
+    pub executable: Option<ExecutableConfig>,
+    pub integration: Option<crate::common::modules::ShellIntegration>,
+    
+    // §1.6: Theme Specifics
+    pub assets: Option<crate::common::ThemeAssetDefinition>,
+    
+    // §1.3: AI Specifics
+    pub capabilities: Option<Vec<String>>,
+
     // The Ed25519 cryptographic signature of the manifest contents
     pub signature: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+pub struct ExecutableConfig {
+    pub path: String,
+    pub args: Vec<String>,
 }
 
 pub struct MarketplaceService;

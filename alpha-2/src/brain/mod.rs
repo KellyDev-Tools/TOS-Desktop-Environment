@@ -3,18 +3,21 @@ pub mod hierarchy;
 pub mod sector;
 pub mod state;
 pub mod shell;
+pub mod module_manager;
 
 use std::sync::{Arc, Mutex};
 use std::thread;
 use crate::common::TosState;
 use self::ipc_handler::IpcHandler;
 use self::shell::ShellApi;
+use self::module_manager::ModuleManager;
 
 pub struct Brain {
     pub state: Arc<Mutex<TosState>>,
     pub ipc: Arc<IpcHandler>,
     pub shell: Arc<Mutex<ShellApi>>,
     pub services: Arc<crate::services::ServiceManager>,
+    pub modules: Arc<ModuleManager>,
 }
 
 impl Brain {
@@ -25,6 +28,7 @@ impl Brain {
         let state = Arc::new(Mutex::new(state_val));
         
         let services = Arc::new(crate::services::ServiceManager::new());
+        let modules = Arc::new(ModuleManager::new(std::path::PathBuf::from("./modules")));
         let shell_obj = ShellApi::new(state.clone(), sid, hid)?;
         let shell = Arc::new(Mutex::new(shell_obj));
         let ipc = Arc::new(IpcHandler::new(state.clone(), shell.clone(), services.clone()));
@@ -80,6 +84,6 @@ impl Brain {
             }
         });
 
-        Ok(Self { state, ipc, shell, services })
+        Ok(Self { state, ipc, shell, services, modules })
     }
 }

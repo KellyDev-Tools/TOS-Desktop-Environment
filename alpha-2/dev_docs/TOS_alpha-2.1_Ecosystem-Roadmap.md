@@ -22,6 +22,7 @@ This roadmap tracks the development of the auxiliary services, modular ecosystem
 - [x] **Terminal Output Modules (`.tos-terminal`):** Isolated the visual styling of the Terminal Canvas into modular layouts. Implemented IPC-driven hotswapping between Rectangular and Cinematic 3D terminal rendering engines.
 - [x] **Marketplace Client:** Built the `tos-pkg` command-line utility for tactical module management and integrated a visual marketplace explorer into the System Settings modal.
 - [x] **Module Contract Implementation:** Formalize the Rust traits and JSON boundaries for external Shell PTY binaries and AI LLM backends (Ecosystem Spec §1).
+- [x] **Developer SDK:** Document the authoritative manifest schemas, PTY telemetry standards, and AI boundary protocols for third-party module authorship.
 
 ## Collaboration Hub (§13)
 - [x] **Multi-User Presence API:** Flesh out the WebRTC data channel payloads to sync dual-sided chip states, active viewport titles, and cursor metadata between connected users.

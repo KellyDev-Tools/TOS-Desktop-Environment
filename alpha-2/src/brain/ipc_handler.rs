@@ -58,6 +58,7 @@ impl IpcHandler {
             "portal_revoke" => self.handle_portal_revoke(args.get(0).copied()),
             "get_sector_templates" => self.handle_get_sector_templates(),
             "get_state_delta" => self.handle_get_state_delta(args.get(0).copied()),
+            "webrtc_presence" => self.handle_webrtc_presence(payload),
             "set_terminal_module" => self.handle_set_terminal_module(args.get(0).copied()),
             "set_theme" => self.handle_set_theme(args.get(0).copied()),
             "market" => self.handle_market_command(payload),
@@ -605,6 +606,71 @@ impl IpcHandler {
         }
         
         serde_json::to_string(&*state).unwrap_or_else(|_| "ERROR: Serialization failed".to_string())
+    }
+
+    fn handle_webrtc_presence(&self, payload: &str) -> String {
+        // Parse the incoming generic WebRTC payload structure
+        if let Ok(presence_event) = serde_json::from_str::<crate::common::collaboration::WebRtcPayload>(payload) {
+            let mut state = self.state.lock().unwrap();
+            let mut changed = false;
+
+            // Typically routed to active sector, but robust architecture would route via the remote host router
+            let active_idx = state.active_sector_index;
+            if active_idx < state.sectors.len() {
+                let sector = &mut state.sectors[active_idx];
+
+                match presence_event {
+                    crate::common::collaboration::WebRtcPayload::CursorSync { user, x, y, target } => {
+                        if let Some(participant) = sector.participants.iter_mut().find(|p| p.id == user) {
+                            participant.cursor_x = Some(x);
+                            participant.cursor_y = Some(y);
+                            participant.cursor_target = target;
+                            changed = true;
+                        }
+                    },
+                    crate::common::collaboration::WebRtcPayload::Presence { user, status, level, active_viewport_title, left_chip_state, right_chip_state } => {
+                        if let Some(participant) = sector.participants.iter_mut().find(|p| p.id == user) {
+                            // Update existing tracked remote guest
+                            participant.status = status;
+                            participant.current_level = level;
+                            participant.viewport_title = active_viewport_title;
+                            participant.left_chip_state = left_chip_state;
+                            participant.right_chip_state = right_chip_state;
+                        } else {
+                            // Register new remote guest observation to the active sector
+                            sector.participants.push(crate::common::collaboration::Participant {
+                                id: user,
+                                alias: format!("Guest {}", user.to_string()[..4].to_string()),
+                                status,
+                                role: crate::common::collaboration::ParticipantRole::Observer,
+                                current_level: level,
+                                viewport_title: active_viewport_title,
+                                left_chip_state,
+                                right_chip_state,
+                                cursor_x: None,
+                                cursor_y: None,
+                                cursor_target: None,
+                                following: None,
+                            });
+                        }
+                        changed = true;
+                    },
+                    crate::common::collaboration::WebRtcPayload::Following { follower, leader, sync } => {
+                        if let Some(participant) = sector.participants.iter_mut().find(|p| p.id == follower) {
+                            participant.following = if sync { Some(leader) } else { None };
+                            changed = true;
+                        }
+                    },
+                    _ => {} // Other presence events unhandled in this exact route
+                }
+
+                if changed {
+                    state.version += 1;
+                    return "OK".to_string();
+                }
+            }
+        }
+        "ERROR: Invalid WebRTC payload".to_string()
     }
 }
 

@@ -570,6 +570,24 @@ h1 {
     height: 0.5rem;
     border-radius: 50%;
     border: 1px solid rgba(255, 255, 255, 0.2);
+    transition: var(--transition-smooth);
+}
+
+.collab-dot.following {
+    box-shadow: 0 0 10px var(--color-accent);
+    border-color: var(--color-accent);
+    animation: flash-gold 1s infinite alternate;
+}
+
+@keyframes flash-gold {
+    from {
+        opacity: 0.6;
+    }
+
+    to {
+        opacity: 1;
+        transform: scale(1.2);
+    }
 }
 
 /* Input Area */
@@ -995,6 +1013,7 @@ h1 {
         transform: translateZ(20px) translateY(-10px);
     }
 }
+
 /* Terminal Module: Cinematic (Triangular/Skewed) */
 .terminal-layout-cinematic {
     perspective: 1000px;
@@ -1002,9 +1021,9 @@ h1 {
 
 .terminal-layout-cinematic .terminal-container {
     transform: rotateX(2deg) rotateY(-5deg) skewY(-1deg);
-    background: linear-gradient(90deg, rgba(0,0,0,0.8), rgba(20,20,40,0.4)) !important;
+    background: linear-gradient(90deg, rgba(0, 0, 0, 0.8), rgba(20, 20, 40, 0.4)) !important;
     border-left: 3px solid var(--color-primary) !important;
-    box-shadow: -20px 0 50px rgba(0,0,0,0.5);
+    box-shadow: -20px 0 50px rgba(0, 0, 0, 0.5);
     padding: 2rem !important;
     mask-image: linear-gradient(to bottom, black 80%, transparent 100%);
 }
@@ -1016,8 +1035,8 @@ h1 {
 
 /* Terminal Module: Rectangular (Standard) */
 .terminal-layout-rectangular .terminal-container {
-    border-left: 1px solid rgba(255,255,255,0.1) !important;
-    background: rgba(0,0,0,0.4) !important;
+    border-left: 1px solid rgba(255, 255, 255, 0.1) !important;
+    background: rgba(0, 0, 0, 0.4) !important;
 }
 
 /* Theme Packet: Tactical Amber */

@@ -9,6 +9,8 @@ class TosUI {
         this.currentMode = 'global';
         this.ws = null;
         this.pendingRequests = new Map();
+        this.userId = crypto.randomUUID();
+        this.followingId = null;
 
         // Alpha-2.1 UI State (Symmetrical Bezel Segments)
         // Alpha-2.1 UI State (Configurable Slot Architecture)
@@ -160,6 +162,7 @@ class TosUI {
         if (!window.__TOS_IPC__) return;
         const payload = {
             type: 'presence',
+            user: this.userId,
             status: 'active',
             level: this.currentMode === 'global' ? 1 : 2,
             active_viewport_title: this.currentMode.toUpperCase(),
@@ -167,6 +170,24 @@ class TosUI {
             right_chip_state: null
         };
         window.__TOS_IPC__(`webrtc_presence:${JSON.stringify(payload)}`);
+    }
+
+    // §13.7 Follow Mode Dispatch
+    toggleFollow(leaderId) {
+        this.followingId = (this.followingId === leaderId) ? null : leaderId;
+        console.log(`FOLLOW MODE // ${this.followingId ? 'ENGAGED: ' + leaderId : 'DISENGAGED'}`);
+        this.playEarcon(this.followingId ? 'data_commit' : 'modal_close');
+
+        if (window.__TOS_IPC__) {
+            const payload = {
+                type: 'following',
+                follower: this.userId,
+                leader: this.followingId,
+                sync: this.followingId !== null
+            };
+            window.__TOS_IPC__(`webrtc_presence:${JSON.stringify(payload)}`);
+        }
+        this.render();
     }
 
     toggleSettingsModal(show) {
@@ -567,6 +588,23 @@ class TosUI {
                 }
 
                 this.state = JSON.parse(rawState);
+
+                // Handle Forced Follow-Mode Logic (§13.4)
+                if (this.followingId) {
+                    const activeSector = this.state.sectors[this.state.active_sector_index];
+                    if (activeSector && activeSector.participants) {
+                        const leader = activeSector.participants.find(p => p.id === this.followingId);
+                        if (leader) {
+                            const levelMap = { 1: 'global', 2: 'hubs', 3: 'sectors', 4: 'detail' };
+                            const targetMode = levelMap[leader.current_level];
+                            if (targetMode && targetMode !== this.currentMode) {
+                                console.log(`FOLLOW SYNC // TRANSITIONING TO ${targetMode.toUpperCase()}`);
+                                this.setMode(targetMode);
+                            }
+                        }
+                    }
+                }
+
                 this.render();
             } else {
                 // Fallback for standalone development (Mock data)
@@ -608,12 +646,19 @@ class TosUI {
         const title = document.getElementById('view-title');
         const footer = document.querySelector('.lcars-footer');
 
-        // Render Collaboration Indicators (6.4)
+        // Render Collaboration Indicators (§13, §6.4)
         const collabEl = document.querySelector('.collab-indicators');
-        if (collabEl && this.state.collab_presence) {
-            collabEl.innerHTML = this.state.collab_presence.map(u =>
-                `<div class="collab-dot" style="background: ${u.color}"></div>`
-            ).join('');
+        const activeSector = this.state.sectors[this.state.active_sector_index];
+        if (collabEl && activeSector && activeSector.participants) {
+            collabEl.innerHTML = activeSector.participants.map(p => {
+                const isFollowing = this.followingId === p.id;
+                return `
+                    <div class="collab-dot ${isFollowing ? 'following' : ''}" 
+                         style="background: var(--color-primary); cursor: pointer;" 
+                         title="${isFollowing ? 'STOP FOLLOWING' : 'FOLLOW'} ${p.alias.toUpperCase()}"
+                         onclick="window.tos.toggleFollow('${p.id}')">
+                    </div>`;
+            }).join('');
         }
 
         // Dynamic Slot Rendering

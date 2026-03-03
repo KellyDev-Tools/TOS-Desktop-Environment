@@ -118,4 +118,32 @@ impl MarketplaceService {
 
         public_key.verify(payload.as_bytes(), &signature).is_ok()
     }
+
+    /// Lists terminal modules installed in the system modules directory.
+    pub fn list_terminal_modules() -> Vec<crate::common::TerminalOutputModule> {
+        let mut modules = Vec::new();
+        let mut base_path = dirs::home_dir().unwrap_or_else(|| PathBuf::from("/tmp"));
+        base_path.push(".config/tos/modules/terminal");
+
+        if let Ok(entries) = std::fs::read_dir(base_path) {
+            for entry in entries.flatten() {
+                if let Ok(manifest) = Self::discover_module_local(entry.path()) {
+                    if manifest.module_type == "TerminalOutput" {
+                        modules.push(crate::common::TerminalOutputModule {
+                            id: manifest.id.clone(),
+                            name: manifest.name,
+                            version: manifest.version,
+                            layout: match manifest.id.as_str() {
+                                id if id.contains("cinematic") => crate::common::TerminalLayoutType::Cinematic,
+                                _ => crate::common::TerminalLayoutType::Rectangular,
+                            },
+                            supports_high_contrast: true,
+                            supports_reduced_motion: true,
+                        });
+                    }
+                }
+            }
+        }
+        modules
+    }
 }

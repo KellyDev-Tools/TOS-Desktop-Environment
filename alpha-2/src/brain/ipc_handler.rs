@@ -1,4 +1,5 @@
 use crate::common::{TosState, CommandHubMode, HierarchyLevel};
+use crate::services::MarketplaceService;
 use std::sync::{Arc, Mutex};
 use uuid::Uuid;
 use std::path::PathBuf;
@@ -375,6 +376,32 @@ impl IpcHandler {
     fn handle_set_terminal_module(&self, module_id: Option<&str>) -> String {
         if let Some(id) = module_id {
             let mut state = self.state.lock().unwrap();
+            
+            // Refresh available modules from disk
+            let mut modules = MarketplaceService::list_terminal_modules();
+            // Ensure built-ins are also there
+            if !modules.iter().any(|m| m.id == "tos-standard-rect") {
+                modules.push(crate::common::TerminalOutputModule {
+                    id: "tos-standard-rect".to_string(),
+                    name: "Standard Rectangular".to_string(),
+                    version: "1.0.0".to_string(),
+                    layout: crate::common::TerminalLayoutType::Rectangular,
+                    supports_high_contrast: true,
+                    supports_reduced_motion: true,
+                });
+            }
+            if !modules.iter().any(|m| m.id == "tos-cinematic-tri") {
+                modules.push(crate::common::TerminalOutputModule {
+                    id: "tos-cinematic-tri".to_string(),
+                    name: "Cinematic Triangular".to_string(),
+                    version: "1.0.0".to_string(),
+                    layout: crate::common::TerminalLayoutType::Cinematic,
+                    supports_high_contrast: false,
+                    supports_reduced_motion: false,
+                });
+            }
+            state.available_modules = modules;
+
             if state.available_modules.iter().any(|m| m.id == id) {
                 state.active_terminal_module = id.to_string();
                 return format!("TERMINAL_MODULE_SET: {}", id);

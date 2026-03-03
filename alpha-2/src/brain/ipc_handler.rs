@@ -60,6 +60,7 @@ impl IpcHandler {
             "get_state_delta" => self.handle_get_state_delta(args.get(0).copied()),
             "set_terminal_module" => self.handle_set_terminal_module(args.get(0).copied()),
             "set_theme" => self.handle_set_theme(args.get(0).copied()),
+            "market" => self.handle_market_command(payload),
             _ => "ERROR: Unknown prefix".to_string(),
         };
 
@@ -390,6 +391,21 @@ impl IpcHandler {
             }
         }
         "ERROR: Invalid theme ID".to_string()
+    }
+
+    fn handle_market_command(&self, payload: &str) -> String {
+        let args: Vec<&str> = payload.split(';').collect();
+        if args.is_empty() { return "ERROR: Empty market command".to_string(); }
+        
+        match args[0] {
+            "install" => {
+                if args.len() < 2 { return "ERROR: Missing module ID".to_string(); }
+                let module_id = args[1];
+                // Mock installation logic for Alpha-2.1
+                format!("INSTALLED: {}", module_id)
+            },
+            _ => format!("ERROR: Unknown market command: {}", args[0]),
+        }
     }
 
     fn handle_search(&self, query: &str) -> String {

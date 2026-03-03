@@ -231,6 +231,38 @@ class TosUI {
                     `).join('')}
                 </div>
             `;
+        } else if (this.settingsActiveTab === 'marketplace') {
+            html = `
+                <div class="settings-group">
+                    <div class="settings-group-title">TACTICAL MARKETPLACE // MODULE REPOSITORY</div>
+                    <div class="marketplace-grid" style="display:grid; grid-template-columns: 1fr; gap:1rem; margin-top:1rem">
+                        <div class="glass-panel" style="padding:1rem; border-left: 4px solid var(--color-primary)">
+                            <div style="font-weight:700">NEURAL TERMINAL OPS</div>
+                            <div style="font-size:0.8rem; opacity:0.7">ADVANCED AI-DRIVEN COMMAND PREDICTION</div>
+                            <div style="display:flex; justify-content:space-between; align-items:center; margin-top:0.5rem">
+                                <span class="status-badge active" style="font-size:0.6rem; border-radius: 0.25rem; padding: 0.1rem 0.4rem; background: var(--color-success); color: #000;">VERIFIED</span>
+                                <button class="lcars-btn" style="padding:0.2rem 1rem; background: var(--color-primary); color: #000; font-size: 0.8rem;" onclick="window.tos.handleCommand('market:install;neural-ops')">INSTALL</button>
+                            </div>
+                        </div>
+                        <div class="glass-panel" style="padding:1rem; border-left: 4px solid var(--color-accent)">
+                            <div style="font-weight:700">WARP DRIVE TELEMETRY</div>
+                            <div style="font-size:0.8rem; opacity:0.7">REAL-TIME ENGINE DIAGNOSTICS MODULE</div>
+                            <div style="display:flex; justify-content:space-between; align-items:center; margin-top:0.5rem">
+                                <span class="status-badge" style="font-size:0.6rem; border-radius: 0.25rem; padding: 0.1rem 0.4rem; border: 1px solid var(--color-accent); color: var(--color-accent);">EXPERIMENTAL</span>
+                                <button class="lcars-btn" style="padding:0.2rem 1rem; background: var(--color-primary); color: #000; font-size: 0.8rem;" onclick="window.tos.handleCommand('market:install;warp-telemetry')">INSTALL</button>
+                            </div>
+                        </div>
+                        <div class="glass-panel" style="padding:1rem; border-left: 4px solid var(--color-warning)">
+                            <div style="font-weight:700">BLACK HOLE VISUALIZER</div>
+                            <div style="font-size:0.8rem; opacity:0.7">SPATIAL ANOMALY RENDERING ENGINE</div>
+                            <div style="display:flex; justify-content:space-between; align-items:center; margin-top:0.5rem">
+                                <span class="status-badge" style="font-size:0.6rem; border-radius: 0.25rem; padding: 0.1rem 0.4rem; border: 1px solid var(--color-secondary); color: var(--color-secondary);">COMMUNITY</span>
+                                <button class="lcars-btn" style="padding:0.2rem 1rem; background: var(--color-primary); color: #000; font-size: 0.8rem;" onclick="window.tos.handleCommand('market:install;anomaly-viz')">INSTALL</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
         }
 
         pane.innerHTML = html;
@@ -410,6 +442,16 @@ class TosUI {
                 }
                 if (cmd === 'bezel:portal') {
                     this.togglePortalModal(true);
+                    return;
+                }
+
+                // Marketplace Interception
+                if (cmd.startsWith('market:')) {
+                    const response = await window.__TOS_IPC__(cmd);
+                    if (log) {
+                        log.innerText = `MARKET // ${response}`;
+                        log.style.color = 'var(--color-success)';
+                    }
                     return;
                 }
 

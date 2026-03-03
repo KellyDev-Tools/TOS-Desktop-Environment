@@ -3,6 +3,7 @@ use tokio::time::sleep;
 use tos_alpha2::services::settings::SettingsService;
 use tos_alpha2::services::logger::LoggerService;
 use tos_alpha2::services::marketplace::{MarketplaceService, ModuleManifest};
+use tos_alpha2::services::priority::PriorityService;
 use tos_alpha2::common::SettingsStore;
 use std::sync::Arc;
 use tokio::process::Command;
@@ -14,6 +15,7 @@ async fn test_service_extraction_lifecycle() -> anyhow::Result<()> {
     // 1. Test Fallback Mode (No daemons running)
     let settings = SettingsService::new();
     let logger = LoggerService::new();
+    let priority = PriorityService::new();
     
     println!("Testing fallback mode (Local I/O)...");
     let initial_settings = settings.load()?;
@@ -36,6 +38,11 @@ async fn test_service_extraction_lifecycle() -> anyhow::Result<()> {
         .spawn()?;
         
     let mut marketplaced = Command::new("./target/debug/tos-marketplaced")
+        .stdout(std::process::Stdio::inherit())
+        .stderr(std::process::Stdio::inherit())
+        .spawn()?;
+        
+    let mut priorityd = Command::new("./target/debug/tos-priorityd")
         .stdout(std::process::Stdio::inherit())
         .stderr(std::process::Stdio::inherit())
         .spawn()?;
@@ -75,11 +82,17 @@ async fn test_service_extraction_lifecycle() -> anyhow::Result<()> {
     // Should be invalid as signature is None
     assert!(!is_valid);
     println!("-> Marketplace Daemon verified.");
+    
+    // Priority Daemon Test
+    let score = priority.calculate_priority(uuid::Uuid::new_v4())?;
+    assert!(score.rank >= 1 && score.rank <= 5);
+    println!("-> Priority Daemon verified (Rank: {}).", score.rank);
 
     // Cleanup
     let _ = settingsd.kill().await;
     let _ = loggerd.kill().await;
     let _ = marketplaced.kill().await;
+    let _ = priorityd.kill().await;
 
     println!("\x1B[1;32mSERVICE EXTRACTION VERIFIED.\x1B[0m");
     Ok(())

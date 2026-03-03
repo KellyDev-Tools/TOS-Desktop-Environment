@@ -40,11 +40,100 @@ impl SectorManager {
             is_remote: false,
             disconnected: false,
             trust_tier: crate::common::TrustTier::System,
+            priority: 1,
+            active_apps: vec![],
+            active_app_index: 0,
             version: 0,
         };
 
         state.sectors.push(sector);
         sector_id
+    }
+
+    /// Create a sector from a predefined blueprint.
+    pub fn create_from_template(state: &mut TosState, template: crate::common::SectorTemplate) -> Uuid {
+        let sector_id = Uuid::new_v4();
+        let mut hubs = Vec::new();
+
+        for hub_tmpl in template.hubs {
+            let hub_id = Uuid::new_v4();
+            let cwd = PathBuf::from(hub_tmpl.cwd.replace("~", &dirs::home_dir().unwrap_or_default().to_string_lossy()));
+            
+            hubs.push(CommandHub {
+                id: hub_id,
+                mode: hub_tmpl.mode,
+                prompt: String::new(),
+                current_directory: cwd,
+                terminal_output: vec![],
+                buffer_limit: 500,
+                shell_listing: None,
+                activity_listing: None,
+                search_results: None,
+                staged_command: None,
+                ai_explanation: None,
+                json_context: None,
+                version: 0,
+            });
+        }
+
+        // Ensure at least one hub exists
+        if hubs.is_empty() {
+             Self::create_sector(state, template.name);
+             return sector_id;
+        }
+
+        let sector = Sector {
+            id: sector_id,
+            name: template.name,
+            hubs,
+            active_hub_index: 0,
+            frozen: false,
+            is_remote: false,
+            disconnected: false,
+            trust_tier: crate::common::TrustTier::Standard,
+            priority: 1,
+            active_apps: vec![],
+            active_app_index: 0,
+            version: 0,
+        };
+
+        state.sectors.push(sector);
+        sector_id
+    }
+
+    /// Launch a new application instance within a sector (§8.2).
+    pub fn launch_app(state: &mut TosState, sector_id: Uuid, model: crate::common::ApplicationModel) -> Uuid {
+        let app_id = Uuid::new_v4();
+        if let Some(sector) = state.sectors.iter_mut().find(|s| s.id == sector_id) {
+            sector.active_apps.push(crate::common::AppInstance {
+                id: app_id,
+                model_id: model.id,
+                title: model.name.clone(),
+                state_summary: "INITIALIZING".to_string(),
+            });
+            sector.active_app_index = sector.active_apps.len() - 1;
+            
+            // Automatic Zoom In to Level 3 (§1.1)
+            state.current_level = crate::common::HierarchyLevel::ApplicationFocus;
+            tracing::info!("Application {} launched in sector {}", model.name, sector_id);
+        }
+        app_id
+    }
+
+    /// Close an application instance and revert focus if needed (§8.2).
+    pub fn close_app(state: &mut TosState, sector_id: Uuid, app_id: Uuid) {
+        if let Some(sector) = state.sectors.iter_mut().find(|s| s.id == sector_id) {
+            sector.active_apps.retain(|a| a.id != app_id);
+            if sector.active_apps.is_empty() {
+                sector.active_app_index = 0;
+                // Zoom Out to Level 2 if no apps remain (§1.1)
+                if state.current_level == crate::common::HierarchyLevel::ApplicationFocus {
+                    state.current_level = crate::common::HierarchyLevel::CommandHub;
+                }
+            } else if sector.active_app_index >= sector.active_apps.len() {
+                sector.active_app_index = sector.active_apps.len() - 1;
+            }
+        }
     }
 
     /// Clone an existing sector, duplicating its state.

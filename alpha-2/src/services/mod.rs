@@ -7,6 +7,7 @@ pub mod ai;
 pub mod search;
 pub mod haptic;
 pub mod portal;
+pub mod priority;
 
 pub use logger::LoggerService;
 pub use settings::SettingsService;
@@ -16,6 +17,7 @@ pub use ai::AiService;
 pub use search::SearchService;
 pub use haptic::HapticService;
 pub use portal::PortalService;
+pub use priority::PriorityService;
 
 use std::sync::Arc; // Mutex unused after decoupling
 // use crate::common::TosState; // Unused after decoupling
@@ -28,6 +30,7 @@ pub struct ServiceManager {
     pub search: Arc<SearchService>,
     pub haptic: Arc<HapticService>,
     pub portal: Arc<PortalService>,
+    pub priority: Arc<PriorityService>,
 }
 
 impl ServiceManager {
@@ -39,6 +42,7 @@ impl ServiceManager {
         let search = Arc::new(SearchService::new());
         let haptic = Arc::new(HapticService::new());
         let portal = Arc::new(PortalService::new());
+        let priority = Arc::new(PriorityService::new());
         
         // Establish cross-service dependencies (e.g., logging triggers audio cues)
         logger.set_audio_service(audio.clone());
@@ -51,6 +55,7 @@ impl ServiceManager {
             search,
             haptic,
             portal,
+            priority,
         }
     }
     pub fn set_ipc(&self, ipc: std::sync::Arc<dyn crate::common::ipc_dispatcher::IpcDispatcher>) {

@@ -48,3 +48,7 @@ path = "src/bin/loggerd.rs"
 [[bin]]
 name = "tos-marketplaced"
 path = "src/bin/marketplaced.rs"
+
+[[bin]]
+name = "tos-priorityd"
+path = "src/bin/priorityd.rs"

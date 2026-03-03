@@ -37,6 +37,64 @@ pub struct ConfirmationRequest {
     pub message: String,
     pub progress: f32, // 0.0 to 1.0 for tactile slider
 }
+/// Blueprint for custom application integration at Level 3.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ApplicationModel {
+    pub id: String,
+    pub name: String,
+    pub version: String,
+    pub icon: String,
+    pub bezel_actions: Vec<BezelAction>,
+    pub decoration_policy: DecorationPolicy,
+    pub zoom_behavior: ZoomBehavior,
+    pub searchable_content: bool,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct BezelAction {
+    pub label: String,
+    pub icon: String,
+    pub command: String,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+pub enum DecorationPolicy {
+    Suppress,
+    Overlay,
+    Native,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+pub enum ZoomBehavior {
+    Internal,
+    System,
+}
+
+/// An active instance of an application within a sector.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct AppInstance {
+    pub id: Uuid,
+    pub model_id: String,
+    pub title: String,
+    pub state_summary: String,
+}
+
+/// Blueprint for creating pre-configured workspaces.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct SectorTemplate {
+    pub name: String,
+    pub description: String,
+    pub environment: std::collections::HashMap<String, String>,
+    pub hubs: Vec<HubTemplate>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct HubTemplate {
+    pub mode: CommandHubMode,
+    pub cwd: String,
+    pub shell: String,
+}
+
 /// Sectors and the hierarchical tree model structure.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Sector {
@@ -48,6 +106,9 @@ pub struct Sector {
     pub is_remote: bool, // Remote vs Local status
     pub disconnected: bool, // Connection status for remote sectors
     pub trust_tier: TrustTier,
+    pub priority: u8, // Tactical Priority (1-5)
+    pub active_apps: Vec<AppInstance>,
+    pub active_app_index: usize,
     pub version: u64,
 }
 
@@ -187,6 +248,9 @@ impl Default for TosState {
             is_remote: false,
             disconnected: false,
             trust_tier: TrustTier::System,
+            priority: 1,
+            active_apps: vec![],
+            active_app_index: 0,
             version: 0,
         };
 

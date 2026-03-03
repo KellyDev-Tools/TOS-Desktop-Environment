@@ -1,4 +1,4 @@
-use std::io::{Read, Write, BufRead, BufReader};
+use std::io::{Write, BufRead, BufReader};
 use std::net::TcpStream;
 use std::collections::HashMap;
 use crate::common::SettingsStore;
@@ -23,7 +23,7 @@ impl SettingsService {
     pub fn save(&self, settings: &SettingsStore) -> anyhow::Result<()> {
         if let Ok(mut stream) = TcpStream::connect_timeout(&self.daemon_addr.parse().unwrap(), std::time::Duration::from_millis(100)) {
             let json = serde_json::to_string(settings)?;
-            let _ = stream.write_all(b"save\n");
+            let _ = stream.write_all(format!("save:{}\n", json).as_bytes());
             return Ok(());
         }
 

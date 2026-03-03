@@ -91,7 +91,7 @@ async fn handle_client(mut socket: TcpStream, service: Arc<SettingsService>, set
                     let _ = service.save(&*lock);
                     
                     // §2.7: Notify Brain of external setting change
-                    if let Ok(mut brain_stream) = std::net::TcpStream::connect("127.0.0.1:7000") {
+                    if let Ok(mut brain_stream) = std::net::TcpStream::connect_timeout(&"127.0.0.1:7000".parse().unwrap(), std::time::Duration::from_millis(50)) {
                         let _ = brain_stream.write_all(format!("set_setting:{};{}\n", key, val).as_bytes());
                     }
 

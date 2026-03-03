@@ -19,7 +19,7 @@ pub struct MarketplaceService;
 
 impl MarketplaceService {
     /// Discover module in a directory. Attempts to use Marketplace Daemon first.
-    pub fn discover_module(mut path: PathBuf) -> anyhow::Result<ModuleManifest> {
+    pub fn discover_module(path: PathBuf) -> anyhow::Result<ModuleManifest> {
         let path_str = path.to_string_lossy().to_string();
         if let Ok(mut stream) = std::net::TcpStream::connect_timeout(&"127.0.0.1:7004".parse().unwrap(), std::time::Duration::from_millis(100)) {
             use std::io::{Write, BufRead, BufReader};
@@ -32,7 +32,11 @@ impl MarketplaceService {
                 }
             }
         }
+        Self::discover_module_local(path)
+    }
 
+    /// Discover module in a directory, bypassing daemon check.
+    pub fn discover_module_local(mut path: PathBuf) -> anyhow::Result<ModuleManifest> {
         path.push("module.toml");
         let content = std::fs::read_to_string(&path)?;
         let manifest: ModuleManifest = toml::from_str(&content)?;
@@ -63,7 +67,11 @@ impl MarketplaceService {
                 if response.trim() == "INVALID" { return false; }
             }
         }
+        Self::verify_manifest_local(manifest, public_key)
+    }
 
+    /// Verifies the cryptographic signature of a module manifest, bypassing daemon check.
+    pub fn verify_manifest_local(manifest: &ModuleManifest, public_key: &VerifyingKey) -> bool {
         let sig_hex = match &manifest.signature {
             Some(s) => s,
             None => return false,

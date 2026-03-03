@@ -54,12 +54,28 @@ impl Brain {
         
         // Spawn the background logic thread for state heartbeats
         let state_clock = state.clone();
+        let svc_clock = services.clone();
         thread::spawn(move || {
+            let mut tick = 0;
             loop {
                 thread::sleep(std::time::Duration::from_secs(1));
+                tick += 1;
+                
                 if let Ok(mut lock) = state_clock.lock() {
                     lock.brain_time = chrono::Local::now().format("%H:%M:%S").to_string();
                     lock.version += 1;
+
+                    // Refresh tactical priorities every 5 ticks (§21)
+                    if tick % 5 == 0 {
+                        let sector_ids: Vec<uuid::Uuid> = lock.sectors.iter().map(|s| s.id).collect();
+                        for sid in sector_ids {
+                            if let Ok(score) = svc_clock.priority.calculate_priority(sid) {
+                                if let Some(sector) = lock.sectors.iter_mut().find(|s| s.id == sid) {
+                                    sector.priority = score.rank;
+                                }
+                            }
+                        }
+                    }
                 }
             }
         });

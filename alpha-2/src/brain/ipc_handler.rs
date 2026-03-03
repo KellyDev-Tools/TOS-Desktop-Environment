@@ -37,9 +37,12 @@ impl IpcHandler {
             "set_setting" => self.handle_set_setting(args.get(0).copied(), args.get(1).copied()),
             "set_sector_setting" => self.handle_set_sector_setting(args.get(0).copied(), args.get(1).copied(), args.get(2).copied()),
             "sector_create" => self.handle_sector_create(args.get(0).copied()),
+            "sector_create_from_template" => self.handle_sector_create_from_template(payload),
             "sector_clone" => self.handle_sector_clone(args.get(0).copied()),
             "sector_close" => self.handle_sector_close(args.get(0).copied()),
             "sector_freeze" => self.handle_sector_freeze(args.get(0).copied()),
+            "app_launch" => self.handle_app_launch(payload),
+            "app_close" => self.handle_app_close(args.get(0).copied(), args.get(1).copied()),
             "search" => self.handle_search(payload),
             "semantic_search" => self.handle_semantic_search(payload),
             "prompt_submit" => self.handle_prompt_submit(payload), 
@@ -48,10 +51,12 @@ impl IpcHandler {
             "ai_suggestion_accept" => self.handle_ai_suggestion_accept(),
             "ai_stage_command" => self.handle_ai_stage_command(payload),
             "system_log_append" => self.handle_system_log_append(args.get(0).copied(), args.get(1).copied()),
+            "log_query" => self.handle_log_query(payload),
             "play_earcon" => self.handle_play_earcon(args.get(0).copied()),
             "trigger_haptic" => self.handle_trigger_haptic(args.get(0).copied()),
             "portal_create" => self.handle_portal_create(),
             "portal_revoke" => self.handle_portal_revoke(args.get(0).copied()),
+            "get_sector_templates" => self.handle_get_sector_templates(),
             "get_state_delta" => self.handle_get_state_delta(args.get(0).copied()),
             _ => "ERROR: Unknown prefix".to_string(),
         };
@@ -265,6 +270,48 @@ impl IpcHandler {
         format!("SECTOR_CREATED: {}", name)
     }
 
+    fn handle_sector_create_from_template(&self, json_payload: &str) -> String {
+        let template: crate::common::SectorTemplate = match serde_json::from_str(json_payload) {
+            Ok(t) => t,
+            Err(e) => return format!("ERROR: Invalid template JSON: {}", e),
+        };
+
+        let mut state = self.state.lock().unwrap();
+        let name = template.name.clone();
+        crate::brain::sector::SectorManager::create_from_template(&mut state, template);
+        format!("SECTOR_CREATED_FROM_TEMPLATE: {}", name)
+    }
+
+    fn handle_get_sector_templates(&self) -> String {
+        // Built-in templates for Alpha-2.1
+        let mut templates = Vec::new();
+        
+        // 1. Rust Development
+        let mut env = std::collections::HashMap::new();
+        env.insert("RUST_LOG".to_string(), "info".to_string());
+        templates.push(crate::common::SectorTemplate {
+            name: "Rust Dev".to_string(),
+            description: "Pre-configured for Rust development with Dual-Hub layout.".to_string(),
+            environment: env,
+            hubs: vec![
+                crate::common::HubTemplate { mode: crate::common::CommandHubMode::Command, cwd: "~/".to_string(), shell: "fish".to_string() },
+                crate::common::HubTemplate { mode: crate::common::CommandHubMode::Directory, cwd: "~/".to_string(), shell: "fish".to_string() },
+            ],
+        });
+
+        // 2. Monitoring
+        templates.push(crate::common::SectorTemplate {
+            name: "Tactical Monitoring".to_string(),
+            description: "System telemetry and log aggregation.".to_string(),
+            environment: std::collections::HashMap::new(),
+            hubs: vec![
+                crate::common::HubTemplate { mode: crate::common::CommandHubMode::Activity, cwd: "/".to_string(), shell: "bash".to_string() },
+            ],
+        });
+
+        serde_json::to_string(&templates).unwrap_or_else(|_| "ERROR: Serialization failed".to_string())
+    }
+
     fn handle_sector_clone(&self, id_str: Option<&str>) -> String {
         if let Some(id_str) = id_str {
             if let Ok(id) = Uuid::parse_str(id_str) {
@@ -296,6 +343,29 @@ impl IpcHandler {
             }
         }
         "ERROR: Invalid sector ID for freeze".to_string()
+    }
+
+    fn handle_app_launch(&self, json_payload: &str) -> String {
+        let model: crate::common::ApplicationModel = match serde_json::from_str(json_payload) {
+            Ok(m) => m,
+            Err(e) => return format!("ERROR: Invalid app model JSON: {}", e),
+        };
+
+        let mut state = self.state.lock().unwrap();
+        let sector_id = state.sectors[state.active_sector_index].id;
+        let app_id = crate::brain::sector::SectorManager::launch_app(&mut state, sector_id, model);
+        format!("APP_LAUNCHED: {}", app_id)
+    }
+
+    fn handle_app_close(&self, sector_id_str: Option<&str>, app_id_str: Option<&str>) -> String {
+        if let (Some(s_id), Some(a_id)) = (sector_id_str, app_id_str) {
+            if let (Ok(s_uuid), Ok(a_uuid)) = (Uuid::parse_str(s_id), Uuid::parse_str(a_id)) {
+                let mut state = self.state.lock().unwrap();
+                crate::brain::sector::SectorManager::close_app(&mut state, s_uuid, a_uuid);
+                return format!("APP_CLOSED: {}", a_uuid);
+            }
+        }
+        "ERROR: Invalid IDs for app close".to_string()
     }
 
     fn handle_search(&self, query: &str) -> String {
@@ -466,6 +536,24 @@ impl IpcHandler {
             return format!("PORTAL_REVOKED: {}", t);
         }
         "ERROR: Token required".to_string()
+    }
+
+    fn handle_log_query(&self, json_payload: &str) -> String {
+        #[derive(serde::Deserialize)]
+        struct QueryParams {
+            surface: Option<String>,
+            limit: Option<usize>,
+        }
+        
+        let params: QueryParams = match serde_json::from_str(json_payload) {
+            Ok(p) => p,
+            Err(_) => QueryParams { surface: None, limit: None }, // Fallback to defaults
+        };
+
+        match self.services.logger.query(params.surface.as_deref(), params.limit) {
+            Ok(response) => response,
+            Err(e) => format!("ERROR: Log query failed: {}", e),
+        }
     }
 
     fn handle_get_state_delta(&self, last_version_str: Option<&str>) -> String {

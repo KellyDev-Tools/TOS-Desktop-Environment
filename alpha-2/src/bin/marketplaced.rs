@@ -1,6 +1,6 @@
 use tokio::net::{TcpListener};
 use tokio::io::{AsyncBufReadExt, BufReader, AsyncWriteExt};
-use std::sync::{Arc};
+
 use tos_alpha2::services::marketplace::MarketplaceService;
 
 #[tokio::main]
@@ -50,7 +50,7 @@ async fn handle_client(mut socket: tokio::net::TcpStream) -> anyhow::Result<()> 
         let response = match prefix {
             "discover" => {
                 let path = std::path::PathBuf::from(args[0]);
-                match MarketplaceService::discover_module(path) {
+                match MarketplaceService::discover_module_local(path) {
                     Ok(m) => serde_json::to_string(&m).unwrap_or_else(|_| "ERROR: Serialization failed".to_string()),
                     Err(e) => format!("ERROR: {}", e),
                 }
@@ -61,7 +61,7 @@ async fn handle_client(mut socket: tokio::net::TcpStream) -> anyhow::Result<()> 
                     Ok(m) => {
                          match MarketplaceService::get_trusted_public_key() {
                              Ok(pk) => {
-                                 if MarketplaceService::verify_manifest(&m, &pk) {
+                                 if MarketplaceService::verify_manifest_local(&m, &pk) {
                                      "VALID".to_string()
                                  } else {
                                      "INVALID".to_string()

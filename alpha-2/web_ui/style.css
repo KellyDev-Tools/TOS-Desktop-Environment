@@ -1081,3 +1081,240 @@ h1 {
     background: linear-gradient(135deg, #cc0000, transparent 70%);
     opacity: 0.3 !important;
 }
+
+/* System Output Area (Level 1 Middle Layer) */
+#system-output-area {
+    position: absolute;
+    top: 1.5625rem;
+    left: 1.5625rem;
+    right: 1.5625rem;
+    bottom: 0;
+    font-family: var(--font-mono);
+    font-size: 0.8rem;
+    padding: 1rem;
+    color: var(--lcars-green);
+    opacity: 0.3;
+    z-index: 1;
+    overflow-y: auto;
+    transition: var(--transition-smooth);
+    background: rgba(0, 0, 0, 0.4);
+    border-radius: var(--panel-radius);
+    scrollbar-width: none;
+    pointer-events: none;
+}
+
+#system-output-area::-webkit-scrollbar {
+    display: none;
+}
+
+#system-output-area.brought-to-front {
+    z-index: 10;
+    opacity: 0.9;
+    background: rgba(0, 0, 0, 0.8);
+    pointer-events: auto;
+}
+
+#state-render-target {
+    position: relative;
+    z-index: 5;
+    height: 100%;
+    transition: var(--transition-smooth);
+}
+
+.view-global #state-render-target.dimmed {
+    opacity: 0.2;
+    filter: blur(4px);
+}
+
+/* System Log Entries */
+.log-entry {
+    margin-bottom: 0.25rem;
+    display: flex;
+    gap: 1rem;
+}
+
+.log-timestamp {
+    color: var(--lcars-orange);
+    opacity: 0.6;
+}
+
+.log-prefix {
+    color: var(--lcars-blue);
+    font-weight: 700;
+}
+
+.log-priority-3 {
+    color: var(--lcars-red);
+}
+
+.log-priority-2 {
+    color: var(--lcars-orange);
+}
+
+.log-priority-1 {
+    color: var(--lcars-green);
+}
+
+/* Kinetic Zoom Transitions (§2.1 & §6.3) */
+@keyframes recursive-zoom-in {
+    0% {
+        transform: scale(1);
+        opacity: 1;
+        filter: blur(0);
+    }
+
+    100% {
+        transform: scale(2);
+        opacity: 0;
+        filter: blur(10px);
+    }
+}
+
+@keyframes recursive-zoom-out {
+    0% {
+        transform: scale(0.5);
+        opacity: 0;
+        filter: blur(10px);
+    }
+
+    100% {
+        transform: scale(1);
+        opacity: 1;
+        filter: blur(0);
+    }
+}
+
+@keyframes tile-expand {
+    0% {
+        border-width: 0.25rem;
+    }
+
+    100% {
+        border-width: 1.5rem;
+        transform: scale(1.1);
+        box-shadow: 0 0 50px var(--color-accent);
+    }
+}
+
+#state-render-target.transitioning {
+    pointer-events: none;
+}
+
+/* Zoom In: Global -> Hub */
+.view-global.transitioning #state-render-target {
+    animation: recursive-zoom-in 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.view-hubs:not(.transitioning) #state-render-target {
+    animation: recursive-zoom-out 0.5s cubic-bezier(0.16, 1, 0.3, 1) backwards;
+}
+
+/* Background Depth Control */
+.view-hubs .tri-module,
+.view-hubs #system-output-area {
+    filter: blur(15px);
+    opacity: 0.05;
+    transform: translateZ(-100px);
+}
+
+.sector-tile.expanding {
+    animation: tile-expand 0.4s forwards;
+    z-index: 1000;
+    position: relative;
+}
+
+/* Tiered Thumbnailing System (§1.2) */
+.sector-thumbnail {
+    width: 100%;
+    height: 5rem;
+    background: #000;
+    border-radius: 0.25rem;
+    margin-bottom: 0.5rem;
+    overflow: hidden;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.sector-thumbnail img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    opacity: 0.7;
+    transition: var(--transition-smooth);
+}
+
+.sector-tile:hover .sector-thumbnail img {
+    opacity: 1;
+    transform: scale(1.05);
+}
+
+.symbolic-placeholder {
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(135deg, rgba(255, 255, 255, 0.05) 25%, transparent 25%, transparent 50%, rgba(255, 255, 255, 0.05) 50%, rgba(255, 255, 255, 0.05) 75%, transparent 75%, transparent);
+    background-size: 20px 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--color-primary);
+    font-size: 0.6rem;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    opacity: 0.3;
+}
+
+.inactive-chip {
+    opacity: 0.5;
+    filter: grayscale(1);
+    border-style: dotted !important;
+}
+
+/* Tactical Context Menu (§6.5) */
+.context-menu {
+    position: fixed;
+    z-index: 3000;
+    width: 12.5rem;
+    padding: 0;
+    border: 1px solid var(--color-primary);
+    box-shadow: 0 1rem 3rem rgba(0, 0, 0, 0.8);
+    display: flex;
+    flex-direction: column;
+}
+
+.context-menu.hidden {
+    display: none;
+}
+
+.menu-header {
+    background: var(--color-primary);
+    color: #000;
+    padding: 0.5rem;
+    font-size: 0.7rem;
+    font-weight: 700;
+    letter-spacing: 1px;
+}
+
+.menu-item {
+    background: transparent;
+    border: none;
+    color: var(--color-text);
+    padding: 0.75rem 1rem;
+    text-align: left;
+    font-size: 0.75rem;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+
+.menu-item:hover {
+    background: rgba(255, 255, 255, 0.1);
+    color: var(--color-accent);
+}
+
+.menu-item.alt {
+    color: var(--color-primary);
+}
+
+.menu-divider {
+    height: 1px;
+    background: rgba(255, 255, 255, 0.1);
+    margin: 0.25rem 0;
+}

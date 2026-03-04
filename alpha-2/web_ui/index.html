@@ -32,6 +32,8 @@
                 </div>
 
                 <div id="top-right-slots" class="top-bezel-slots-right">
+                    <button class="v-btn bezel-btn" id="bezel-term-toggle" title="Bring Terminal to Front"
+                        style="background: var(--lcars-green); color: #000;">LOG</button>
                     <button class="v-btn bezel-btn" id="bezel-expand-right" title="Toggle Right Sidebar">▶</button>
                     <!-- System Controls (Status Badges) land here -->
                 </div>
@@ -71,9 +73,12 @@
                                 <button class="v-btn" id="zoom-out">-</button>
                             </div>
                         </div>
-                        <div class="viewport-body" id="state-render-target">
-                            <!-- State-driven components land here -->
-                            <div class="loading-state">SYNCHRONIZING WITH BRAIN...</div>
+                        <div class="viewport-body">
+                            <div id="system-output-area" class="system-output-hidden"></div>
+                            <div id="state-render-target">
+                                <!-- State-driven components land here -->
+                                <div class="loading-state">SYNCHRONIZING WITH BRAIN...</div>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -160,6 +165,27 @@
                 <div class="lcars-elbow bottom-right" style="background: var(--color-secondary);"></div>
             </div>
         </div>
+    </div>
+
+    <!-- Tactical Context Menu (§6.5) -->
+    <div id="context-menu" class="context-menu hidden glass-panel">
+        <div class="menu-header">SECTOR MANAGEMENT</div>
+        <button class="menu-item" data-action="close">CLOSE SECTOR</button>
+        <button class="menu-item" data-action="freeze">FREEZE SECTOR</button>
+        <button class="menu-item" data-action="clone">CLONE SECTOR</button>
+        <div class="menu-divider"></div>
+        <button class="menu-item alt" data-action="inspect">INSPECT DETAILS</button>
+    </div>
+
+    <!-- Process Context Menu (§7.3) -->
+    <div id="process-context-menu" class="context-menu hidden glass-panel">
+        <div class="menu-header">PROCESS CONTROL</div>
+        <button class="menu-item" data-action="sigint">SIGNAL: SIGINT</button>
+        <button class="menu-item" data-action="sigterm">SIGNAL: SIGTERM</button>
+        <button class="menu-item" data-action="sigkill">SIGNAL: SIGKILL</button>
+        <div class="menu-divider"></div>
+        <button class="menu-item" data-action="renice">ADJUST PRIORITY (RENICE)</button>
+        <button class="menu-item alt" data-action="inspect">DEEP INSPECTION</button>
     </div>
 
     <script src="app.js?v=2.1.2"></script>

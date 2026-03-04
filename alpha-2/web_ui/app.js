@@ -15,7 +15,9 @@ class TosUI {
         // Alpha-2.1 UI State (Symmetrical Bezel Segments)
         // Alpha-2.1 UI State (Configurable Slot Architecture)
         this.sidebarExpanded = false;
-        this.sidebarRightExpanded = false;
+        this.activeSectorContextIndex = null;
+        this.activeProcessContextPid = null;
+        this.longPressTimer = null;
 
         this.componentStates = {
             minimap: { projected: false },
@@ -134,6 +136,28 @@ class TosUI {
         // 6.4 Bezel Commands
         document.getElementById('bezel-expand-left')?.addEventListener('click', () => this.toggleSidebar());
         document.getElementById('bezel-expand-right')?.addEventListener('click', () => this.toggleSidebarRight());
+        document.getElementById('bezel-term-toggle')?.addEventListener('click', () => this.toggleTerminalToFront());
+
+        // Context Menu Interaction
+        document.querySelectorAll('.menu-item').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const action = btn.dataset.action;
+                this.handleContextMenuAction(action);
+            });
+        });
+
+        document.addEventListener('click', (e) => {
+            if (!e.target.closest('.context-menu')) this.hideContextMenu();
+        });
+
+        // Process Context Menu Interaction
+        document.querySelectorAll('#process-context-menu .menu-item').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const action = btn.dataset.action;
+                this.handleProcessContextMenuAction(action);
+            });
+        });
+
 
         // §13.7 WebRTC Cursor Tracking
         document.addEventListener('mousemove', (e) => {
@@ -390,6 +414,96 @@ class TosUI {
         if (sidebar) sidebar.classList.toggle('expanded', this.sidebarRightExpanded);
     }
 
+    toggleTerminalToFront() {
+        this.termToFront = !this.termToFront;
+        this.render();
+        this.playEarcon('nav_switch');
+    }
+
+    handleSectorContextMenu(e, index) {
+        e.preventDefault();
+        this.activeSectorContextIndex = index;
+        const menu = document.getElementById('context-menu');
+        if (!menu) return;
+
+        menu.classList.remove('hidden');
+        menu.style.left = `${e.clientX}px`;
+        menu.style.top = `${e.clientY}px`;
+        this.triggerHaptic('click');
+    }
+
+    hideContextMenu() {
+        document.getElementById('context-menu')?.classList.add('hidden');
+        document.getElementById('process-context-menu')?.classList.add('hidden');
+        this.activeSectorContextIndex = null;
+        this.activeProcessContextPid = null;
+    }
+
+    handleActivityContextMenu(e, pid) {
+        e.preventDefault();
+        this.activeProcessContextPid = pid;
+        const menu = document.getElementById('process-context-menu');
+        if (!menu) return;
+
+        menu.classList.remove('hidden');
+        menu.style.left = `${e.clientX}px`;
+        menu.style.top = `${e.clientY}px`;
+        this.triggerHaptic('click');
+    }
+
+    async handleProcessContextMenuAction(action) {
+        if (this.activeProcessContextPid === null) return;
+        const pid = this.activeProcessContextPid;
+
+        console.log(`[TOS UI] Process Action: ${action} on ${pid}`);
+
+        if (action.startsWith('sig')) {
+            const signal = action.toUpperCase();
+            await window.__TOS_IPC__(`signal_app:${pid};${signal}`);
+        } else if (action === 'renice') {
+            await window.__TOS_IPC__(`renice_app:${pid};10`); // Example increment
+        } else if (action === 'inspect') {
+            await window.__TOS_IPC__(`inspect_app:${pid}`);
+            this.setMode('detail');
+        }
+
+        this.hideContextMenu();
+        this.syncState();
+    }
+
+    startLongPress(e, type, id) {
+        this.longPressTimer = setTimeout(() => {
+            if (type === 'sector') this.handleSectorContextMenu(e, id);
+            if (type === 'process') this.handleActivityContextMenu(e, id);
+        }, 700);
+    }
+
+    cancelLongPress() {
+        clearTimeout(this.longPressTimer);
+    }
+
+    async handleContextMenuAction(action) {
+        if (this.activeSectorContextIndex === null) return;
+        const sector = this.state.sectors[this.activeSectorContextIndex];
+        const sectorId = sector ? sector.id : this.activeSectorContextIndex;
+
+        console.log(`[TOS UI] Sector Action: ${action} on ${sectorId}`);
+
+        if (action === 'close') {
+            await window.__TOS_IPC__(`sector_close:${sectorId}`);
+        } else if (action === 'freeze') {
+            await window.__TOS_IPC__(`sector_freeze:${sectorId}`);
+        } else if (action === 'clone') {
+            await window.__TOS_IPC__(`sector_clone:${sectorId}`);
+        } else if (action === 'inspect') {
+            this.state.active_sector_index = this.activeSectorContextIndex;
+            this.setMode('detail');
+        }
+
+        this.hideContextMenu();
+        this.syncState();
+    }
+
     async setMode(mode) {
         const target = document.getElementById('state-render-target');
         if (target) target.classList.add('transitioning');
@@ -504,6 +618,10 @@ class TosUI {
                     this.togglePortalModal(true);
                     return;
                 }
+                if (cmd === 'bezel:term-toggle') {
+                    this.toggleTerminalToFront();
+                    return;
+                }
 
                 // Marketplace Interception
                 if (cmd.startsWith('market:')) {
@@ -571,6 +689,9 @@ class TosUI {
 
         // Optimistic UI state update for the mock prototype
         if (this.state && this.state.sectors[index]) {
+            const tiles = document.querySelectorAll('.sector-tile');
+            if (tiles[index]) tiles[index].classList.add('expanding');
+
             this.state.active_sector_index = index;
             this.setMode('hubs');
         }
@@ -664,6 +785,9 @@ class TosUI {
         // Dynamic Slot Rendering
         this.renderAllSlots();
 
+        // Render System Output Area (Level 1 Middle Layer)
+        this.renderSystemOutput();
+
         if (!target || !title) return;
 
         if (this.currentMode === 'global') {
@@ -671,7 +795,17 @@ class TosUI {
             target.innerHTML = `
                 <div class="state-grid">
                     ${this.state.sectors.map((s, i) => `
-                        <div class="sector-tile ${i === this.state.active_sector_index ? 'active' : ''}" onclick="window.tos.handleSectorClick(${i})">
+                        <div class="sector-tile ${i === this.state.active_sector_index ? 'active' : ''}" 
+                             onclick="window.tos.handleSectorClick(${i})"
+                             oncontextmenu="window.tos.handleSectorContextMenu(event, ${i})"
+                             onmousedown="window.tos.startLongPress(event, 'sector', ${i})"
+                             onmouseup="window.tos.cancelLongPress()"
+                             onmouseleave="window.tos.cancelLongPress()"
+                             ontouchstart="window.tos.startLongPress(event.touches[0], 'sector', ${i})"
+                             ontouchend="window.tos.cancelLongPress()">
+                            <div class="sector-thumbnail">
+                                ${s.snapshot ? `<img src="${s.snapshot}" alt="Sector View">` : `<div class="symbolic-placeholder">NO ACTIVE FEED</div>`}
+                            </div>
                             <div style="font-size: 0.7rem; opacity: 0.6">S0${i}</div>
                             <div style="font-family: var(--font-display); font-weight: 700; color: var(--color-primary)">${s.name.toUpperCase()}</div>
                             <div style="font-size: 0.8rem; margin-top: 0.3125rem">TYPE: ${s.type ? s.type.toUpperCase() : 'STANDARD'}</div>
@@ -737,23 +871,33 @@ class TosUI {
                         <div class="activity-chip-stack">
                             <div class="chip-title" style="color: var(--color-warning)">SYSTEM ACTIVITY LUNGS // RECENT</div>
                             <div style="overflow-y: auto; flex-grow: 1; padding-right: 0.5rem;">
-                                ${act.processes.slice(0, 10).map(p => `
-                                    <div class="context-chip glass-panel activity-chip ${p.snapshot ? 'has-snapshot' : ''}" style="margin-bottom: 0.75rem; flex-direction: row; align-items: center; justify-content: space-between; min-height: 4rem;">
+                                ${act.processes.slice(0, 10).map(p => {
+                        const isRunning = p.status !== 'stopped' && p.status !== 'sleeping';
+                        const chipClass = isRunning ? '' : 'inactive-chip';
+                        return `
+                                    <div class="context-chip glass-panel activity-chip ${chipClass} ${p.snapshot ? 'has-snapshot' : ''}" style="margin-bottom: 0.75rem; flex-direction: row; align-items: center; justify-content: space-between; min-height: 4rem;"
+                                         oncontextmenu="window.tos.handleActivityContextMenu(event, ${p.pid})"
+                                         onmousedown="window.tos.startLongPress(event, 'process', ${p.pid})"
+                                         onmouseup="window.tos.cancelLongPress()"
+                                         onmouseleave="window.tos.cancelLongPress()"
+                                         ontouchstart="window.tos.startLongPress(event.touches[0], 'process', ${p.pid})"
+                                         ontouchend="window.tos.cancelLongPress()">
                                         <div class="process-meta">
                                             <div class="chip-row"><strong style="color: var(--color-accent)">PID ${p.pid}:</strong> ${p.name.toUpperCase()}</div>
                                             <div class="chip-row" style="font-size: 0.75rem; opacity: 0.7; font-family: var(--font-mono)">CPU: ${p.cpu_usage.toFixed(1)}% | MEM: ${(p.mem_usage / 1024 / 1024).toFixed(1)} MB</div>
                                         </div>
-                                        ${p.snapshot ? `
+                                        ${p.snapshot && isRunning ? `
                                             <div class="process-snapshot" style="width: 4rem; height: 2.5rem; border: 1px solid rgba(255,255,255,0.1); border-radius: 0.25rem; overflow: hidden; background: #000; display: flex; align-items: center; justify-content: center;">
                                                 <img src="${p.snapshot}" style="width: 100%; height: 100%; object-fit: cover; opacity: 0.8;" alt="Process View" />
                                             </div>
                                         ` : `
                                             <div class="process-snapshot" style="width: 4rem; height: 2.5rem; border: 1px solid rgba(255,255,255,0.05); border-radius: 0.25rem; background: rgba(0,0,0,0.3); display: flex; align-items:center; justify-content:center; font-size: 0.5rem; color: rgba(255,255,255,0.2)">
-                                                NO FRAME
+                                                ${isRunning ? '<div class="symbolic-placeholder" style="font-size: 0.4rem;">GENERIC</div>' : (p.icon ? `<img src="${p.icon}" style="width: 50%; opacity: 0.5" />` : 'IDLE')}
                                             </div>
                                         `}
                                     </div>
-                                `).join('')}
+                                `;
+                    }).join('')}
                             </div>
                         </div>
                     `;
@@ -880,6 +1024,32 @@ class TosUI {
 
             container.innerHTML = this.slotConfigs[slotId].map(compId => this.renderComponent(compId)).join('');
         });
+    }
+
+    renderSystemOutput() {
+        const area = document.getElementById('system-output-area');
+        const target = document.getElementById('state-render-target');
+        if (!area || !target) return;
+
+        area.classList.toggle('brought-to-front', this.termToFront);
+        target.classList.toggle('dimmed', this.termToFront);
+
+        if (this.state && this.state.system_log) {
+            area.innerHTML = this.state.system_log.map(log => {
+                const timestamp = log.timestamp ? log.timestamp.split('T')[1].split('.')[0] : '--:--:--';
+                const priorityClass = `log-priority-${log.priority || 1}`;
+                return `
+                    <div class="log-entry ${priorityClass}">
+                        <span class="log-timestamp">[${timestamp}]</span>
+                        <span class="log-prefix">SYS_BRAIN //</span>
+                        <span class="log-text">${log.text.toUpperCase()}</span>
+                    </div>
+                `;
+            }).join('');
+
+            // Auto-scroll to bottom
+            area.scrollTop = area.scrollHeight;
+        }
     }
 
     renderComponent(id) {

@@ -57,8 +57,21 @@ test.describe('TOS Alpha-2.1 UI Component Paces', () => {
 
     test('should toggle bezel commands', async ({ page }) => {
         const terminalToggle = page.locator('#bezel-term-toggle');
+        await expect(terminalToggle).toBeVisible();
         await terminalToggle.click();
-        // Bezel commands currently trigger console logs in this prototype stage
-        // In a full implementation, we'd verify layer ordering changes here
+
+        // Verify layer ordering changes (Spec 6)
+        const area = page.locator('#system-output-area');
+        await expect(area).toHaveClass(/brought-to-front/);
+
+        const target = page.locator('#state-render-target');
+        await expect(target).toHaveClass(/dimmed/);
+    });
+
+    test('should render system log in background', async ({ page }) => {
+        const area = page.locator('#system-output-area');
+        await expect(area).toBeVisible();
+        // Since it's behind, we check if it has content (mock state has one entry)
+        await expect(area).toContainText(/SYS_BRAIN/);
     });
 });

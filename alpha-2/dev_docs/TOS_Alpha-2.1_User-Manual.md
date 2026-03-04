@@ -15,7 +15,7 @@ TOS uses a 6-level depth system to allow rapid transitions between high-level ov
 | **LVL 3** | **Application Focus** | Dedicated window surface for a single graphical process. | Chrome-window overlay |
 | **LVL 4** | **Detail Inspector** | Real-time metadata, cryptographic hashes, and ownership data. | Property chip layout |
 | **LVL 5** | **Buffer View** | Raw telemetry stream and hex data inspection. | Monospace hex viewer |
-| **LVL 6** | **Spatial View** | 3D-transformed XR workspace for spatial sector mapping. | Perspective glass panels |
+| **LVL 6** | **Tactical Reset** | Global diagnostics "God Mode" for recovery and process killing. | Wireframe system map |
 
 ---
 
@@ -26,7 +26,10 @@ Run commands or use AI to modulate the Hub's rendering state.
 *   **[SEARCH] Search Mode**: Semantic or global FS indexing with instant results.
 *   **[AI] AI Augmentation**: Natural language shell queries with explanation and staging.
 *   **Directory Context**: Triggered by `ls` or `cd`. Shows real-time file previews.
-*   **Activity Context**: Triggered by `top` or `ps`. Shows "Activity Lungs" with live process window snapshots.
+*   **Activity Context**: Triggered by `top` or `ps`. Shows "Activity Lungs" with hierarchical process visualization:
+    - **Live View**: 10Hz snapshots for active, graphical applications.
+    - **Resource View**: App icon and name for inactive or non-graphical applications.
+    - **System View**: Symbolic placeholders for background and system processes.
 
 ---
 
@@ -60,6 +63,8 @@ TOS uses immersive feedback loops to minimize cognitive load during sensitive sy
 *   **Ctrl+P**: Toggle Priority Stream.
 *   **Ctrl+Tab**: Cycle through active Sector Indexes.
 *   **Esc**: Dismiss all system modals (Settings / Portal).
+*   **Long-Press / Right-Click**: Trigger the **Secondary Select** context menu on any chip (Files, Processes, Apps) to access deep operations like `Signal`, `Renice`, and `Inspect`.
+*   **Ctrl+Alt+Backspace**: Trigger **Tactical Reset (Level 6)** - The system-wide "God Mode" fallback.
 *   **📡 Status Badge (Top Right)**: Generate a secure **Web Portal** token for remote collaboration.
 
 ---

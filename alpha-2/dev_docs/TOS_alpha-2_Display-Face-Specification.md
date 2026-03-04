@@ -14,10 +14,17 @@ The Face is built on standard web technologies (HTML/CSS/JS) acting as a dynamic
 ## 2. The Visual Hierarchy (Levels 1–5)
 The visual experience in TOS is structured as a vertical zoom hierarchy. The user moves "closer" to the data by zooming in.
 
-- **Level 1 (Global Overview):** A bird's-eye view of all running Sectors represented as interactive live tiles. Behind the tiles sits the **System Output Area** (a read-only cinematic terminal logging global Brain telemetry).
+- **Level 1 (Global Overview):** A bird's-eye view of all running Sectors represented as interactive live tiles. Each tile features a **dynamic thumbnail** of the sector's primary hub or active application. Behind the tiles sits the **System Output Area** (a read-only cinematic terminal logging global Brain telemetry).
 - **Level 2 (Command Hub):** The heart of TOS. The viewport is dominated by the Sector's terminal output, flanked by dynamic, context-aware command chips (Dual-sided Chip Layout) and surrounded by the Tactical Bezel.
 - **Level 3 (Application Focus):** The terminal recedes or shares space with an Application Surface (e.g., a Wayland window, browser, or remote desktop). The Tactical Bezel remains to provide system control.
 - **Level 4 (Detail View) & Level 5 (Buffer View):** Deep inspection overlays for debugging, surface property manipulation, and hex editing, rendering over the active application.
+- **Level 6 (Tactical Reset):** The ultimate system fallback. A low-overhead, wireframe "God Mode" that visualizes the global resource tree and provides emergency management controls.
+
+### 2.1 Kinetic Zoom Transitions
+Transformations between levels utilize a specialized **Kinetic Zoom Transition**:
+- **Borders as Anchors:** When zooming from Level 1 to 2, the sector tile's borders expand outward to become the Tactical Bezel.
+- **Layer Stacking:** Background layers (like the System Output Area) use a **depth-blur and fade** (z-axis displacement) as the focal layer moves forward.
+- **Viewport Expansion:** The terminal canvas "unfurls" from the center of the tile, ensuring a seamless visual link between the representative tile and the functional hub.
 
 ---
 
@@ -77,12 +84,32 @@ Rather than utilizing separate graphical pop-ups, grids, or overlays for differe
 2.  **Search Context:** The terminal streams semantic or exact search results. Chips populate with search scopes, filters, and quick-action buttons for selected results.
 3.  **AI Context:** The terminal displays the LLM's rationale, thought process, or raw output. The chips act as command staging buttons for the AI's suggested shell operations.
 4.  **Directory Context:** When executing `ls` or `cd`, the terminal shows the raw directory listing. The chips dynamically populate with interactive file and folder paths for rapid prompt building. When applicable, chips also provide file or image previews.
-5.  **Activity Context:** When executing `top` or `ps`, the terminal shows the raw process table. The chips populate with immediate process-handling actions (kill, renice, monitor). For user applications with active displays, these chips also feature a live (updating every 100ms) low-resolution thumbnail of the application's surface.
+5.  **Activity Context:** When executing `top` or `ps`, the terminal shows the raw process table. The chips populate with immediate process-handling actions (kill, renice, monitor). 
+    - **Running Apps:** For user applications with active displays, these chips feature a **live 10Hz low-resolution thumbnail** of the application's surface.
+    - **Inactive Apps:** Applications that are not currently running but are pinned or historically relevant appear as standard chip buttons featuring the **App Icon (Image) and Name** without the live viewport.
+    - **Generic/System Processes:** For background processes or applications without a defined icon or active frame buffer, the chip displays a generic **System Node Icon (Symbolic Placeholder)** and the **Process Name**.
 
 ### 5.3 Dual-Sided Chip Layout
 In Level 2, the viewport features dynamic vertical chip columns floating over the terminal output (but inside the bounds of the Lateral Bezels). These chips physically manifest the Contextual Augmentations described above:
 *   **Left Chips (Context & Options):** Static or slowly changing context (Favorites, Pinned Paths, Directory Nav trees, File targets, Search Filters).
 *   **Right Chips (Priority Stack & Actions):** Highly dynamic, predictive context (Command Completions, AI-suggested commands, Actionable alerts, Process kill-switches). Driven by the Priority Indicator engine.
+
+### 5.4 Secondary Select (Context Menus)
+Interaction with chips supports a **Secondary Select** state (triggered by long-press >500ms or right-click). This summons a glassmorphism context menu with specialized operations:
+
+#### 5.4.1 File & Directory Chips
+- **[Inspect Path]:** Transition to **Level 4 (Detail View)** for metadata and cryptographic verification.
+- **[Open With...]:** Select from a list of compatible Application Models.
+- **[Stage Action]:** Copy path to the active command prompt without submitting.
+- **[Trust Tier...]:** Manually elevate or restrict the path's security context.
+- **[Purge Nodes]:** Destructive deletion (requires **Confirmation Slider**).
+
+#### 5.4.2 Process & App Chips
+- **[Tactical Signal...]:** Sub-menu to send `SIGINT`, `SIGTERM`, or `SIGKILL` directly to the PTY/Process.
+- **[Renice Priority]:** Adjust the process priority (LCARS levels 1-5).
+- **[Inspect Buffer]:** Transition to **Level 5 (Buffer View)** for raw memory/IO monitoring.
+- **[Isolate Process]:** Force the process into a more restrictive sandbox tier.
+- **[Clone to Sector]:** Duplicate the process state in a new terminal sector.
 
 ---
 
@@ -186,6 +213,31 @@ TOS supports several distinct interaction profiles for diverse user needs:
 - **Dwell Clicking:** Used in Gaze and Head tracking scenarios. Staring at an element for 500ms (configurable) triggers a `select` event.
 - **High-Visibility Mode:** Forced thick borders, monochromatic glassmorphism for better contrast, and increased font sizes.
 - **Screen Reader Bridge:** Every UI element publishes a semantic role (button, line, chip) to the platform's accessibility bridge (AT-SPI / TalkBack).
+
+## 10. Intuitive Interaction & Predictive Fillers
+To fulfill the "Augmented Desktop Entity" philosophy, the Face implements **Predictive Fillers** that minimize manual typing and cognitive friction.
+
+### 10.1 Predictive Path & Command Chips
+As the user interacts with the **Bottom Bezel Segment (Unified Prompt)**, the **Dual-Sided Chip Layout** (§5.3) populates with "Intuitive Fillers":
+- **Path Completion (Left Chips):** Typing a directory separator `/` or starting a path triggers immediate chips for the most frequent/recent child nodes at that path depth.
+- **Parameter Hints (Right Chips):** For known commands (e.g., `git`, `docker`, `npm`), the Priority Indicator engine suggests the most likely next arguments or flags as clickable chips.
+- **Command History Echo:** Suggestions based on commands previously executed *within the current sector* appear with a subtle "History" icon.
+
+### 10.2 Implicit Search & Typo Correction
+If a user submits a command that results in a "File not found" or "Command not found" state:
+- The **Search Service** (§7.2) performs a background fuzzy-match.
+- A **Typo Correction Chip** appears in the Right column (e.g., "Did you mean `ls -la`?").
+- Clicking the chip replaces the prompt and re-submits automatically.
+
+### 10.3 Dynamic Sector Labeling
+When creating a new sector, the "New Sector" name is a placeholder. As the user navigates:
+- The system **heuristically renames** the sector based on the `Cwd` (e.g., "TOS Core" if in `~/TOS-Desktop-Environment/src`).
+- This can be locked by the user to prevent auto-renaming.
+
+### 10.4 PTY Output Extraction
+For long terminal outputs (e.g., a build failure):
+- The system highlights the **autoritative error line** with a higher priority (visual weight/color).
+- A **"Focus Error" Chip** appears, which when clicked, scrolls the terminal to the specific failure point.
 
 ### 9.4 Notification Display Center
 Notifications appear in the **Right Lateral Bezel** and unfurl inward.

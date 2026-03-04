@@ -123,6 +123,8 @@ Inspired by the early `alpha-0` heritage implementation, TOS adopts a clean sepa
 
 ### 3.3 Communication
 - **IPC Protocol:** JSON‑RPC or MessagePack over a local socket or channel.
+- **Shared Protocol Library (`tos-protocol`):** To prevent state drift across multiple native Face implementations (Wayland, OpenXR, Android), all state structures and IPC prefix definitions are extracted into a shared Rust crate. This ensures a stable binary and source-level contract between the Brain and any remote client.
+- **Local-First Connectivity:** The communication channel is transparent. A Face MUST attempt to connect to a **Local Brain** via Unix Domain Sockets or Shared Memory first. If a local brain is unavailable, the Face falls back to acting as a **Remote Client** over the network via the **TOS Remote Server** (§12). This allows for seamless operation on standalone mobile/XR devices connecting to a tactical host.
 - **Messages from Brain to Face:** State deltas, audio/haptic commands, UI control signals, and lines for the system‑level terminal output.
 - **Messages from Face to Brain:** Semantic events (after mapping), prompt submissions, bezel clicks, and context menu actions.
 
@@ -197,6 +199,7 @@ Beyond the Brain and Face, TOS decomposes functionality into a set of independen
 | **Search Service** | Indexing of file contents, logs, and metadata. Query syntax supports regex and semantic filters. | `search_query` |
 | **Notification Center** | Aggregate notifications, manage history, deliver to Face with priority levels (1-5). | `notify_push` |
 | **Update Daemon** | Atomic update check, download, and staging. Coordination of the "Yellow Alert" status. | `update_check`, `update_apply` |
+| **Heuristic Service** | Predictive fillers, autocomplete-to-chip logic, typo correction, and heuristic sector labeling. Separated to allow hot-swapping intelligence modules. | `heuristic_query` |
 | **Audio & Haptic Engine** | Mix three‑layer audio, play earcons, trigger haptic patterns. | `play_earcon`, `trigger_haptic` |
 
 All services communicate with the Brain via IPC. The Brain maintains authoritative state and routes messages as needed. Some services may communicate directly with the Face for performance (e.g., Audio Engine, Input Hub), but semantic decisions are made or approved by the Brain.
@@ -212,8 +215,9 @@ All services communicate with the Brain via IPC. The Brain maintains authoritati
 | **3** | **Application Focus**| Full‑screen application surface wrapped in the Tactical Bezel. |
 | **4** | **Detail View**      | Structured metadata for any surface. |
 | **5** | **Buffer View**      | Raw memory hex dump (privileged, may be unavailable on some platforms). |
+| **6** | **Tactical Reset**   | **Global Resource Diagnostics (God Mode).** Low-overhead wireframe view for system recovery and emergency process management. |
 
-**Lifecycle:** Levels 4 and 5 are transient; a Tactical Reset immediately flushes all inspection buffers and reverts to Level 1 or 2.
+**Lifecycle:** Levels 4 and 5 are transient; a Tactical Reset (Level 6) flushes all inspection buffers and provides a global recovery environment.
 
 ---
 
@@ -231,6 +235,7 @@ Each sector tile’s borders mirror the Command Hub’s structure and provide at
   - **Animated gradient:** If a command is currently running in that sector, the border displays a sliding gradient that transitions between the success and failure colors (e.g., green → red → green) with a smooth, continuous animation. The direction of the slide (left‑to‑right or right‑to‑left) is user‑configurable, and the animation speed can be adjusted.
   - **No command history:** If no command has been run yet (fresh sector), the border may be a neutral color (e.g., gray) or remain invisible.
 - **Left/right borders** – House mode indicators (CMD, DIR, ACT, SEARCH) as small coloured chips, and priority indicator chips (see §21). The active mode of the sector's Command Hub is highlighted.
+- **Tile Interior:** Displays a live (or cached) **thumbnail** of the sector's primary Command Hub or the currently focused application surface (§8.2). If the sector is empty/idle, it displays the sector name and type icon.
 
 **Additional information conveyed:**
 - Recent activity: A subtle "wave" animation along the bottom border can hint at recent output or notifications (e.g., a gentle ripple after a command completes).
@@ -744,6 +749,10 @@ A dedicated Android application (since Horizon OS is Android‑based) connecting
 - Texture caching for thumbnails; GPU memory pruning for surfaces more than two levels away.
 - Hardware acceleration (OpenGL ES / Vulkan).
 
+### 16.3 Development & QA Architecture
+- **Headless Brain Integration Testing:** To ensure protocol stability, the Brain supports a "Headless Mode" where a test harness acts as a virtual Face, exercising the `tos-protocol` IPC without a graphical environment.
+- **Unified Visual Token System:** All UI aesthetics (colors, blurs, typography) are defined in a central JSON/TOML configuration, consumed by both the Web CSS and Native Vulkan/GLES shaders for pixel-perfect consistency across platforms.
+
 ### 16.2 Intelligent View Synchronization
 
 To prevent flicker during high‑frequency updates (e.g., telemetry):
@@ -867,11 +876,31 @@ The **Global TOS Log Sector** (§19.2) provides a unified view of all events, re
 
 ---
 
-## 20. Tactical Reset
+## 20. Tactical Reset (Level 6: God Mode)
+
+The Tactical Reset is the system's ultimate fallback and diagnostic layer. It is a **low-overhead, wireframe visualization** that bypasses standard sectoral rendering logic to provide an authoritative view of the entire system state.
+
+### 20.1 Global Resource Diagnostics
+- **Visualization:** A non-textured, high-contrast wireframe map showing all Brain sectors, services, and associated OS processes.
+- **Resource Monitoring:** Real-time CPU, memory, and I/O pressure gauges for every active PID, regardless of sandbox tier.
+- **Emergency Management:** Integrated "Force Kill" capabilities that send `SIGKILL` directly via the Brain's root-tier services, bypassing sectoral PTY locks.
+- **Recovery Logic:** Triggering a Tactical Reset flushes all transient buffers (Levels 4 & 5) and resets the Face-Brain IPC sync to a known stable state.
+
+### 20.2 Initiation
+- **Manual Trigger:** Bezel "Tactical Reset" button or Global Shortcut (`Ctrl+Alt+Backspace`).
+- **Safety Fallback:** Automatically triggered if the Face detects sustained local/remote latency > 500ms or if the Brain reports a service-level deadlock.
+
+### 20.3 Security & Privilege Isolation
+To prevent the Tactical Reset from becoming a vector for privilege escalation:
+- **Read-Only by Default:** Upon entry, the Level 6 view is strictly read-only. It provides visualization of the resource tree without granting management permissions.
+- **Explicit Elevation:** Destructive actions (e.g., Force Kill, Renice) require **Tactile Confirmation** (§17.2) and session-tier re-authentication.
+- **Metadata Isolation:** The Level 6 renderer only receives sanitized process metadata (PID, user, %CPU, %MEM). It does not have access to process memory segments or the contents of application surfaces.
+- **No Prompt Access:** The Persistent Unified Prompt is **locked/disabled** during a Tactical Reset to prevent arbitrary command execution while in this elevated diagnostic state.
+- **Remote Constraint:** Remote participants (Guests) are strictly prohibited from initiating or interacting with a Tactical Reset. It is a **Host-Only** capability.
 
 Two‑level emergency recovery.
 
-### 20.1 Sector Reset
+### 20.4 Sector Reset
 
 - **Trigger:** `Super+Backspace`, `tos sector reset`, bezel button, voice.
 - Sends SIGTERM to all processes in current sector, closes splits, returns to fresh Level 2.

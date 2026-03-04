@@ -11,9 +11,10 @@ This document outlines the organization of the source code for the Tactical Oper
 
 ### 1.2 Support Systems
 - **`common/`**: Shared data structures (e.g., `Sector`, `CommandHub`) and IPC serialization logic used by both Brain and Face.
-- **`services/`**: Independent daemons defined in Section 4 of the spec (Settings, Logging, AI, etc.).
+- **`services/`**: Independent daemons defined in Section 4 of the spec (Settings, Logging, AI, Heuristic, etc.).
 - **`modules/`**: The runtime environment for plugins. Includes the sandbox logic and the SDK for building standard modules.
 - **`platform/`**: Concrete implementations of the `Renderer`, `InputSource`, and `SystemServices` traits for different operating systems.
+- **`tos-protocol/`**: Shared Rust crate defining the authoritative IPC schema and state structures used by Brain, Face, and all services.
 
 ## 2. External Assets
 - **`ui/`**: Static web assets if the Face utilizes a web-based rendering engine (HTML/CSS/JS).

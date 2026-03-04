@@ -1,11 +1,13 @@
 use crate::brain::ipc_handler::IpcHandler;
 use crate::common::{TosState, HierarchyLevel};
+use crate::platform::Renderer;
 use std::sync::{Arc, Mutex};
 
 pub struct Face {
     brain_ipc: Arc<IpcHandler>,
     state: Arc<Mutex<TosState>>,
     _last_rendered_level: HierarchyLevel,
+    renderer: Option<Box<dyn Renderer + Send>>,
 }
 
 impl Face {
@@ -19,7 +21,13 @@ impl Face {
             brain_ipc: ipc,
             state,
             _last_rendered_level: initial_level,
+            renderer: None,
         }
+    }
+
+    pub fn with_renderer(mut self, renderer: Box<dyn Renderer + Send>) -> Self {
+        self.renderer = Some(renderer);
+        self
     }
 
     /// Synchronize system state and trigger rendering.
@@ -48,6 +56,26 @@ impl Face {
         let sector_name = state.sectors.get(state.active_sector_index)
             .map(|s| s.name.as_str()).unwrap_or("NONE");
         println!("\n\x1B[1;34m[ {} ]\x1B[0m SECTOR: \x1B[1;33m{}\x1B[0m | LEVEL: {:?} | BRAIN: \x1B[1;32mACTIVE\x1B[0m", time, sector_name, state.current_level);
+
+        // Native Surface Synchronization (§15)
+        if let Some(renderer) = &mut self.renderer {
+            let config = crate::platform::SurfaceConfig { width: 1920, height: 1080 };
+            let handle = renderer.create_surface(config); // Idempotent in practice for this prototype
+            
+            // In a real implementation, we'd render the UI parts into a buffer.
+            // For the prototype, we pass a dummy content that represents the frame.
+            struct NativeFrame;
+            impl crate::platform::SurfaceContent for NativeFrame {
+                fn pixel_data(&self) -> &[u8] {
+                    // Mock frame buffer data
+                    &[0u8; 100] 
+                }
+            }
+            
+            renderer.update_surface(handle, &NativeFrame);
+            renderer.composite();
+            tracing::info!("Native Linux Face: Syncing frame buffer to Wayland SHM");
+        }
     }
 
     fn render_level1(&self, state: &TosState) {

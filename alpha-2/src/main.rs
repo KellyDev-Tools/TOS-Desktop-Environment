@@ -18,7 +18,14 @@ async fn main() -> anyhow::Result<()> {
     let state = brain.state.clone();
     
     // 2. Initialize Face (UI Layer)
-    let face_raw = Face::new(state.clone(), ipc.clone());
+    let mut face_raw = Face::new(state.clone(), ipc.clone());
+    
+    #[cfg(target_os = "linux")]
+    {
+        println!("[BOOT] Attaching Native Linux/Wayland Face...");
+        face_raw = face_raw.with_renderer(Box::new(tos_alpha2::platform::linux::LinuxRenderer::new()));
+    }
+
     let mut mock_face = MockFace(face_raw);
 
     if is_self_test {

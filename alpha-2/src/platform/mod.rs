@@ -27,7 +27,7 @@ pub trait SurfaceContent {
     }
 }
 
-pub trait Renderer {
+pub trait Renderer: Send {
     fn create_surface(&mut self, config: SurfaceConfig) -> SurfaceHandle;
     fn update_surface(&mut self, handle: SurfaceHandle, content: &dyn SurfaceContent);
     fn composite(&mut self);

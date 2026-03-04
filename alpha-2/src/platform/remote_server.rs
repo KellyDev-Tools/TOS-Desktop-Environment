@@ -18,12 +18,20 @@ impl RemoteServer {
     pub async fn run(&self, port: u16) -> anyhow::Result<()> {
         let tcp_addr = format!("0.0.0.0:{}", port);
         let ws_addr = format!("0.0.0.0:{}", port + 1); // e.g. 7001 for WebSocket
+        let uds_path = "/tmp/tos.brain.sock";
         
         let tcp_listener = TcpListener::bind(&tcp_addr).await?;
         let ws_listener = TcpListener::bind(&ws_addr).await?;
         
+        // Remove existing UDS if present
+        if std::path::Path::new(uds_path).is_file() {
+            let _ = std::fs::remove_file(uds_path);
+        }
+        let uds_listener = tokio::net::UnixListener::bind(uds_path)?;
+        
         eprintln!("[REMOTE_SERVER] TCP Listening on {}", tcp_addr);
         eprintln!("[REMOTE_SERVER] WS Listening on {}", ws_addr);
+        eprintln!("[REMOTE_SERVER] UDS Listening on {}", uds_path);
 
         let ipc_clone = self.ipc.clone();
         
@@ -57,6 +65,41 @@ impl RemoteServer {
             }
         });
 
+        // Spawn UDS daemon
+        let uds_ipc = ipc_clone.clone();
+        tokio::spawn(async move {
+            loop {
+                if let Ok((socket, _)) = uds_listener.accept().await {
+                    let h_ipc = uds_ipc.clone();
+                    tokio::spawn(async move {
+                        if let Err(e) = Self::handle_uds_client(socket, h_ipc).await {
+                            eprintln!("[REMOTE_SERVER] UDS Client error: {}", e);
+                        }
+                    });
+                }
+            }
+        });
+
+        Ok(())
+    }
+
+    async fn handle_uds_client(mut socket: tokio::net::UnixStream, ipc: Arc<IpcHandler>) -> anyhow::Result<()> {
+        let (reader, mut writer) = socket.split();
+        let mut reader = BufReader::new(reader);
+        let mut line = String::new();
+
+        loop {
+            line.clear();
+            let n = reader.read_line(&mut line).await?;
+            if n == 0 { break; } 
+
+            let command = line.trim();
+            if !command.is_empty() {
+                let response = ipc.handle_request(command);
+                writer.write_all(format!("{}\n", response).as_bytes()).await?;
+                writer.flush().await?;
+            }
+        }
         Ok(())
     }
 

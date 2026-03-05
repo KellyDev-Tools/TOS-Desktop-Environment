@@ -14,7 +14,7 @@ The roadmap defines 5 phases. We execute Phase 1 first because *every subsequent
 | 1.1 | `tos-protocol` Extraction | ✅ DONE | Workspace created, 14 protocol tests passing, bridge re-exports preserve all import paths |
 | 1.2 | Settings Daemon Schema Extensions | ✅ DONE | 6 namespaces added (onboarding, trust, AI, bezel, splits, network), 8 tests passing |
 | 1.3 | Service Registry & Port Infrastructure | ✅ DONE | `ServiceRegistry` with CRUD/heartbeat, `tos_ports` IPC command, 6 inline tests |
-| 1.4 | Unified Visual Token System | ⬜ QUEUED | `assets/design_tokens.json` consumed by CSS + LinuxRenderer |
+| 1.4 | Unified Visual Token System | 🔶 PARTIAL | CSS tokens live in `svelte_ui/src/app.css`; LinuxRenderer consumption still needed |
 | 1.5 | Headless Brain Testing | ⬜ QUEUED | `test-protocol` suite for Brain state deltas |
 | 1.6 | OSC-Exclusive Mode Switching | ⬜ QUEUED | Deprecate string sniffing in `ipc_handler.rs` |
 
@@ -56,6 +56,22 @@ Starting with **1.1 `tos-protocol` Extraction** because it establishes the share
 - 3 new IPC commands: `tos_ports:`, `service_register:name;port`, `service_deregister:name`
 - `ServiceManager` creates registry on startup with anchor port from settings
 - 6 inline unit tests for registry CRUD, heartbeat, and filtering
+
+### Web Face Svelte Rewrite ✅
+- Replaced monolithic `web_ui/app.js` (1,224 lines) with component-based Svelte 5 app in `svelte_ui/`
+- 22 source files: 3 stores (`ipc.svelte.ts`, `tos-state.svelte.ts`, `ui.svelte.ts`), 6 bezel modules, 3 view components, 2 overlays, root layout + page
+- **Fixed image-swapping/flicker bug**: Old code did full `innerHTML` replacement every 1s; Svelte uses fine-grained reactive DOM updates
+- **Fixed disconnect behavior**: `DisconnectOverlay.svelte` shows clean overlay when Brain is offline instead of re-rendering between states
+- **WebSocket IPC state machine**: Proper `disconnected → connecting → connected` lifecycle with auto-reconnection
+- Full TypeScript types matching Rust Brain JSON schema
+- LCARS design system in `app.css` with CSS custom properties, glassmorphism, animations
+- SvelteKit `adapter-static` builds to pure HTML/CSS/JS — served by same `python3 -m http.server` as before
+- Makefile updated: `build-web`, `dev-web`, `run-web` (builds Svelte then serves), `run-web-dev` (HMR + Brain)
+- Node v20 installed via NVM (required by Svelte 5); `NVM_INIT` helper in Makefile
+
+### Bug Fixes (during Svelte rewrite)
+- **Makefile `run-web-dev` cd bug**: Wrapped Svelte dev server in subshell `(...)` so `cd svelte_ui` doesn't leak into parent shell
+- **Favicon**: Generated LCARS-themed `>_` favicon in amber/lavender
 
 ---
 

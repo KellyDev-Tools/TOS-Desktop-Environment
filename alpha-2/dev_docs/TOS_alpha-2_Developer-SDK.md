@@ -148,5 +148,5 @@ tos-pkg sign --key ./dev-key.pem --module ./dist/my-module.tos-theme
 ## 6. Resources & Templates
 
 - **Rust AI Adapter**: [src/brain/module_manager.rs](https://github.com/KellyDev-Tools/TOS-Desktop-Environment/blob/main/alpha-2/src/brain/module_manager.rs)
-- **CSS Theme Baseline**: [web_ui/style.css](https://github.com/KellyDev-Tools/TOS-Desktop-Environment/blob/main/alpha-2/web_ui/style.css)
+- **CSS Theme Baseline**: [svelte_ui/src/app.css](https://github.com/KellyDev-Tools/TOS-Desktop-Environment/blob/main/alpha-2/svelte_ui/src/app.css)
 - **OSC Script Examples**: `etc/tos-init.fish`

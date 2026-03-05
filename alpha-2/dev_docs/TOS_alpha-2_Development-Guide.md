@@ -16,7 +16,7 @@ TOS is a distributed system consisting of a central logic core (the Brain), a vi
 | **Marketplace** | `tos-marketplaced`| Ephemeral | TCP | Module discovery & verification |
 | **Priority Engine** | `tos-priorityd` | Ephemeral | TCP | Tactical priority scoring |
 | **Session Service** | `tos-sessiond` | Ephemeral | TCP | Session persistence & workspace memory |
-| **Web UI Server** | `web_ui/` | Ephemeral | HTTP | Serves the LCARS interface |
+| **Web Face** | `svelte_ui/` | Ephemeral | HTTP | Svelte 5 LCARS interface (built to `svelte_ui/build/`) |
 
 To view actual live port assignments, use `tos ports` (queries the Brain's registry). See [Ecosystem Orchestration](./TOS_alpha-2_Ecosystem-Orchestration.md) for the full registration and discovery protocol.
 
@@ -31,7 +31,19 @@ You can start all components, including the background daemons, the Brain core, 
 make run-web
 ```
 
-*Note: This will spawn the background services, initialize the Brain, and start a Python-based HTTP server for the UI.*
+*Note: This will build the Svelte Face (`svelte_ui/build/`), spawn the background services, initialize the Brain, and start a Python-based HTTP server for the UI.*
+
+For development with hot-reload:
+
+```bash
+make run-web-dev
+```
+
+*Note: This starts the Vite dev server (with HMR) alongside the Brain. Changes to `.svelte` files will instantly reflect in the browser.*
+
+Other web targets:
+- `make build-web` — Build the Svelte Face only
+- `make dev-web` — Start the Svelte dev server only (no Brain)
 
 ### 2. Manual Component Launch
 If you need to debug specific components, you can start them individually in separate terminals. **The Brain must start first** so that daemons can register with it.
@@ -50,12 +62,19 @@ cargo run --bin tos-priorityd
 cargo run --bin tos-sessiond
 ```
 
-#### Step 3: Web UI Face
+#### Step 3: Web Face (Production Build)
 ```bash
-python3 -m http.server 8080 -d web_ui
+# Build Svelte app, then serve static files
+make build-web
+python3 -m http.server 8080 -d svelte_ui/build
 ```
 
-Access the interface at: `http://localhost:8080`
+#### Step 3b: Web Face (Development w/ HMR)
+```bash
+# Requires Node v20+ (installed via NVM)
+export NVM_DIR="$HOME/.nvm" && . "$NVM_DIR/nvm.sh" && nvm use 20
+cd svelte_ui && npm run dev -- --port 8080
+```
 
 ## Development Workflow
 
@@ -82,7 +101,7 @@ cargo run --bin tos-pkg -- verify ./modules/example
 ## Logs & Debugging
 System logs are aggregated in the `logs/` directory:
 - `logs/tos-brain.log`: Output from the core logic process.
-- `logs/web_ui.log`: Access logs from the HTTP server.
+- `logs/web_ui.log`: Access logs from the HTTP server (or `logs/svelte_dev.log` when using `run-web-dev`).
 - `logs/system_test.log`: Results from the comprehensive integration suite.
 
 ## Dynamic Port Management

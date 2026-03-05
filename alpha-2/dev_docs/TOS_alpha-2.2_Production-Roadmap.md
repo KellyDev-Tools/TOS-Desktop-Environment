@@ -9,7 +9,8 @@ This roadmap defines the transition from Alpha-2.1 (Experimental/Mocked) to Alph
 
 - [ ] **`tos-protocol` Extraction:** Move all `common/` state and IPC structs into a shared library to stabilize the Face-Brain contract.
     - All subsequent IPC work in this roadmap depends on this contract being stable.
-- [ ] **Unified Visual Token System:** Create `assets/design_tokens.json` and update both `index.css` and `LinuxRenderer` to consume these values.
+- [ ] **Unified Visual Token System:** Create `assets/design_tokens.json` and update both `svelte_ui/src/app.css` and `LinuxRenderer` to consume these values.
+    - CSS tokens are partially in place via `svelte_ui/src/app.css` design system; need to extract into standalone JSON consumed by both Face and Wayland renderer.
     - Required before any new Face components are built (Onboarding, Expanded Bezel, Marketplace).
 - [ ] **Headless Brain Testing:** Build a `test-protocol` suite that validates Brain state deltas without requiring a renderer.
     - Required before adding new Brain services (TrustService, AIService, SessionService) to ensure regressions are caught.
@@ -192,9 +193,10 @@ This roadmap defines the transition from Alpha-2.1 (Experimental/Mocked) to Alph
 ## Phase 4 — High-Fidelity Visual Layer
 *Depends on Phase 3 being stable. Visual polish and platform-specific rendering.*
 
-- [ ] **Global Console Implementation:** Update `web_ui/app.js` and `style.css` to implement the "System Output Area" (Level 1 Middle Layer).
+- [ ] **Global Console Implementation:** Update `svelte_ui/src/lib/components/SystemOutput.svelte` to fully implement the "System Output Area" (Level 1 Middle Layer).
     - Render Brain terminal log behind sector tiles.
     - Implement the "Bring Terminal to Front" bezel toggle logic.
+    - *Note: Basic implementation exists in `SystemOutput.svelte` — needs Level 1 z-layering and spatial integration.*
 - [ ] **Kinetic Zoom Transitions:** Implement the z-axis zoom animation between Levels 1 and 2.
     - Animate sector tile borders expanding to become the Tactical Bezel.
     - Apply depth-blur/fade to background layers (Global Map/Brain Console).
@@ -256,7 +258,7 @@ This roadmap defines the transition from Alpha-2.1 (Experimental/Mocked) to Alph
 
 | Task | Blocked By |
 | :--- | :--- |
-| All Face components | `tos-protocol` extraction, Visual Token System |
+| All Face components | `tos-protocol` extraction, Visual Token System, Svelte Face (`svelte_ui/`) |
 | All new Brain services | Headless Brain Testing |
 | Onboarding Step 0 (Trust Screen) | TrustService |
 | Onboarding cinematic Brain log stream | Brain init log IPC (existing) |

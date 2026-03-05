@@ -3,7 +3,7 @@
 This roadmap tracks the progress of the visual, rendering, and interaction layers of the TOS Face, separating frontend-specific goals from the backend logic.
 
 ## High-Fidelity Rendering & Themes
-- [x] **Web Profile DOM Implementation:** Transition the Face layer from terminal-mock to a rich React/Vite-based LCARS interface.
+- [x] **Web Profile DOM Implementation:** Transition the Face layer from terminal-mock to a rich LCARS interface. *(Alpha-2.1: monolithic `web_ui/app.js`. Alpha-2.2: rewritten as Svelte 5 component architecture in `svelte_ui/` — 22 files, fine-grained reactivity, TypeScript types, SvelteKit `adapter-static` SPA.)*
 - [x] **Cinematic Modules:** Implement the "Cinematic Triangular Module" with GPU-accelerated transitions.
 - [x] **Dynamic Theme Engine:** Implement runtime CSS variable injection and multi-sensory asset swapping (SFX/Haptics).
 - [x] **Configurable Bezel Architecture:** Implement omni-directional slots (Top, Left, Right) with modular component docking and downward/lateral slot projection.

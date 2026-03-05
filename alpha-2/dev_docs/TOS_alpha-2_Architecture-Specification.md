@@ -426,7 +426,7 @@ By definition, the **Tactical Bezel** surrounds the entire viewport at all level
 
 While the exact graphical representation, animations, and "Glassmorphism" projections are detailed in the [Face Specification §3](./TOS_alpha-2_Display-Face-Specification.md), the backend logically treats the Bezel as a system of **Configurable Slots**:
 
-- **Omni-Directional Logic:** The backend tracks components mapped to `Top_Left`, `Top_Center`, `Top_Right`, `Left_Sidebar`, and `Right_Sidebar` arrays (`app.js`/`state.rs`).
+- **Omni-Directional Logic:** The backend tracks components mapped to `Top_Left`, `Top_Center`, `Top_Right`, `Left_Sidebar`, and `Right_Sidebar` arrays (`svelte_ui/src/routes/+page.svelte` / `state.rs`).
 - **Slot Isolation:** Dockable components are isolated logic modules (telemetry loops, marketplace modules). They publish their state to the central brain, which routes updates to the corresponding slot view.
 - **Unified Prompt:** The Bottom Bezel is handled uniquely by the backend as a non-slottable, highly secure prompt assembly.
 - **Navigation Controls (Left Segment):**

@@ -35,37 +35,14 @@ impl Face {
 
     /// Synchronize system state and trigger rendering.
     pub fn render(&mut self) {
-        let state = self.state.lock().unwrap();
-        
-        // Clear screen and home cursor — eliminates flicker from appending.
-        // \x1B[?25l hides cursor during draw, \x1B[?25h restores it at the end.
+        let frame = self.render_to_string();
+        // Clear screen, hide cursor, print frame, restore cursor.
         print!("\x1B[?25l\x1B[2J\x1B[H");
-        
-        println!("\x1B[1;36m[TOS DISPLAY ENGINE]\x1B[0m Syncing State... [\x1B[1;32mOK\x1B[0m]\n");
-        
-        match state.current_level {
-            HierarchyLevel::GlobalOverview => self.render_level1(&state),
-            HierarchyLevel::CommandHub => self.render_level2(&state),
-            _ => {
-                println!("+----------------------------------------------------------------------------------+");
-                println!("| {:^80} |", format!("{:?} VIEW", state.current_level));
-                println!("| [PLACEHOLDER - ALPHA 2 PROTOTYPE]                                                |");
-                println!("+----------------------------------------------------------------------------------+");
-            }
-        }
-
-        // Tactical Mini-Map visualization
-        self.render_minimap(&state);
-
-        // System Footer
-        let time = chrono::Local::now().format("%H:%M:%S");
-        let sector_name = state.sectors.get(state.active_sector_index)
-            .map(|s| s.name.as_str()).unwrap_or("NONE");
-        println!("\n\x1B[1;34m[ {} ]\x1B[0m SECTOR: \x1B[1;33m{}\x1B[0m | LEVEL: {:?} | BRAIN: \x1B[1;32mACTIVE\x1B[0m", time, sector_name, state.current_level);
+        print!("{}", frame);
+        print!("\x1B[?25h");
 
         // Native Surface Synchronization
         if let Some(renderer) = &mut self.renderer {
-            // Create the surface once, reuse every subsequent frame.
             let handle = match self.surface_handle {
                 Some(h) => h,
                 None => {
@@ -75,114 +52,116 @@ impl Face {
                     h
                 }
             };
-            
+
             struct NativeFrame;
             impl crate::platform::SurfaceContent for NativeFrame {
                 fn pixel_data(&self) -> &[u8] {
                     &[0u8; 100]
                 }
             }
-            
+
             renderer.update_surface(handle, &NativeFrame);
             renderer.composite();
             tracing::debug!("Native Linux Face: Syncing frame buffer to Wayland SHM");
         }
-
-        // Restore cursor visibility after frame is fully drawn.
-        print!("\x1B[?25h");
     }
 
-    fn render_level1(&self, state: &TosState) {
-        println!("\x1B[1;35m[LEVEL 1: GLOBAL OVERVIEW]\x1B[0m\n");
-        println!("+----------------------------------------------------------------------------------+");
-        println!("| SECTOR TILES                                                                     |");
-        println!("+--------------------------------------------------------------+-------------------+");
+    /// Render the current frame to a String (testable — no ANSI clear/cursor control).
+    pub fn render_to_string(&self) -> String {
+        let state = self.state.lock().unwrap();
+        let mut out = String::new();
+
+        out.push_str("[TOS DISPLAY ENGINE] Syncing State... [OK]\n\n");
+
+        match state.current_level {
+            HierarchyLevel::GlobalOverview => self.render_level1_to(&state, &mut out),
+            HierarchyLevel::CommandHub => self.render_level2_to(&state, &mut out),
+            _ => {
+                out.push_str(&format!("+{:->82}+\n", ""));
+                out.push_str(&format!("| {:^80} |\n", format!("{:?} VIEW", state.current_level)));
+                out.push_str("| [PLACEHOLDER - ALPHA 2 PROTOTYPE]                                                |\n");
+                out.push_str(&format!("+{:->82}+\n", ""));
+            }
+        }
+
+        // Tactical Mini-Map
+        self.render_minimap_to(&state, &mut out);
+
+        // System Footer
+        let time = chrono::Local::now().format("%H:%M:%S");
+        let sector_name = state.sectors.get(state.active_sector_index)
+            .map(|s| s.name.as_str()).unwrap_or("NONE");
+        out.push_str(&format!(
+            "\n[ {} ] SECTOR: {} | LEVEL: {:?} | BRAIN: ACTIVE\n",
+            time, sector_name, state.current_level
+        ));
+
+        out
+    }
+
+    // --- String-buffer render variants (for render_to_string / testing) ---
+
+    fn render_level1_to(&self, state: &TosState, out: &mut String) {
+        use std::fmt::Write;
+        writeln!(out, "[LEVEL 1: GLOBAL OVERVIEW]\n").unwrap();
+        writeln!(out, "+----------------------------------------------------------------------------------+").unwrap();
+        writeln!(out, "| SECTOR TILES                                                                     |").unwrap();
+        writeln!(out, "+--------------------------------------------------------------+-------------------+").unwrap();
         for (i, sector) in state.sectors.iter().enumerate() {
             let active_mark = if i == state.active_sector_index { ">>" } else { "  " };
-            // The format string needs to account for the fixed parts and the variable parts
-            // Total width inside the frame is 80.
-            // Fixed parts: "| {:<2} [ {} ] {:<X} | HUBS: {:<Y} |"
-            // Let's calculate X and Y.
-            // active_mark: 2 chars
-            // i: max 2 chars (e.g., 99) -> "[ 99 ]" is 6 chars
-            // " | HUBS: " is 9 chars
-            // hubs.len(): max 3 chars (e.g., 999)
-            // So, 2 + 1 + 6 + 1 + X + 1 + 9 + 3 + 1 = 24 + X
-            // Total width for the two columns is 62 and 17.
-            // First column: 2 + 1 + 6 + 1 + X = 10 + X. So 10 + X = 62 -> X = 52.
-            // Second column: 9 + Y + 1 = 10 + Y. So 10 + Y = 17 -> Y = 7.
-            println!("| {:<2} [ {:<2} ] {:<52} | HUBS: {:<7} |", active_mark, i, sector.name, sector.hubs.len());
+            writeln!(out, "| {:<2} [ {:<2} ] {:<52} | HUBS: {:<7} |", active_mark, i, sector.name, sector.hubs.len()).unwrap();
         }
-        println!("+--------------------------------------------------------------+-------------------+");
-        
-        println!("\n\x1B[1;36m[SYSTEM OUTPUT AREA (BRAIN LOG)]\x1B[0m");
-        println!("+----------------------------------------------------------------------------------+");
+        writeln!(out, "+--------------------------------------------------------------+-------------------+").unwrap();
+
+        writeln!(out, "\n[SYSTEM OUTPUT AREA (BRAIN LOG)]").unwrap();
+        writeln!(out, "+----------------------------------------------------------------------------------+").unwrap();
         let start = state.system_log.len().saturating_sub(5);
         for line in &state.system_log[start..] {
-            let prio_color = match line.priority {
-                3 => "\x1B[1;31m", // High
-                2 => "\x1B[1;33m", // Mid
-                _ => "\x1B[0m",    // Low
-            };
-            // Fixed parts: "| {}{} [P{}] {:<X} \x1B[0m |"
-            // timestamp: 5 chars (HH:MM)
-            // priority: 1 char (P1)
-            // prio_color: 0 chars (ANSI escape codes don't count)
-            // Total width inside frame is 80.
-            // 5 + 1 + 4 + X + 1 = 11 + X. So 11 + X = 80 -> X = 69.
-            println!("| {}{} [P{}] {:<69} \x1B[0m |", prio_color, line.timestamp.format("%H:%M"), line.priority, line.text);
+            writeln!(out, "| {} [P{}] {:<69}  |", line.timestamp.format("%H:%M"), line.priority, line.text).unwrap();
         }
-        println!("+----------------------------------------------------------------------------------+");
+        writeln!(out, "+----------------------------------------------------------------------------------+").unwrap();
     }
 
-    fn render_level2(&self, state: &TosState) {
+    fn render_level2_to(&self, state: &TosState, out: &mut String) {
+        use std::fmt::Write;
         if let Some(sector) = state.sectors.get(state.active_sector_index) {
             let hub = &sector.hubs[sector.active_hub_index];
-            println!("\x1B[1;35m[LEVEL 2: COMMAND HUB - {}]\x1B[0m\n", sector.name.to_uppercase());
-            
-            println!("MODE:  \x1B[1;32m{:?}\x1B[0m", hub.mode);
-            println!("DIR:   \x1B[1;34m{}\x1B[0m", hub.current_directory.display());
-            println!("\nOUTPUT:");
-            println!("+----------------------------------------------------------------------------------+");
+            writeln!(out, "[LEVEL 2: COMMAND HUB - {}]\n", sector.name.to_uppercase()).unwrap();
+            writeln!(out, "MODE:  {:?}", hub.mode).unwrap();
+            writeln!(out, "DIR:   {}", hub.current_directory.display()).unwrap();
+            writeln!(out, "\nOUTPUT:").unwrap();
+            writeln!(out, "+----------------------------------------------------------------------------------+").unwrap();
             let start = hub.terminal_output.len().saturating_sub(10);
             for line in &hub.terminal_output[start..] {
-                // Extended width to 80 chars
-                // The content inside the frame is 80 characters wide.
-                // If the text is longer than 80, we need to truncate it and add "..."
-                // So, if text.len() > 80, truncate to 77 and add "..."
                 let text = if line.text.len() > 80 {
                     format!("{}...", &line.text[..77])
                 } else {
                     line.text.clone()
                 };
-                println!("| {:<80} |", text);
+                writeln!(out, "| {:<80} |", text).unwrap();
             }
-            println!("+----------------------------------------------------------------------------------+");
-            println!("\x1B[1;36mPROMPT:\x1B[0m > {}", hub.prompt);
+            writeln!(out, "+----------------------------------------------------------------------------------+").unwrap();
+            writeln!(out, "PROMPT: > {}", hub.prompt).unwrap();
 
             if let Some(staged) = &hub.staged_command {
-                println!("\n\x1B[1;33m[AI STAGED COMMAND]\x1B[0m");
-                println!("PROPOSAL: \x1B[1;32m{}\x1B[0m", staged);
+                writeln!(out, "\n[AI STAGED COMMAND]").unwrap();
+                writeln!(out, "PROPOSAL: {}", staged).unwrap();
                 if let Some(exp) = &hub.ai_explanation {
-                    println!("RATIONALE: {}", exp);
+                    writeln!(out, "RATIONALE: {}", exp).unwrap();
                 }
-                println!("\x1B[1;36m(Submit 'ai_suggestion_accept:' to promote this command)\x1B[0m");
             }
         }
     }
 
-    fn render_minimap(&self, state: &TosState) {
-        println!("\n\x1B[1;33m[TACTICAL MINI-MAP]\x1B[0m");
+    fn render_minimap_to(&self, state: &TosState, out: &mut String) {
+        use std::fmt::Write;
+        writeln!(out, "\n[TACTICAL MINI-MAP]").unwrap();
         for (i, sector) in state.sectors.iter().enumerate() {
-            let active = i == state.active_sector_index;
-            let color = if active { "\x1B[1;32m" } else { "\x1B[0m" };
-            print!("{}S{} ", color, i);
+            write!(out, "S{} ", i).unwrap();
             for (j, _hub) in sector.hubs.iter().enumerate() {
-                let hub_active = active && j == sector.active_hub_index;
-                let hub_color = if hub_active { "\x1B[1;36m" } else { "\x1B[0m" };
-                print!(" {}.{} ", hub_color, j);
+                write!(out, " .{} ", j).unwrap();
             }
-            println!("\x1B[0m");
+            writeln!(out).unwrap();
         }
     }
 

@@ -19,18 +19,19 @@ impl RemoteServer {
         let tcp_addr = format!("0.0.0.0:{}", port);
         let ws_addr = format!("0.0.0.0:{}", port + 1); // e.g. 7001 for WebSocket
         let uds_path = "/tmp/tos.brain.sock";
+
+        // Bind with retry — previous Brain instance may have just been killed
+        let tcp_listener = Self::bind_with_retry(&tcp_addr).await?;
+        let ws_listener = Self::bind_with_retry(&ws_addr).await?;
         
-        let tcp_listener = TcpListener::bind(&tcp_addr).await?;
-        let ws_listener = TcpListener::bind(&ws_addr).await?;
-        
-        // Remove existing UDS if present
-        if std::path::Path::new(uds_path).is_file() {
+        // Remove existing UDS if present (exists(), not is_file() — sockets aren't regular files)
+        if std::path::Path::new(uds_path).exists() {
             let _ = std::fs::remove_file(uds_path);
         }
         let uds_listener = tokio::net::UnixListener::bind(uds_path)?;
         
         eprintln!("[REMOTE_SERVER] TCP Listening on {}", tcp_addr);
-        eprintln!("[REMOTE_SERVER] WS Listening on {}", ws_addr);
+        eprintln!("[REMOTE_SERVER] WS  Listening on {}", ws_addr);
         eprintln!("[REMOTE_SERVER] UDS Listening on {}", uds_path);
 
         let ipc_clone = self.ipc.clone();
@@ -81,6 +82,25 @@ impl RemoteServer {
         });
 
         Ok(())
+    }
+
+    /// Attempt to bind a TCP port, retrying up to 3 times on AddrInUse.
+    async fn bind_with_retry(addr: &str) -> anyhow::Result<TcpListener> {
+        let max_retries = 3;
+        for attempt in 1..=max_retries {
+            match TcpListener::bind(addr).await {
+                Ok(listener) => return Ok(listener),
+                Err(e) if e.kind() == std::io::ErrorKind::AddrInUse && attempt < max_retries => {
+                    eprintln!(
+                        "[REMOTE_SERVER] Port {} in use, retrying in 1s ({}/{})",
+                        addr, attempt, max_retries
+                    );
+                    tokio::time::sleep(std::time::Duration::from_secs(1)).await;
+                }
+                Err(e) => return Err(e.into()),
+            }
+        }
+        unreachable!()
     }
 
     async fn handle_uds_client(mut socket: tokio::net::UnixStream, ipc: Arc<IpcHandler>) -> anyhow::Result<()> {

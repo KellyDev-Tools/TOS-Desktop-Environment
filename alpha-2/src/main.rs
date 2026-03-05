@@ -19,47 +19,38 @@ async fn main() -> anyhow::Result<()> {
     
     let args: Vec<String> = env::args().collect();
     let is_self_test = args.iter().any(|arg| arg == "--self-test");
+    let is_headless = args.iter().any(|arg| arg == "--headless");
 
     // 1. Initialize Brain Core
     let brain = Brain::new()?;
     let ipc = brain.ipc.clone();
     let state = brain.state.clone();
-    
-    // 2. Initialize Face (UI Layer)
-    let mut face_raw = Face::new(state.clone(), ipc.clone());
-    
-    #[cfg(target_os = "linux")]
-    {
-        println!("[BOOT] Attaching Native Linux/Wayland Face...");
-        face_raw = face_raw.with_renderer(Box::new(tos_alpha2::platform::linux::LinuxRenderer::new()));
-    }
-
-    let mut mock_face = MockFace(face_raw);
 
     if is_self_test {
+        // --- Self-Test Demo Mode ---
+        let mut face_raw = Face::new(state.clone(), ipc.clone());
+        #[cfg(target_os = "linux")]
+        {
+            face_raw = face_raw.with_renderer(Box::new(tos_alpha2::platform::linux::LinuxRenderer::new()));
+        }
+        let mut mock_face = MockFace(face_raw);
+
         println!("\n--- SYSTEM SELF-TEST SEQUENCE ---");
         sleep(Duration::from_secs(1)).await;
 
-        // Render initial state (Level 1)
         mock_face.0.render();
         sleep(Duration::from_secs(2)).await;
-        
-        // Zoom Transition
         mock_face.simulate_bezel_zoom_in();
         mock_face.0.render();
         sleep(Duration::from_secs(2)).await;
-        
-        // Demonstrate Directory Mode
         mock_face.simulate_prompt_submit("ls -la");
-        sleep(Duration::from_secs(1)).await; // Wait for PTY
+        sleep(Duration::from_secs(1)).await;
         mock_face.0.render();
         sleep(Duration::from_secs(2)).await;
-        
+
         println!("\nSELF-TEST SEQUENCE COMPLETE.");
     } else {
-        println!("TOS Alpha-2 BRAIN OPERATIONAL.");
-        
-        // Start IPC Server for Web UI (Port 7000)
+        // Start IPC Server (TCP 7000, WS 7001, UDS)
         let server = RemoteServer::new(ipc.clone());
         tokio::spawn(async move {
             if let Err(e) = server.run(7000).await {
@@ -67,13 +58,30 @@ async fn main() -> anyhow::Result<()> {
             }
         });
 
-        println!("[BRAIN] Awaiting IPC stimulus on port 7000/7001...");
+        if is_headless {
+            // --- Headless Server Mode (for `make run-web`) ---
+            // No terminal dashboard — just serve IPC to the Web Face.
+            eprintln!("[BRAIN] Headless mode — serving IPC on 7000/7001. No terminal dashboard.");
+            eprintln!("[BRAIN] Press Ctrl+C to stop.");
 
-        // Main Loop: Periodic Rendering for Local Display (Terminal Dash)
-        loop {
-            // Check for mode change and force a re-render
-            mock_face.0.render();
-            sleep(Duration::from_millis(1000)).await;
+            // Park the main task; the Tokio runtime keeps IPC tasks alive.
+            loop {
+                sleep(Duration::from_secs(60)).await;
+            }
+        } else {
+            // --- Terminal Dashboard Mode (standalone) ---
+            let mut face_raw = Face::new(state.clone(), ipc.clone());
+            #[cfg(target_os = "linux")]
+            {
+                face_raw = face_raw.with_renderer(Box::new(tos_alpha2::platform::linux::LinuxRenderer::new()));
+            }
+
+            eprintln!("[BRAIN] Terminal dashboard active. IPC on 7000/7001.");
+
+            loop {
+                face_raw.render();
+                sleep(Duration::from_millis(1000)).await;
+            }
         }
     }
     

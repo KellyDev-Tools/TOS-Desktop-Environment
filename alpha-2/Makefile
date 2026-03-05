@@ -126,7 +126,7 @@ run-web: run-services
 	@python3 -m http.server 8080 -d web_ui > logs/web_ui.log 2>&1 & WEB_PID=$$!; \
 	echo "[TOS] Synchronizing Brain Core (7000/7001)..."; \
 	trap "kill $$WEB_PID; pkill -x tos-brain; exit" EXIT INT TERM; \
-	cargo run --bin tos-brain | tee logs/tos-brain.log
+	cargo run --bin tos-brain -- --headless 2>&1 | tee logs/tos-brain.log
 
 run-services:
 	@echo "[TOS] Initializing Auxiliary Daemons..."

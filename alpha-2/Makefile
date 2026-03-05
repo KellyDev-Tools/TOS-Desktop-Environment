@@ -8,7 +8,7 @@
 # -----------------------------------------------------------------------------
 
 help:
-	@echo "\033[1;36mTOS ALPHA-2.1 BUILD SYSTEM\033[0m"
+	@echo "\033[1;36mTOS ALPHA-2.2 BUILD SYSTEM\033[0m"
 	@echo ""
 	@echo "\033[1;33mDevelopment Targets:\033[0m"
 	@echo "  make build           Compile the core Brain processes"
@@ -135,10 +135,12 @@ run-services:
 	@pkill -x tos-loggerd || true
 	@pkill -x tos-marketplaced || true
 	@pkill -x tos-priorityd || true
+	@pkill -x tos-sessiond || true
 	@cargo run --bin tos-settingsd > logs/settingsd.log 2>&1 &
 	@cargo run --bin tos-loggerd > logs/loggerd.log 2>&1 &
 	@cargo run --bin tos-marketplaced > logs/marketplaced.log 2>&1 &
 	@cargo run --bin tos-priorityd > logs/priorityd.log 2>&1 &
+	@cargo run --bin tos-sessiond > logs/sessiond.log 2>&1 &
 	@echo "[TOS] Auxiliary Constellation: ONLINE"
 
 # -----------------------------------------------------------------------------

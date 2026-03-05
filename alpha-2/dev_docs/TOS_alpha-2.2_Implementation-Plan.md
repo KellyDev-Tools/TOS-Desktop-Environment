@@ -37,7 +37,7 @@ Starting with **1.1 `tos-protocol` Extraction** because it establishes the share
 - `src/common/mod.rs` rewritten as re-export bridge — zero import changes needed across the codebase
 - `tos-sessiond` daemon skeleton added to workspace (ephemeral port, atomic live-state writes, session CRUD)
 - `Makefile` updated: version bumped to 2.2, `tos-sessiond` in `run-services`
-- All pre-existing tests pass (tier1: 3/3, tier4_security: 1/1, protocol: 14/14)
+- All pre-existing tests pass (brain_core: 3/3, sandbox: 1/1, protocol: 14/14)
 
 ### Bug Fixes (during 1.1)
 - **Shell fallback**: Brain no longer crashes when `fish` isn't installed — falls back to `$SHELL` → `/bin/bash` → `/bin/sh`

@@ -67,17 +67,17 @@ test: test-all
 test-all: test-core test-shell test-ai test-sec test-health
 
 test-core:
-	cargo test --test tier1_brain
+	cargo test --test brain_core
 
 test-shell:
-	cargo test --test tier2_integration
+	cargo test --test shell_integration
 
 test-ai:
-	cargo test --test tier3_ai
+	cargo test --test ai_integration
 
 test-sec:
-	cargo test --test tier4_security
-	cargo test --test tier4_security_manifest
+	cargo test --test sandbox
+	cargo test --test security_manifest
 
 test-system:
 	@mkdir -p logs
@@ -106,8 +106,8 @@ test-self:
 	cargo run -- --self-test
 
 test-health:
-	@echo "[TOS] Running Orchestration Health Check (Tier 5)..."
-	cargo test --test tier5_orchestration -- --nocapture
+	@echo "[TOS] Running Orchestration Health Check..."
+	cargo test --test service_orchestration -- --nocapture
 
 # -----------------------------------------------------------------------------
 # 4. EXECUTION

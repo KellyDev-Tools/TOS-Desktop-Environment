@@ -1,7 +1,7 @@
 # TOS Alpha-2 Build System
 # High-Fidelity OS Pipeline
 
-.PHONY: help build check fmt lint docs test test-all test-core test-shell test-ai test-sec test-system test-brain-component test-ui-component test-self run run-web clean
+.PHONY: help build check fmt lint docs test test-all test-core test-shell test-ai test-sec test-system test-brain-component test-ui-component test-self run run-web run-web-dev build-web dev-web clean
 
 # -----------------------------------------------------------------------------
 # 1. HELP & DISCOVERY
@@ -113,19 +113,40 @@ test-health:
 # 4. EXECUTION
 # -----------------------------------------------------------------------------
 
+# --- NVM Helper (Node v20 required for Svelte) ---
+NVM_INIT = export NVM_DIR="$$HOME/.nvm" && [ -s "$$NVM_DIR/nvm.sh" ] && . "$$NVM_DIR/nvm.sh" && nvm use 20 --silent
+
 run:
 	@mkdir -p logs
 	@pkill -f tos-brain || true
 	cargo run --bin tos-brain | tee logs/tos-brain.log
 
-run-web: run-services
+build-web:
+	@echo "[TOS] Building Svelte Face UI..."
+	@$(NVM_INIT) && cd svelte_ui && npm run build
+	@echo "[TOS] Svelte Face UI: BUILD COMPLETE → svelte_ui/build/"
+
+dev-web:
+	@echo "[TOS] Starting Svelte Face Dev Server (HMR)..."
+	@$(NVM_INIT) && cd svelte_ui && npm run dev -- --port 8080 --host 0.0.0.0
+
+run-web: run-services build-web
 	@mkdir -p logs
 	@pkill -x tos-brain || true
 	@pkill -f "[h]ttp.server 8080" || true
-	@echo "[TOS] Initializing Web UI Server (8080)..."
-	@python3 -m http.server 8080 -d web_ui > logs/web_ui.log 2>&1 & WEB_PID=$$!; \
+	@echo "[TOS] Initializing Svelte Face Server (8080)..."
+	@python3 -m http.server 8080 -d svelte_ui/build > logs/web_ui.log 2>&1 & WEB_PID=$$!; \
 	echo "[TOS] Synchronizing Brain Core (7000/7001)..."; \
 	trap "kill $$WEB_PID; pkill -x tos-brain; exit" EXIT INT TERM; \
+	cargo run --bin tos-brain -- --headless 2>&1 | tee logs/tos-brain.log
+
+run-web-dev: run-services
+	@mkdir -p logs
+	@pkill -x tos-brain || true
+	@echo "[TOS] Starting Svelte Dev Server + Brain Core..."
+	@($(NVM_INIT) && cd svelte_ui && npm run dev -- --port 8080 --host 0.0.0.0) > logs/svelte_dev.log 2>&1 & SVELTE_PID=$$!; \
+	echo "[TOS] Synchronizing Brain Core (7000/7001)..."; \
+	trap "kill $$SVELTE_PID; pkill -x tos-brain; exit" EXIT INT TERM; \
 	cargo run --bin tos-brain -- --headless 2>&1 | tee logs/tos-brain.log
 
 run-services:
@@ -150,3 +171,5 @@ run-services:
 clean:
 	cargo clean
 	rm -rf logs/
+	rm -rf svelte_ui/build/ svelte_ui/.svelte-kit/
+

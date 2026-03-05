@@ -87,7 +87,7 @@ System logs are aggregated in the `logs/` directory:
 
 ## Dynamic Port Management
 
-**Every** TOS process — including the Brain — utilizes ephemeral port assignment by requesting Port 0 from the operating system. There are no hardcoded port numbers and **no port files on disk**. The Brain's in-memory service registry is the single source of truth.
+**Every** TOS process — including the Brain — utilizes ephemeral port assignment by requesting Port 0 from the operating system. The Brain's in-memory service registry is the single source of truth for all port information.
 
 ### Strategy
 

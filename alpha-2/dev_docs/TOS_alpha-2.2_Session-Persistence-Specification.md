@@ -235,11 +235,11 @@ A `.tos-session` file can be imported by dropping it onto a sector tile at Level
 
 ## 6. Session Service (`tos-sessiond`)
 
-A new auxiliary daemon, `tos-sessiond`, handles all session file I/O. It joins the existing daemon set on **Port 7006**.
+A new auxiliary daemon, `tos-sessiond`, handles all session file I/O. It registers with the Brain's service registry on startup (ephemeral port).
 
 | Component | Binary | Port | Protocol |
 | :--- | :--- | :--- | :--- |
-| Session Service | `tos-sessiond` | 7006 | TCP |
+| Session Service | `tos-sessiond` | Ephemeral (registers with Brain) | TCP |
 
 ### 6.1 Responsibilities
 

@@ -27,7 +27,7 @@ The marketplace opens as a **Level 3 Application Focus** — the same full-scree
 
 When opened, the marketplace registers as a standard Level 3 application. The Tactical Bezel remains visible. `Esc` or zoom-out returns the user to their previous level and sector without disrupting any running processes.
 
-> **NOTE:** The marketplace is read from `tos-marketplaced` (Port 7004) as already specced. This document describes the Face-side rendering of the data that daemon provides. No changes to the daemon or its package verification logic are required.
+> **NOTE:** The marketplace is read from `tos-marketplaced` (ephemeral port, discovered via Brain service registry). This document describes the Face-side rendering of the data that daemon provides. No changes to the daemon or its package verification logic are required.
 
 ---
 
@@ -260,7 +260,7 @@ There is no separate "My Modules" section in the marketplace. Installed module m
 
 ## 9. IPC Contracts
 
-The following IPC messages are added to support the marketplace UI. All communicate with `tos-marketplaced` (Port 7004).
+The following IPC messages are added to support the marketplace UI. All communicate with `tos-marketplaced` (ephemeral port, discovered via Brain service registry).
 
 | Message | Effect |
 | :--- | :--- |

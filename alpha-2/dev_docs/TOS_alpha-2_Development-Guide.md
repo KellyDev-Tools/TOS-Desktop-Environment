@@ -4,11 +4,11 @@ This guide describes how to start and orchestrate the various components of the 
 
 ## System Components & Ports
 
-TOS is a distributed system consisting of a central logic core (the Brain), a visual interface (the Face), and several auxiliary daemons. **Every** TOS process binds an ephemeral port (Port 0) by default — there are no hardcoded port numbers. All port information lives in the Brain's in-memory **Service Registry**; there are no port files on disk. For remote access, the Brain's TCP port can be pinned via `TOS_ANCHOR_PORT`.
+TOS is a distributed system consisting of a central logic core (the Brain), a visual interface (the Face), and several auxiliary daemons. Auxiliary daemons bind ephemeral ports (Port 0). The Brain always binds a stable **anchor port** (default `7000`, configurable in **Settings → Network** or via `TOS_ANCHOR_PORT` env var) for remote access, plus an ephemeral WebSocket port. All port information lives in the Brain's in-memory **Service Registry**; there are no port files on disk.
 
 | Component | Binary / Directory | Port | Protocol | Description |
 | :--- | :--- | :--- | :--- | :--- |
-| **Brain Core** | `tos-brain` | Ephemeral (or `TOS_ANCHOR_PORT`) | TCP | Main logic, IPC handler, & service registry |
+| **Brain Core** | `tos-brain` | `7000` (anchor, configurable) | TCP | Main logic, IPC handler, & service registry |
 | **Brain Socket** | `tos-brain` | — | Unix | Local registration & discovery (`brain.sock`) |
 | **Brain UI Sync** | `tos-brain` | Ephemeral | WS | WebSocket for UI state synchronization |
 | **Settings Daemon** | `tos-settingsd` | Ephemeral | TCP | Persistent configuration storage |
@@ -91,11 +91,11 @@ System logs are aggregated in the `logs/` directory:
 
 ### Strategy
 
-1. **Brain starts first:** Creates a Unix domain socket at `$XDG_RUNTIME_DIR/tos/brain.sock`. Binds ephemeral TCP + WS ports (or `TOS_ANCHOR_PORT` for TCP). Advertises via mDNS if available.
+1. **Brain starts first:** Creates a Unix domain socket at `$XDG_RUNTIME_DIR/tos/brain.sock`. Binds the **anchor port** (resolved from: `TOS_ANCHOR_PORT` env var → `tos.network.anchor_port` setting → default `7000`). Binds an ephemeral WS port. Advertises via mDNS if available. Writes active anchor port back to settings.
 2. **Daemons register:** Each daemon calls `bind(0)`, then connects to `brain.sock` and sends `{ "type": "register", "name": "<name>", "port": <port> }`. The Brain ACKs and adds it to the registry.
-3. **Anchor Override:** If `TOS_ANCHOR_PORT` is set, the Brain attempts that port first. If occupied, falls back to Port 0 with a warning.
+3. **Anchor Fallback:** If the resolved anchor port is occupied, the Brain scans upward (+1 to +10). If all are taken, falls back to Port 0 and logs a warning.
 4. **Discovery (Local):** Local clients connect to `brain.sock` and send `get_port_map`.
-5. **Discovery (Remote):** Remote clients find the Brain via mDNS (`_tos-brain._tcp`), anchor port, saved hosts, or manual host:port entry — then send `get_port_map` over TCP.
+5. **Discovery (Remote):** Remote clients connect to `<host>:<anchor_port>` (default 7000), or use mDNS, or enter host:port manually — then send `get_port_map` over TCP.
 6. **CLI:** `tos ports` queries the Brain's registry and displays a live table. `tos ports --json` for machine output. `tos ports --remote <host>[:<port>]` to query a remote Brain.
 7. **Health Check:** `make test-health` queries the Brain's registry and verifies TCP reachability for each registered service.
 8. **Cleanup:** Daemons send `deregister` on graceful shutdown. The Brain also probes registered services periodically and marks unreachable ones as offline.
@@ -104,16 +104,16 @@ System logs are aggregated in the `logs/` directory:
 
 ```
 tos-brain starts     → creates $XDG_RUNTIME_DIR/tos/brain.sock
-                     → binds 0.0.0.0:0 (TCP) → OS assigns port 49300
+                     → binds anchor port 7000 (TCP)
                      → binds 0.0.0.0:0 (WS)  → OS assigns port 52314
-                     → registers itself: brain_tcp=49300, brain_ws=52314
+                     → registers itself: brain_tcp=7000, brain_ws=52314
 tos-settingsd starts → binds 0.0.0.0:0 → OS assigns port 49152
                      → connects to brain.sock → sends register(settingsd, 49152)
                      → Brain ACKs → settingsd now discoverable
 local Face           → connects to brain.sock → sends get_port_map
-                     → receives { brain_tcp: 49300, brain_ws: 52314, settingsd: 49152, ... }
-remote Face          → avahi-browse _tos-brain._tcp → finds 192.168.1.5:49300
-                     → connects to TCP → sends get_port_map → receives full service map
+                     → receives { brain_tcp: 7000, brain_ws: 52314, settingsd: 49152, ... }
+remote Face          → connects to 192.168.1.5:7000 → sends get_port_map
+                     → receives full service map → upgrades to WS on port 52314
 ```
 
 See [Ecosystem Orchestration](./TOS_alpha-2_Ecosystem-Orchestration.md) for the full registration protocol, health monitoring, and remote discovery details.

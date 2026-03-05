@@ -19,6 +19,7 @@ This roadmap defines the transition from Alpha-2.1 (Experimental/Mocked) to Alph
     - `tos.ai.behaviors` — per-behavior configs and backend overrides.
     - `tos.interface.bezel` — expanded bezel dismiss behaviour preference.
     - `tos.interface.splits` — divider snap preference.
+    - `tos.network` — `anchor_port` (default `7000`), `mdns_enabled` (default `true`).
 - [ ] **OSC-Exclusive Mode Switching:** Deprecate "String Sniffing" in `ipc_handler.rs`.
     - Force all mode transitions (`CMD → DIR`, etc.) to be driven by `OSC 7` and `OSC 9004` sequences emitted by the shell.
     - *Required before onboarding guided demo step detection can rely on shell events.*
@@ -26,14 +27,15 @@ This roadmap defines the transition from Alpha-2.1 (Experimental/Mocked) to Alph
     - Implement Brain Unix domain socket at `$XDG_RUNTIME_DIR/tos/brain.sock` for local daemon registration and client discovery.
     - Implement Brain in-memory service registry: register, deregister, health probe (TCP connect, 30s interval, 3-strike offline marking).
     - Implement daemon registration protocol: daemon binds Port 0, connects to `brain.sock`, sends `{ "type": "register", "name": "<name>", "port": <port> }`, receives ACK. Retry with exponential backoff if socket not yet available.
-    - Implement `TOS_ANCHOR_PORT` env var override for the Brain TCP port: attempt pinned port, fall back to Port 0 with warning if occupied.
-    - Implement `get_port_map` IPC message on both Unix socket and Brain TCP socket: returns JSON service map.
+    - Implement **always-on anchor port**: Brain binds a stable TCP port on every startup (resolved from: `TOS_ANCHOR_PORT` env var → `tos.network.anchor_port` setting → default `7000`). If occupied, scan upward +1 to +10; if all taken, fall back to Port 0 with warning. Write active value back to settings.
+    - Implement `get_port_map` IPC message on both Unix socket and Brain TCP socket: returns JSON service map including `anchor_port` field.
     - Implement `tos ports` CLI: queries Brain registry, displays formatted table with reachability probes. Flags: `--json`, `--wait`, `--remote <host>[:<port>]`.
-    - Implement mDNS/DNS-SD advertisement via Avahi (`_tos-brain._tcp` service type with `brain_tcp` and `brain_ws` TXT records).
+    - Implement mDNS/DNS-SD advertisement via Avahi (`_tos-brain._tcp` service type with `brain_tcp` and `brain_ws` TXT records). Controlled by `tos.network.mdns_enabled` setting.
     - Implement `tos discover` CLI: scans LAN for `_tos-brain._tcp` services.
-    - Implement remote Face connection dialog: mDNS scan + saved hosts + manual host:port entry. Save connections to `~/.config/tos/remote-hosts.toml`.
+    - Implement remote Face connection dialog: mDNS scan + saved hosts + manual host:port entry (port defaults to anchor port). Save connections to `~/.config/tos/remote-hosts.toml`.
     - Implement daemon deregistration on graceful shutdown; socket cleanup on Brain exit.
     - Flip `Makefile` startup order: Brain first (`make run-brain`), then services (`make run-services`), then Face (`make run-web` runs all three in sequence).
+    - Add **Settings → Network** panel: Remote Access Port field (writes `tos.network.anchor_port`, takes effect on restart), WebSocket Port (read-only, auto), mDNS toggle, service registry status count, [View Port Map] inline table.
     - *Required before any remote Face work (Phase 5) and before Session Service, as all daemons depend on this infrastructure.*
 
 ---

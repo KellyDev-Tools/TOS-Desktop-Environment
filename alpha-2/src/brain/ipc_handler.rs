@@ -65,6 +65,9 @@ impl IpcHandler {
             "market" => self.handle_market_command(payload),
             "terminal_resize" => self.handle_terminal_resize(args.get(0).copied(), args.get(1).copied()),
             "terminal_signal" => self.handle_terminal_signal(args.get(0).copied()),
+            "tos_ports" => self.handle_tos_ports(),
+            "service_register" => self.handle_service_register(args.get(0).copied(), args.get(1).copied()),
+            "service_deregister" => self.handle_service_deregister(args.get(0).copied()),
             _ => "ERROR: Unknown prefix".to_string(),
         };
 
@@ -771,6 +774,48 @@ impl IpcHandler {
             }
         }
         "ERROR: Invalid dimensions".to_string()
+    }
+
+    fn handle_tos_ports(&self) -> String {
+        let registry = self.services.registry.lock().unwrap();
+        // Return JSON for wire safety (port_table() is multi-line, breaks
+        // the line-based TCP protocol). Clients can pretty-print if needed.
+        let mut entries = Vec::new();
+        entries.push(serde_json::json!({
+            "name": "tos-brain (anchor)",
+            "port": registry.anchor_port(),
+            "host": "0.0.0.0",
+            "status": "ACTIVE"
+        }));
+        for svc in registry.list_all() {
+            entries.push(serde_json::json!({
+                "name": svc.name,
+                "port": svc.port,
+                "host": svc.host,
+                "status": if svc.alive { "ACTIVE" } else { "DEAD" }
+            }));
+        }
+        serde_json::to_string(&entries).unwrap_or_else(|_| "[]".to_string())
+    }
+
+    fn handle_service_register(&self, name: Option<&str>, port_str: Option<&str>) -> String {
+        if let (Some(n), Some(p)) = (name, port_str) {
+            if let Ok(port) = p.parse::<u16>() {
+                let mut registry = self.services.registry.lock().unwrap();
+                registry.register(n, port, "127.0.0.1");
+                return format!("SERVICE_REGISTERED: {} on port {}", n, port);
+            }
+        }
+        "ERROR: Invalid service_register args (name;port)".to_string()
+    }
+
+    fn handle_service_deregister(&self, name: Option<&str>) -> String {
+        if let Some(n) = name {
+            let mut registry = self.services.registry.lock().unwrap();
+            registry.deregister(n);
+            return format!("SERVICE_DEREGISTERED: {}", n);
+        }
+        "ERROR: Missing service name".to_string()
     }
 }
 

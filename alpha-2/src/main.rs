@@ -7,7 +7,15 @@ use std::env;
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
-    tracing_subscriber::fmt::init();
+    // Tracing writes to stderr so it doesn't interleave with the
+    // Face's terminal dashboard on stdout. Defaults to WARN level
+    // unless RUST_LOG is set for finer control.
+    let env_filter = tracing_subscriber::EnvFilter::try_from_default_env()
+        .unwrap_or_else(|_| tracing_subscriber::EnvFilter::new("warn"));
+    tracing_subscriber::fmt()
+        .with_writer(std::io::stderr)
+        .with_env_filter(env_filter)
+        .init();
     
     let args: Vec<String> = env::args().collect();
     let is_self_test = args.iter().any(|arg| arg == "--self-test");

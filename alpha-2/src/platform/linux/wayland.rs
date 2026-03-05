@@ -26,7 +26,7 @@ impl WaylandShell {
         let handle = self.next_handle;
         self.next_handle += 1;
         
-        tracing::info!("Wayland: Creating Layer Surface '{}' (Layer: {}, {}x{})", title, layer, width, height);
+        tracing::debug!("Wayland: Creating Layer Surface '{}' (Layer: {}, {}x{})", title, layer, width, height);
         
         self.layers.insert(handle, LayerSurface {
             title: title.to_string(),

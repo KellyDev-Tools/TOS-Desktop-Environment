@@ -34,11 +34,7 @@ impl ShellApi {
                 .unwrap_or_else(|| "tos-shell-fish".to_string())
         };
 
-        let (verified_shell, args) = if let Ok(shell_mod) = modules.load_shell(&shell_id) {
-            let path = shell_mod.get_executable_path().to_string_lossy().to_string();
-            let args = shell_mod.get_default_args().to_vec();
-            (path, args)
-        } else {
+        let resolve_from_env = || -> (String, Vec<String>) {
             let shell = std::env::var("SHELL").unwrap_or_else(|_| "/bin/bash".to_string());
             let verified = if std::path::Path::new(&shell).exists() {
                 shell
@@ -50,6 +46,20 @@ impl ShellApi {
                     .unwrap_or_else(|| "sh".to_string())
             };
             (verified, vec!["--login".to_string()])
+        };
+
+        let (verified_shell, args) = if let Ok(shell_mod) = modules.load_shell(&shell_id) {
+            let path = shell_mod.get_executable_path().to_string_lossy().to_string();
+            let args = shell_mod.get_default_args().to_vec();
+            // Verify the module's executable actually exists on this system.
+            if std::path::Path::new(&path).exists() {
+                (path, args)
+            } else {
+                tracing::warn!("Shell module '{}' resolved to '{}' which does not exist, falling back", shell_id, path);
+                resolve_from_env()
+            }
+        } else {
+            resolve_from_env()
         };
 
         tracing::info!("SHELL INIT: Using verified binary: {} with args: {:?}", verified_shell, args);

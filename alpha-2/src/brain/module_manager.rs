@@ -58,9 +58,16 @@ impl ModuleManager {
             osc_suggestions: false,
         });
 
-        let mut full_path = self.base_path.clone();
-        full_path.push(id);
-        full_path.push(&exe.path);
+        // If the manifest specifies an absolute path (e.g. "/usr/bin/fish"),
+        // use it directly. Otherwise resolve relative to the module directory.
+        let full_path = if Path::new(&exe.path).is_absolute() {
+            PathBuf::from(&exe.path)
+        } else {
+            let mut p = self.base_path.clone();
+            p.push(id);
+            p.push(&exe.path);
+            p
+        };
 
         Ok(Box::new(GenericShellModule {
             path: full_path,

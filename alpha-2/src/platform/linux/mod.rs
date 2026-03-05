@@ -142,7 +142,7 @@ impl Renderer for LinuxRenderer {
         tracing::debug!("Triggering Native OS Composition Cycle (§6.1)");
         
         let surface_count = self.surfaces.len();
-        tracing::info!("GL/Vulkan: Compositing Layer Stack ({} surfaces active)", surface_count);
+        tracing::debug!("GL/Vulkan: Compositing Layer Stack ({} surfaces active)", surface_count);
         
         for (handle, buf) in &self.surfaces {
             // Simulated GL render pass

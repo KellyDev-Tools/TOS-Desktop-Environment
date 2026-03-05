@@ -8,6 +8,8 @@ pub struct Face {
     state: Arc<Mutex<TosState>>,
     _last_rendered_level: HierarchyLevel,
     renderer: Option<Box<dyn Renderer + Send>>,
+    /// Cached native surface handle — created once, reused every frame.
+    surface_handle: Option<crate::platform::SurfaceHandle>,
 }
 
 impl Face {
@@ -22,6 +24,7 @@ impl Face {
             state,
             _last_rendered_level: initial_level,
             renderer: None,
+            surface_handle: None,
         }
     }
 
@@ -34,7 +37,10 @@ impl Face {
     pub fn render(&mut self) {
         let state = self.state.lock().unwrap();
         
-        // Simulating header
+        // Clear screen and home cursor — eliminates flicker from appending.
+        // \x1B[?25l hides cursor during draw, \x1B[?25h restores it at the end.
+        print!("\x1B[?25l\x1B[2J\x1B[H");
+        
         println!("\x1B[1;36m[TOS DISPLAY ENGINE]\x1B[0m Syncing State... [\x1B[1;32mOK\x1B[0m]\n");
         
         match state.current_level {
@@ -57,25 +63,33 @@ impl Face {
             .map(|s| s.name.as_str()).unwrap_or("NONE");
         println!("\n\x1B[1;34m[ {} ]\x1B[0m SECTOR: \x1B[1;33m{}\x1B[0m | LEVEL: {:?} | BRAIN: \x1B[1;32mACTIVE\x1B[0m", time, sector_name, state.current_level);
 
-        // Native Surface Synchronization (§15)
+        // Native Surface Synchronization
         if let Some(renderer) = &mut self.renderer {
-            let config = crate::platform::SurfaceConfig { width: 1920, height: 1080 };
-            let handle = renderer.create_surface(config); // Idempotent in practice for this prototype
+            // Create the surface once, reuse every subsequent frame.
+            let handle = match self.surface_handle {
+                Some(h) => h,
+                None => {
+                    let config = crate::platform::SurfaceConfig { width: 1920, height: 1080 };
+                    let h = renderer.create_surface(config);
+                    self.surface_handle = Some(h);
+                    h
+                }
+            };
             
-            // In a real implementation, we'd render the UI parts into a buffer.
-            // For the prototype, we pass a dummy content that represents the frame.
             struct NativeFrame;
             impl crate::platform::SurfaceContent for NativeFrame {
                 fn pixel_data(&self) -> &[u8] {
-                    // Mock frame buffer data
-                    &[0u8; 100] 
+                    &[0u8; 100]
                 }
             }
             
             renderer.update_surface(handle, &NativeFrame);
             renderer.composite();
-            tracing::info!("Native Linux Face: Syncing frame buffer to Wayland SHM");
+            tracing::debug!("Native Linux Face: Syncing frame buffer to Wayland SHM");
         }
+
+        // Restore cursor visibility after frame is fully drawn.
+        print!("\x1B[?25h");
     }
 
     fn render_level1(&self, state: &TosState) {

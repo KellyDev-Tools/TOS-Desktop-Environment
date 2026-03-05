@@ -8,6 +8,7 @@ pub mod search;
 pub mod haptic;
 pub mod portal;
 pub mod priority;
+pub mod registry;
 
 pub use logger::LoggerService;
 pub use settings::SettingsService;
@@ -18,9 +19,9 @@ pub use search::SearchService;
 pub use haptic::HapticService;
 pub use portal::PortalService;
 pub use priority::PriorityService;
+pub use registry::ServiceRegistry;
 
-use std::sync::Arc; // Mutex unused after decoupling
-// use crate::common::TosState; // Unused after decoupling
+use std::sync::{Arc, Mutex};
 
 pub struct ServiceManager {
     pub logger: Arc<LoggerService>,
@@ -31,6 +32,7 @@ pub struct ServiceManager {
     pub haptic: Arc<HapticService>,
     pub portal: Arc<PortalService>,
     pub priority: Arc<PriorityService>,
+    pub registry: Arc<Mutex<ServiceRegistry>>,
 }
 
 impl ServiceManager {
@@ -43,6 +45,13 @@ impl ServiceManager {
         let haptic = Arc::new(HapticService::new());
         let portal = Arc::new(PortalService::new());
         let priority = Arc::new(PriorityService::new());
+
+        // Read anchor port from settings, default 7000.
+        let anchor_port: u16 = settings.default_settings_public()
+            .global.get("tos.network.anchor_port")
+            .and_then(|v| v.parse().ok())
+            .unwrap_or(7000);
+        let registry = Arc::new(Mutex::new(ServiceRegistry::new(anchor_port)));
         
         // Establish cross-service dependencies (e.g., logging triggers audio cues)
         logger.set_audio_service(audio.clone());
@@ -56,6 +65,7 @@ impl ServiceManager {
             haptic,
             portal,
             priority,
+            registry,
         }
     }
     pub fn set_ipc(&self, ipc: std::sync::Arc<dyn crate::common::ipc_dispatcher::IpcDispatcher>) {

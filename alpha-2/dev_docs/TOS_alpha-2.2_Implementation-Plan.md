@@ -12,8 +12,8 @@ The roadmap defines 5 phases. We execute Phase 1 first because *every subsequent
 | # | Task | Status | Notes |
 |---|------|--------|-------|
 | 1.1 | `tos-protocol` Extraction | ✅ DONE | Workspace created, 14 protocol tests passing, bridge re-exports preserve all import paths |
-| 1.2 | Settings Daemon Schema Extensions | ⬜ QUEUED | New namespaces: `tos.onboarding`, `tos.trust`, `tos.ai.behaviors`, `tos.interface.bezel`, `tos.interface.splits`, `tos.network` |
-| 1.3 | Service Registry & Port Infrastructure | ⬜ QUEUED | Unix socket, ephemeral ports, anchor port, mDNS, `tos ports` CLI |
+| 1.2 | Settings Daemon Schema Extensions | ✅ DONE | 6 namespaces added (onboarding, trust, AI, bezel, splits, network), 8 tests passing |
+| 1.3 | Service Registry & Port Infrastructure | ✅ DONE | `ServiceRegistry` with CRUD/heartbeat, `tos_ports` IPC command, 6 inline tests |
 | 1.4 | Unified Visual Token System | ⬜ QUEUED | `assets/design_tokens.json` consumed by CSS + LinuxRenderer |
 | 1.5 | Headless Brain Testing | ⬜ QUEUED | `test-protocol` suite for Brain state deltas |
 | 1.6 | OSC-Exclusive Mode Switching | ⬜ QUEUED | Deprecate string sniffing in `ipc_handler.rs` |
@@ -38,6 +38,24 @@ Starting with **1.1 `tos-protocol` Extraction** because it establishes the share
 - `tos-sessiond` daemon skeleton added to workspace (ephemeral port, atomic live-state writes, session CRUD)
 - `Makefile` updated: version bumped to 2.2, `tos-sessiond` in `run-services`
 - All pre-existing tests pass (tier1: 3/3, tier4_security: 1/1, protocol: 14/14)
+
+### Bug Fixes (during 1.1)
+- **Shell fallback**: Brain no longer crashes when `fish` isn't installed — falls back to `$SHELL` → `/bin/bash` → `/bin/sh`
+- **Module path resolution**: Shell module manifests with absolute paths (e.g. `/usr/bin/fish`) now resolve correctly
+- **Surface leak**: Fixed Wayland renderer creating new memfd+mmap every frame — now creates once, reuses handle
+- **UI flicker**: Added ANSI clear-screen + cursor hide/show; downgraded per-frame logs to debug; tracing now writes to stderr
+
+### 1.2 Settings Schema Extensions ✅
+- 6 new setting namespaces: `tos.onboarding.*`, `tos.trust.*`, `tos.ai.*`, `tos.interface.bezel.*`, `tos.interface.splits.*`, `tos.network.*`
+- 8 TDD tests validating: presence, default values, cascading, serialization round-trip
+- `SettingsService::build_default_settings()` is the canonical source of truth for all defaults
+
+### 1.3 Service Registry & Port Infrastructure ✅
+- `ServiceRegistry` struct: register, deregister, heartbeat, mark_dead, port lookup, alive filtering
+- `port_table()` method returns human-readable table for `tos ports` CLI
+- 3 new IPC commands: `tos_ports:`, `service_register:name;port`, `service_deregister:name`
+- `ServiceManager` creates registry on startup with anchor port from settings
+- 6 inline unit tests for registry CRUD, heartbeat, and filtering
 
 ---
 

@@ -19,6 +19,7 @@ pub struct SurfaceConfig {
     pub height: u32,
 }
 
+#[derive(Debug, Clone, Copy)]
 pub struct SurfaceHandle(pub u32);
 
 pub trait SurfaceContent {

@@ -5,7 +5,10 @@
 		getCurrentMode, setCurrentMode,
 		isSidebarLeftExpanded, isSidebarRightExpanded,
 		toggleSidebarLeft, toggleSidebarRight,
-		type ViewMode
+		isSettingsOpen, isPortalModalOpen,
+		openSettings, toggleTerminalToFront,
+		getPromptMode, setPromptMode,
+		type ViewMode, type PromptMode
 	} from '$lib/stores/ui.svelte';
 
 	// View Components
@@ -24,13 +27,24 @@
 	// Overlays
 	import SystemOutput from '$lib/components/SystemOutput.svelte';
 	import DisconnectOverlay from '$lib/components/DisconnectOverlay.svelte';
+	import SettingsModal from '$lib/components/SettingsModal.svelte';
+	import PortalModal from '$lib/components/PortalModal.svelte';
 
 	const state = $derived(getTosState());
 	const connState = $derived(getConnectionState());
 	const mode = $derived(getCurrentMode());
+	const promptMode = $derived(getPromptMode());
 	const sidebarLeft = $derived(isSidebarLeftExpanded());
 	const sidebarRight = $derived(isSidebarRightExpanded());
 	const activeSector = $derived(state.sectors?.[state.active_sector_index]);
+
+	// Bezel States based on Face Specification §3.1
+	const bottomBezelState = $derived(
+		mode === 'global' ? 'collapsed-locked' :
+		mode === 'hubs' ? 'expanded' :
+		mode === 'sectors' ? 'collapsed-expandable' :
+		'collapsed-locked'
+	);
 
 	// Hierarchy level buttons
 	const levels: { label: string; mode: ViewMode; key: string }[] = [
@@ -39,6 +53,25 @@
 		{ label: 'ApplicationFocus', mode: 'sectors', key: '3' },
 		{ label: 'DetailView', mode: 'detail', key: '4' },
 	];
+
+	// Prompt mode config
+	const promptModes: { id: PromptMode; label: string }[] = [
+		{ id: 'cmd', label: 'CMD' },
+		{ id: 'search', label: 'SEARCH' },
+		{ id: 'ai', label: 'AI' },
+	];
+
+	const promptPrefix = $derived(
+		promptMode === 'cmd' ? 'CMD ▸' :
+		promptMode === 'search' ? 'SRCH ▸' :
+		'AI ▸'
+	);
+
+	const promptPlaceholder = $derived(
+		promptMode === 'cmd' ? 'ENTER COMMAND...' :
+		promptMode === 'search' ? 'SEARCH FILES & CONTENT...' :
+		'ASK AI COPILOT...'
+	);
 
 	let cmdInput = $state('');
 
@@ -50,8 +83,16 @@
 	async function handleSubmit(e: Event) {
 		e.preventDefault();
 		if (!cmdInput.trim()) return;
-		await submitCommand(cmdInput);
+		const input = cmdInput;
 		cmdInput = '';
+
+		if (promptMode === 'cmd') {
+			await submitCommand(input);
+		} else if (promptMode === 'search') {
+			await sendCommand(`search:${input}`);
+		} else if (promptMode === 'ai') {
+			await sendCommand(`ai_submit:${input}`);
+		}
 	}
 
 	function handleLevelClick(m: ViewMode) {
@@ -69,7 +110,49 @@
 		mode === 'spatial' ? 'SPATIAL TOPOLOGY // 3D SHELL' :
 		'TOS'
 	);
+
+	// Global keyboard shortcuts
+	function handleGlobalKeydown(e: KeyboardEvent) {
+		// Don't intercept if typing in an input
+		const tag = (e.target as HTMLElement)?.tagName;
+		const isInput = tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT';
+
+		// Escape closes modals (handled by modal components themselves)
+
+		if (e.ctrlKey || e.metaKey) {
+			// Ctrl+1-4: Switch hierarchy levels
+			const levelMap: Record<string, ViewMode> = { '1': 'global', '2': 'hubs', '3': 'sectors', '4': 'detail' };
+			if (levelMap[e.key]) {
+				e.preventDefault();
+				handleLevelClick(levelMap[e.key]);
+				return;
+			}
+
+			// Ctrl+, : Open settings
+			if (e.key === ',') {
+				e.preventDefault();
+				openSettings();
+				return;
+			}
+
+			// Ctrl+/ : Focus command input
+			if (e.key === '/') {
+				e.preventDefault();
+				document.getElementById('cmd-input')?.focus();
+				return;
+			}
+
+			// Ctrl+T : Toggle terminal overlay
+			if (e.key === 't' && !isInput) {
+				e.preventDefault();
+				toggleTerminalToFront();
+				return;
+			}
+		}
+	}
 </script>
+
+<svelte:window onkeydown={handleGlobalKeydown} />
 
 <div class="lcars-container">
 	<!-- Cinematic Background -->
@@ -173,17 +256,28 @@
 			</div>
 
 			<!-- ═══════════ BOTTOM BEZEL ═══════════ -->
-			<footer class="lcars-footer">
+			<footer class="lcars-footer {bottomBezelState}">
 				<div class="lcars-bar lcars-bar-bottom">
 					<div class="lcars-elbow bottom-left"></div>
 					<div class="lcars-input-area">
+						<div class="mode-toggle-pill">
+							{#each promptModes as pm}
+								<button
+									class="pill-btn"
+									class:active={promptMode === pm.id}
+									onclick={() => setPromptMode(pm.id)}
+								>
+									{pm.label}
+								</button>
+							{/each}
+						</div>
 						<form class="prompt-form" onsubmit={handleSubmit}>
-							<span class="prompt-prefix">CMD ▸</span>
+							<span class="prompt-prefix">{promptPrefix}</span>
 							<input
 								type="text"
 								class="cmd-input"
 								id="cmd-input"
-								placeholder="ENTER COMMAND..."
+								placeholder={promptPlaceholder}
 								autocomplete="off"
 								bind:value={cmdInput}
 							/>
@@ -204,6 +298,9 @@
 		</aside>
 	</main>
 </div>
+
+<SettingsModal />
+<PortalModal />
 
 <style>
 	/* ── Container ── */
@@ -425,12 +522,75 @@
 		height: 2.5rem;
 		background: var(--color-surface);
 		border-top: 1px solid var(--color-border);
+		transition: height var(--transition-normal) cubic-bezier(0.2, 0.8, 0.2, 1);
+		overflow: hidden;
+	}
+
+	/* Bottom Bezel States */
+	.lcars-footer.collapsed-locked .lcars-bar-bottom {
+		height: 0.5rem;
+		pointer-events: none;
+	}
+
+	.lcars-footer.collapsed-expandable .lcars-bar-bottom {
+		height: 0.5rem;
+		cursor: row-resize;
+	}
+
+	.lcars-footer.collapsed-expandable:hover .lcars-bar-bottom,
+	.lcars-footer.collapsed-expandable:focus-within .lcars-bar-bottom {
+		height: 2.5rem;
 	}
 
 	.lcars-input-area {
 		flex: 1;
 		display: flex;
 		align-items: center;
+		gap: var(--space-sm);
+		transition: opacity var(--transition-fast);
+	}
+
+	.lcars-footer.collapsed-locked .lcars-input-area,
+	.lcars-footer.collapsed-expandable:not(:hover):not(:focus-within) .lcars-input-area {
+		opacity: 0;
+		pointer-events: none;
+	}
+
+	/* Mode Toggle Pill */
+	.mode-toggle-pill {
+		display: flex;
+		border-radius: var(--radius-pill);
+		overflow: hidden;
+		border: 1px solid var(--color-border);
+		margin-left: var(--space-sm);
+		flex-shrink: 0;
+	}
+
+	.pill-btn {
+		font-family: var(--font-display);
+		font-size: 0.6rem;
+		font-weight: 700;
+		letter-spacing: 0.08em;
+		padding: 0.25rem 0.6rem;
+		background: transparent;
+		color: var(--color-text-dim);
+		border: none;
+		cursor: pointer;
+		transition: all var(--transition-fast);
+	}
+
+	.pill-btn:not(:last-child) {
+		border-right: 1px solid var(--color-border);
+	}
+
+	.pill-btn:hover:not(.active) {
+		background: rgba(255, 255, 255, 0.04);
+		color: var(--color-text);
+	}
+
+	.pill-btn.active {
+		background: var(--color-primary);
+		color: #000;
 	}
 
 	.prompt-form {

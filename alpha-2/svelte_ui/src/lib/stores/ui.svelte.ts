@@ -5,6 +5,7 @@
 
 export type ViewMode = 'global' | 'hubs' | 'sectors' | 'detail' | 'buffer' | 'spatial';
 export type SettingsTab = 'global' | 'sectors' | 'interface' | 'marketplace';
+export type PromptMode = 'cmd' | 'search' | 'ai';
 
 // --- Reactive state ---
 let currentMode = $state<ViewMode>('global');
@@ -14,6 +15,7 @@ let terminalToFront = $state(false);
 let settingsOpen = $state(false);
 let settingsTab = $state<SettingsTab>('global');
 let portalModalOpen = $state(false);
+let promptMode = $state<PromptMode>('cmd');
 let followingId = $state<string | null>(null);
 
 // --- Getters ---
@@ -24,6 +26,7 @@ export function isTerminalToFront(): boolean { return terminalToFront; }
 export function isSettingsOpen(): boolean { return settingsOpen; }
 export function getSettingsTab(): SettingsTab { return settingsTab; }
 export function isPortalModalOpen(): boolean { return portalModalOpen; }
+export function getPromptMode(): PromptMode { return promptMode; }
 export function getFollowingId(): string | null { return followingId; }
 
 // --- Actions ---
@@ -62,6 +65,10 @@ export function openPortalModal(): void {
 
 export function closePortalModal(): void {
     portalModalOpen = false;
+}
+
+export function setPromptMode(mode: PromptMode): void {
+    promptMode = mode;
 }
 
 export function toggleFollow(id: string): void {

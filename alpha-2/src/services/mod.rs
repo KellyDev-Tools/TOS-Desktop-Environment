@@ -39,7 +39,8 @@ impl ServiceManager {
     pub fn new() -> Self {
         let logger = Arc::new(LoggerService::new());
         let settings = Arc::new(SettingsService::new());
-        let audio = Arc::new(AudioService::new());
+        let (audio_svc, audio_warning) = AudioService::new();
+        let audio = Arc::new(audio_svc);
         let ai = Arc::new(AiService::new());
         let search = Arc::new(SearchService::new());
         let haptic = Arc::new(HapticService::new());
@@ -55,6 +56,11 @@ impl ServiceManager {
         
         // Establish cross-service dependencies (e.g., logging triggers audio cues)
         logger.set_audio_service(audio.clone());
+
+        // Surface any init warnings through the logger
+        if let Some(warning) = audio_warning {
+            logger.log(&warning, 2);
+        }
         
         Self {
             logger,

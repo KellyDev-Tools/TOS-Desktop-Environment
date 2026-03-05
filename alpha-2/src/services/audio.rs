@@ -8,15 +8,18 @@ pub struct AudioService {
 }
 
 impl AudioService {
-    pub fn new() -> Self {
+    pub fn new() -> (Self, Option<String>) {
         let (tx, rx) = std::sync::mpsc::channel::<String>();
+        let (warn_tx, warn_rx) = std::sync::mpsc::channel::<String>();
         
         thread::spawn(move || {
             // Attempt to initialize the default audio output
             let (_stream, stream_handle) = match OutputStream::try_default() {
                 Ok(s) => s,
                 Err(e) => {
-                    tracing::warn!("Failed to initialize audio stream: {}", e);
+                    let msg = format!("Failed to initialize audio stream: {}", e);
+                    tracing::warn!("{}", msg);
+                    let _ = warn_tx.send(msg);
                     return;
                 }
             };
@@ -47,7 +50,10 @@ impl AudioService {
             }
         });
 
-        Self { sender: tx }
+        // Give the thread a moment to report back
+        let init_warning = warn_rx.recv_timeout(Duration::from_millis(100)).ok();
+
+        (Self { sender: tx }, init_warning)
     }
 
     /// Trigger a specific system earcon (audio notification).

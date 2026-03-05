@@ -55,7 +55,16 @@ impl ShellApi {
             if std::path::Path::new(&path).exists() {
                 (path, args)
             } else {
-                tracing::warn!("Shell module '{}' resolved to '{}' which does not exist, falling back", shell_id, path);
+                let msg = format!("Shell module '{}' resolved to '{}' which does not exist, falling back", shell_id, path);
+                tracing::warn!("{}", msg);
+                // Surface warning in the Face's System Output layer
+                let mut lock = state.lock().unwrap();
+                lock.system_log.push(TerminalLine {
+                    text: msg,
+                    priority: 2,
+                    timestamp: Local::now(),
+                });
+                drop(lock);
                 resolve_from_env()
             }
         } else {

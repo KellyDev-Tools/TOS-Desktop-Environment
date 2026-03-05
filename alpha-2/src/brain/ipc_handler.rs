@@ -73,7 +73,15 @@ impl IpcHandler {
 
         let duration = start.elapsed();
         if duration.as_millis() > 16 {
-            tracing::warn!("IPC LATENCY WARNING: {} took {:?}", prefix, duration);
+            let msg = format!("IPC LATENCY WARNING: {} took {:?}", prefix, duration);
+            tracing::warn!("{}", msg);
+            // Surface latency warnings in the Face's System Output
+            let mut state = self.state.lock().unwrap();
+            state.system_log.push(crate::common::TerminalLine {
+                text: msg,
+                priority: 2,
+                timestamp: chrono::Local::now(),
+            });
         }
         
         format!("{} ({:?})", result, duration)

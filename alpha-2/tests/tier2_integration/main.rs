@@ -2,6 +2,7 @@ use tos_alpha2::brain::shell::ShellApi;
 use tos_alpha2::common::TosState;
 use std::sync::{Arc, Mutex};
 use tokio::time::{sleep, Duration};
+use tos_alpha2::brain::module_manager::ModuleManager;
 
 #[tokio::test]
 async fn test_shell_output_and_osc_priority() {
@@ -10,7 +11,8 @@ async fn test_shell_output_and_osc_priority() {
     let sid = state_val.sectors[0].id;
     let hid = state_val.sectors[0].hubs[0].id;
     let state = Arc::new(Mutex::new(state_val));
-    let mut shell = ShellApi::new(state.clone(), sid, hid).expect("Failed to spawn shell");
+    let modules = Arc::new(ModuleManager::new(std::path::PathBuf::from("./modules")));
+    let mut shell = ShellApi::new(state.clone(), modules.clone(), sid, hid).expect("Failed to spawn shell");
 
     // Send a command that emits the OSC 9012 sequence for priority 2 (Warning)
     let cmd = "printf '\\033]9012;2\\007SENTINEL_OUTPUT\\n'\n";
@@ -37,13 +39,14 @@ async fn test_terminal_buffer_fifo() {
     let sid = state_val.sectors[0].id;
     let hid = state_val.sectors[0].hubs[0].id;
     let state = Arc::new(Mutex::new(state_val));
+    let modules = Arc::new(ModuleManager::new(std::path::PathBuf::from("./modules")));
     
     {
         let mut state_lock = state.lock().unwrap();
         state_lock.sectors[0].hubs[0].buffer_limit = 3;
     }
     
-    let mut shell = ShellApi::new(state.clone(), sid, hid).expect("Failed to spawn shell");
+    let mut shell = ShellApi::new(state.clone(), modules.clone(), sid, hid).expect("Failed to spawn shell");
 
     for i in 1..=5 {
         shell.write(&format!("echo line{}\n", i)).expect("Write failed");
@@ -67,7 +70,8 @@ async fn test_shell_cwd_tracking() {
     let sid = state_val.sectors[0].id;
     let hid = state_val.sectors[0].hubs[0].id;
     let state = Arc::new(Mutex::new(state_val));
-    let mut shell = ShellApi::new(state.clone(), sid, hid).expect("Failed to spawn shell");
+    let modules = Arc::new(ModuleManager::new(std::path::PathBuf::from("./modules")));
+    let mut shell = ShellApi::new(state.clone(), modules.clone(), sid, hid).expect("Failed to spawn shell");
 
     let test_path = "/tmp/tos_test_dir";
     let cmd = format!("printf '\\033]9003;{}\\007\\n'\n", test_path);
@@ -92,7 +96,8 @@ async fn test_shell_command_result() {
     let sid = state_val.sectors[0].id;
     let hid = state_val.sectors[0].hubs[0].id;
     let state = Arc::new(Mutex::new(state_val));
-    let mut shell = ShellApi::new(state.clone(), sid, hid).expect("Failed to spawn shell");
+    let modules = Arc::new(ModuleManager::new(std::path::PathBuf::from("./modules")));
+    let mut shell = ShellApi::new(state.clone(), modules.clone(), sid, hid).expect("Failed to spawn shell");
 
     let cmd = "printf '\\033]9002;ls;0;dGVzdCBvdXRwdXQ=\\007\\n'\n";
     shell.write(cmd).expect("Write failed");
@@ -115,7 +120,8 @@ async fn test_shell_directory_listing() {
     let sid = state_val.sectors[0].id;
     let hid = state_val.sectors[0].hubs[0].id;
     let state = Arc::new(Mutex::new(state_val));
-    let mut shell = ShellApi::new(state.clone(), sid, hid).expect("Failed to spawn shell");
+    let modules = Arc::new(ModuleManager::new(std::path::PathBuf::from("./modules")));
+    let mut shell = ShellApi::new(state.clone(), modules.clone(), sid, hid).expect("Failed to spawn shell");
 
     let b64_json = "eyJwYXRoIjoiL3Rlc3QiLCJlbnRyaWVzIjpbeyJuYW1lIjoiZmlsZS50eHQiLCJpc19kaXIiOmZhbHNlLCJzaXplIjoxMDB9XX0=";
     let cmd = format!("printf '\\033]9001;/test;{}\\007\\n'\n", b64_json);
@@ -144,8 +150,9 @@ async fn test_remote_session_disconnection() {
     let sid = state_val.sectors[0].id;
     let hid = state_val.sectors[0].hubs[0].id;
     let state = Arc::new(Mutex::new(state_val));
+    let modules = Arc::new(ModuleManager::new(std::path::PathBuf::from("./modules")));
     
-    let mut shell = ShellApi::new(state.clone(), sid, hid).expect("Failed to spawn shell");
+    let mut shell = ShellApi::new(state.clone(), modules.clone(), sid, hid).expect("Failed to spawn shell");
     
     // Simulate terminal closure (send exit)
     shell.write("exit\n").expect("Write failed");
@@ -181,7 +188,8 @@ async fn test_dangerous_command_interception() {
     let sid = state_val.sectors[0].id;
     let hid = state_val.sectors[0].hubs[0].id;
     let state = Arc::new(Mutex::new(state_val));
-    let shell = Arc::new(Mutex::new(ShellApi::new(state.clone(), sid, hid).unwrap()));
+    let modules = Arc::new(ModuleManager::new(std::path::PathBuf::from("./modules")));
+    let shell = Arc::new(Mutex::new(ShellApi::new(state.clone(), modules.clone(), sid, hid).unwrap()));
     let services = Arc::new(ServiceManager::new());
     let ipc = IpcHandler::new(state.clone(), shell.clone(), services);
 

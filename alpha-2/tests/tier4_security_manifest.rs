@@ -16,6 +16,12 @@ fn test_manifest_cryptographic_verification() {
         version: "1.0.0".to_string(),
         module_type: "Test".to_string(),
         author: "TOS Core Team".to_string(),
+        description: None,
+        icon: None,
+        executable: None,
+        integration: None,
+        assets: None,
+        capabilities: None,
         signature: None,
     };
 
@@ -34,11 +40,11 @@ fn test_manifest_cryptographic_verification() {
     manifest.signature = Some(hex::encode(signature.to_bytes()));
 
     // 5. Verify the manifest using the module's validation logic
-    let is_valid = MarketplaceService::verify_manifest(&manifest, &public_key);
+    let is_valid = MarketplaceService::verify_manifest_local(&manifest, &public_key);
     assert!(is_valid, "Valid cryptographic signature was rejected");
 
     // 6. Test Tamper Detection: Modify the author field after signing
     manifest.author = "Malicious Actor".to_string();
-    let is_valid_tampered = MarketplaceService::verify_manifest(&manifest, &public_key);
+    let is_valid_tampered = MarketplaceService::verify_manifest_local(&manifest, &public_key);
     assert!(!is_valid_tampered, "Tampered manifest bypassed cryptographic validation!");
 }

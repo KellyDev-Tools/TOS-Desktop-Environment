@@ -1,6 +1,6 @@
 use tos_alpha2::common::{TosState, HierarchyLevel, ApplicationModel, DecorationPolicy, ZoomBehavior};
 use tos_alpha2::brain::sector::SectorManager;
-use uuid::Uuid;
+// unused
 
 #[test]
 fn test_application_lifecycle_round_trip() {

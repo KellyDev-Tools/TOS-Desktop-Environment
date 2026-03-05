@@ -5,7 +5,6 @@ use tos_alpha2::services::logger::LoggerService;
 use tos_alpha2::services::marketplace::{MarketplaceService, ModuleManifest};
 use tos_alpha2::services::priority::PriorityService;
 use tos_alpha2::common::SettingsStore;
-use std::sync::Arc;
 use tokio::process::Command;
 
 #[tokio::test]
@@ -74,6 +73,12 @@ async fn test_service_extraction_lifecycle() -> anyhow::Result<()> {
         version: "1.0.0".to_string(),
         module_type: "TerminalOutput".to_string(),
         author: "TOS".to_string(),
+        description: None,
+        icon: None,
+        executable: None,
+        integration: None,
+        assets: None,
+        capabilities: None,
         signature: None,
     };
     

@@ -62,13 +62,52 @@ Interfaces must feel "alive."
 
 ## 4. Testing & Validation
 
-### 4.1 Test-Driven Development (TDD) & "No Code Without Tests"
-- **Test-Driven Development (TDD)** is strictly required. Write the test first, verify it fails, then write the tactical implementation to pass it.
-- Every new feature must include a corresponding integration test in `tests/`.
-- Tests should verify the "Hierarchy Round-Trip" (e.g., initializing state, zooming to a level, triggering an event, verifying state change).
+### 4.1 Test Taxonomy & Definitions
+To maintain velocity and reliability, testing in TOS is strictly categorized:
 
-### 4.2 Terminal Verification
-- AI Agents must run `cargo check` and `cargo test` after every each task with file changes to ensure no regression.
+1. **Unit Tests:** 
+   - *Definition:* Validates a single, isolated function, struct, or pure logic sequence. No side effects, no file-system access, no network, no global state.
+   - *Location:* Inline alongside the code within `#[cfg(test)]` modules (Rust) or adjacent `.spec.ts` files (Svelte logic).
+   - *Execution:* Must execute in microseconds.
+
+2. **Integration Tests:** 
+   - *Definition:* Validates the interaction between multiple subsystems natively. Uses realistic but headless state (e.g., verifying an IPC string mutates the Brain and generates the correct JSON delta).
+   - *Location:* The `tests/` directory at the workspace root (e.g., `tests/headless_brain.rs`).
+   - *Execution:* Spins up local memory structures, completely bypassing UI/renderers.
+
+3. **Component Tests:** 
+   - *Definition:* Validates an individual sub-system, daemon, or UI module completely in isolation, independent of the rest of the system. Given input/state X, it must produce output/state Y. Essential for debugging the distributed TOS architecture.
+   - *Location:* `svelte_ui/tests/` (for UI components), `tests/` (for isolated Brain modules like the `TrustService`), or standalone service tests (e.g., verifying `tos-marketplaced` without a Brain connection).
+   - *Execution:* Fast execution using mocks for any external dependency (e.g., mocking the `brain.sock` or `SystemServices` trait).
+
+### 4.2 Test-Driven Development (TDD) Protocols
+Test-Driven Development is strictly required. No feature code should be written without a failing test being written and executed first.
+
+**For Brain/Core (Rust):**
+1. **Write the Test:** Add a test case to `tests/` (e.g., `tests/headless_brain.rs` or `tests/settings_schema.rs`). 
+2. **Verify Failure:** Run the test using `cargo test --test <name>` to prove it fails exactly as expected.
+3. **Implement Subsystem:** Write the minimal Rust code required to pass the test.
+4. **Verify Success:** Run the test again to prove it passes.
+5. *Rule:* Never use the Face (UI) to manually verify Brain state. Always use Headless testing bypassing the IPC socket or explicitly checking state JSON.
+
+**For Web Face/Frontend (Svelte):**
+1. **Write the Test:** Add a Playwright component/E2E test in `svelte_ui/tests/`.
+2. **Verify Failure:** Run the test using `cd svelte_ui && npx playwright test` to observe failure.
+3. **Implement UI:** Build the Svelte component or logic.
+4. **Verify Success:** Run the Playwright test again.
+5. *Rule:* Playwright tests must assert visual state, DOM presence, and CSS classes, not just logic.
+
+**For Native Faces (Wayland/OpenXR/Android):**
+1. **Write the Test:** Add a test case to the visual states suite (e.g., `tests/face_visual_states.rs`).
+2. **Verify Failure:** Run the test using `cargo test --test face_visual_states` to observe failure.
+3. **Implement Render Logic:** Update the platform-specific drawing or layout code (e.g., `src/platform/linux/wayland.rs` or common UI layout code).
+4. **Verify Success:** Run the test again to prove it correctly simulates the rendering.
+5. *Rule:* Native faces must provide a testing stub or string-buffer renderer so that visual states, dimensions, and text rendering logic can be validated headlessly in CI without requiring an active Compositor or XR runtime.
+
+### 4.3 Pipeline Verification
+- AI Agents must run `cargo check` and `cargo test` after any Rust file changes.
+- AI Agents must run `cd svelte_ui && npm run build` after any Svelte/TS file changes to ensure the SPA statically yields.
+- Do not commit code that breaks the compilation pipeline.
 
 ---
 

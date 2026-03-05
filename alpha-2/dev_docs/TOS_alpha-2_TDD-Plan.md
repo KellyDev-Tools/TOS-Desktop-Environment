@@ -7,37 +7,40 @@
 ## 1. Introduction
 This plan outlines the TDD strategy for implementing the TOS Alpha-2 architecture. Following the "Terminal-First" philosophy, testing will focus on verifying the integrity of the command stream, the accuracy of the IPC protocol, and the safety of the modular sandbox.
 
-## 2. Testing Tiers
+## 2. Testing Taxonomy & Coverage Tiers
 
-### 2.1 Tier 1: Brain Core & Logic (Unit Tests)
-*   **Goal:** Verify state transitions, command parsing, and settings resolution without a UI or PTY.
+This plan aligns structurally with the *Test Taxonomy & Definitions* outlined in the `TOS AI Development Standards` (§4.1).
+
+### 2.1 Unit Tests (Inline Rust & Svelte `.spec.ts`)
+*   **Goal:** Microsecond-fast validation of isolated functions, structs, and pure logic. No side effects, no full state initialization.
 *   **Key Components:**
     *   **Settings Resolver:** Test cascading resolution (Global -> Sector -> App).
-    *   **Sector Tree:** Test creation, cloning, and destruction of sectors and hubs.
-    *   **Priority Engine:** Verify priority scores based on mock activity factors.
-    *   **IPC Parser:** Validate `prefix:payload` and semicolon-delimited arguments.
+    *   **OSC Parser Algorithm:** Verify extraction of 9000-series sequences from dirty string inputs.
+    *   **Priority Math:** Verify priority scores based on mock activity factors.
+    *   **Trust Classifier:** Test regex/rules engines for `privilege_escalation` and `recursive_bulk` detection.
 
-### 2.2 Tier 2: Shell API & PTY (Integration Tests)
-*   **Goal:** Verify bidirectional communication between the Brain and the underlying PTY/Shell.
+### 2.2 Integration Tests (Headless Native Rust)
+*   **Goal:** Validate cross-subsystem interaction natively by testing the core Brain IPC interface against in-memory architecture (bypassing UI).
 *   **Key Components:**
-    *   **OSC Parser:** Test all 9000-series sequences (9002 results, 9003 CWD, 9012 Priority).
-    *   **Command Result Capturing:** Verify Base64 decoding of `command_result`.
-    *   **TTY Buffer:** Test the 500-line FIFO limit and user-adjustable overrides.
-    *   **Remote Disconnect:** Mock connection drops and verify the 5-second auto-close timer.
+    *   **IPC Protocol Matcher:** Validate `prefix:payload` parsing and state mutation (`tests/headless_brain.rs`).
+    *   **Sector Tree Lifecycle:** Test creation, cloning, and destruction of active sectors and PTY backends.
+    *   **TTY Buffer Wraparound:** Test the 500-line FIFO limit when pushing live data to `system_log`.
+    *   **Remote ICE Teardown:** Mock socket drops and verify the graceful 500ms auto-close teardown sequence.
 
-### 2.3 Tier 3: Communication & UI (E2E Integration)
-*   **Goal:** Verify the **Face-to-Brain** IPC contract using mock UI events.
+### 2.3 Component Tests (Isolated Functional Blocks)
+*   **Goal:** Verify individual units, daemons, or UI modules completely in isolation—independent of the rest of the system. Validates that specific distributed components act correctly according to design, making debugging faster.
 *   **Key Components:**
-    *   **Action Identifier Enforcement:** Verify that UI messages use identifiers, not labels.
-    *   **Trust System:** Test the command classification (privilege_escalation, recursive_bulk) and trust promotion/demotion state transitions (see Trust-Confirmation-Specification).
-    *   **Level Transitions:** Verify state snapshots when zooming from Level 1 to Level 2.
+    *   **Isolated Daemons:** Verify `tos-marketplaced` API responses without a running Brain by mocking the `brain.sock`.
+    *   **Brain Subsystems:** Test the `TrustService` decision logic by injecting state JSON independently of the `IpcHandler`.
+    *   **Web Face (Svelte/Playwright):** Assert LCARS `.lcars-bar` and `.glass-panel` layout rules, DOM presence, and interaction state changes in isolation.
+    *   **Native Face (Wayland/OpenXR):** Use string-buffer testing stubs (`tests/face_visual_states.rs`) to validate state representations headlessly without a Compositor.
 
-### 2.4 Tier 4: Modular Sandbox (Security Tests)
-*   **Goal:** Verify permissions and isolation.
+### 2.4 Modular Sandbox Tests (Security)
+*   **Goal:** Verify permissions boundary enforcement within the module loader.
 *   **Key Components:**
-    *   **Trust Tiers:** Ensure "Standard" modules cannot access restricted system traits.
-    *   **Manifest Validation:** Verify module loading fails if permissions are not declared.
-    *   **Theme Injection:** Test that CSS variables from Theme Modules are safely injected.
+    *   **Capability Enforcement:** Ensure "Standard" modules cannot access restricted system traits.
+    *   **Manifest Validation:** Verify module initialization safely rejects malformed or un-signed declarations.
+    *   **Theme Injection Security:** Test that CSS variables from Theme Modules are safely deserialized and cannot perform XSS or arbitrary code execution.
 
 ---
 
@@ -45,19 +48,19 @@ This plan outlines the TDD strategy for implementing the TOS Alpha-2 architectur
 
 | Component | Mocking Approach |
 |-----------|------------------|
-| **PTY** | Use a virtual pipe to simulate shell stdout/stderr and inject OSC sequences. |
-| **Shell** | Use a minimal reference script that emits known OSC sequences for testing. |
-| **UI (Face)** | Use a JSON-RPC test harness to simulate bezel clicks and prompt submissions. |
-| **Android SAF / Wayland** | Mock the `SystemServices` trait (§15.1) to return canned directory listings and metrics. |
+| **PTY / Shell Backend** | Use virtual pipes (e.g. `tests/stimulator.rs`) to inject known OSC byte streams and capture responses. |
+| **Settings File I/O** | Use an in-memory `HashMap` overlay during testing to prevent polluting `~/.config/tos/`. |
+| **Face Input Engine** | Use headless IPC socket writes or direct function calls via the `test-protocol` harness. |
+| **Native Renderers** | Stub the `Renderer` traits (`src/platform/mod.rs`) to dump output as parseable text strings layout trees. |
 
 ---
 
 ## 4. Specific Test Protocols (TDD Workflow)
 
-### 4.1 IPC Standardization Test
+### 4.1 Integration: IPC Standardization Test
 1.  **Define Test:** `test_ipc_semicolon_parsing`
 2.  **Input:** `set_setting:theme;lcars-dark`
-3.  **Expected:** `state.settings.get("theme") == "lcars-dark"`
+3.  **Expected:** `state.settings.global.get("theme") == "lcars-dark"`
 4.  **Input:** `signal_app:uuid-123;SIGKILL`
 5.  **Expected:** `internal_signal_event(uuid-123, SIGKILL)`
 

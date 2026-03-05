@@ -275,3 +275,85 @@ async fn unknown_prefix_returns_error() {
     let result = ipc.handle_request("nonexistent_command:payload");
     assert!(result.contains("ERROR"));
 }
+
+#[tokio::test]
+async fn test_ipc_semicolon_parsing() {
+    let (ipc, state) = headless_ipc();
+    
+    // 1. set_setting:theme;lcars-dark
+    let result = ipc.handle_request("set_setting:theme;lcars-dark");
+    assert!(result.contains("SETTING_UPDATE"));
+    assert_eq!(state.lock().unwrap().settings.global.get("theme"), Some(&"lcars-dark".to_string()));
+
+    // 2. signal_app:00000000-0000-0000-0000-000000000123;SIGKILL
+    let result = ipc.handle_request("signal_app:00000000-0000-0000-0000-000000000123;SIGKILL");
+    // We expect it to be parsed correctly and trigger an internal signal event
+    assert!(result.contains("APP_SIGNALED"));
+    // Further assertions on state if signal_app mutates the state
+}
+
+#[tokio::test]
+async fn test_terminal_buffer_wrap() {
+    let (ipc, state) = headless_ipc();
+    
+    // Setup limit to 5
+    ipc.handle_request("set_setting:terminal_buffer_limit;5");
+
+    // Push 6 lines
+    for i in 1..=6 {
+        ipc.handle_request(&format!("system_log_append:1;Line {}", i));
+    }
+
+    // Expected: Buffer contains lines 2-6
+    let lock = state.lock().unwrap();
+    assert_eq!(lock.system_log.len(), 5);
+    assert_eq!(lock.system_log[0].text, "Line 2");
+    assert_eq!(lock.system_log[4].text, "Line 6");
+}
+
+#[tokio::test]
+async fn test_remote_disconnect_timer() {
+    let (ipc, state) = headless_ipc();
+    
+    // Create remote sector
+    ipc.handle_request("sector_create:Remote Desktop");
+    let sector_id = state.lock().unwrap().sectors[1].id;
+    state.lock().unwrap().sectors[1].is_remote = true;
+
+    // Trigger disconnect
+    let res = ipc.handle_request(&format!("remote_disconnect:{}", sector_id));
+    assert!(res.contains("REMOTE_DISCONNECTED"));
+    
+    assert!(state.lock().unwrap().sectors[1].disconnected);
+    assert_eq!(state.lock().unwrap().sectors.len(), 2);
+
+    // Wait 5.2s (since timer is 5.1s)
+    tokio::time::sleep(tokio::time::Duration::from_millis(5200)).await;
+
+    // Verify it's removed
+    assert_eq!(state.lock().unwrap().sectors.len(), 1);
+}
+
+#[tokio::test]
+async fn test_bezel_label_rejection() {
+    let (ipc, state) = headless_ipc();
+    
+    // Call click:ZOOM OUT which should fail
+    let res = ipc.handle_request("click:ZOOM OUT");
+    assert!(res.contains("ERROR"));
+
+    // Expected: Log warning (verified manually/implicitly via trace output); no state change
+    assert_eq!(state.lock().unwrap().current_level, HierarchyLevel::GlobalOverview);
+
+    // Call click:zoom_in (to move to CommandHub)
+    let res = ipc.handle_request("click:zoom_in");
+    assert!(res.contains("ZOOMED_IN"));
+    assert_eq!(state.lock().unwrap().current_level, HierarchyLevel::CommandHub);
+
+    // Call click:zoom_out (Identifier)
+    let res = ipc.handle_request("click:zoom_out");
+    assert!(res.contains("ZOOMED_OUT"));
+    assert_eq!(state.lock().unwrap().current_level, HierarchyLevel::GlobalOverview);
+}
+
+

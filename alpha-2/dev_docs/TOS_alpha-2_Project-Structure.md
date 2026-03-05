@@ -1,6 +1,6 @@
 # TOS Alpha-2 Project Structure
 
-This document outlines the organization of the source code for the Tactical Operating System (TOS) Alpha-2 implementation.
+This document outlines the organization of the source code for **TOS** (**Terminal On Steroids**) Alpha-2 implementation.
 
 ## 1. Source Directory (`src/`)
 

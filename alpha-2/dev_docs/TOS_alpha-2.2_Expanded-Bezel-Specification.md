@@ -1,4 +1,4 @@
-# TOS Alpha-2.1 Expanded Bezel Command Surface
+# TOS Alpha-2.2 Expanded Bezel Command Surface
 ### Specification v1.0 — Supplement to Architecture Specification §7.1 & §8.1
 
 ---
@@ -150,7 +150,7 @@ If the user runs commands in the ephemeral pane that they want to keep, a **[⊞
 
 ## 9. Architectural Position
 
-The Expanded Bezel Command Surface is **not a level** in the six-level hierarchy. It does not change `active_level` in the session state. It is a persistent overlay that can be opened and closed at any level without affecting navigation state.
+The Expanded Bezel Command Surface is **not a level** in the four-level hierarchy. It does not change `active_level` in the session state. It is a persistent overlay that can be opened and closed at any level without affecting navigation state.
 
 The Brain tracks a single boolean flag: `bezel_expanded`. When true, the Face renders the expanded surface. When false, the standard collapsed bezel is shown. This flag is not persisted to the session file — the bezel always opens collapsed on launch.
 
@@ -170,7 +170,7 @@ The Bottom Bezel Segment is described in Architecture Specification §8.1 as hou
 
 - The collapsed state is unchanged — the bottom bezel remains locked and static as specced.
 - The expanded state is a new mode of the same segment, not a new segment. The lock applies to slot configurability, not to expansion capability.
-- The Persistent Unified Prompt at Level 6 (Tactical Reset) remains locked and non-expandable as per Architecture Specification §20. The expansion gesture is disabled during Tactical Reset.
+- Disable expansion trigger during Tactical Reset (Level 4 God Mode).
 
 ---
 
@@ -183,10 +183,9 @@ The six-level hierarchy (Architecture Specification §2) is unchanged. For docum
 | LVL 1 | Global Overview | ✓ Yes |
 | LVL 2 | Command Hub | ✓ Yes (extends the existing prompt) |
 | LVL 3 | Application Focus | ✓ Yes — primary use case |
-| LVL 4 | Detail Inspector | ✓ Yes |
-| LVL 5 | Buffer View | ✓ Yes |
-| LVL 6 | Tactical Reset | ✗ Disabled |
+| LVL 4 | Deep Inspection (Detail / Buffer) | ✓ Yes |
+| LVL 4 | Tactical Reset (God Mode) | ✗ Disabled |
 
 ---
 
-*TOS Alpha-2.1 // Expanded Bezel Command Surface v1.0 // Supplement to Architecture Specification §7.1 & §8.1*
+*TOS Alpha-2.2 // Expanded Bezel Command Surface v1.0 // Supplement to Architecture Specification §7.1 & §8.1*

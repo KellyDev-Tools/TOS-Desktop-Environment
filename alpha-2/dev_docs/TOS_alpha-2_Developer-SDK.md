@@ -1,7 +1,7 @@
 # TOS Alpha-2 Developer SDK
 
 **Version:** 1.0 (Alpha-2)  
-**Purpose:** This document provides the official guidelines, schemas, and interface contracts for developing third-party extensions for the Tactical Operating System (TOS).
+**Purpose:** This document provides the official guidelines, schemas, and interface contracts for developing third-party extensions for **TOS** (**Terminal On Steroids**).
 
 ---
 
@@ -13,9 +13,11 @@ The TOS Ecosystem is built on a "Local First" philosophy. Every extension—from
 This SDK supports the following module types:
 - **Themes (`.tos-theme`)**: CSS layouts, icons, and typography.
 - **AI Backends (`.tos-ai`)**: LLM adapters using the JSON Boundary Protocol.
+- **AI Behaviors (`.tos-aibehavior`)**: Pluggable co-pilot interaction patterns.
 - **Shells (`.tos-shell`)**: PTY environments with OSC telemetry (Fish, Zsh, Bash).
 - **Terminal Output (`.tos-terminal`)**: Custom rendering logic for terminal canvasses.
 - **Application Models (`.tos-appmodel`)**: Metadata for deep Level 3 integration.
+- **Bezel Components (`.tos-bezel`)**: Dockable bezel slot components.
 
 ---
 
@@ -43,7 +45,7 @@ The `module.toml` is the source of truth for the marketplace and the Brain.
 id = "com.community.tactical-amber"
 name = "Tactical Amber"
 version = "1.2.0"
-module_type = "Theme" # Options: Application, TerminalOutput, Theme, Shell, AI, Audio
+type = "theme" # Options: appmodel, terminal, theme, shell, ai, aibehavior, bezel, audio
 author = "Sovereign Engineering"
 description = "High-contrast tactical theme inspired by deep-space sensors."
 icon = "assets/icon.png"
@@ -72,7 +74,12 @@ fonts = ["assets/fonts/Inter.ttf"]
 
 #### AI Capabilities (§1.3)
 ```toml
-capabilities = ["chat", "streaming", "function_calling"]
+[capabilities]
+chat             = true
+streaming        = true
+function_calling = true
+vision           = false
+latency_profile  = "fast_remote"   # local | fast_remote | slow_remote
 ```
 
 ---

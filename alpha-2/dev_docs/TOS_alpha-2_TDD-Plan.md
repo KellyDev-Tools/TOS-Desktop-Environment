@@ -2,7 +2,7 @@
 
 **Version:** 1.0  
 **Status:** DRAFT  
-**Scope:** Tactical Operating System (TOS) Alpha-2 Core Logic (Brain), IPC, and UI Integration (Face)
+**Scope:** Terminal On Steroids (TOS) Alpha-2 Core Logic (Brain), IPC, and UI Integration (Face)
 
 ## 1. Introduction
 This plan outlines the TDD strategy for implementing the TOS Alpha-2 architecture. Following the "Terminal-First" philosophy, testing will focus on verifying the integrity of the command stream, the accuracy of the IPC protocol, and the safety of the modular sandbox.
@@ -29,7 +29,7 @@ This plan outlines the TDD strategy for implementing the TOS Alpha-2 architectur
 *   **Goal:** Verify the **Face-to-Brain** IPC contract using mock UI events.
 *   **Key Components:**
     *   **Action Identifier Enforcement:** Verify that UI messages use identifiers, not labels.
-    *   **Tactile/Voice Confirmation:** Test the confirmation state machine (Slide -> Progress -> Execute).
+    *   **Trust System:** Test the command classification (privilege_escalation, recursive_bulk) and trust promotion/demotion state transitions (see Trust-Confirmation-Specification).
     *   **Level Transitions:** Verify state snapshots when zooming from Level 1 to Level 2.
 
 ### 2.4 Tier 4: Modular Sandbox (Security Tests)

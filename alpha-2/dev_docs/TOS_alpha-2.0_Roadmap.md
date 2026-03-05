@@ -6,7 +6,7 @@ This plan tracks the granular tasks required to fulfill the TOS Alpha-2 Architec
 - [x] Execute Tier 1 Unit Tests (Brain Core)
 - [x] Execute Tier 2 Integration Tests (Shell/PTY)
 - [x] Execute Tier 4 Security Tests (Sandbox/Permissions) §18
-- [x] Stress Test IPC Round-trip (<16ms) §31.5
+- [x] Stress Test IPC Round-trip (<16ms) §16.2
 
 ## Core Foundation & Infrastructure
 - [x] Initialize Alpha-2 Project Structure §30.1
@@ -46,7 +46,7 @@ This plan tracks the granular tasks required to fulfill the TOS Alpha-2 Architec
 - [x] Implement Dangerous Command Interception §17.3
 - [x] Implement Tactile/Voice Confirmation State Machine §17.3
 - [x] Implement Standard Tier Sandbox (Mock Permissions) §18.4
-- [x] Implement Deep Inspection (Level 5) Privilege Escalation §17.4
+- [x] Implement Deep Inspection (Level 4 Buffer View) Privilege Escalation §17.4
 
 ## Auxiliary Services
 - [x] Implement Unified TOS Log Service (Merging Local/System/Remote) §19.1
@@ -63,5 +63,5 @@ This plan tracks the granular tasks required to fulfill the TOS Alpha-2 Architec
 
 ## System Polish
 - [x] Visual Transition Refinement §30.15
-- [x] Performance Optimization (IPC Latency Tracking) §31.5
+- [x] Performance Optimization (IPC Latency Tracking) §16.2
 - [x] Documentation Finalization

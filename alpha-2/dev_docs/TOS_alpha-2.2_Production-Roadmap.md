@@ -128,7 +128,7 @@ This roadmap defines the transition from Alpha-2.1 (Experimental/Mocked) to Alph
     - Implement output panel: renders via active Terminal Output Module, max 40% viewport height, scrollable; amber border on non-zero exit.
     - Implement post-output action chips: `[→ Command Hub]`, `[⊞ Split View]`, `[✕ Dismiss]`, `[⧉ Keep Open]`.
     - Implement configurable dismiss behaviour in **Settings → Interface → Expanded Bezel**: Stay Open / Auto-collapse on complete / Auto-collapse after timeout (default 5s).
-    - Disable expansion trigger during Level 6 (Tactical Reset).
+    - Disable expansion trigger during Tactical Reset (Level 4 God Mode).
     - Add Brain `bezel_expanded` boolean flag (not persisted to session).
     - Add IPC messages: `bezel_expand`, `bezel_collapse`, `bezel_output_action`, `bezel_pane_promote`, `bezel_swipe`.
 
@@ -198,10 +198,10 @@ This roadmap defines the transition from Alpha-2.1 (Experimental/Mocked) to Alph
 - [ ] **Wayland Frame Captures:** Replace `base64` mock thumbnails in `src/brain/sector/mod.rs` with actual frame buffer fetches.
     - Utilize DMABUF Native Path to share sub-surface textures with UI thread at 10Hz.
     - *Requires Face renderer to support `dmabuf` texture bindings.*
-- [ ] **Level 6 (Tactical Reset) Implementation:**
+- [ ] **Level 4 Tactical Reset (God Mode) Implementation:**
     - Develop Wireframe Diagnostic Renderer (low-poly, high-performance view).
-    - Implement Global Process Kill-Switch in Brain (with re-auth and tactile confirmation).
-    - Implement Prompt Interlocking (lock prompt during Level 6; disable Expanded Bezel trigger).
+    - Implement Global Process Kill-Switch in Brain (with re-auth and confirmation).
+    - Implement Prompt Interlocking (lock prompt during Tactical Reset; disable Expanded Bezel trigger).
     - Hook Auto-Trigger logic for high-latency or deadlock states.
 
 ---
@@ -257,5 +257,5 @@ This roadmap defines the transition from Alpha-2.1 (Experimental/Mocked) to Alph
 | Kinetic Zoom Transitions | Stable Face component tree (Phase 3) |
 | Wayland Frame Captures | `dmabuf` texture binding support in Face renderer |
 | Kinetic Sector Borders | PTY exit code telemetry via IPC versioned state |
-| Level 6 Expanded Bezel disable | Expanded Bezel IPC + Level 6 prompt lock |
+| Level 4 Tactical Reset Expanded Bezel disable | Expanded Bezel IPC + Tactical Reset prompt lock |
 | Native Platform Faces | All Phase 4 items stable |

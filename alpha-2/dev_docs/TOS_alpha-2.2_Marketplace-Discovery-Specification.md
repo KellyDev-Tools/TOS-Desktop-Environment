@@ -1,4 +1,4 @@
-# TOS Alpha-2.1 Marketplace Discovery & Browse Experience
+# TOS Alpha-2.2 Marketplace Discovery & Browse Experience
 ### Specification v1.0 — Supplement to Ecosystem Specification §2
 
 ---
@@ -277,4 +277,4 @@ The existing `marketplace_search` and `marketplace_install` messages from Archit
 
 ---
 
-*TOS Alpha-2.1 // Marketplace Discovery & Browse Experience v1.0 // Supplement to Ecosystem Specification §2*
+*TOS Alpha-2.2 // Marketplace Discovery & Browse Experience v1.0 // Supplement to Ecosystem Specification §2*

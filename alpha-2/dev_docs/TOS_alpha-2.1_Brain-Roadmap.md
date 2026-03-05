@@ -23,7 +23,7 @@ This roadmap tracks the progress of the TOS backend, specifically focusing on th
 
 ## Production-Grade Security & Isolation (Ecosystem Spec §1.4)
 - [x] **Kernel-Level Sandboxing:** Move beyond mock permissions to actual Linux namespaces/cgroups for Standard Modules.
-- [x] **Deep Inspection (Level 5) Audit:** Implement a cryptographic audit log for all privilege escalations.
+- [x] **Deep Inspection (Level 4 Buffer View) Audit:** Implement a cryptographic audit log for all privilege escalations.
 - [x] **Manifest Signing:** Require signed `module.toml` for Marketplace installations to ensure supply-chain security.
 - [x] **Sandbox Profile Expansion:** Strictly define and enforce Bubblewrap (`bwrap`) profiles mapping to specific `module.toml` granular permissions.
 - [x] **Signature Forging:** `verify_manifest_signature` now performs real Edwards-curve (Ed25519) verification using the system's trusted root key.

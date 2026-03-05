@@ -1,6 +1,6 @@
 # TOS Alpha-2 Display & Face Specification
 
-**Purpose:** This document consolidates all architectural and design specifications related to the **Face** of the Tactical Operating System (TOS). It defines how the system looks, the visual mechanisms of user interaction, the layout of the UI elements, and the modular rendering systems that power the terminal and bezels. For comprehensive details on system logic, process architecture, and IPC boundaries that drive these visual elements, refer to the [TOS Core Architecture Specification](./TOS_alpha-2_Architecture-Specification.md).
+**Purpose:** This document consolidates all architectural and design specifications related to the **Face** of **TOS** (**Terminal On Steroids**). It defines how the system looks, the visual mechanisms of user interaction, the layout of the UI elements, and the modular rendering systems that power the terminal and bezels. For comprehensive details on system logic, process architecture, and IPC boundaries that drive these visual elements, refer to the [TOS Core Architecture Specification](./TOS_alpha-2_Architecture-Specification.md).
 
 ---
 
@@ -11,20 +11,23 @@ The Face is built on standard web technologies (HTML/CSS/JS) acting as a dynamic
 
 ---
 
-## 2. The Visual Hierarchy (Levels 1–5)
+## 2. The Visual Hierarchy (Levels 1–4)
 The visual experience in TOS is structured as a vertical zoom hierarchy. The user moves "closer" to the data by zooming in.
 
-- **Level 1 (Global Overview):** A bird's-eye view of all running Sectors represented as interactive live tiles. Each tile features a **dynamic thumbnail** of the sector's primary hub or active application. Behind the tiles sits the **System Output Area** (a read-only cinematic terminal logging global Brain telemetry).
-- **Level 2 (Command Hub):** The heart of TOS. The viewport is dominated by the Sector's terminal output, flanked by dynamic, context-aware command chips (Dual-sided Chip Layout) and surrounded by the Tactical Bezel.
-- **Level 3 (Application Focus):** The terminal recedes or shares space with an Application Surface (e.g., a Wayland window, browser, or remote desktop). The Tactical Bezel remains to provide system control.
-- **Level 4 (Detail View) & Level 5 (Buffer View):** Deep inspection overlays for debugging, surface property manipulation, and hex editing, rendering over the active application.
-- **Level 6 (Tactical Reset):** The ultimate system fallback. A low-overhead, wireframe "God Mode" that visualizes the global resource tree and provides emergency management controls.
+| **LVL 1** | Global Overview | Overview of all system sectors | Sector tiles + System Output Area |
+|---|---|---|---|
+| **LVL 2** | Command Hub | Central sector control | Terminal + prompt + chips |
+| **LVL 3** | Application Focus | Full-screen application surface | Application + visible bezel |
+| **LVL 4** | Deep Inspection & Recovery | Detail View, Buffer View (privileged), and Tactical Reset (God Mode) | Metadata overlay / hex viewer / wireframe diagnostics |
 
 ### 2.1 Kinetic Zoom Transitions
 Transformations between levels utilize a specialized **Kinetic Zoom Transition**:
 - **Borders as Anchors:** When zooming from Level 1 to 2, the sector tile's borders expand outward to become the Tactical Bezel.
 - **Layer Stacking:** Background layers (like the System Output Area) use a **depth-blur and fade** (z-axis displacement) as the focal layer moves forward.
 - **Viewport Expansion:** The terminal canvas "unfurls" from the center of the tile, ensuring a seamless visual link between the representative tile and the functional hub.
+- **Transitions:** Levels transition via a **kinetic zoom** — the current view recedes spatially as the new view assembles from its components.
+- **Persistence:** Level 4 sub‑views are transient; Tactical Reset (within Level 4) provides a low‑overhead global recovery view.
+- **Prompt:** The Persistent Unified Prompt is visible at every level, with its visual state (expanded, collapsed, locked) varying by level.
 
 ---
 
@@ -43,7 +46,12 @@ The Bezel is divided into four distinct segments. Three of these sections utiliz
     *   **Left (Origin):** Universal Mode Selector (CMD, SEARCH, AI, ACTIVITY).
     *   **Center:** The active command input field.
     *   **Right:** Microphone/Voice controls and Stop/Kill switch.
-    *   *Visual States:* Collapsed/Unexpandable (Level 1, 4, 5); Expanded (Level 2); Collapsed/Expandable (Level 3).
+    | **Visual State** | **Applicable Levels** | **Description** |
+    |---|---|---|
+    | **Expanded** | Level 2 | The prompt is fully visible and interactive, ready for command input. |
+    | **Collapsed & Expandable** | Level 3 | Bottom bezel visible; tapping or hovering it expands the prompt temporarily. |
+    | **Collapsed & Locked** | Level 4 (Detail / Buffer) | Prompt is visible but not interactive; the focus is inspection. |
+    | **Disabled** | Level 4 (Tactical Reset) | Prompt hidden or locked; Tactical Reset takes priority. |
 *   **Lateral Segments (Left & Right):** Slender vertical bars containing **Configurable Vertical Slots**. 
     *   **Left:** Defaults to Hierarchy Navigation buttons and the **Tactical Mini-Map**.
     *   **Right:** Defaults to **Priority Indicators** and **Mini-Log Telemetry**.
@@ -107,7 +115,7 @@ Interaction with chips supports a **Secondary Select** state (triggered by long-
 #### 5.4.2 Process & App Chips
 - **[Tactical Signal...]:** Sub-menu to send `SIGINT`, `SIGTERM`, or `SIGKILL` directly to the PTY/Process.
 - **[Renice Priority]:** Adjust the process priority (LCARS levels 1-5).
-- **[Inspect Buffer]:** Transition to **Level 5 (Buffer View)** for raw memory/IO monitoring.
+- **[Inspect Buffer]:** Transition to **Level 4 (Buffer View)** for raw memory/IO monitoring.
 - **[Isolate Process]:** Force the process into a more restrictive sandbox tier.
 - **[Clone to Sector]:** Duplicate the process state in a new terminal sector.
 
@@ -124,7 +132,7 @@ The Face supports full re-theming via **Theme Modules** (`module.toml`, as defin
 
 ### 6.2 Priority-Weighted Visual Indicators
 Important elements (Priority Chips, Bezel Alerts) use visual cues corresponding to their urgency (1 to 5):
-*   **Color Shifts:** Subtle accents at Level 1; dominant hazard colors (Orange/Red) at Level 5.
+*   **Color Shifts:** Subtle accents at Level 1; dominant hazard colors (Orange/Red) at Level 4.
 *   **Pulsing Animations:** Critical alerts may gently pulse their border opacity.
 *   **Haptic / Audio Hooks:** High-priority visual changes trigger synchronized UI sounds or haptic pulses (if running on Android/XR).
 
@@ -184,7 +192,7 @@ Terminal and Bezel modules interact with the Face via these specific UI-hooks:
 The interaction model respects the vertical hierarchy.
 
 | Key Combination | Semantic Event | Description |
-|-----------------|----------------|-------------|
+|---|---|---|
 | `Ctrl + [` | `zoom_out` | Move one level up in hierarchy. |
 | `Ctrl + ]` | `zoom_in` | Move one level down into focus. |
 | `Ctrl + Space` | `toggle_bezel` | Expand/Collapse the Top Bezel. |
@@ -192,7 +200,7 @@ The interaction model respects the vertical hierarchy.
 | `Ctrl + T` | `new_sector` | Create a new sector. |
 | `Alt + [1-9]` | `switch_sector` | Rapidly switch between first 9 sectors. |
 | `Ctrl + M` | `toggle_minimap` | Show/Hide the Tactical Mini-Map. |
-| `Ctrl + Backspace`| `tactical_reset`| Trigger immediate reset of current sector. |
+| `Ctrl + Alt + Backspace`| `tactical_reset`| Trigger immediate Tactical Reset (Level 4 God Mode). |
 
 Users can remap all shortcuts via the Settings panel, which provides a visual conflict detection interface.
 
@@ -239,7 +247,7 @@ For long terminal outputs (e.g., a build failure):
 - The system highlights the **autoritative error line** with a higher priority (visual weight/color).
 - A **"Focus Error" Chip** appears, which when clicked, scrolls the terminal to the specific failure point.
 
-### 9.4 Notification Display Center
+### 10.5 Notification Display Center
 Notifications appear in the **Right Lateral Bezel** and unfurl inward.
 - **Priority 1-2 (Normal):** Quiet slide-in, disappears after 5s.
 - **Priority 3 (Warning):** Amber pulse, remains until dismissed.

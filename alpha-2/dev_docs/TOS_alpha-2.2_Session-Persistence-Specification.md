@@ -1,4 +1,4 @@
-# TOS Alpha-2.1 Session Persistence & Workspace Memory
+# TOS Alpha-2.2 Session Persistence & Workspace Memory
 ### Specification v1.0 — Supplement to Architecture Specification
 
 ---
@@ -295,4 +295,4 @@ Loading a named session replaces the chat history with the one from that snapsho
 
 ---
 
-*TOS Alpha-2.1 // Session Persistence & Workspace Memory Specification v1.0 // Supplement Document*
+*TOS Alpha-2.2 // Session Persistence & Workspace Memory Specification v1.0 // Supplement Document*

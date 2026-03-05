@@ -1,4 +1,4 @@
-# TOS Alpha-2.1 Command Trust & Confirmation System
+# TOS Alpha-2.2 Command Trust & Confirmation System
 ### Specification v1.0 — Replaces Tactile Confirmation (Architecture Specification §17.2)
 
 ---
@@ -223,10 +223,10 @@ This spec fully replaces Architecture Specification §17.2 (Tactile Confirmation
 
 Architecture Specification §17.3 (Voice Confirmation fallback for dangerous actions in voice input mode) is unaffected. Voice-submitted commands that match a WARN class still trigger the voice confirmation path as specced — the warning chip system applies to prompt-submitted commands only.
 
-Architecture Specification §17.1 (Prompt Locking during Tactical Reset / Level 6) is unaffected.
+Architecture Specification §17.1 (Prompt Locking during Tactical Reset / Level 4 God Mode) is unaffected.
 
 The Workflow Agent behavior module (AI Co-Pilot Specification §6.2) routes staged commands through the same trust check. A workflow agent staging a `privilege_escalation` command in a WARN sector will produce a warning chip exactly as a manually typed command would.
 
 ---
 
-*TOS Alpha-2.1 // Command Trust & Confirmation System v1.0 // Replaces Architecture Specification §17.2*
+*TOS Alpha-2.2 // Command Trust & Confirmation System v1.0 // Replaces Architecture Specification §17.2*

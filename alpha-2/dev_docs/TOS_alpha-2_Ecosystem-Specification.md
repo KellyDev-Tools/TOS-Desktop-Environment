@@ -1,6 +1,6 @@
 # TOS Alpha-2 Ecosystem & Modules Specification
 
-**Purpose:** This document defines the plugin architecture, module types, sandboxing rules, and marketplace systems for the Tactical Operating System (TOS). It is spun off from the Core Architecture Specification to maintain focus.
+**Purpose:** This document defines the plugin architecture, module types, sandboxing rules, and marketplace systems for **TOS** (**Terminal On Steroids**). It is spun off from the Core Architecture Specification to maintain focus.
 
 For core system execution rules, see the [Architecture Specification](./TOS_alpha-2_Architecture-Specification.md).
 For visual layout and themes, see the [Face Specification](./TOS_alpha-2_Display-Face-Specification.md).
@@ -16,7 +16,7 @@ TOS employs a dual‑tier trust model for modules:
 2. **System Tier (Trusted):** Shell Modules and native Sector Types are trusted by the user and run without TOS‑enforced sandboxing to ensure full local system access.
 
 ### 1.0 Package Format & Structure
-All TOS modules are distributed as signed archives (e.g., `.tar.gz`) with a `.tos-<type>` extension.
+All TOS modules are distributed as signed archives (e.g., `.tar.gz`) with a `.tos-<type>` extension. Recognized types: `.tos-appmodel`, `.tos-sector`, `.tos-ai`, `.tos-aibehavior`, `.tos-terminal`, `.tos-theme`, `.tos-shell`, `.tos-bezel`, `.tos-audio`.
 
 **Directory Structure:**
 ```
@@ -241,7 +241,7 @@ The **Update Daemon** ensures updates are applied safely:
 4. **Switching:** A symlink in `~/.local/share/tos/modules/active/` is updated atomically.
 5. **Reload:** The Brain receives a `reload_module:<id>` signal to hot-swap the logic where possible, or prompts for a Tactical Reset.
 
-### 2.2 Installation Flow & Permissions
+### 2.3 Installation Flow & Permissions
 1. Discovery (Search, Marketplace, direct file open).
 2. Details panel with description, permissions, dependencies.
 3. Permission review (user grants/denies; optional session‑only grant).
@@ -249,12 +249,12 @@ The **Update Daemon** ensures updates are applied safely:
 5. Installation (files copied to `~/.local/share/tos/` or equivalent).
 6. Post‑install notification; immediate availability.
 
-### 2.3 Discovery (Search, AI, Updates)
+### 2.4 Discovery (Search, AI, Updates)
 - Search Mode includes packages as a domain.
 - AI‑assisted discovery (“I need a Git integration”).
 - Update alerts (Yellow Alert) for installed modules; update details show permission changes.
 
-### 2.4 Creating & Sharing Packages
+### 2.5 Creating & Sharing Packages
 - Export sector as template.
 - Developer tools for packaging modules.
 - Submission to repositories (optional signature verification).

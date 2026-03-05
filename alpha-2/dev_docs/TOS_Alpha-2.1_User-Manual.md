@@ -1,21 +1,19 @@
 # TOS Alpha-2.1 End-to-End User Manual
 
 ## 1. System Philosophy: The Augmented Desktop Entity
-TOS (The Operating System) is not a static workspace; it is a **dynamic augmented desktop entity**. Inspired by LCARS design principles, it prioritizes hierarchical depth, multi-sensory feedback, and context-aware rendering.
+TOS (**Terminal On Steroids**) is not a static workspace; it is a **dynamic augmented desktop entity**. Inspired by LCARS design principles, it prioritizes hierarchical depth, multi-sensory feedback, and context-aware rendering.
 
 ---
 
 ## 2. Navigation Architecture: Hierarchical Levels
-TOS uses a 6-level depth system to allow rapid transitions between high-level oversight and low-bit buffer inspection.
+TOS uses a 4-level depth system to allow rapid transitions between high-level oversight and low-bit buffer inspection.
 
 | Level | Name | Description | Visualization |
 | :--- | :--- | :--- | :--- |
 | **LVL 1** | **Global Overview** | Tactical map of all active system sectors. | Topological nodes |
 | **LVL 2** | **Command Hub** | The primary workspace for shell and data interaction. | Dual-column chip-terminal |
 | **LVL 3** | **Application Focus** | Dedicated window surface for a single graphical process. | Chrome-window overlay |
-| **LVL 4** | **Detail Inspector** | Real-time metadata, cryptographic hashes, and ownership data. | Property chip layout |
-| **LVL 5** | **Buffer View** | Raw telemetry stream and hex data inspection. | Monospace hex viewer |
-| **LVL 6** | **Tactical Reset** | Global diagnostics "God Mode" for recovery and process killing. | Wireframe system map |
+| **LVL 4** | **Deep Inspection & Recovery** | Detail View (metadata), Buffer View (hex dump, privileged), and Tactical Reset (God Mode wireframe recovery). | Property chips / hex viewer / wireframe map |
 
 ---
 
@@ -64,7 +62,7 @@ TOS uses immersive feedback loops to minimize cognitive load during sensitive sy
 *   **Ctrl+Tab**: Cycle through active Sector Indexes.
 *   **Esc**: Dismiss all system modals (Settings / Portal).
 *   **Long-Press / Right-Click**: Trigger the **Secondary Select** context menu on any chip (Files, Processes, Apps) to access deep operations like `Signal`, `Renice`, and `Inspect`.
-*   **Ctrl+Alt+Backspace**: Trigger **Tactical Reset (Level 6)** - The system-wide "God Mode" fallback.
+*   **Ctrl+Alt+Backspace**: Trigger **Tactical Reset (Level 4 God Mode)** - The system-wide recovery fallback.
 *   **📡 Status Badge (Top Right)**: Generate a secure **Web Portal** token for remote collaboration.
 
 ---
@@ -76,4 +74,4 @@ Access the **System Settings** modal (⚙ icon) to adjust:
 3.  **Interface Calibration**: Toggle multi-sensory feedback and UI animation speeds.
 
 ---
-*TOS Alpha-2.1 // Interface Specification Version 3.8 // Authorized Access Only*
+*TOS Alpha-2.1 // Interface Specification Version 3.8 // Terminal On Steroids // Authorized Access Only*

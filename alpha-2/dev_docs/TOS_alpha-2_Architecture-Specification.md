@@ -1,6 +1,6 @@
-# TOS Architectural Specification – Consolidated
+# TOS (Terminal On Steroids) Architectural Specification – Consolidated
 
-**Purpose:** This document provides a complete, unified architectural vision for the Tactical Operating System (TOS), placing the **terminal and command line** at the absolute centre of the experience. Every feature, from visual modes to AI assistance, exists to augment and empower the terminal, never to bypass it. This revision restores the original ethos of TOS as "Terminated On Steroids" – a power‑user environment that brings the full capability of the command line to any platform, with rich visual feedback and multi‑sensory augmentation. It introduces a **modular terminal output system**, allowing users to install and switch between different visual representations of terminal output, as well as **Theme Modules** for customising appearance and **Shell Modules** for selecting different shell implementations. The Global Overview features a dedicated System Output Area powered by the same terminal output module system, and sector tiles provide a context menu for quick management.
+**Purpose:** This document provides a complete, unified architectural vision for **TOS** (**Terminal On Steroids**), placing the **terminal and command line** at the absolute centre of the experience. Every feature, from visual modes to AI assistance, exists to augment and empower the terminal, never to bypass it. This revision restores the original ethos of TOS as "Terminal On Steroids" – a power‑user environment that brings the full capability of the command line to any platform, with rich visual feedback and multi‑sensory augmentation. It introduces a **modular terminal output system**, allowing users to install and switch between different visual representations of terminal output, as well as **Theme Modules** for customising appearance and **Shell Modules** for selecting different shell implementations. The Global Overview features a dedicated System Output Area powered by the same terminal output module system, and sector tiles provide a context menu for quick management.
 
 ---
 
@@ -31,7 +31,7 @@
    8.1. Tactical Bezel 
    8.2. Application Models 
    8.3. Deep Inspection Access 
-9. [Deep Inspection – Levels 4 & 5](#9-deep-inspection--levels-4--5) 
+9. [Deep Inspection & Recovery — Level 4](#9-deep-inspection--recovery--level-4) 
 10. [Sectors and the Tree Model](#10-sectors-and-the-tree-model) 
 11. [Split Viewports](#11-split-viewports) 
 12. [Remote Sectors](#12-remote-sectors) 
@@ -50,7 +50,7 @@
     18.7. Shell Modules 
     18.8. Relationship with Other Modules 
 19. [TOS Log](#19-tos-log) 
-20. [Tactical Reset](#20-tactical-reset) 
+20. [Reset Operations](#20-reset-operations) 
 21. [Priority‑Weighted Visual Indicators](#21-priority-weighted-visual-indicators) 
 22. [Tactical Mini‑Map](#22-tactical-mini-map) 
 23. [Auditory and Haptic Interface](#23-auditory-and-haptic-interface) 
@@ -61,13 +61,14 @@
 28. [Bezel IPC Contracts](#28-bezel-ipc-contracts) 
 29. [Terminal Output Rendering](#29-terminal-output-rendering) 
 30. [Implementation Roadmap](#30-implementation-roadmap) 
-31. [Conclusion](#31-conclusion) 
+31. [Glossary of Terms](#31-glossary-of-terms) 
+32. [Conclusion](#32-conclusion) 
 
 ---
 
 ## 1. Core Philosophy: Terminal First
 
-TOS was born from the acronym **Terminated On Steroids** – a vision to take the raw power of the command line and amplify it across every platform, from desktop to VR to mobile. The terminal is not just one mode among many; it is the **primary and permanent interface**. Every action a user takes – whether clicking a file, speaking a command, or gesturing in VR – must ultimately be expressible as a command line that appears in the **Persistent Unified Prompt** and is executed by the underlying shell.
+TOS was born from the acronym **Terminal On Steroids** – a vision to take the raw power of the command line and amplify it across every platform, from desktop to VR to mobile. The terminal is not just one mode among many; it is the **primary and permanent interface**. Every action a user takes – whether clicking a file, speaking a command, or gesturing in VR – must ultimately be expressible as a command line that appears in the **Persistent Unified Prompt** and is executed by the underlying shell.
 
 This philosophy ensures that:
 
@@ -213,11 +214,9 @@ All services communicate with the Brain via IPC. The Brain maintains authoritati
 | **1** | **Global Overview**  | Bird’s‑eye view of all sectors, with System Output Area (Brain console) rendered as a terminal output module layer below the tiles. |
 | **2** | **Command Hub**      | Central control for a sector, with full terminal and prompt. |
 | **3** | **Application Focus**| Full‑screen application surface wrapped in the Tactical Bezel. |
-| **4** | **Detail View**      | Structured metadata for any surface. |
-| **5** | **Buffer View**      | Raw memory hex dump (privileged, may be unavailable on some platforms). |
-| **6** | **Tactical Reset**   | **Global Resource Diagnostics (God Mode).** Low-overhead wireframe view for system recovery and emergency process management. |
+| **4** | **Deep Inspection & Recovery** | Unified diagnostic level with three sub‑views: Detail View (structured metadata), Buffer View (raw hex dump, privileged), and Tactical Reset (God Mode wireframe recovery). |
 
-**Lifecycle:** Levels 4 and 5 are transient; a Tactical Reset (Level 6) flushes all inspection buffers and provides a global recovery environment.
+**Lifecycle:** Level 4 sub‑views are transient; Tactical Reset (within Level 4) flushes all inspection buffers and provides a global recovery environment.
 
 ---
 
@@ -344,7 +343,6 @@ The context menu is triggered by the `secondary_select` semantic event (see §14
 
 ---
 
-
 ## 7. Command Hub – Level 2 (The Heart of TOS)
 
 When the user zooms into a sector, the System Output Area is replaced by the sector's own terminal output area. The sector's terminal is now the primary focus. The bezel provides a **Show System Output** button that temporarily overlays the system console (e.g., as a split or pop‑up) without leaving the sector.
@@ -356,7 +354,7 @@ The **Bottom Bezel Segment** houses the Persistent Unified Prompt, the primary i
 - **Left Section (Origin):** **Universal Mode Selector** (CMD, SEARCH, AI, ACTIVITY). This is an integral part of the prompt assembly, not a dockable module.
 - **Center Section:** The input field. It always reflects the current command-to-be across different interaction modes.
 - **Right Section:** Mic and Stop buttons for voice-first interaction and command termination.
-- **Visual State:** The segment is **collapsed and unexpandable** at Level 1, **fully expanded** at Level 2, **collapsed yet expandable** (via hover/click) at Level 3, and **collapsed and unexpandable** at Levels 4 and 5.
+- **Visual State:** The segment is **collapsed and unexpandable** at Level 1, **fully expanded** at Level 2, **collapsed yet expandable** (via hover/click) at Level 3, and **collapsed and unexpandable** at Level 4. During Tactical Reset (Level 4 God Mode), the prompt is **locked and disabled**.
 
 ### 7.2 Terminal Output as Primary Canvas (Powered by Terminal Output Module)
 
@@ -436,7 +434,7 @@ While the exact graphical representation, animations, and "Glassmorphism" projec
   - **COMMAND HUB:** Navigates to Level 2.
   - **APP FOCUS:** Zooms into Level 3.
 - **Top Bezel Segment:** Handles system-wide expansions, global status, and configurable tool slots (divided into Left, Center, and Right zones as per §2).
-- **Bottom Bezel Segment:** Anchors the Persistent Unified Prompt (collapsed and unexpandable in Level 1, expanded in Level 2, collapsed and expandable in Level 3, and collapsed and unexpandable in Levels 4 and 5). Note: This segment contains no configurable slots.
+- **Bottom Bezel Segment:** Anchors the Persistent Unified Prompt (collapsed and unexpandable in Level 1, expanded in Level 2, collapsed and expandable in Level 3, and collapsed and unexpandable in Level 4). Note: This segment contains no configurable slots.
 
 
 ### 8.2 Application Models
@@ -452,13 +450,15 @@ A module that customizes an application’s integration at Level 3. Provides:
 
 ### 8.3 Deep Inspection Access
 
-An **Inspect** button in the expanded bezel zooms to Level 4 (Detail View) for the current application. A further zoom (Level 5) provides raw memory inspection but requires explicit privilege elevation.
+An **Inspect** button in the expanded bezel zooms to Level 4 (Deep Inspection & Recovery) for the current application, providing access to the Detail View, Buffer View, and Tactical Reset tools.
 
 ---
 
-## 9. Deep Inspection – Levels 4 & 5
+## 9. Deep Inspection & Recovery — Level 4
 
-### 9.1 Level 4 – Detail View
+Level 4 provides all deep diagnostic, inspection, and recovery tools in a unified interface. It is accessed by zooming in from Level 3 (for Detail and Buffer sub‑views) or via dedicated triggers (for Tactical Reset). Within Level 4, three sub‑views serve related but distinct purposes: forensic inspection, raw data analysis, and emergency recovery.
+
+### 9.1 Detail View
 
 A modal overlay (slides up from bottom or expands from bezel) presenting structured metadata:
 
@@ -471,29 +471,56 @@ A modal overlay (slides up from bottom or expands from bezel) presenting structu
 
 Interactive elements (e.g., PID) can jump to Activity Mode or log searches. Export as JSON/plain text.
 
-### 9.2 Level 5 – Buffer View
+### 9.2 Buffer View
 
-Hex dump viewer of the target surface’s process memory (read‑only). Features:
+Hex dump viewer of the target surface's process memory (read‑only). Features:
 
 - Offset, hex, ASCII columns.
 - Seek, search, export, refresh controls.
 - Unavailable on Android; apps may opt out via manifest.
+- **Disabled by default;** requires explicit privilege elevation (see §9.5).
 
-### 9.3 Privilege Elevation & Platform Restrictions
+### 9.3 Tactical Reset (God Mode)
 
-- Level 5 is **disabled by default**.
-- Enabling requires explicit elevation (`sudo tos enable-deep-inspection` or Polkit dialog on Linux; biometric prompt on Android for Level 4 extended metadata, Level 5 generally unavailable).
+The Tactical Reset sub‑view is the system's ultimate fallback and diagnostic layer. It is a **low‑overhead, wireframe visualization** that bypasses standard sectoral rendering logic to provide an authoritative view of the entire system state.
+
+#### 9.3.1 Global Resource Diagnostics
+- **Visualization:** A non‑textured, high‑contrast wireframe map showing all Brain sectors, services, and associated OS processes.
+- **Resource Monitoring:** Real‑time CPU, memory, and I/O pressure gauges for every active PID, regardless of sandbox tier.
+- **Emergency Management:** Integrated "Force Kill" capabilities that send `SIGKILL` directly via the Brain's root‑tier services, bypassing sectoral PTY locks.
+- **Recovery Logic:** Triggering a Tactical Reset flushes all transient diagnostic buffers and resets the Face‑Brain IPC sync to a known stable state.
+
+#### 9.3.2 Initiation
+- **Manual Trigger:** Bezel "Tactical Reset" button or Global Shortcut (`Ctrl+Alt+Backspace`).
+- **Safety Fallback:** Automatically triggered if the Face detects sustained local/remote latency > 500ms or if the Brain reports a service‑level deadlock.
+
+#### 9.3.3 Security & Privilege Isolation
+To prevent the Tactical Reset from becoming a vector for privilege escalation:
+- **Read‑Only by Default:** Upon entry, the view is strictly read‑only, providing visualization without management permissions.
+- **Explicit Elevation:** Destructive actions (e.g., Force Kill, Renice) require session‑tier re‑authentication.
+- **Metadata Isolation:** The renderer only receives sanitized process metadata (PID, user, %CPU, %MEM). It does not have access to process memory or application surfaces.
+- **No Prompt Access:** The Persistent Unified Prompt is **locked/disabled** during a Tactical Reset to prevent arbitrary command execution.
+- **Expanded Bezel Disabled:** The Expanded Bezel Command Surface trigger is disabled during Tactical Reset.
+- **Remote Constraint:** Remote participants (Guests) are strictly prohibited from initiating or interacting with a Tactical Reset. It is a **Host‑Only** capability.
+
+### 9.4 Sub‑View Switching
+
+Users navigate between Level 4 sub‑views via bezel controls or keyboard shortcuts. An **Inspect** button enters Detail View; a **Buffer** button (visible only when deep inspection is enabled) enters Buffer View; the Tactical Reset trigger enters God Mode. Exiting any sub‑view returns to Level 3.
+
+### 9.5 Privilege Elevation & Platform Restrictions
+
+- Buffer View is **disabled by default**.
+- Enabling requires explicit elevation (`sudo tos enable-deep-inspection` or Polkit dialog on Linux; biometric prompt on Android for Detail View extended metadata, Buffer View generally unavailable).
 - When enabled, a 🔓 indicator appears in the bezel; clicking it disables deep inspection immediately.
-- All enable/disable events and Level 5 accesses are audited.
+- All enable/disable events and Buffer View accesses are audited.
 
-| Platform | Level 4 | Level 5 |
-|----------|--------|---------|
-| Linux Wayland | Full | With sudo/Polkit |
-| Android XR | Partial (no raw memory) | Not available |
-| Android Phone | Limited metadata | Not available |
+| Platform | Detail View | Buffer View | Tactical Reset |
+|----------|-------------|-------------|----------------|
+| Linux Wayland | Full | With sudo/Polkit | Full |
+| Android XR | Partial (no raw memory) | Not available | Limited (no Force Kill) |
+| Android Phone | Limited metadata | Not available | Limited |
 
 ---
-
 
 ## 10. Sectors and the Tree Model
 
@@ -722,13 +749,13 @@ pub trait SystemServices {
 - **Platform:** Native Android activity or Compose view host.
 - **Input & Accessibility:** Managed by phone-tier Input Hub and platform services.
 
-### 15.6 Native Application Embedding (Wayland/X11)
+### 15.5 Native Application Embedding (Wayland/X11)
 The logical orchestration of native apps involves:
 1. **Virtual Surfaces:** The Brain spawns and assigns virtual surfaces to Sector viewports.
 2. **Event Routing:** Input is captured by the Face (see **[Face Specification §7.3](./TOS_alpha-2_Display-Face-Specification.md)**), translated, and routed via the Brain to the native PID.
 3. **Lifecycle:** Managed via standard `xdg_shell` (Wayland) or window management hints (X11).
 
-### 15.5 Native Horizon OS Client (Meta Quest)
+### 15.6 Native Horizon OS Client (Meta Quest)
 
 A dedicated Android application (since Horizon OS is Android‑based) connecting to a remote TOS instance via the TOS Remote Server protocol. Architecture:
 
@@ -749,11 +776,11 @@ A dedicated Android application (since Horizon OS is Android‑based) connecting
 - Texture caching for thumbnails; GPU memory pruning for surfaces more than two levels away.
 - Hardware acceleration (OpenGL ES / Vulkan).
 
-### 16.3 Development & QA Architecture
+### 16.2 Development & QA Architecture
 - **Headless Brain Integration Testing:** To ensure protocol stability, the Brain supports a "Headless Mode" where a test harness acts as a virtual Face, exercising the `tos-protocol` IPC without a graphical environment.
 - **Unified Visual Token System:** All UI aesthetics (colors, blurs, typography) are defined in a central JSON/TOML configuration, consumed by both the Web CSS and Native Vulkan/GLES shaders for pixel-perfect consistency across platforms.
 
-### 16.2 Intelligent View Synchronization
+### 16.3 Intelligent View Synchronization
 
 To prevent flicker during high‑frequency updates (e.g., telemetry):
 
@@ -762,7 +789,7 @@ To prevent flicker during high‑frequency updates (e.g., telemetry):
 - State preservation (input fields, scroll positions) across refreshes.
 - Throttled backgrounds (1–5 Hz) for non‑focused viewports.
 
-### 16.3 Tactical Alert (Performance Warning)
+### 16.4 Tactical Alert (Performance Warning)
 
 If frame rate drops below target (e.g., 60 FPS desktop, 90 FPS VR) for >2s, a non‑intrusive alert appears (visual, optional auditory/haptic) showing current FPS and suggestions.
 
@@ -804,7 +831,7 @@ Commands marked as high‑risk trigger a modal overlay requiring a **Tactile Con
 
 ### 17.4 Deep Inspection Privilege
 
-Level 5 access is disabled by default; requires explicit elevation (sudo/Polkit on Linux; not available on Android). Audited.
+Buffer View access (within Level 4) is disabled by default; requires explicit elevation (sudo/Polkit on Linux; not available on Android). Audited. See §9.5.
 
 ### 17.5 Auditing
 
@@ -876,41 +903,21 @@ The **Global TOS Log Sector** (§19.2) provides a unified view of all events, re
 
 ---
 
-## 20. Tactical Reset (Level 6: God Mode)
+## 20. Reset Operations
 
-The Tactical Reset is the system's ultimate fallback and diagnostic layer. It is a **low-overhead, wireframe visualization** that bypasses standard sectoral rendering logic to provide an authoritative view of the entire system state.
+Reset operations provide emergency recovery actions available across all hierarchy levels. For the Tactical Reset (God Mode) diagnostic interface, see §9.3.
 
-### 20.1 Global Resource Diagnostics
-- **Visualization:** A non-textured, high-contrast wireframe map showing all Brain sectors, services, and associated OS processes.
-- **Resource Monitoring:** Real-time CPU, memory, and I/O pressure gauges for every active PID, regardless of sandbox tier.
-- **Emergency Management:** Integrated "Force Kill" capabilities that send `SIGKILL` directly via the Brain's root-tier services, bypassing sectoral PTY locks.
-- **Recovery Logic:** Triggering a Tactical Reset flushes all transient buffers (Levels 4 & 5) and resets the Face-Brain IPC sync to a known stable state.
-
-### 20.2 Initiation
-- **Manual Trigger:** Bezel "Tactical Reset" button or Global Shortcut (`Ctrl+Alt+Backspace`).
-- **Safety Fallback:** Automatically triggered if the Face detects sustained local/remote latency > 500ms or if the Brain reports a service-level deadlock.
-
-### 20.3 Security & Privilege Isolation
-To prevent the Tactical Reset from becoming a vector for privilege escalation:
-- **Read-Only by Default:** Upon entry, the Level 6 view is strictly read-only. It provides visualization of the resource tree without granting management permissions.
-- **Explicit Elevation:** Destructive actions (e.g., Force Kill, Renice) require **Tactile Confirmation** (§17.2) and session-tier re-authentication.
-- **Metadata Isolation:** The Level 6 renderer only receives sanitized process metadata (PID, user, %CPU, %MEM). It does not have access to process memory segments or the contents of application surfaces.
-- **No Prompt Access:** The Persistent Unified Prompt is **locked/disabled** during a Tactical Reset to prevent arbitrary command execution while in this elevated diagnostic state.
-- **Remote Constraint:** Remote participants (Guests) are strictly prohibited from initiating or interacting with a Tactical Reset. It is a **Host-Only** capability.
-
-Two‑level emergency recovery.
-
-### 20.4 Sector Reset
+### 20.1 Sector Reset
 
 - **Trigger:** `Super+Backspace`, `tos sector reset`, bezel button, voice.
-- Sends SIGTERM to all processes in current sector, closes splits, returns to fresh Level 2.
+- Sends SIGTERM to all processes in current sector, closes splits, returns to fresh Level 2.
 - Optional undo button (5s) if enabled.
 
 ### 20.2 System Reset
 
-- **Trigger:** `Super+Alt+Backspace`, `tos system reset`, bezel button (Level 1).
+- **Trigger:** `Super+Alt+Backspace`, `tos system reset`, bezel button (Level 1).
 - Dialog with three options: Restart Compositor, Log Out, Cancel.
-- Requires tactile confirmation (hold, slider, voice) + countdown.
+- Requires confirmation + countdown.
 - All attempts are audited.
 
 ---
@@ -949,7 +956,7 @@ Score maps to indicator configuration (e.g., low = no chips, critical = 4 chips 
 - Level 1: Sector tiles show aggregate priority.
 - Level 2: Application tiles show individual priority; chip regions use indicators.
 - Level 3: Bezel may show priority chevron/glow; split viewport borders.
-- Level 4/5: Inspection panels show inspected surface’s priority and sibling mini‑map.
+- Level 4: Inspection panels show inspected surface’s priority and sibling mini‑map.
 
 ---
 
@@ -967,7 +974,7 @@ Ephemeral overlay providing spatial awareness.
 - Level 1: All sectors as miniature tiles.
 - Level 2: Current sector with hubs, active hub highlighted.
 - Level 3: Focused app highlighted, other viewports shown.
-- Level 4/5: Current surface and siblings.
+- Level 4: Current surface and siblings.
 
 ### 22.3 Monitoring Layer (Resource Usage)
 
@@ -1059,7 +1066,7 @@ Spatial haptics in VR/AR (directional).
 
 - Simplified mode (reduced clutter, larger elements, limited features).
 - Built‑in tutorials (eval‑help mapping, interactive guides).
-- Consistent spatial model (three levels, three modes).
+- Consistent spatial model (four levels, context‑aware modes).
 
 ### 24.5 Profiles & Platform Integration
 
@@ -1146,7 +1153,7 @@ Base64 encoding prevents control characters from breaking OSC parsing. Third fie
   - **Connection Loss:** If an active remote server connection is lost or the session logs out unexpectedly, the sector will display a "Remote session disconnected" banner and close after 5 seconds of inactivity.
 - `DirectoryChanged` PTY event (OSC `1337;CurrentDir=`) updates current directory.
 
-### 27.5 Line‑Level Priority (Importance) Metadata
+### 27.4 Line‑Level Priority (Importance) Metadata
 
 To support the Terminal Output Module’s highlighting capabilities (see Ecosystem Spec §1.5.1), the shell can emit a priority sequence before producing a line of output:
 
@@ -1164,13 +1171,13 @@ ESC]9012;<level>BEL
 
 Once received, the Brain applies this level to all subsequent lines until a new 9012 sequence is received or the command completes.
 
-### 27.6 Command Auto‑Detection (`ls`, `cd`)
+### 27.5 Command Auto‑Detection (`ls`, `cd`)
 
 - If submitted command starts with `ls` (case‑insensitive), resolve target path, set `hub.current_directory`, switch to Directory Mode, clear stale listing.
 - If starts with `cd`, resolve target path, set `hub.current_directory` (if exists), do not change mode.
 - No false positives (`rls`, `echo cd`).
 
-### 27.5 Directory Mode Pick Behaviour
+### 27.6 Directory Mode Pick Behaviour
 
 | Prompt state | Item type | Click action |
 |--------------|-----------|--------------|
@@ -1279,26 +1286,31 @@ Result must be valid printable UTF‑8.
 
 ---
 
-## 32. Glossary of Terms
+## 31. Glossary of Terms
 
 | Term | Definition |
 |------|------------|
 | **Sector** | A self-contained workspace with its own identity, environment variables, and process tree. |
 | **Command Hub** | The Level 2 interface within a sector, featuring a terminal, prompt, and chip regions. |
-| **Chip** | Contextual UI elements in Layer 2 that stage commands or provide quick actions. |
+| **Chip** | Contextual UI elements in Level 2 that stage commands or provide quick actions. |
 | **Bezel Slot** | Defined areas in the Tactical Bezel (Top, Left, Right) where components can be docked. |
-| **Tactical Reset** | An emergency recovery action that flushes buffers and reverts to a clean state. |
+| **Tactical Reset** | A Level 4 sub‑view providing emergency wireframe diagnostics and recovery (God Mode). |
 | **Brain** | The logical center of TOS; handles state, command execution, and coordination. |
 | **Face** | The visual and input frontend of TOS; handles rendering and event capture. |
 | **Earcon** | A unique auditory cue associated with a specific system event or state change. |
-| **Level** | A specific depth in the vertical hierarchy (1 to 5). |
+| **Level** | A specific depth in the vertical hierarchy (1 to 4). |
 | **Projection** | The animation of a bezel component expanding inward to reveal more detail. |
 
 ---
 
-## 33. Conclusion
+## 32. Conclusion
 
-By unifying the terminal output experience across the Global Overview and Command Hubs through the same modular system, TOS reinforces its terminal‑first identity while enabling unprecedented customisation. The System Output Area at Level 1 serves as a dynamic, readable window into the Brain's operations, placed as a distinct layer that can be toggled to the front for detailed inspection. The addition of a sector tile context menu empowers users to manage their workspaces quickly and safely, with tactile confirmation for destructive actions. Combined with theme and shell modules, TOS offers a deeply personalisable yet coherent environment – a true "Terminated On Steroids" for the modern era. All future development should reference this document as the single source of truth. 
+By unifying the terminal output experience across the Global Overview and Command Hubs through the same modular system, TOS reinforces its terminal‑first identity while enabling unprecedented customisation. The System Output Area at Level 1 serves as a dynamic, readable window into the Brain's operations, placed as a distinct layer that can be toggled to the front for detailed inspection. The addition of a sector tile context menu empowers users to manage their workspaces quickly and safely. Combined with theme and shell modules, TOS offers a deeply personalisable yet coherent environment – a true "Terminal On Steroids" for the modern era.
+
+> **Superseded Sections:** The following sections of this specification have been replaced by dedicated Alpha‑2.2 supplement documents and should not be implemented as written here:
+> - §11 (Split Viewports) → replaced by **Split‑Viewport‑Specification**
+> - §17.3 (Tactile Confirmation Slider) → replaced by **Trust‑Confirmation‑Specification**
+> - Former Level 6 (Tactical Reset as a separate level) → consolidated into §9.3 as a Level 4 sub‑view
 
 
 

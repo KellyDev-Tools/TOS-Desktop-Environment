@@ -1,4 +1,4 @@
-# TOS Alpha-2.1 Onboarding & First-Run Experience
+# TOS Alpha-2.2 Onboarding & First-Run Experience
 ### Specification v1.0 — Supplement to Architecture Specification
 
 ---
@@ -205,4 +205,4 @@ A user who has used a terminal their entire life should be able to go from launc
 
 ---
 
-*TOS Alpha-2.1 // Onboarding Specification v1.0 // Supplement Document*
+*TOS Alpha-2.2 // Onboarding Specification v1.0 // Supplement Document*

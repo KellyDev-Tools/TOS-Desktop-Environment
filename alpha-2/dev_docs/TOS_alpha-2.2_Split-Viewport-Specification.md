@@ -1,4 +1,4 @@
-# TOS Alpha-2.1 Split Viewport & Pane Management
+# TOS Alpha-2.2 Split Viewport & Pane Management
 ### Specification v1.0 — Replaces Architecture Specification §11
 
 ---
@@ -234,4 +234,4 @@ Split pane management chips (§8) appear in the Expanded Bezel Command Surface w
 
 ---
 
-*TOS Alpha-2.1 // Split Viewport & Pane Management v1.0 // Replaces Architecture Specification §11*
+*TOS Alpha-2.2 // Split Viewport & Pane Management v1.0 // Replaces Architecture Specification §11*

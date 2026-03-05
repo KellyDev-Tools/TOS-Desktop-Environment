@@ -1,4 +1,4 @@
-# TOS Alpha-2.1 Ambient AI & Co-Pilot System
+# TOS Alpha-2.2 Ambient AI & Co-Pilot System
 ### Specification v1.0 — Supplement to Architecture Specification & Ecosystem Specification
 
 ---
@@ -367,4 +367,4 @@ This specification extends but does not replace the existing AI module spec in E
 
 ---
 
-*TOS Alpha-2.1 // Ambient AI & Co-Pilot Specification v1.0 // Supplement Document*
+*TOS Alpha-2.2 // Ambient AI & Co-Pilot Specification v1.0 // Supplement Document*

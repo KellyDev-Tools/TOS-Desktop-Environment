@@ -4,11 +4,12 @@ This guide describes how to start and orchestrate the various components of the 
 
 ## System Components & Ports
 
-TOS is a distributed system consisting of a central logic core (the Brain), a visual interface (the Face), and several auxiliary daemons. **Every** TOS process binds an ephemeral port (Port 0) by default — there are no hardcoded port numbers. For remote access, the Brain's TCP port can be pinned via `TOS_ANCHOR_PORT`.
+TOS is a distributed system consisting of a central logic core (the Brain), a visual interface (the Face), and several auxiliary daemons. **Every** TOS process binds an ephemeral port (Port 0) by default — there are no hardcoded port numbers. All port information lives in the Brain's in-memory **Service Registry**; there are no port files on disk. For remote access, the Brain's TCP port can be pinned via `TOS_ANCHOR_PORT`.
 
 | Component | Binary / Directory | Port | Protocol | Description |
 | :--- | :--- | :--- | :--- | :--- |
-| **Brain Core** | `tos-brain` | Ephemeral (or `TOS_ANCHOR_PORT`) | TCP | Main logic, IPC handler, & port map server |
+| **Brain Core** | `tos-brain` | Ephemeral (or `TOS_ANCHOR_PORT`) | TCP | Main logic, IPC handler, & service registry |
+| **Brain Socket** | `tos-brain` | — | Unix | Local registration & discovery (`brain.sock`) |
 | **Brain UI Sync** | `tos-brain` | Ephemeral | WS | WebSocket for UI state synchronization |
 | **Settings Daemon** | `tos-settingsd` | Ephemeral | TCP | Persistent configuration storage |
 | **Log Daemon** | `tos-loggerd` | Ephemeral | TCP | Unified system logging |
@@ -17,7 +18,7 @@ TOS is a distributed system consisting of a central logic core (the Brain), a vi
 | **Session Service** | `tos-sessiond` | Ephemeral | TCP | Session persistence & workspace memory |
 | **Web UI Server** | `web_ui/` | Ephemeral | HTTP | Serves the LCARS interface |
 
-To view actual live port assignments, use `tos ports`. See [Ecosystem Orchestration](./TOS_alpha-2_Ecosystem-Orchestration.md) for the full discovery protocol.
+To view actual live port assignments, use `tos ports` (queries the Brain's registry). See [Ecosystem Orchestration](./TOS_alpha-2_Ecosystem-Orchestration.md) for the full registration and discovery protocol.
 
 ## Starting the Full Stack
 
@@ -33,20 +34,20 @@ make run-web
 *Note: This will spawn the background services, initialize the Brain, and start a Python-based HTTP server for the UI.*
 
 ### 2. Manual Component Launch
-If you need to debug specific components, you can start them individually in separate terminals.
+If you need to debug specific components, you can start them individually in separate terminals. **The Brain must start first** so that daemons can register with it.
 
-#### Step 1: Auxiliary Daemons
+#### Step 1: The Brain Core
+```bash
+cargo run --bin tos-brain
+```
+
+#### Step 2: Auxiliary Daemons (any order, after Brain)
 ```bash
 cargo run --bin tos-settingsd
 cargo run --bin tos-loggerd
 cargo run --bin tos-marketplaced
 cargo run --bin tos-priorityd
 cargo run --bin tos-sessiond
-```
-
-#### Step 2: The Brain Core
-```bash
-cargo run --bin tos-brain
 ```
 
 #### Step 3: Web UI Face
@@ -86,31 +87,34 @@ System logs are aggregated in the `logs/` directory:
 
 ## Dynamic Port Management
 
-**Every** TOS process — including the Brain — utilizes ephemeral port assignment by requesting Port 0 from the operating system. There are no hardcoded port numbers by default.
+**Every** TOS process — including the Brain — utilizes ephemeral port assignment by requesting Port 0 from the operating system. There are no hardcoded port numbers and **no port files on disk**. The Brain's in-memory service registry is the single source of truth.
 
 ### Strategy
 
-1. **Bind Port 0:** Each daemon (including the Brain) calls `bind()` with port 0. The OS assigns an available ephemeral port automatically.
-2. **Registration:** On successful bind, the daemon writes the system-assigned port to `~/.local/share/tos/ports/<daemon-name>.port` (e.g., `tos-settingsd.port`, `tos-brain.port`, `tos-brain-ws.port`). This file contains a single integer.
-3. **Anchor Override:** If `TOS_ANCHOR_PORT` is set, the Brain attempts that port first. If occupied, it falls back to Port 0 and logs a warning. See [Ecosystem Orchestration](./TOS_alpha-2_Ecosystem-Orchestration.md) for details.
-4. **Discovery (Local):** The Brain reads all port files from `~/.local/share/tos/ports/` during initialization to build its service discovery map. If a port file is missing, the Brain retries with exponential backoff (100ms → 200ms → 400ms, max 3 retries).
-5. **Discovery (Remote):** Remote clients find the Brain via pinned anchor port (`TOS_ANCHOR_PORT`) or mDNS (`_tos-brain._tcp`), then send `get_port_map` to get the full service map.
-6. **CLI:** `tos ports` reads port files and displays a live table with reachability status. `tos ports --json` for machine output. `tos ports --remote <host>` to query a remote Brain.
-7. **Health Check:** `make test-health` reads the port files and verifies TCP reachability for each registered daemon.
-8. **Cleanup:** Port files are deleted on graceful shutdown. Stale port files (from crashes) are detected by the Brain via a TCP connect probe; unreachable ports trigger a re-discovery cycle.
+1. **Brain starts first:** Creates a Unix domain socket at `$XDG_RUNTIME_DIR/tos/brain.sock`. Binds ephemeral TCP + WS ports (or `TOS_ANCHOR_PORT` for TCP). Advertises via mDNS if available.
+2. **Daemons register:** Each daemon calls `bind(0)`, then connects to `brain.sock` and sends `{ "type": "register", "name": "<name>", "port": <port> }`. The Brain ACKs and adds it to the registry.
+3. **Anchor Override:** If `TOS_ANCHOR_PORT` is set, the Brain attempts that port first. If occupied, falls back to Port 0 with a warning.
+4. **Discovery (Local):** Local clients connect to `brain.sock` and send `get_port_map`.
+5. **Discovery (Remote):** Remote clients find the Brain via mDNS (`_tos-brain._tcp`), anchor port, saved hosts, or manual host:port entry — then send `get_port_map` over TCP.
+6. **CLI:** `tos ports` queries the Brain's registry and displays a live table. `tos ports --json` for machine output. `tos ports --remote <host>[:<port>]` to query a remote Brain.
+7. **Health Check:** `make test-health` queries the Brain's registry and verifies TCP reachability for each registered service.
+8. **Cleanup:** Daemons send `deregister` on graceful shutdown. The Brain also probes registered services periodically and marks unreachable ones as offline.
 
 ### Example Flow
 
 ```
-tos-settingsd starts → binds 0.0.0.0:0 → OS assigns port 49152
-                     → writes "49152" to ~/.local/share/tos/ports/tos-settingsd.port
-tos-brain starts     → binds 0.0.0.0:0 (TCP) → OS assigns port 49300
+tos-brain starts     → creates $XDG_RUNTIME_DIR/tos/brain.sock
+                     → binds 0.0.0.0:0 (TCP) → OS assigns port 49300
                      → binds 0.0.0.0:0 (WS)  → OS assigns port 52314
-                     → writes "49300" to tos-brain.port, "52314" to tos-brain-ws.port
-                     → reads tos-settingsd.port → connects to 127.0.0.1:49152
-local Face           → reads tos-brain.port → connects to 127.0.0.1:49300
+                     → registers itself: brain_tcp=49300, brain_ws=52314
+tos-settingsd starts → binds 0.0.0.0:0 → OS assigns port 49152
+                     → connects to brain.sock → sends register(settingsd, 49152)
+                     → Brain ACKs → settingsd now discoverable
+local Face           → connects to brain.sock → sends get_port_map
+                     → receives { brain_tcp: 49300, brain_ws: 52314, settingsd: 49152, ... }
 remote Face          → avahi-browse _tos-brain._tcp → finds 192.168.1.5:49300
-                     → sends get_port_map → receives full service map
+                     → connects to TCP → sends get_port_map → receives full service map
 ```
 
-This ensures TOS starts reliably regardless of what other services are running on the host, and remote clients can discover the full constellation without any hardcoded ports.
+See [Ecosystem Orchestration](./TOS_alpha-2_Ecosystem-Orchestration.md) for the full registration protocol, health monitoring, and remote discovery details.
+

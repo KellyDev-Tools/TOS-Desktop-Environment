@@ -22,14 +22,28 @@ This roadmap defines the transition from Alpha-2.1 (Experimental/Mocked) to Alph
 - [ ] **OSC-Exclusive Mode Switching:** Deprecate "String Sniffing" in `ipc_handler.rs`.
     - Force all mode transitions (`CMD → DIR`, etc.) to be driven by `OSC 7` and `OSC 9004` sequences emitted by the shell.
     - *Required before onboarding guided demo step detection can rely on shell events.*
+- [ ] **Service Registry & Port Infrastructure** *(Ecosystem-Orchestration):*
+    - Implement Brain Unix domain socket at `$XDG_RUNTIME_DIR/tos/brain.sock` for local daemon registration and client discovery.
+    - Implement Brain in-memory service registry: register, deregister, health probe (TCP connect, 30s interval, 3-strike offline marking).
+    - Implement daemon registration protocol: daemon binds Port 0, connects to `brain.sock`, sends `{ "type": "register", "name": "<name>", "port": <port> }`, receives ACK. Retry with exponential backoff if socket not yet available.
+    - Implement `TOS_ANCHOR_PORT` env var override for the Brain TCP port: attempt pinned port, fall back to Port 0 with warning if occupied.
+    - Implement `get_port_map` IPC message on both Unix socket and Brain TCP socket: returns JSON service map.
+    - Implement `tos ports` CLI: queries Brain registry, displays formatted table with reachability probes. Flags: `--json`, `--wait`, `--remote <host>[:<port>]`.
+    - Implement mDNS/DNS-SD advertisement via Avahi (`_tos-brain._tcp` service type with `brain_tcp` and `brain_ws` TXT records).
+    - Implement `tos discover` CLI: scans LAN for `_tos-brain._tcp` services.
+    - Implement remote Face connection dialog: mDNS scan + saved hosts + manual host:port entry. Save connections to `~/.config/tos/remote-hosts.toml`.
+    - Implement daemon deregistration on graceful shutdown; socket cleanup on Brain exit.
+    - Flip `Makefile` startup order: Brain first (`make run-brain`), then services (`make run-services`), then Face (`make run-web` runs all three in sequence).
+    - *Required before any remote Face work (Phase 5) and before Session Service, as all daemons depend on this infrastructure.*
 
 ---
 
 ## Phase 2 — Brain Services
 *Depends on Phase 1. These are new or heavily refactored Brain-side subsystems that Face features are built on top of.*
 
-- [ ] **Session Service (`tos-sessiond`) — Port 7006** *(Session-Persistence-Specification):*
-    - Implement `tos-sessiond` daemon and register it in the startup orchestration (`Makefile`, `run-web`).
+- [ ] **Session Service (`tos-sessiond`)** *(Session-Persistence-Specification):*
+    - *Depends on: Service Registry & Port Infrastructure (Phase 1).*
+    - Implement `tos-sessiond` daemon (ephemeral port, registers with Brain); add to startup orchestration (`Makefile`, `run-services`).
     - Implement atomic write via temp-file rename (`_live.tos-session.tmp` → `_live.tos-session`) for crash safety.
     - Implement 2-second debounced auto-save triggered by: PTY command submit, `cd`/cwd change, sector create/close/rename, freeze/unfreeze, bezel slot change, AI chat message, mode switch, hub layout change. Full synchronous write on graceful shutdown.
     - Implement named session CRUD: save, load, delete, list per sector.
@@ -150,7 +164,7 @@ This roadmap defines the transition from Alpha-2.1 (Experimental/Mocked) to Alph
     - Add **Settings → AI** panel: Backend section (system default + installed list), Behaviors section (per-behavior toggle + backend override dropdown + config), Global section (chip color, ghost text opacity, master off, context level).
 
 - [ ] **Marketplace Discovery Face** *(Marketplace-Discovery-Specification — supplements Ecosystem Spec §2):*
-    - *Depends on: existing `tos-marketplaced` (Port 7004), Secondary Select Infrastructure (Phase 3 — Visual).*
+    - *Depends on: existing `tos-marketplaced` (ephemeral port, discovered via Brain service registry), Secondary Select Infrastructure (Phase 3 — Visual).*
     - Implement marketplace as Level 3 Application Focus: registers as standard app, bezel remains visible, `Esc` returns without disruption.
     - Add long-press on Web Portal button in Top Bezel Right as marketplace entry point.
     - Implement home view: horizontally scrollable Featured strip (signed `featured.json` manifest from `tos-marketplaced`); category grid with module type badges and counts.
@@ -213,18 +227,18 @@ This roadmap defines the transition from Alpha-2.1 (Experimental/Mocked) to Alph
 - [ ] Replace `Face` struct's `println!` simulation with `LinuxRenderer` (Wayland).
 - [ ] Implement real `wlr-layer-shell` surface management in `src/platform/linux/`.
 - [ ] Native GL/Vulkan composition of Sector tiles and Hub viewports.
-- [ ] **Local-First Connectivity:** Attempt connection to local socket (`/tmp/tos.brain.sock`) first; fallback to Remote Client login if not found.
+- [ ] **Discovery & Connectivity:** Connect to local `brain.sock` first; if not found, scan via mDNS (`_tos-brain._tcp`); probe saved hosts; present manual host:port entry dialog as fallback. Save connections to `~/.config/tos/remote-hosts.toml`.
 
 **PRIORITY 2 — Native OpenXR Face (Quest/VisionPro):**
 - [ ] Populate `src/platform/xr/` with OpenXR context initialization.
 - [ ] Implement World Space Compositing for the cylindrical "Cockpit" viewport.
 - [ ] 3D spatial positioning of sectoral glass panels.
-- [ ] **Local-First Connectivity:** Direct memory sharing if running on local OS; fallback to encrypted stream if remote.
+- [ ] **Discovery & Connectivity:** Scan via mDNS (`_tos-brain._tcp`) on startup; show discovered instances and saved hosts in VR connection lobby; manual host:port entry as fallback; direct memory sharing if Brain is running on same device.
 
 **PRIORITY 3 — Native Android Face:**
 - [ ] Populate `src/platform/android/` with NDK-based surface rendering logic.
 - [ ] Integration with Android choreographer for 90Hz+ smooth persistence.
-- [ ] **Local-First Connectivity:** Background local Brain detection; fallback to remote tactical linking.
+- [ ] **Discovery & Connectivity:** Background mDNS scan for `_tos-brain._tcp`; probe saved hosts; manual host:port entry; `TOS_REMOTE_HOST`/`TOS_REMOTE_PORT` env var support.
 
 ---
 
@@ -258,4 +272,8 @@ This roadmap defines the transition from Alpha-2.1 (Experimental/Mocked) to Alph
 | Wayland Frame Captures | `dmabuf` texture binding support in Face renderer |
 | Kinetic Sector Borders | PTY exit code telemetry via IPC versioned state |
 | Level 4 Tactical Reset Expanded Bezel disable | Expanded Bezel IPC + Tactical Reset prompt lock |
-| Native Platform Faces | All Phase 4 items stable |
+| Session Service | Service Registry & Port Infrastructure |
+| `tos ports` CLI | Service Registry & Port Infrastructure |
+| mDNS discovery | Service Registry & Port Infrastructure + Avahi integration |
+| Remote Face manual entry | `get_port_map` IPC (Service Registry) |
+| Native Platform Faces | All Phase 4 items stable, Service Registry & Port Infrastructure |

@@ -22,7 +22,15 @@ pub struct Brain {
 
 impl Brain {
     pub fn new() -> anyhow::Result<Self> {
-        let state_val = TosState::default();
+        let mut state_val = TosState::default();
+        let sessions_dir = dirs::data_local_dir().unwrap_or_else(|| std::path::PathBuf::from("/tmp")).join("tos/sessions");
+        let live_path = sessions_dir.join("_live.tos-session");
+        if let Ok(content) = std::fs::read_to_string(&live_path) {
+            if let Ok(live_state) = serde_json::from_str::<TosState>(&content) {
+                state_val = live_state;
+            }
+        }
+        
         let sid = state_val.sectors[0].id;
         let hid = state_val.sectors[0].hubs[0].id;
         let state = Arc::new(Mutex::new(state_val));

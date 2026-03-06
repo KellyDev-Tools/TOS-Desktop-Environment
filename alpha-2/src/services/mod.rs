@@ -9,6 +9,8 @@ pub mod haptic;
 pub mod portal;
 pub mod priority;
 pub mod registry;
+pub mod session;
+pub mod trust;
 
 pub use logger::LoggerService;
 pub use settings::SettingsService;
@@ -20,6 +22,8 @@ pub use haptic::HapticService;
 pub use portal::PortalService;
 pub use priority::PriorityService;
 pub use registry::ServiceRegistry;
+pub use session::SessionService;
+pub use trust::TrustService;
 
 use std::sync::{Arc, Mutex};
 
@@ -33,6 +37,8 @@ pub struct ServiceManager {
     pub portal: Arc<PortalService>,
     pub priority: Arc<PriorityService>,
     pub registry: Arc<Mutex<ServiceRegistry>>,
+    pub session: Arc<SessionService>,
+    pub trust: Arc<TrustService>,
 }
 
 impl ServiceManager {
@@ -53,6 +59,8 @@ impl ServiceManager {
             .and_then(|v| v.parse().ok())
             .unwrap_or(7000);
         let registry = Arc::new(Mutex::new(ServiceRegistry::new(anchor_port)));
+        let session = Arc::new(SessionService::new(registry.clone()));
+        let trust = Arc::new(TrustService::new());
         
         // Establish cross-service dependencies (e.g., logging triggers audio cues)
         logger.set_audio_service(audio.clone());
@@ -72,6 +80,8 @@ impl ServiceManager {
             portal,
             priority,
             registry,
+            session,
+            trust,
         }
     }
     pub fn set_ipc(&self, ipc: std::sync::Arc<dyn crate::common::ipc_dispatcher::IpcDispatcher>) {

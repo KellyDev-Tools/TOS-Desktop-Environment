@@ -84,6 +84,26 @@ pub struct AiModuleMetadata {
     pub capabilities: Vec<String>,
 }
 
+/// A registered AI behavior module instance in the behavior registry.
+///
+/// Each behavior declares the context fields it needs and optionally
+/// overrides the system-default AI backend.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct AiBehavior {
+    /// Behavior type ID (e.g. "command_autocomplete", "ghost_suggestions").
+    pub id: String,
+    /// Human-readable label.
+    pub name: String,
+    /// Whether this behavior is currently active.
+    pub enabled: bool,
+    /// Optional per-behavior backend override (module ID). None → uses system default.
+    pub backend_override: Option<String>,
+    /// Context fields this behavior has declared it needs.
+    pub context_fields: Vec<String>,
+    /// Arbitrary configuration key-value pairs.
+    pub config: HashMap<String, String>,
+}
+
 /// The operational augmentation modes for the Command Hub.
 ///
 /// Each mode changes the chip column content and terminal output rendering
@@ -237,10 +257,88 @@ pub struct CommandHub {
     pub json_context: Option<serde_json::Value>,
     /// Preferred shell module identifier.
     pub shell_module: Option<String>,
+    /// Split pane layout tree for this hub. None when in single-pane mode.
+    pub split_layout: Option<SplitNode>,
+    /// ID of the currently focused pane (if in split mode).
+    pub focused_pane_id: Option<Uuid>,
     pub version: u64,
 }
 
-/// A directory listing returned by the shell integration layer.
+// ---------------------------------------------------------------------------
+// Split Pane Tree
+// ---------------------------------------------------------------------------
+
+/// Orientation of a split container node.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+pub enum SplitOrientation {
+    /// Left/right split (children are stacked side-by-side).
+    Vertical,
+    /// Top/bottom split (children are stacked above/below).
+    Horizontal,
+}
+
+/// The type of content a leaf pane contains.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub enum PaneContent {
+    Terminal,
+    Application(String),
+}
+
+/// A leaf pane in the split tree — an independently rendered terminal surface.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct SplitPane {
+    pub id: Uuid,
+    /// Portion of the parent container (0.0–1.0). Siblings must sum to 1.0.
+    pub weight: f32,
+    pub cwd: PathBuf,
+    pub content: PaneContent,
+}
+
+/// A recursive split tree node — either a container (with children) or a leaf pane.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(tag = "kind")]
+pub enum SplitNode {
+    Leaf(SplitPane),
+    Container {
+        orientation: SplitOrientation,
+        children: Vec<SplitNode>,
+    },
+}
+
+impl SplitNode {
+    pub fn all_pane_ids(&self) -> Vec<Uuid> {
+        match self {
+            SplitNode::Leaf(p) => vec![p.id],
+            SplitNode::Container { children, .. } => {
+                children.iter().flat_map(|c| c.all_pane_ids()).collect()
+            }
+        }
+    }
+
+    pub fn pane_count(&self) -> usize {
+        self.all_pane_ids().len()
+    }
+
+    /// Determine ideal orientation from display aspect ratio.
+    pub fn ideal_orientation(display_width: u32, display_height: u32) -> SplitOrientation {
+        if display_width >= display_height {
+            SplitOrientation::Vertical
+        } else {
+            SplitOrientation::Horizontal
+        }
+    }
+
+    /// Returns true if a new split is geometrically safe given display dimensions.
+    pub fn can_split(pane_count: usize, display_width: u32, display_height: u32) -> bool {
+        let new_count = (pane_count + 1).max(1) as u32;
+        let min_fraction = 1.0_f32 / 6.0;
+        let min_w = ((display_width as f32 * min_fraction) as u32).max(400);
+        let min_h = ((display_height as f32 * min_fraction) as u32).max(200);
+        (display_width / new_count) >= min_w && (display_height / new_count) >= min_h
+    }
+}
+
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct DirectoryListing {
     pub path: String,
@@ -353,6 +451,10 @@ pub struct TosState {
     pub available_modules: Vec<TerminalOutputModuleMeta>,
     pub active_ai_module: String,
     pub available_ai_modules: Vec<AiModuleMetadata>,
+    /// Registered AI behavior modules and their per-behavior configurations.
+    pub ai_behaviors: Vec<AiBehavior>,
+    /// System-wide default AI backend module ID (cascade base).
+    pub ai_default_backend: String,
     pub active_theme: String,
     pub available_themes: Vec<ThemeModule>,
     pub version: u64,
@@ -377,6 +479,8 @@ impl Default for TosState {
                 ai_explanation: None,
                 json_context: None,
                 shell_module: Some("tos-shell-fish".to_string()),
+                split_layout: None,
+                focused_pane_id: None,
                 version: 0,
             }],
             active_hub_index: 0,
@@ -431,6 +535,8 @@ impl Default for TosState {
                     capabilities: vec!["chat".to_string(), "streaming".to_string()],
                 }
             ],
+            ai_behaviors: vec![],
+            ai_default_backend: "tos-ai-standard".to_string(),
             active_theme: "tos-classic-lcars".to_string(),
             available_themes: vec![
                 ThemeModule {

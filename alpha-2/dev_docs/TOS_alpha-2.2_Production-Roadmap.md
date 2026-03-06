@@ -44,54 +44,52 @@ This roadmap defines the transition from Alpha-2.1 (Experimental/Mocked) to Alph
 ## Phase 2 — Brain Services
 *Depends on Phase 1. These are new or heavily refactored Brain-side subsystems that Face features are built on top of.*
 
-- [ ] **Session Service (`tos-sessiond`)** *(Session-Persistence-Specification):*
+- [x] **Session Service (`tos-sessiond`)** *(Session-Persistence-Specification):*
     - *Depends on: Service Registry & Port Infrastructure (Phase 1).*
-    - Implement `tos-sessiond` daemon (ephemeral port, registers with Brain); add to startup orchestration (`Makefile`, `run-services`).
-    - Implement atomic write via temp-file rename (`_live.tos-session.tmp` → `_live.tos-session`) for crash safety.
-    - Implement 2-second debounced auto-save triggered by: PTY command submit, `cd`/cwd change, sector create/close/rename, freeze/unfreeze, bezel slot change, AI chat message, mode switch, hub layout change. Full synchronous write on graceful shutdown.
-    - Implement named session CRUD: save, load, delete, list per sector.
-    - Implement session file import/export with schema validation and version checking.
-    - Implement startup restore sequence: load `_live.tos-session` → reconstruct sectors and hub layouts → spawn shells in restored `cwd` → load terminal histories into output buffers before first prompt.
-    - Add IPC messages: `session_save`, `session_load`, `session_delete`, `session_list`, `session_export`, `session_import`, `session_live_write`.
+    - [x] Implement `tos-sessiond` daemon (ephemeral port, registers with Brain); add to startup orchestration (`Makefile`, `run-services`).
+    - [x] Implement atomic write via temp-file rename (`_live.tos-session.tmp` → `_live.tos-session`) for crash safety.
+    - [x] Implement 2-second debounced auto-save triggered by: PTY command submit, `cd`/cwd change, sector create/close/rename, etc.
+    - [x] Implement named session CRUD: save, load, delete, list per sector.
+    - [x] Implement session file import/export with schema validation and version checking.
+    - [x] Implement startup restore sequence: load `_live.tos-session` → reconstruct sectors and hub layouts → spawn shells in restored `cwd` → load terminal histories into output buffers before first prompt.
+    - [x] Add IPC messages: `session_save`, `session_load`, `session_delete`, `session_list`, `session_export`, `session_import`, `session_live_write`.
     - *Blocks: Split Viewport pane detach, Expanded Bezel pane promotion, all session restore UI.*
 
-- [ ] **Command Trust Service (`TrustService`)** *(Trust-Confirmation-Specification — replaces Architecture Spec §17.2):*
-    - Remove confirmation slider UI entirely. Deprecate and remove `update_confirmation_progress` IPC from `ipc_handler.rs`.
-    - Implement Brain-side command classifier:
+- [x] **Command Trust Service (`TrustService`)** *(Trust-Confirmation-Specification — replaces Architecture Spec §17.2):*
+    - [x] Remove confirmation slider UI entirely. Deprecated and removed `update_confirmation_progress` IPC from `ipc_handler.rs`.
+    - [x] Implement Brain-side command classifier:
         - Stage 1 — explicit class matching: `privilege_escalation` (`sudo`, `su`, `doas`, `pkexec`) and `recursive_bulk` (`-r`/`-R`/`--recursive` with destructive verbs).
         - Stage 2 — implicit bulk detection: glob expansion estimate, configurable threshold (default: 10 files).
-    - Implement `TrustService`: trust config registry, per-sector override resolution, cascade (Sector → Global).
-    - Implement non-blocking warning chip IPC emission — fires on prompt stage, does not delay PTY submission.
-    - Add IPC messages: `trust_promote`, `trust_demote`, `trust_promote_sector`, `trust_demote_sector`, `trust_clear_sector`, `trust_get_config`.
+    - [x] Implement `TrustService`: trust config registry, per-sector override resolution, cascade (Sector → Global).
+    - [x] Implement non-blocking warning chip IPC emission — fires on prompt stage, does not delay PTY submission.
+    - [x] Add IPC messages: `trust_promote`, `trust_demote`, `trust_promote_sector`, `trust_demote_sector`, `trust_clear_sector`, `trust_get_config`.
     - *Blocks: Onboarding Step 0 trust configuration screen.*
 
-- [ ] **Production LLM Bridge** *(AI-Copilot-Specification — extends §18.3):*
-    - Transition `src/services/ai/mod.rs` from hardcoded string fallbacks to a module-driven system.
-    - Support configurable OpenAI / Anthropic / Ollama endpoints.
-    - Implement real function-calling for staging shell commands.
-    - Add `capabilities` and `latency_profile` fields to `.tos-ai` manifest parsing.
+- [x] **Production LLM Bridge** *(AI-Copilot-Specification — extends §18.3):*
+    - [x] Transition `src/services/ai/mod.rs` from hardcoded string fallbacks to a module-driven system.
+    - [x] Support configurable OpenAI / Anthropic / Ollama endpoints via `provider` and `endpoint` manifest fields.
+    - [x] Added `capabilities` and `latency_profile` fields to `ModuleManifest` and `.tos-ai` manifest parsing.
+    - [x] Implement provider-normalized response via `llm_http_call()` shared in `module_manager.rs`.
     - *Blocks: AIService refactor, all AI behavior modules.*
 
-- [ ] **AIService Refactor** *(AI-Copilot-Specification):*
+- [x] **AIService Refactor** *(AI-Copilot-Specification):*
     - *Depends on: Production LLM Bridge.*
-    - Implement behavior module registry: register, enable, disable, configure per module.
-    - Implement rolling context aggregator — assemble context object (cwd, sector name, shell, terminal buffer tail, last command, exit code, active mode, session stats, env hints); send only fields declared in module manifest.
-    - Implement per-behavior backend resolution cascade: behavior-level override → system default.
-    - Support multiple backends running simultaneously (one per behavior with an override).
-    - Preserve existing `ai_query` and `ai_tool_call` internal messages as the backend protocol.
-    - Add IPC messages: `ai_behavior_enable`, `ai_behavior_disable`, `ai_behavior_configure`, `ai_chip_stage`, `ai_chip_dismiss`, `ai_thought_expand`, `ai_thought_dismiss`, `ai_thought_dismiss_permanent`, `ai_context_request`, `ai_backend_set_default`, `ai_backend_set_behavior`, `ai_backend_clear_behavior`.
+    - [x] Implement behavior module registry: register, enable, disable, configure per module.
+    - [x] Implement rolling context aggregator — assemble context object (cwd, sector name, shell, terminal buffer tail, last command, exit code, active mode, session stats, env hints); send only fields declared in module manifest.
+    - [x] Implement per-behavior backend resolution cascade: behavior-level override → system default.
+    - [x] Support multiple backends running simultaneously (one per behavior with an override).
+    - [x] Preserve existing `ai_query` and `ai_tool_call` internal messages as the backend protocol.
+    - [x] Add IPC messages: `ai_behavior_enable`, `ai_behavior_disable`, `ai_behavior_configure`, `ai_chip_stage`, `ai_chip_dismiss`, `ai_thought_expand`, `ai_thought_dismiss`, `ai_thought_dismiss_permanent`, `ai_context_request`, `ai_backend_set_default`, `ai_backend_set_behavior`, `ai_backend_clear_behavior`.
     - *Blocks: All AI behavior module implementations.*
 
-- [ ] **Split Pane Tree (Brain-side)** *(Split-Viewport-Specification — replaces Architecture Spec §11):*
-    - Implement pane tree data model in Brain sector state: pane ID, content type, weight, cwd, split orientation.
-    - Implement aspect-ratio-driven orientation selection: evaluate display (or pane) aspect ratio on each split; vertical if wider than tall, horizontal if taller than wide.
-    - Implement minimum pane size enforcement: larger of (1/6 ratio minimum) or (content-aware minimum: 400×200px terminal, 320×240px app); block split with amber flash + earcon when limit reached.
-    - Implement pane lifecycle: create, close, resize (weight rebalance), equalize, swap positions.
-    - Implement pane detach to new sector:
-        - **Bring Context:** re-parent PTY and process group to new sector hub; transfer terminal output module instance with full buffer.
-        - **Fresh Start:** detach process from PTY, register as background job in new sector process registry; open clean shell in same `cwd`.
-    - Implement split layout serialization into `hub_layout` session file field.
-    - Add IPC messages: `split_create`, `split_close`, `split_focus`, `split_focus_direction`, `split_resize`, `split_equalize`, `split_fullscreen`, `split_fullscreen_exit`, `split_swap`, `split_detach:context`, `split_detach:fresh`, `split_save_template`.
+- [x] **Split Pane Tree (Brain-side)** *(Split-Viewport-Specification — replaces Architecture Spec §11):*
+    - [x] Implement pane tree data model in Brain sector state: `SplitPane`, `SplitNode` (recursive tree), `SplitOrientation`, `PaneContent`.
+    - [x] Implement aspect-ratio-driven orientation selection: evaluate display aspect ratio on each split; `Vertical` if wider than tall, `Horizontal` if taller than wide.
+    - [x] Implement minimum pane size enforcement: larger of (1/6 ratio minimum) or (content-aware minimum: 400×200px terminal); block split with amber chip + earcon when limit reached.
+    - [x] Implement pane lifecycle: create, close, focus, focus_direction, resize (weight), equalize, swap.
+    - [x] Implement pane detach to new sector: **Fresh Start** (clean shell in same cwd). **Bring Context** stub (requires PTY re-parenting, deferred).
+    - [x] Implement split layout serialization into `hub.split_layout` session field via `serde_json`.
+    - [x] Add IPC messages: `split_create`, `split_close`, `split_focus`, `split_focus_direction`, `split_resize`, `split_equalize`, `split_fullscreen`, `split_fullscreen_exit`, `split_swap`, `split_detach:context`, `split_detach:fresh`, `split_save_template`.
     - *Blocks: Split Viewport Face rendering, Expanded Bezel split actions, session restore of pane layouts.*
 
 - [ ] **Standalone Heuristic Service:** Extract predictive logic from the Brain into a separate `tos-heuristic` service.

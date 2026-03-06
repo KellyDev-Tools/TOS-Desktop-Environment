@@ -1,7 +1,7 @@
 <script lang="ts">
 	import '../app.css';
 	import type { Snippet } from 'svelte';
-	import tokens from '../../../../assets/design_tokens.json';
+	import tokens from '../../../assets/design_tokens.json';
 
 	let { children }: { children: Snippet } = $props();
 

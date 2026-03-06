@@ -23,6 +23,12 @@ pub struct ModuleManifest {
     
     // §1.3: AI Specifics
     pub capabilities: Option<Vec<String>>,
+    /// LLM provider identifier: "openai", "anthropic", "ollama", or "module".
+    pub provider: Option<String>,
+    /// HTTP base URL for LLM API calls (e.g. "https://api.openai.com/v1").
+    pub endpoint: Option<String>,
+    /// Latency profile hint: "low" (<300ms p95), "medium" (<1s p95), "high" (>1s p95).
+    pub latency_profile: Option<String>,
 
     // The Ed25519 cryptographic signature of the manifest contents
     pub signature: Option<String>,

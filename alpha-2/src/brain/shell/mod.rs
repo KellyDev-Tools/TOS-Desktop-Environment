@@ -24,14 +24,17 @@ impl ShellApi {
             pixel_height: 0,
         })?;
 
-        // Resolve shell from modules if possible
-        let shell_id = {
+        // Resolve shell and cwd from modules if possible
+        let (shell_id, cwd) = {
             let lock = state.lock().unwrap();
-            lock.sectors.iter()
+            let hub_opt = lock.sectors.iter()
                 .find(|s| s.id == sector_id)
-                .and_then(|s| s.hubs.iter().find(|h| h.id == hub_id))
-                .and_then(|h| h.shell_module.clone())
-                .unwrap_or_else(|| "tos-shell-fish".to_string())
+                .and_then(|s| s.hubs.iter().find(|h| h.id == hub_id));
+            
+            let id = hub_opt.and_then(|h| h.shell_module.clone()).unwrap_or_else(|| "tos-shell-fish".to_string());
+            let current_dir = hub_opt.map(|h| h.current_directory.clone()).unwrap_or_else(|| dirs::home_dir().unwrap_or_else(|| std::path::PathBuf::from("/")));
+            
+            (id, current_dir)
         };
 
         let resolve_from_env = || -> (String, Vec<String>) {
@@ -74,6 +77,7 @@ impl ShellApi {
         tracing::info!("SHELL INIT: Using verified binary: {} with args: {:?}", verified_shell, args);
         let mut cmd = CommandBuilder::new(verified_shell);
         cmd.args(args);
+        cmd.cwd(cwd); // Set the restored working directory
         let child = pair.slave.spawn_command(cmd)?;
 
         let reader = pair.master.try_clone_reader()?;

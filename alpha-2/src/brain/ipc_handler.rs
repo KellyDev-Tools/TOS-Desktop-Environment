@@ -48,8 +48,7 @@ impl IpcHandler {
             "signal_app" => self.handle_signal_app(args.get(0).copied(), args.get(1).copied()),
             "search" => self.handle_search(payload),
             "semantic_search" => self.handle_semantic_search(payload),
-            "prompt_submit" => self.handle_prompt_submit(payload), 
-            "update_confirmation_progress" => self.handle_update_confirmation_progress(args.get(0).copied(), args.get(1).copied()),
+            "prompt_submit" => self.handle_prompt_submit(payload),
             "ai_submit" => self.handle_ai_submit(payload),
             "ai_suggestion_accept" => self.handle_ai_suggestion_accept(),
             "ai_stage_command" => self.handle_ai_stage_command(payload),
@@ -70,8 +69,50 @@ impl IpcHandler {
             "tos_ports" => self.handle_tos_ports(),
             "service_register" => self.handle_service_register(args.get(0).copied(), args.get(1).copied()),
             "service_deregister" => self.handle_service_deregister(args.get(0).copied()),
+            "session_list" => self.handle_session_list(args.get(0).copied()),
+            "session_save" => self.handle_session_save(args.get(0).copied(), args.get(1).copied()),
+            "session_load" => self.handle_session_load(args.get(0).copied(), args.get(1).copied()),
+            "session_delete" => self.handle_session_delete(args.get(0).copied(), args.get(1).copied()),
+            "session_live_write" => self.handle_session_live_write(),
+            "session_export" => self.handle_session_export(args.get(0).copied(), args.get(1).copied()),
+            "session_import" => self.handle_session_import(args.get(0).copied(), args.get(1).copied()),
+            "trust_promote" => self.handle_trust_promote(args.get(0).copied()),
+            "trust_demote" => self.handle_trust_demote(args.get(0).copied()),
+            "ai_behavior_enable" => self.handle_ai_behavior_enable(args.get(0).copied()),
+            "ai_behavior_disable" => self.handle_ai_behavior_disable(args.get(0).copied()),
+            "ai_behavior_configure" => self.handle_ai_behavior_configure(args.get(0).copied(), args.get(1).copied(), args.get(2).copied()),
+            "ai_chip_stage" => self.handle_ai_chip_stage(payload),
+            "ai_chip_dismiss" => self.handle_ai_chip_dismiss(args.get(0).copied()),
+            "ai_thought_expand" => self.handle_ai_thought_expand(args.get(0).copied()),
+            "ai_thought_dismiss" => self.handle_ai_thought_dismiss(args.get(0).copied()),
+            "ai_thought_dismiss_permanent" => self.handle_ai_thought_dismiss_permanent(args.get(0).copied()),
+            "ai_context_request" => self.handle_ai_context_request(args.get(0).copied()),
+            "ai_backend_set_default" => self.handle_ai_backend_set_default(args.get(0).copied()),
+            "ai_backend_set_behavior" => self.handle_ai_backend_set_behavior(args.get(0).copied(), args.get(1).copied()),
+            "ai_backend_clear_behavior" => self.handle_ai_backend_clear_behavior(args.get(0).copied()),
+            "split_create" => self.handle_split_create(args.get(0).copied(), args.get(1).copied()),
+            "split_close" => self.handle_split_close(args.get(0).copied()),
+            "split_focus" => self.handle_split_focus(args.get(0).copied()),
+            "split_focus_direction" => self.handle_split_focus_direction(args.get(0).copied()),
+            "split_resize" => self.handle_split_resize(args.get(0).copied(), args.get(1).copied()),
+            "split_equalize" => self.handle_split_equalize(),
+            "split_fullscreen" => self.handle_split_fullscreen(args.get(0).copied()),
+            "split_fullscreen_exit" => self.handle_split_fullscreen_exit(),
+            "split_swap" => self.handle_split_swap(args.get(0).copied(), args.get(1).copied()),
+            "split_detach:context" => self.handle_split_detach_context(),
+            "split_detach:fresh" => self.handle_split_detach_fresh(),
+            "split_save_template" => self.handle_split_save_template(args.get(0).copied()),
+            "trust_promote_sector" => self.handle_trust_promote_sector(args.get(0).copied(), args.get(1).copied()),
+            "trust_demote_sector" => self.handle_trust_demote_sector(args.get(0).copied(), args.get(1).copied()),
+            "trust_clear_sector" => self.handle_trust_clear_sector(args.get(0).copied()),
+            "trust_get_config" => self.handle_trust_get_config(),
             _ => "ERROR: Unknown prefix".to_string(),
         };
+
+        // Debounced session save on state-mutating events
+        if !prefix.starts_with("session_") && !prefix.starts_with("get_") && prefix != "tos_ports" && !prefix.starts_with("service_") && !prefix.starts_with("trigger_") && !prefix.starts_with("play_") && !prefix.starts_with("trust_") {
+            self.services.session.debounced_save_live(self.state.clone());
+        }
 
         let duration = start.elapsed();
         if duration.as_millis() > 16 {
@@ -89,83 +130,63 @@ impl IpcHandler {
         format!("{} ({:?})", result, duration)
     }
 
-    fn is_dangerous(&self, command: &str) -> bool {
-        let cmd = command.trim().to_lowercase();
-        
-        // 1. Root or System Wide recursive deletion
-        let rm_regex = regex::Regex::new(r"rm\s+-[rfv\s]*[rf][rfv\s]*\s+/").unwrap();
-        if rm_regex.is_match(&cmd) { 
-            tracing::warn!("SECURITY INTERCEPT: Attempt to recursively delete root!");
-            return true; 
+
+
+    fn handle_prompt_submit(&self, command: &str) -> String {
+        let cmd = command.trim();
+        if cmd.is_empty() {
+            return "ERROR: Empty command".to_string();
         }
 
-        // 2. Raw device manipulation
-        if cmd.contains("dd ") && (cmd.contains("if=/dev/sd") || cmd.contains("if=/dev/nvme") || cmd.contains("of=/dev/sd") || cmd.contains("of=/dev/nvme")) {
-            tracing::warn!("SECURITY INTERCEPT: Attempt to perform raw device I/O!");
-            return true;
-        }
+        // Non-blocking Trust Chip Emission
+        // Classify the command and push a warning chip to system_log if needed.
+        // This does NOT block or delay PTY submission.
+        {
+            let mut state = self.state.lock().unwrap();
+            let idx = state.active_sector_index;
+            let sector_id_str = state.sectors.get(idx).map(|s| s.id.to_string());
+            let cwd = state.sectors.get(idx)
+                .and_then(|s| s.hubs.get(s.active_hub_index))
+                .map(|h| h.current_directory.clone())
+                .unwrap_or_else(|| std::path::PathBuf::from("/"));
 
-        // 3. Destructive formatting
-        let format_regex = regex::Regex::new(r"(mkfs|mkswap|fdisk|parted|format)").unwrap();
-        if format_regex.is_match(&cmd) {
-            tracing::warn!("SECURITY INTERCEPT: Attempt to reformat or manipulate partitions!");
-            return true;
-        }
+            let bulk_threshold = state.settings.global
+                .get("tos.trust.bulk_threshold")
+                .and_then(|v| v.parse::<usize>().ok())
+                .unwrap_or(10);
 
-        // 4. Direct overwrite of critical nodes
-        if cmd.contains("> /dev/sd") || cmd.contains("> /dev/nvme") || cmd.contains("> /etc/") {
-             tracing::warn!("SECURITY INTERCEPT: Attempt to overwrite system nodes!");
-             return true;
-        }
+            let class = self.services.trust.classify_command(cmd, &cwd, bulk_threshold);
+            let policy = self.services.trust.get_trust_policy(
+                &state,
+                sector_id_str.as_deref(),
+                &class,
+            );
 
-        false
-    }
+            if class != crate::services::trust::CommandClass::Standard {
+                let chip_msg = match &class {
+                    crate::services::trust::CommandClass::PrivilegeEscalation =>
+                        format!("[TRUST] ⚠ PRIVILEGE ESCALATION: '{}' — policy: {}", cmd, policy),
+                    crate::services::trust::CommandClass::RecursiveBulk =>
+                        format!("[TRUST] ⚠ RECURSIVE BULK OP: '{}' — policy: {}", cmd, policy),
+                    crate::services::trust::CommandClass::ImplicitBulk =>
+                        format!("[TRUST] ⚠ IMPLICIT BULK (glob): '{}' — policy: {}", cmd, policy),
+                    _ => String::new(),
+                };
+                if !chip_msg.is_empty() {
+                    state.system_log.push(crate::common::TerminalLine {
+                        text: chip_msg,
+                        priority: 2,
+                        timestamp: chrono::Local::now(),
+                    });
+                    tracing::warn!("[TRUST] Classified '{}' as {:?} (policy={})", cmd, class, policy);
+                }
 
-    fn handle_update_confirmation_progress(&self, id_str: Option<&str>, val_str: Option<&str>) -> String {
-        if let (Some(id_s), Some(val_s)) = (id_str, val_str) {
-            if let (Ok(id), Ok(val)) = (Uuid::parse_str(id_s), val_s.parse::<f32>()) {
-                let mut state = self.state.lock().unwrap();
-                if let Some(conf) = &mut state.pending_confirmation {
-                    if conf.id == id {
-                        conf.progress = val;
-                        // If progress reached 100%, execute and clear
-                        if val >= 1.0 {
-                            let original = conf.original_request.clone();
-                            state.pending_confirmation = None;
-                            drop(state); // Drop before writing to shell
-                            self.execute_final_command(&original);
-                            return format!("CONFIRMED: {}", original);
-                        }
-                        return format!("PROGRESS: {}", val);
-                    }
+                if policy == "block" {
+                    return format!("TRUST_BLOCKED: {:?}", class);
                 }
             }
         }
-        "ERROR: Invalid confirmation update".to_string()
-    }
 
-    fn execute_final_command(&self, command: &str) {
-        let mut shell = self.shell.lock().unwrap();
-        let _ = shell.write(&format!("{}\n", command));
-    }
-
-    fn handle_prompt_submit(&self, command: &str) -> String {
-        // Dangerous Command Handling: Intercept and request confirmation
-        if self.is_dangerous(command) {
-            self.services.logger.audit_log("SessionUser", "EXECUTE_DANGEROUS", command);
-            let mut state = self.state.lock().unwrap();
-            let id = Uuid::new_v4();
-            state.pending_confirmation = Some(crate::common::ConfirmationRequest {
-                id,
-                original_request: command.to_string(),
-                message: format!("DANGEROUS COMMAND DETECTED: '{}'. Drag to confirm.", command),
-                progress: 0.0,
-            });
-            tracing::warn!("Intercepted dangerous command: {}", command);
-            return format!("INTERCEPTED: {}", id);
-        }
-        
-        // Final submission to PTY
         let mut shell = self.shell.lock().unwrap();
         let _ = shell.write(&format!("{}\n", command));
         "SUBMITTED".to_string()
@@ -847,6 +868,466 @@ impl IpcHandler {
             return format!("SERVICE_DEREGISTERED: {}", n);
         }
         "ERROR: Missing service name".to_string()
+    }
+
+    fn handle_session_list(&self, sector_id: Option<&str>) -> String {
+        let sid = sector_id.unwrap_or("global");
+        match self.services.session.list(sid) {
+            Ok(json) => format!("SESSION_LIST: {}", json),
+            Err(e) => format!("ERROR: {}", e),
+        }
+    }
+
+    fn handle_session_save(&self, sector_id: Option<&str>, name: Option<&str>) -> String {
+        if let (Some(sid), Some(n)) = (sector_id, name) {
+            let state = self.state.lock().unwrap();
+            match self.services.session.save(sid, n, &state) {
+                Ok(_) => return format!("SESSION_SAVED: {}", n),
+                Err(e) => return format!("ERROR: {}", e),
+            }
+        }
+        "ERROR: Missing sector_id or name".to_string()
+    }
+
+    fn handle_session_load(&self, sector_id: Option<&str>, name: Option<&str>) -> String {
+        if let (Some(sid), Some(n)) = (sector_id, name) {
+            match self.services.session.load(sid, n) {
+                Ok(json) => {
+                    if let Ok(new_state) = serde_json::from_str::<TosState>(&json) {
+                        let mut state = self.state.lock().unwrap();
+                        *state = new_state;
+                        return format!("SESSION_LOADED: {}", n);
+                    }
+                    return "ERROR: Session schema invalid".to_string();
+                }
+                Err(e) => return format!("ERROR: {}", e),
+            }
+        }
+        "ERROR: Missing sector_id or name".to_string()
+    }
+
+    fn handle_session_delete(&self, sector_id: Option<&str>, name: Option<&str>) -> String {
+        if let (Some(sid), Some(n)) = (sector_id, name) {
+            match self.services.session.delete(sid, n) {
+                Ok(_) => return format!("SESSION_DELETED: {}", n),
+                Err(e) => return format!("ERROR: {}", e),
+            }
+        }
+        "ERROR: Missing sector_id or name".to_string()
+    }
+
+    fn handle_session_live_write(&self) -> String {
+        let state = self.state.lock().unwrap();
+        match self.services.session.save_live(&state) {
+            Ok(_) => "SESSION_LIVE_WRITTEN".to_string(),
+            Err(e) => format!("ERROR: {}", e),
+        }
+    }
+
+    fn handle_session_export(&self, sector_id: Option<&str>, name: Option<&str>) -> String {
+        if let (Some(sid), Some(n)) = (sector_id, name) {
+            match self.services.session.load(sid, n) {
+                Ok(json) => return format!("SESSION_EXPORT: {}", json),
+                Err(e) => return format!("ERROR: {}", e),
+            }
+        }
+        "ERROR: Missing sector_id or name".to_string()
+    }
+
+    fn handle_session_import(&self, name: Option<&str>, json: Option<&str>) -> String {
+        if let (Some(n), Some(data)) = (name, json) {
+            if let Ok(state) = serde_json::from_str::<TosState>(data) {
+                match self.services.session.save("global", n, &state) {
+                    Ok(_) => return format!("SESSION_IMPORTED: {}", n),
+                    Err(e) => return format!("ERROR: {}", e),
+                }
+            } else {
+                return "ERROR: Invalid session schema".to_string();
+            }
+        }
+        "ERROR: Missing name or json payload".to_string()
+    }
+
+    // ----- Trust IPC Handlers -----
+
+    fn handle_trust_promote(&self, class_key: Option<&str>) -> String {
+        if let Some(key) = class_key {
+            let mut state = self.state.lock().unwrap();
+            self.services.trust.promote_global(&mut state, key);
+            format!("TRUST_PROMOTED: {}", key)
+        } else {
+            "ERROR: Missing class_key".to_string()
+        }
+    }
+
+    fn handle_trust_demote(&self, class_key: Option<&str>) -> String {
+        if let Some(key) = class_key {
+            let mut state = self.state.lock().unwrap();
+            self.services.trust.demote_global(&mut state, key);
+            format!("TRUST_DEMOTED: {}", key)
+        } else {
+            "ERROR: Missing class_key".to_string()
+        }
+    }
+
+    fn handle_trust_promote_sector(&self, sector_id: Option<&str>, class_key: Option<&str>) -> String {
+        if let (Some(sid), Some(key)) = (sector_id, class_key) {
+            let mut state = self.state.lock().unwrap();
+            self.services.trust.promote_sector(&mut state, sid, key);
+            format!("TRUST_SECTOR_PROMOTED: {}:{}", sid, key)
+        } else {
+            "ERROR: Missing sector_id or class_key".to_string()
+        }
+    }
+
+    fn handle_trust_demote_sector(&self, sector_id: Option<&str>, class_key: Option<&str>) -> String {
+        if let (Some(sid), Some(key)) = (sector_id, class_key) {
+            let mut state = self.state.lock().unwrap();
+            self.services.trust.demote_sector(&mut state, sid, key);
+            format!("TRUST_SECTOR_DEMOTED: {}:{}", sid, key)
+        } else {
+            "ERROR: Missing sector_id or class_key".to_string()
+        }
+    }
+
+    fn handle_trust_clear_sector(&self, sector_id: Option<&str>) -> String {
+        if let Some(sid) = sector_id {
+            let mut state = self.state.lock().unwrap();
+            self.services.trust.clear_sector(&mut state, sid);
+            format!("TRUST_SECTOR_CLEARED: {}", sid)
+        } else {
+            "ERROR: Missing sector_id".to_string()
+        }
+    }
+
+    fn handle_trust_get_config(&self) -> String {
+        let state = self.state.lock().unwrap();
+        format!("TRUST_CONFIG: {}", self.services.trust.get_config_json(&state))
+    }
+
+    // ----- AIService Refactor IPC Handlers -----
+
+    fn handle_ai_behavior_enable(&self, id: Option<&str>) -> String {
+        if let Some(id) = id {
+            let mut state = self.state.lock().unwrap();
+            if self.services.ai.enable_behavior(&mut state, id) {
+                return format!("AI_BEHAVIOR_ENABLED: {}", id);
+            }
+            return format!("ERROR: Behavior '{}' not registered", id);
+        }
+        "ERROR: Missing behavior_id".to_string()
+    }
+
+    fn handle_ai_behavior_disable(&self, id: Option<&str>) -> String {
+        if let Some(id) = id {
+            let mut state = self.state.lock().unwrap();
+            if self.services.ai.disable_behavior(&mut state, id) {
+                return format!("AI_BEHAVIOR_DISABLED: {}", id);
+            }
+            return format!("ERROR: Behavior '{}' not registered", id);
+        }
+        "ERROR: Missing behavior_id".to_string()
+    }
+
+    fn handle_ai_behavior_configure(&self, id: Option<&str>, key: Option<&str>, value: Option<&str>) -> String {
+        if let (Some(id), Some(k), Some(v)) = (id, key, value) {
+            let mut state = self.state.lock().unwrap();
+            if self.services.ai.configure_behavior(&mut state, id, k, v) {
+                return format!("AI_BEHAVIOR_CONFIGURED: {}::{}={}", id, k, v);
+            }
+            return format!("ERROR: Behavior '{}' not registered", id);
+        }
+        "ERROR: Missing behavior_id, key, or value".to_string()
+    }
+
+    fn handle_ai_chip_stage(&self, payload: &str) -> String {
+        // Stage an AI chip in the system_log. Payload is the chip text.
+        let mut state = self.state.lock().unwrap();
+        state.system_log.push(crate::common::TerminalLine {
+            text: format!("[AI CHIP] {}", payload),
+            priority: 1,
+            timestamp: chrono::Local::now(),
+        });
+        format!("AI_CHIP_STAGED: {}", &payload[..payload.len().min(40)])
+    }
+
+    fn handle_ai_chip_dismiss(&self, id: Option<&str>) -> String {
+        // Remove the most recent AI chip matching the id prefix from system_log
+        let prefix = format!("[AI CHIP] {}", id.unwrap_or(""));
+        let mut state = self.state.lock().unwrap();
+        let before = state.system_log.len();
+        state.system_log.retain(|l| !l.text.starts_with(&prefix));
+        let removed = before - state.system_log.len();
+        format!("AI_CHIP_DISMISSED: {} removed", removed)
+    }
+
+    fn handle_ai_thought_expand(&self, thought_id: Option<&str>) -> String {
+        // Push an expanded thought chip to system_log
+        let id = thought_id.unwrap_or("unknown");
+        let mut state = self.state.lock().unwrap();
+        state.system_log.push(crate::common::TerminalLine {
+            text: format!("[AI THOUGHT:EXPANDED] id={}", id),
+            priority: 1,
+            timestamp: chrono::Local::now(),
+        });
+        format!("AI_THOUGHT_EXPANDED: {}", id)
+    }
+
+    fn handle_ai_thought_dismiss(&self, thought_id: Option<&str>) -> String {
+        let id = thought_id.unwrap_or("unknown");
+        let prefix = format!("[AI THOUGHT:EXPANDED] id={}", id);
+        let mut state = self.state.lock().unwrap();
+        state.system_log.retain(|l| l.text != prefix);
+        format!("AI_THOUGHT_DISMISSED: {}", id)
+    }
+
+    fn handle_ai_thought_dismiss_permanent(&self, thought_id: Option<&str>) -> String {
+        let id = thought_id.unwrap_or("unknown");
+        // Mark dismissal in settings so it persists across sessions
+        let key = format!("tos.ai.thought.dismissed.{}", id);
+        let mut state = self.state.lock().unwrap();
+        state.settings.global.insert(key, "true".to_string());
+        state.system_log.retain(|l| !l.text.contains(&format!("id={}", id)));
+        format!("AI_THOUGHT_DISMISSED_PERMANENT: {}", id)
+    }
+
+    fn handle_ai_context_request(&self, behavior_id: Option<&str>) -> String {
+        let state = self.state.lock().unwrap();
+        let ctx = crate::services::ai::build_context(&state);
+        let behavior_id = behavior_id.unwrap_or("*");
+        
+        // Look up declared fields for the behavior; default to all if not found
+        let fields = state.ai_behaviors.iter()
+            .find(|b| b.id == behavior_id)
+            .map(|b| b.context_fields.clone())
+            .unwrap_or_else(|| vec![
+                "cwd".to_string(), "sector_name".to_string(), "shell".to_string(),
+                "last_command".to_string(), "mode".to_string(),
+            ]);
+
+        let context_entries = ctx.filter_to_fields(&fields);
+        let payload = serde_json::to_string(&context_entries).unwrap_or_else(|_| "[]".to_string());
+        format!("AI_CONTEXT: {}", payload)
+    }
+
+    fn handle_ai_backend_set_default(&self, backend_id: Option<&str>) -> String {
+        if let Some(id) = backend_id {
+            let mut state = self.state.lock().unwrap();
+            self.services.ai.set_default_backend(&mut state, id);
+            return format!("AI_DEFAULT_BACKEND_SET: {}", id);
+        }
+        "ERROR: Missing backend_id".to_string()
+    }
+
+    fn handle_ai_backend_set_behavior(&self, behavior_id: Option<&str>, backend_id: Option<&str>) -> String {
+        if let (Some(bid), Some(backend)) = (behavior_id, backend_id) {
+            let mut state = self.state.lock().unwrap();
+            if self.services.ai.set_behavior_backend(&mut state, bid, backend) {
+                return format!("AI_BEHAVIOR_BACKEND_SET: {}→{}", bid, backend);
+            }
+            return format!("ERROR: Behavior '{}' not registered", bid);
+        }
+        "ERROR: Missing behavior_id or backend_id".to_string()
+    }
+
+    fn handle_ai_backend_clear_behavior(&self, behavior_id: Option<&str>) -> String {
+        if let Some(bid) = behavior_id {
+            let mut state = self.state.lock().unwrap();
+            if self.services.ai.clear_behavior_backend(&mut state, bid) {
+                return format!("AI_BEHAVIOR_BACKEND_CLEARED: {}", bid);
+            }
+            return format!("ERROR: Behavior '{}' not registered", bid);
+        }
+        "ERROR: Missing behavior_id".to_string()
+    }
+
+    // ----- Split Pane Handlers -----
+
+    fn handle_split_create(&self, w: Option<&str>, h: Option<&str>) -> String {
+        let display_w = w.and_then(|s| s.parse().ok()).unwrap_or(1920u32);
+        let display_h = h.and_then(|s| s.parse().ok()).unwrap_or(1080u32);
+        let mut state = self.state.lock().unwrap();
+        match crate::brain::sector::SectorManager::split_create(&mut state, display_w, display_h) {
+            Ok(id) => format!("SPLIT_CREATED: {}", id),
+            Err(e) => {
+                // Emit amber warning chip
+                state.system_log.push(crate::common::TerminalLine {
+                    text: format!("[SPLIT] ⚠ {}", e),
+                    priority: 2,
+                    timestamp: chrono::Local::now(),
+                });
+                // Also play earcon hint for the user
+                let _ = self.services.audio.play_earcon("warning");
+                e
+            }
+        }
+    }
+
+    fn handle_split_close(&self, pane_id: Option<&str>) -> String {
+        if let Some(id_str) = pane_id {
+            if let Ok(id) = Uuid::parse_str(id_str) {
+                let mut state = self.state.lock().unwrap();
+                if crate::brain::sector::SectorManager::split_close(&mut state, id) {
+                    return format!("SPLIT_CLOSED: {}", id);
+                }
+                return "ERROR: Pane not found".to_string();
+            }
+        }
+        "ERROR: Missing or invalid pane_id".to_string()
+    }
+
+    fn handle_split_focus(&self, pane_id: Option<&str>) -> String {
+        if let Some(id_str) = pane_id {
+            if let Ok(id) = Uuid::parse_str(id_str) {
+                let mut state = self.state.lock().unwrap();
+                if crate::brain::sector::SectorManager::split_focus(&mut state, id) {
+                    return format!("SPLIT_FOCUSED: {}", id);
+                }
+                return "ERROR: Pane not found".to_string();
+            }
+        }
+        "ERROR: Missing or invalid pane_id".to_string()
+    }
+
+    fn handle_split_focus_direction(&self, direction: Option<&str>) -> String {
+        let dir = direction.unwrap_or("right");
+        let mut state = self.state.lock().unwrap();
+        match crate::brain::sector::SectorManager::split_focus_direction(&mut state, dir) {
+            Some(id) => format!("SPLIT_FOCUSED: {}", id),
+            None => "ERROR: No split panes active".to_string(),
+        }
+    }
+
+    fn handle_split_resize(&self, pane_id: Option<&str>, weight_str: Option<&str>) -> String {
+        if let (Some(id_str), Some(w)) = (pane_id, weight_str) {
+            if let (Ok(id), Ok(weight)) = (Uuid::parse_str(id_str), w.parse::<f32>()) {
+                let mut state = self.state.lock().unwrap();
+                let idx = state.active_sector_index;
+                let hub_idx = state.sectors[idx].active_hub_index;
+        let hub = &mut state.sectors[idx].hubs[hub_idx];
+                fn set_weight(node: &mut crate::common::SplitNode, id: Uuid, weight: f32) -> bool {
+                    match node {
+                        crate::common::SplitNode::Leaf(p) => {
+                            if p.id == id { p.weight = weight; true } else { false }
+                        }
+                        crate::common::SplitNode::Container { children, .. } => {
+                            children.iter_mut().any(|c| set_weight(c, id, weight))
+                        }
+                    }
+                }
+                if let Some(layout) = &mut hub.split_layout {
+                    if set_weight(layout, id, weight) {
+                        return format!("SPLIT_RESIZED: {}→{}", id, weight);
+                    }
+                }
+                return "ERROR: Pane not found".to_string();
+            }
+        }
+        "ERROR: Missing pane_id or weight".to_string()
+    }
+
+    fn handle_split_equalize(&self) -> String {
+        let mut state = self.state.lock().unwrap();
+        if crate::brain::sector::SectorManager::split_equalize(&mut state) {
+            "SPLIT_EQUALIZED".to_string()
+        } else {
+            "ERROR: No split layout active".to_string()
+        }
+    }
+
+    fn handle_split_fullscreen(&self, pane_id: Option<&str>) -> String {
+        if let Some(id_str) = pane_id {
+            if let Ok(id) = Uuid::parse_str(id_str) {
+                let mut state = self.state.lock().unwrap();
+                if crate::brain::sector::SectorManager::split_fullscreen(&mut state, id) {
+                    return format!("SPLIT_FULLSCREEN: {}", id);
+                }
+                return "ERROR: Pane not found".to_string();
+            }
+        }
+        "ERROR: Missing or invalid pane_id".to_string()
+    }
+
+    fn handle_split_fullscreen_exit(&self) -> String {
+        // Exit fullscreen: clear split_layout entirely (fall back to single pane mode)
+        let mut state = self.state.lock().unwrap();
+        let idx = state.active_sector_index;
+        let hub_idx = state.sectors[idx].active_hub_index;
+        let hub = &mut state.sectors[idx].hubs[hub_idx];
+        hub.split_layout = None;
+        hub.focused_pane_id = None;
+        "SPLIT_FULLSCREEN_EXIT".to_string()
+    }
+
+    fn handle_split_swap(&self, pane_a: Option<&str>, pane_b: Option<&str>) -> String {
+        if let (Some(a_str), Some(b_str)) = (pane_a, pane_b) {
+            if let (Ok(a), Ok(b)) = (Uuid::parse_str(a_str), Uuid::parse_str(b_str)) {
+                let mut state = self.state.lock().unwrap();
+                let idx = state.active_sector_index;
+                let hub_idx = state.sectors[idx].active_hub_index;
+        let hub = &mut state.sectors[idx].hubs[hub_idx];
+                
+                fn swap_leaves(node: &mut crate::common::SplitNode, a: Uuid, b: Uuid) {
+                    if let crate::common::SplitNode::Container { children, .. } = node {
+                        // Find positions of a and b within immediate children
+                        let pos_a = children.iter().position(|c| matches!(c, crate::common::SplitNode::Leaf(p) if p.id == a));
+                        let pos_b = children.iter().position(|c| matches!(c, crate::common::SplitNode::Leaf(p) if p.id == b));
+                        if let (Some(ia), Some(ib)) = (pos_a, pos_b) {
+                            children.swap(ia, ib);
+                        } else {
+                            for child in children.iter_mut() {
+                                swap_leaves(child, a, b);
+                            }
+                        }
+                    }
+                }
+                
+                if let Some(layout) = &mut hub.split_layout {
+                    swap_leaves(layout, a, b);
+                    return format!("SPLIT_SWAPPED: {}↔{}", a, b);
+                }
+                return "ERROR: No split layout active".to_string();
+            }
+        }
+        "ERROR: Missing pane_a or pane_b".to_string()
+    }
+
+    fn handle_split_detach_context(&self) -> String {
+        // "Bring Context" detach: not yet implemented (requires PTY re-parenting)
+        "SPLIT_DETACH_CONTEXT: NOT_YET_IMPLEMENTED".to_string()
+    }
+
+    fn handle_split_detach_fresh(&self) -> String {
+        let mut state = self.state.lock().unwrap();
+        match crate::brain::sector::SectorManager::split_detach_fresh(&mut state) {
+            Some(sector_id) => format!("SPLIT_DETACHED: new_sector={}", sector_id),
+            None => "ERROR: No focused pane to detach".to_string(),
+        }
+    }
+
+    fn handle_split_save_template(&self, name: Option<&str>) -> String {
+        let name = name.unwrap_or("unnamed");
+        let state = self.state.lock().unwrap();
+        let idx = state.active_sector_index;
+        let hub_idx = state.sectors[idx].active_hub_index;
+        let hub = &state.sectors[idx].hubs[hub_idx];
+        if let Some(layout) = &hub.split_layout {
+            match serde_json::to_string(layout) {
+                Ok(json) => {
+                    // Persist to settings for later restore
+                    drop(state);
+                    let mut state = self.state.lock().unwrap();
+                    state.settings.global.insert(
+                        format!("tos.split_template.{}", name),
+                        json,
+                    );
+                    format!("SPLIT_TEMPLATE_SAVED: {}", name)
+                }
+                Err(e) => format!("ERROR: {}", e),
+            }
+        } else {
+            "ERROR: No split layout to save".to_string()
+        }
     }
 }
 

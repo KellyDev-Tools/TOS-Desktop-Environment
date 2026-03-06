@@ -15,6 +15,7 @@ struct SessionState {
     /// Path to the sessions directory (`~/.local/share/tos/sessions/`).
     sessions_dir: PathBuf,
     /// Whether a live state write is currently debounced.
+    #[allow(dead_code)]
     write_pending: bool,
 }
 
@@ -56,8 +57,29 @@ async fn main() -> anyhow::Result<()> {
         }
     }
 
-    // TODO: Register with Brain via Unix socket once service registry is
-    // implemented (Service Registry & Port Infrastructure task).
+    // Register with Brain via Unix socket
+    let brain_sock_path = "/tmp/tos.brain.sock";
+    tokio::spawn(async move {
+        // Implement retry logic since Brain might still be starting
+        for attempt in 1..=10 {
+            match tokio::net::UnixStream::connect(brain_sock_path).await {
+                Ok(mut sock) => {
+                    use tokio::io::AsyncWriteExt;
+                    let register_cmd = format!("service_register:tos-sessiond;{}\n", port);
+                    if let Err(e) = sock.write_all(register_cmd.as_bytes()).await {
+                        eprintln!("TOS-SESSIOND: Failed to send registration: {}", e);
+                    } else {
+                        println!("TOS-SESSIOND: Successfully registered with Brain on port {}", port);
+                    }
+                    break;
+                }
+                Err(_) => {
+                    println!("TOS-SESSIOND: Waiting for Brain at {} (attempt {}/10)...", brain_sock_path, attempt);
+                    tokio::time::sleep(std::time::Duration::from_millis(500)).await;
+                }
+            }
+        }
+    });
 
     loop {
         let (socket, _) = listener.accept().await?;
@@ -98,28 +120,34 @@ async fn handle_client(
 
         let response = match prefix {
             "session_list" => {
-                // List named sessions for a sector.
+                // List named sessions for a sector. Payload: sector_id
+                let target_sector = payload.trim();
                 let lock = session_state.lock().unwrap();
                 let dir = &lock.sessions_dir;
                 match std::fs::read_dir(dir) {
                     Ok(entries) => {
                         let sessions: Vec<String> = entries
                             .filter_map(|e| e.ok())
-                            .filter(|e| {
-                                e.path()
-                                    .extension()
-                                    .map(|ext| ext == "tos-session")
-                                    .unwrap_or(false)
-                            })
                             .filter_map(|e| {
-                                e.path()
-                                    .file_stem()
-                                    .and_then(|s| s.to_str().map(String::from))
+                                let path = e.path();
+                                if path.extension().unwrap_or_default() == "tos-session" {
+                                    if let Some(stem) = path.file_stem().and_then(|s| s.to_str()) {
+                                        if stem != "_live" {
+                                            // Format is sector_id_name
+                                            if target_sector.is_empty() || target_sector == "global" || stem.starts_with(&format!("{}_", target_sector)) {
+                                                // Extract just the name portion
+                                                let parts: Vec<&str> = stem.splitn(2, '_').collect();
+                                                if parts.len() == 2 {
+                                                    return Some(parts[1].to_string());
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                                None
                             })
-                            .filter(|name| name != "_live")
                             .collect();
-                        serde_json::to_string(&sessions)
-                            .unwrap_or_else(|_| "[]".to_string())
+                        serde_json::to_string(&sessions).unwrap_or_else(|_| "[]".to_string())
                     }
                     Err(_) => "[]".to_string(),
                 }
@@ -146,10 +174,11 @@ async fn handle_client(
                 if args.len() < 3 {
                     "ERROR: Expected sector_id;name;json_data".to_string()
                 } else {
+                    let sector_id = args[0];
                     let name = args[1];
                     let data = args[2];
                     let lock = session_state.lock().unwrap();
-                    let path = lock.sessions_dir.join(format!("{}.tos-session", name));
+                    let path = lock.sessions_dir.join(format!("{}_{}.tos-session", sector_id, name));
                     drop(lock);
                     match std::fs::write(&path, data) {
                         Ok(_) => "OK".to_string(),
@@ -163,9 +192,10 @@ async fn handle_client(
                 if args.len() < 2 {
                     "ERROR: Expected sector_id;name".to_string()
                 } else {
+                    let sector_id = args[0];
                     let name = args[1];
                     let lock = session_state.lock().unwrap();
-                    let path = lock.sessions_dir.join(format!("{}.tos-session", name));
+                    let path = lock.sessions_dir.join(format!("{}_{}.tos-session", sector_id, name));
                     drop(lock);
                     match std::fs::read_to_string(&path) {
                         Ok(content) => content,
@@ -179,9 +209,10 @@ async fn handle_client(
                 if args.len() < 2 {
                     "ERROR: Expected sector_id;name".to_string()
                 } else {
+                    let sector_id = args[0];
                     let name = args[1];
                     let lock = session_state.lock().unwrap();
-                    let path = lock.sessions_dir.join(format!("{}.tos-session", name));
+                    let path = lock.sessions_dir.join(format!("{}_{}.tos-session", sector_id, name));
                     drop(lock);
                     match std::fs::remove_file(&path) {
                         Ok(_) => "OK".to_string(),

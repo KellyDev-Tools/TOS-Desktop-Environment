@@ -380,3 +380,218 @@ async fn test_bezel_label_rejection() {
 }
 
 
+// ---------------------------------------------------------------------------
+// Trust Service
+// ---------------------------------------------------------------------------
+
+#[tokio::test]
+async fn trust_classify_privilege_escalation() {
+    let (ipc, state) = headless_ipc();
+
+    // sudo should trigger a chip but not block (default policy = warn)
+    let res = ipc.handle_request("prompt_submit:sudo rm /tmp/test");
+    assert!(res.contains("SUBMITTED"), "Expected SUBMITTED, got: {}", res);
+
+    // system_log should have a trust chip entry
+    let log = state.lock().unwrap().system_log.clone();
+    let has_chip = log.iter().any(|l| l.text.contains("[TRUST]") && l.text.contains("PRIVILEGE ESCALATION"));
+    assert!(has_chip, "Expected PRIVILEGE ESCALATION chip in system_log");
+}
+
+#[tokio::test]
+async fn trust_block_privilege_escalation_after_demote() {
+    let (ipc, _state) = headless_ipc();
+
+    let res = ipc.handle_request("trust_demote:tos.trust.privilege_escalation");
+    assert!(res.contains("TRUST_DEMOTED"), "Got: {}", res);
+
+    // Now a sudo command should be blocked
+    let res = ipc.handle_request("prompt_submit:sudo apt update");
+    assert!(res.contains("TRUST_BLOCKED"), "Expected TRUST_BLOCKED, got: {}", res);
+}
+
+#[tokio::test]
+async fn trust_sector_override_promotes_over_global_block() {
+    let (ipc, state) = headless_ipc();
+    let sector_id = state.lock().unwrap().sectors[0].id.to_string();
+
+    // Block globally, then sector-level promote
+    ipc.handle_request("trust_demote:tos.trust.privilege_escalation");
+    let res = ipc.handle_request(&format!(
+        "trust_promote_sector:{};tos.trust.privilege_escalation",
+        sector_id
+    ));
+    assert!(res.contains("TRUST_SECTOR_PROMOTED"), "Got: {}", res);
+
+    // Sector override should allow the command through
+    let res = ipc.handle_request("prompt_submit:sudo ls");
+    assert!(res.contains("SUBMITTED"), "Expected sector promote to allow, got: {}", res);
+}
+
+#[tokio::test]
+async fn trust_clear_sector_falls_back_to_global() {
+    let (ipc, state) = headless_ipc();
+    let sector_id = state.lock().unwrap().sectors[0].id.to_string();
+
+    ipc.handle_request("trust_demote:tos.trust.privilege_escalation");
+    ipc.handle_request(&format!(
+        "trust_promote_sector:{};tos.trust.privilege_escalation",
+        sector_id
+    ));
+
+    let res = ipc.handle_request(&format!("trust_clear_sector:{}", sector_id));
+    assert!(res.contains("TRUST_SECTOR_CLEARED"), "Got: {}", res);
+
+    // Should fall back to global block
+    let res = ipc.handle_request("prompt_submit:sudo ls");
+    assert!(res.contains("TRUST_BLOCKED"), "Expected fallback to global block, got: {}", res);
+}
+
+#[tokio::test]
+async fn trust_get_config_returns_json() {
+    let (ipc, _state) = headless_ipc();
+
+    let res = ipc.handle_request("trust_get_config:");
+    assert!(res.contains("TRUST_CONFIG:"), "Got: {}", res);
+    assert!(res.contains("tos.trust.privilege_escalation"), "Got: {}", res);
+}
+
+// ============================================================
+// AIService Refactor integration tests
+// ============================================================
+
+#[tokio::test]
+async fn ai_backend_set_default_and_get_context() {
+    let (ipc, _state) = headless_ipc();
+
+    let res = ipc.handle_request("ai_backend_set_default:my-custom-llm");
+    assert!(res.contains("AI_DEFAULT_BACKEND_SET: my-custom-llm"), "Got: {}", res);
+
+    let res = ipc.handle_request("ai_context_request:*");
+    assert!(res.contains("AI_CONTEXT:"), "Got: {}", res);
+}
+
+#[tokio::test]
+async fn ai_behavior_enable_disable_configure() {
+    let (ipc, state) = headless_ipc();
+
+    // Register a behavior directly
+    {
+        use tos_alpha2::common::AiBehavior;
+        let mut st = state.lock().unwrap();
+        st.ai_behaviors.push(AiBehavior {
+            id: "test_behavior".to_string(),
+            name: "Test Behavior".to_string(),
+            enabled: false,
+            backend_override: None,
+            context_fields: vec!["cwd".to_string(), "mode".to_string()],
+            config: Default::default(),
+        });
+    }
+
+    let res = ipc.handle_request("ai_behavior_enable:test_behavior");
+    assert!(res.contains("AI_BEHAVIOR_ENABLED"), "Got: {}", res);
+
+    let res = ipc.handle_request("ai_behavior_configure:test_behavior;max_suggestions;5");
+    assert!(res.contains("AI_BEHAVIOR_CONFIGURED"), "Got: {}", res);
+
+    let res = ipc.handle_request("ai_behavior_disable:test_behavior");
+    assert!(res.contains("AI_BEHAVIOR_DISABLED"), "Got: {}", res);
+}
+
+#[tokio::test]
+async fn ai_chip_stage_and_dismiss() {
+    let (ipc, state) = headless_ipc();
+    let res = ipc.handle_request("ai_chip_stage:command_hint_text");
+    assert!(res.contains("AI_CHIP_STAGED"), "Got: {}", res);
+
+    let log_len = state.lock().unwrap().system_log.len();
+    assert!(log_len > 0, "system_log should have at least 1 entry");
+
+    let res = ipc.handle_request("ai_chip_dismiss:command_hint_text");
+    assert!(res.contains("AI_CHIP_DISMISSED"), "Got: {}", res);
+}
+
+// ============================================================
+// Split Pane Tree integration tests
+// ============================================================
+
+#[tokio::test]
+async fn split_create_produces_pane_id() {
+    let (ipc, state) = headless_ipc();
+    let res = ipc.handle_request("split_create:1920;1080");
+    assert!(res.contains("SPLIT_CREATED:"), "Got: {}", res);
+
+    let hub_has_layout = {
+        let st = state.lock().unwrap();
+        let idx = st.active_sector_index;
+        st.sectors[idx].hubs[st.sectors[idx].active_hub_index].split_layout.is_some()
+    };
+    assert!(hub_has_layout, "split_layout should be Some after split_create");
+}
+
+#[tokio::test]
+async fn split_equalize_works() {
+    let (ipc, _state) = headless_ipc();
+    ipc.handle_request("split_create:1920;1080");
+    let res = ipc.handle_request("split_equalize:");
+    assert!(res.contains("SPLIT_EQUALIZED"), "Got: {}", res);
+}
+
+#[tokio::test]
+async fn split_close_removes_layout_when_last() {
+    let (ipc, _state) = headless_ipc();
+    let create_res = ipc.handle_request("split_create:1920;1080");
+    assert!(create_res.contains("SPLIT_CREATED:"), "split_create failed: {}", create_res);
+    // Extract uuid — format is "SPLIT_CREATED: <uuid> (<timing>)"
+    let pane_id = create_res
+        .split_once("SPLIT_CREATED: ")
+        .map(|(_, rest)| {
+            // Strip any trailing timing annotation like " (133µs)"
+            rest.split_whitespace().next().unwrap_or("").to_string()
+        })
+        .expect("UUID not in response");
+
+    let res = ipc.handle_request(&format!("split_close:{}", pane_id));
+    // After closing the new pane from a 2-pane split, one pane remains
+    assert!(!res.contains("ERROR"), "Got: {}", res);
+}
+
+#[tokio::test]
+async fn split_blocked_when_display_too_small() {
+    let (ipc, _state) = headless_ipc();
+    // Very small display — should block
+    let res = ipc.handle_request("split_create:200;100");
+    // With default (1 pane), new_count=2, pane_w=100, min_w=max(33,400)=400 → blocked
+    assert!(res.contains("SPLIT_BLOCKED"), "Expected SPLIT_BLOCKED for tiny display, got: {}", res);
+}
+
+#[tokio::test]
+async fn split_focus_direction_cycles() {
+    let (ipc, state) = headless_ipc();
+    ipc.handle_request("split_create:1920;1080");
+
+    let res = ipc.handle_request("split_focus_direction:right");
+    assert!(res.contains("SPLIT_FOCUSED:"), "Got: {}", res);
+}
+
+#[tokio::test]
+async fn split_fullscreen_exit_clears_layout() {
+    let (ipc, state) = headless_ipc();
+    ipc.handle_request("split_create:1920;1080");
+
+    let layout_before = {
+        let st = state.lock().unwrap();
+        let idx = st.active_sector_index;
+        st.sectors[idx].hubs[st.sectors[idx].active_hub_index].split_layout.is_some()
+    };
+    assert!(layout_before);
+
+    ipc.handle_request("split_fullscreen_exit:");
+    let layout_after = {
+        let st = state.lock().unwrap();
+        let idx = st.active_sector_index;
+        st.sectors[idx].hubs[st.sectors[idx].active_hub_index].split_layout.is_some()
+    };
+    assert!(!layout_after, "split_fullscreen_exit should clear the layout");
+}

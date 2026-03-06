@@ -1,8 +1,10 @@
 use serde::{Deserialize, Serialize};
 use toml;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use ed25519_dalek::{Signature, VerifyingKey};
 use ed25519_dalek::Verifier;
+use std::sync::{Arc, Mutex};
+use tos_protocol::*;
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub struct ModuleManifest {
@@ -40,13 +42,23 @@ pub struct ExecutableConfig {
     pub args: Vec<String>,
 }
 
-pub struct MarketplaceService;
+pub struct MarketplaceService {
+    registry: Arc<Mutex<crate::services::registry::ServiceRegistry>>,
+}
 
 impl MarketplaceService {
+    pub fn new(registry: Arc<Mutex<crate::services::registry::ServiceRegistry>>) -> Self {
+        Self { registry }
+    }
+
+    fn get_port(&self) -> u16 {
+        self.registry.lock().unwrap().port_of("tos-marketplaced").unwrap_or(7004)
+    }
     /// Discover module in a directory. Attempts to use Marketplace Daemon first.
-    pub fn discover_module(path: PathBuf) -> anyhow::Result<ModuleManifest> {
+    pub fn discover_module(&self, path: PathBuf) -> anyhow::Result<ModuleManifest> {
         let path_str = path.to_string_lossy().to_string();
-        if let Ok(mut stream) = std::net::TcpStream::connect_timeout(&"127.0.0.1:7004".parse().unwrap(), std::time::Duration::from_millis(100)) {
+        let port = self.get_port();
+        if let Ok(mut stream) = std::net::TcpStream::connect_timeout(&format!("127.0.0.1:{}", port).parse().unwrap(), std::time::Duration::from_millis(100)) {
             use std::io::{Write, BufRead, BufReader};
             let _ = stream.write_all(format!("discover:{}\n", path_str).as_bytes());
             let mut reader = BufReader::new(&stream);
@@ -79,9 +91,9 @@ impl MarketplaceService {
     }
 
     /// Verifies the cryptographic signature of a module manifest.
-    pub fn verify_manifest(manifest: &ModuleManifest, public_key: &VerifyingKey) -> bool {
-        // Attempt specialized daemon verification first
-        if let Ok(mut stream) = std::net::TcpStream::connect_timeout(&"127.0.0.1:7004".parse().unwrap(), std::time::Duration::from_millis(100)) {
+    pub fn verify_manifest(&self, manifest: &ModuleManifest, public_key: &VerifyingKey) -> bool {
+        let port = self.get_port();
+        if let Ok(mut stream) = std::net::TcpStream::connect_timeout(&format!("127.0.0.1:{}", port).parse().unwrap(), std::time::Duration::from_millis(100)) {
             use std::io::{Write, BufRead, BufReader};
             let manifest_json = serde_json::to_string(manifest).unwrap_or_default();
             let _ = stream.write_all(format!("verify:{}\n", manifest_json).as_bytes());
@@ -202,5 +214,49 @@ impl MarketplaceService {
             }
         }
         modules
+    }
+
+    pub fn get_home(&self) -> anyhow::Result<MarketplaceHome> {
+        let resp = self.remote_call("marketplace_home", "")?;
+        serde_json::from_str(&resp).map_err(|e| anyhow::anyhow!(e))
+    }
+
+    pub fn get_category(&self, cat_id: &str) -> anyhow::Result<Vec<MarketplaceModuleSummary>> {
+        let resp = self.remote_call("marketplace_category", cat_id)?;
+        serde_json::from_str(&resp).map_err(|e| anyhow::anyhow!(e))
+    }
+
+    pub fn get_detail(&self, mod_id: &str) -> anyhow::Result<MarketplaceModuleDetail> {
+        let resp = self.remote_call("marketplace_detail", mod_id)?;
+        serde_json::from_str(&resp).map_err(|e| anyhow::anyhow!(e))
+    }
+
+    pub fn install(&self, mod_id: &str) -> anyhow::Result<String> {
+        self.remote_call("marketplace_install", mod_id)
+    }
+
+    pub fn get_status(&self, mod_id: &str) -> anyhow::Result<InstallProgress> {
+        let resp = self.remote_call("marketplace_status", mod_id)?;
+        serde_json::from_str(&resp).map_err(|e| anyhow::anyhow!(e))
+    }
+
+    pub fn search_ai(&self, query: &str) -> anyhow::Result<Vec<MarketplaceModuleSummary>> {
+        let resp = self.remote_call("marketplace_search_ai", query)?;
+        serde_json::from_str(&resp).map_err(|e| anyhow::anyhow!(e))
+    }
+
+    pub fn cancel_install(&self, mod_id: &str) -> anyhow::Result<String> {
+        self.remote_call("marketplace_install_cancel", mod_id)
+    }
+
+    fn remote_call(&self, cmd: &str, payload: &str) -> anyhow::Result<String> {
+        use std::io::{Write, BufRead, BufReader};
+        let port = self.get_port();
+        let mut stream = std::net::TcpStream::connect_timeout(&format!("127.0.0.1:{}", port).parse().unwrap(), std::time::Duration::from_millis(100))?;
+        stream.write_all(format!("{}:{}\n", cmd, payload).as_bytes())?;
+        let mut reader = BufReader::new(&stream);
+        let mut response = String::new();
+        reader.read_line(&mut response)?;
+        Ok(response.trim().to_string())
     }
 }

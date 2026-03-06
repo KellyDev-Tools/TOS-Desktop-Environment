@@ -95,10 +95,10 @@ impl SandboxManager {
             None => return false,
         };
 
-        match MarketplaceService::discover_module(dir) {
+        match MarketplaceService::discover_module_local(dir) {
             Ok(manifest) => {
                 match MarketplaceService::get_trusted_public_key() {
-                    Ok(pk) => MarketplaceService::verify_manifest(&manifest, &pk),
+                    Ok(pk) => MarketplaceService::verify_manifest_local(&manifest, &pk),
                     Err(_) => false,
                 }
             }

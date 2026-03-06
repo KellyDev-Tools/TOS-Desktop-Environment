@@ -301,7 +301,21 @@
 			<!-- Right Section: Status Badges -->
 			<div class="header-section header-right">
 				<StatusBadges />
-				<button class="bezel-btn" title="Open Portal" onclick={() => import('$lib/stores/ui.svelte').then(m => m.openPortalModal())}>⊕ PORTAL</button>
+				<button 
+					class="bezel-btn" 
+					title="Open Portal (Long-press for Marketplace)" 
+					onclick={() => import('$lib/stores/ui.svelte').then(m => m.openPortalModal())}
+					onmousedown={(e) => {
+						const timer = setTimeout(() => {
+							setCurrentMode('marketplace');
+							sendCommand('set_mode:marketplace');
+						}, 800);
+						const up = () => { clearTimeout(timer); window.removeEventListener('mouseup', up); };
+						window.addEventListener('mouseup', up);
+					}}
+				>
+					⊕ PORTAL
+				</button>
 				<button class="bezel-btn settings-btn" title="System Settings (Ctrl+,)" onclick={() => openSettings()}>⚙ SYS</button>
 				<button class="bezel-btn help-btn" title="Help & Onboarding" onclick={() => { setSettingsTab('global'); openSettings(); }}>?</button>
 				<button class="bezel-btn" title="Toggle Right Sidebar" onclick={() => toggleSidebarRight()}>▶</button>

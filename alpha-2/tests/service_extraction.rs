@@ -86,7 +86,7 @@ async fn test_service_extraction_lifecycle() -> anyhow::Result<()> {
     };
     
     let pk = MarketplaceService::get_trusted_public_key()?;
-    let is_valid = MarketplaceService::verify_manifest(&manifest, &pk);
+    let is_valid = MarketplaceService::verify_manifest_local(&manifest, &pk);
     // Should be invalid as signature is None
     assert!(!is_valid);
     println!("-> Marketplace Daemon verified.");

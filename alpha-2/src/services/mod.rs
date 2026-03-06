@@ -42,6 +42,7 @@ pub struct ServiceManager {
     pub session: Arc<SessionService>,
     pub trust: Arc<TrustService>,
     pub heuristic: Arc<HeuristicService>,
+    pub marketplace: Arc<MarketplaceService>,
 }
 
 impl ServiceManager {
@@ -66,6 +67,8 @@ impl ServiceManager {
 
         let session = Arc::new(SessionService::new(registry.clone()));
         let trust = Arc::new(TrustService::new());
+        let heuristic = Arc::new(HeuristicService::new(registry.clone()));
+        let marketplace = Arc::new(MarketplaceService::new(registry.clone()));
         
         // Establish cross-service dependencies (e.g., logging triggers audio cues)
         logger.set_audio_service(audio.clone());
@@ -87,7 +90,8 @@ impl ServiceManager {
             registry: registry.clone(),
             session,
             trust,
-            heuristic: Arc::new(HeuristicService::new(registry.clone())),
+            heuristic,
+            marketplace,
         }
     }
     pub fn set_ipc(&self, ipc: std::sync::Arc<dyn crate::common::ipc_dispatcher::IpcDispatcher>) {

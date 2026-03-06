@@ -1,5 +1,6 @@
 use crate::common::{TosState, CommandHubMode, HierarchyLevel};
 use crate::services::MarketplaceService;
+use tos_protocol::*;
 use std::sync::{Arc, Mutex};
 use uuid::Uuid;
 use std::time::Instant;
@@ -122,6 +123,13 @@ impl IpcHandler {
             "confirmation_accept" => self.handle_confirmation_accept(args.get(0).copied()),
             "confirmation_reject" => self.handle_confirmation_reject(args.get(0).copied()),
             "update_confirmation_progress" => self.handle_update_confirmation_progress(args.get(0).copied(), args.get(1).copied()),
+            "marketplace_home" => self.handle_marketplace_home(),
+            "marketplace_category" => self.handle_marketplace_category(args.get(0).copied()),
+            "marketplace_detail" => self.handle_marketplace_detail(args.get(0).copied()),
+            "marketplace_install" => self.handle_marketplace_install(args.get(0).copied()),
+            "marketplace_status" => self.handle_marketplace_status(args.get(0).copied()),
+            "marketplace_search_ai" => self.handle_marketplace_search_ai(payload),
+            "marketplace_install_cancel" => self.handle_marketplace_install_cancel(args.get(0).copied()),
             _ => "ERROR: Unknown prefix".to_string(),
         };
 
@@ -1524,6 +1532,70 @@ impl IpcHandler {
             }
         }
         "ERROR: Invalid confirmation update".to_string()
+    }
+
+    fn handle_marketplace_home(&self) -> String {
+        match self.services.marketplace.get_home() {
+            Ok(home) => serde_json::to_string(&home).unwrap_or_default(),
+            Err(e) => format!("ERROR: {}", e),
+        }
+    }
+
+    fn handle_marketplace_category(&self, id: Option<&str>) -> String {
+        match id {
+            Some(id) => match self.services.marketplace.get_category(id) {
+                Ok(modules) => serde_json::to_string(&modules).unwrap_or_default(),
+                Err(e) => format!("ERROR: {}", e),
+            },
+            None => "ERROR: Missing category ID".to_string(),
+        }
+    }
+
+    fn handle_marketplace_detail(&self, id: Option<&str>) -> String {
+        match id {
+            Some(id) => match self.services.marketplace.get_detail(id) {
+                Ok(detail) => serde_json::to_string(&detail).unwrap_or_default(),
+                Err(e) => format!("ERROR: {}", e),
+            },
+            None => "ERROR: Missing module ID".to_string(),
+        }
+    }
+
+    fn handle_marketplace_install(&self, id: Option<&str>) -> String {
+        match id {
+            Some(id) => match self.services.marketplace.install(id) {
+                Ok(status) => status,
+                Err(e) => format!("ERROR: {}", e),
+            },
+            None => "ERROR: Missing module ID".to_string(),
+        }
+    }
+
+    fn handle_marketplace_status(&self, id: Option<&str>) -> String {
+        match id {
+            Some(id) => match self.services.marketplace.get_status(id) {
+                Ok(p) => serde_json::to_string(&p).unwrap_or_default(),
+                Err(e) => format!("ERROR: {}", e),
+            },
+            None => "ERROR: Missing module ID".to_string(),
+        }
+    }
+
+    fn handle_marketplace_search_ai(&self, query: &str) -> String {
+        match self.services.marketplace.search_ai(query) {
+            Ok(results) => serde_json::to_string(&results).unwrap_or_default(),
+            Err(e) => format!("ERROR: {}", e),
+        }
+    }
+
+    fn handle_marketplace_install_cancel(&self, id: Option<&str>) -> String {
+        match id {
+            Some(id) => match self.services.marketplace.cancel_install(id) {
+                Ok(status) => status,
+                Err(e) => format!("ERROR: {}", e),
+            },
+            None => "ERROR: Missing module ID".to_string(),
+        }
     }
 }
 

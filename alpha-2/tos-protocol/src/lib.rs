@@ -16,9 +16,11 @@ pub mod state;
 pub mod ipc;
 pub mod modules;
 pub mod collaboration;
+pub mod marketplace;
 
 // Re-export core types at the crate root for ergonomic access.
 pub use state::*;
 pub use ipc::IpcDispatcher;
 pub use modules::{AiModule, AiQuery, AiResponse, ShellModule, ShellIntegration};
 pub use collaboration::{Participant, ParticipantRole, PresenceStatus, WebRtcPayload};
+pub use marketplace::*;

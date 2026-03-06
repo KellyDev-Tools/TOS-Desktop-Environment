@@ -269,3 +269,29 @@ export async function bezelPanePromote(): Promise<void> {
 export async function bezelSwipe(dir: 'Left' | 'Right'): Promise<void> {
     await sendCommand(`bezel_swipe:${dir}`);
 }
+
+// --- Marketplace Helpers ---
+
+export async function marketplaceGetHome(): Promise<any> {
+    const raw = await sendCommand('marketplace_home:');
+    return raw ? JSON.parse(raw) : null;
+}
+
+export async function marketplaceGetCategory(id: string): Promise<any> {
+    const raw = await sendCommand(`marketplace_category:${id}`);
+    return raw ? JSON.parse(raw) : null;
+}
+
+export async function marketplaceGetDetail(id: string): Promise<any> {
+    const raw = await sendCommand(`marketplace_detail:${id}`);
+    return raw ? JSON.parse(raw) : null;
+}
+
+export async function marketplaceInstall(id: string): Promise<string | null> {
+    return sendCommand(`marketplace_install:${id}`);
+}
+
+export async function marketplaceGetStatus(id: string): Promise<any> {
+    const raw = await sendCommand(`marketplace_status:${id}`);
+    return raw ? JSON.parse(raw) : null;
+}

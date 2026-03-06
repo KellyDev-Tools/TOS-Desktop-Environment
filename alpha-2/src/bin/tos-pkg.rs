@@ -17,7 +17,7 @@ fn main() -> anyhow::Result<()> {
         "discover" => {
             if args.len() < 3 { return Err(anyhow::anyhow!("Missing path")); }
             let path = PathBuf::from(&args[2]);
-            let manifest = MarketplaceService::discover_module(path)?;
+            let manifest = MarketplaceService::discover_module_local(path)?;
             println!("MATCH FOUND:");
             println!("  ID:      {}", manifest.id);
             println!("  NAME:    {}", manifest.name);
@@ -28,9 +28,9 @@ fn main() -> anyhow::Result<()> {
         "verify" => {
              if args.len() < 3 { return Err(anyhow::anyhow!("Missing path")); }
              let path = PathBuf::from(&args[2]);
-             let manifest = MarketplaceService::discover_module(path)?;
+             let manifest = MarketplaceService::discover_module_local(path)?;
              let pk = MarketplaceService::get_trusted_public_key()?;
-             if MarketplaceService::verify_manifest(&manifest, &pk) {
+             if MarketplaceService::verify_manifest_local(&manifest, &pk) {
                  println!("VERIFICATION: SUCCESS ✅ (Signed by TOS Core)");
              } else {
                  println!("VERIFICATION: FAILED ❌ (Invalid Signature)");

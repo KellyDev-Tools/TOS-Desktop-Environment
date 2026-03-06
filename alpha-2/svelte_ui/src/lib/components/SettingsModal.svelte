@@ -72,6 +72,19 @@
 	async function activateAiModule(id: string) {
 		await sendCommand(`ai_backend_set_default:${id}`);
 	}
+
+	let fileInput: HTMLInputElement;
+
+	async function handleSessionImport(e: Event) {
+		const target = e.target as HTMLInputElement;
+		if (target.files && target.files.length > 0) {
+			const file = target.files[0];
+			const text = await file.text();
+			const baseName = file.name.replace('.tos-session', '');
+			await sendCommand(`session_import:${baseName};${text}`);
+		}
+		target.value = ''; // Reset
+	}
 </script>
 
 <svelte:window onkeydown={handleKeydown} />
@@ -368,7 +381,8 @@
 							<div class="settings-group-title">IMPORT / EXPORT</div>
 							<div class="settings-row">
 								<span class="settings-label">Import Session Package</span>
-								<button class="lcars-btn-sm primary" onclick={() => sendCommand('session_import_dialog')}>BROWSE...</button>
+								<input type="file" bind:this={fileInput} style="display:none" accept=".tos-session" onchange={handleSessionImport} />
+								<button class="lcars-btn-sm primary" onclick={() => fileInput.click()}>BROWSE...</button>
 							</div>
 							<div class="settings-desc">
 								Drag and drop <code>.tos-session</code> files onto sector tiles at Level 1 for targeted restoration.

@@ -120,9 +120,9 @@ This roadmap defines the transition from Alpha-2.1 (Experimental/Mocked) to Alph
     - [x] Implement silent startup restore — Face receives reconstructed state via WebSocket sync, renders without any notification or animation.
     - [x] Implement sector name chip popover (Top Bezel Left when in Command Hub): LIVE badge, named session list with timestamps, `[Save Current]`, `[Export]` actions.
     - [x] Implement secondary-select sector tile context menu entries: **Save Session As...**, **Load Session**.
-    - [ ] Implement session import via drag-and-drop onto sector tile at Level 1.
-    - [ ] Implement relaunch chip for Level 3 app panes that cannot be auto-restored.
-    - [ ] Add **Settings → Sessions → Import** entry point.
+    - [x] Implement session import via drag-and-drop onto sector tile at Level 1.
+    - [x] Implement relaunch chip for Level 3 app panes that cannot be auto-restored.
+    - [x] Add **Settings → Sessions → Import** entry point.
 
 - [x] **Split Viewport Face Rendering** *(Split-Viewport-Specification):*
     - *Depends on: Split Pane Tree (Phase 2).*
@@ -165,7 +165,7 @@ This roadmap defines the transition from Alpha-2.1 (Experimental/Mocked) to Alph
         - [ ] Conversation history persisted to session file; restored via `on_session_restore` callback; capped at 200 messages.
         - [x] `[Clear]` resets history for current sector.
         - [x] Fallback message if no Chat Companion installed: "Install a Chat Companion from the Marketplace."
-    - [ ] Add **Settings → AI** panel: Backend section (system default + installed list), Behaviors section (per-behavior toggle + backend override dropdown + config), Global section (chip color, ghost text opacity, master off, context level).
+    - [x] Add **Settings → AI** panel: Backend section (system default + installed list), Behaviors section (per-behavior toggle + backend override dropdown + config), Global section (chip color, ghost text opacity, master off, context level).
 
 - [x] **Marketplace Discovery Face** *(Marketplace-Discovery-Specification — supplements Ecosystem Spec §2):*
     - *Depends on: existing `tos-marketplaced` (ephemeral port, discovered via Brain service registry), Secondary Select Infrastructure (Phase 3 — Visual).*

@@ -669,5 +669,3 @@
         color: black; mix-blend-mode: hard-light;
     }
 </style>
-
-</style>

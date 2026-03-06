@@ -1,6 +1,7 @@
 <script lang="ts">
-	import { getTosState, splitFocus } from '$lib/stores/ipc.svelte';
+	import { getTosState, splitFocus, submitCommand } from '$lib/stores/ipc.svelte';
 	import type { SplitPane, Hub } from '$lib/stores/tos-state.svelte';
+
 
 	let { pane, activeHub }: { pane: SplitPane; activeHub: Hub | null } = $props();
 
@@ -54,7 +55,14 @@
 			<div class="app-placeholder">
 				<div class="app-icon">⊞</div>
 				<div class="app-name">{pane.content.Application.toUpperCase()}</div>
-				<div class="app-status">RE-ROUTING RENDERER...</div>
+				<div class="app-status">SESSION RESTORED — PENDING LAUNCH</div>
+				<button 
+					class="lcars-btn-sm primary" 
+					style="margin-top: var(--space-md);"
+					onclick={(e) => { e.stopPropagation(); submitCommand(pane.content.Application); }}
+				>
+					▶ RELAUNCH APP
+				</button>
 			</div>
 		{:else}
 			<div class="pane-unknown">UNKNOWN CONTENT TYPE</div>
@@ -146,4 +154,23 @@
 	.app-icon { font-size: 2rem; color: var(--color-primary); }
 	.app-name { font-family: var(--font-display); font-weight: 700; letter-spacing: 0.1em; }
 	.app-status { font-size: 0.7rem; font-style: italic; }
+	
+	.lcars-btn-sm {
+		font-family: var(--font-display);
+		font-size: 0.62rem;
+		font-weight: 700;
+		letter-spacing: 0.08em;
+		padding: 0.4rem 0.8rem;
+		border: 1px solid rgba(247, 168, 51, 0.35);
+		background: rgba(247, 168, 51, 0.12);
+		color: var(--color-primary);
+		border-radius: var(--radius-sm);
+		cursor: pointer;
+		transition: all var(--transition-fast);
+		white-space: nowrap;
+	}
+	.lcars-btn-sm:hover {
+		background: rgba(247, 168, 51, 0.2);
+		color: #fff;
+	}
 </style>

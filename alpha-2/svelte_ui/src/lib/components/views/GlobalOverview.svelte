@@ -7,9 +7,37 @@
 	const sectors = $derived(state.sectors || []);
 	const activeIndex = $derived(state.active_sector_index);
 
+	let dragHoverSector = $state<number | null>(null);
+
 	async function handleSectorClick(index: number) {
 		await ipc.switchSector(index);
 		setCurrentMode('hubs');
+	}
+
+	function handleDragOver(e: DragEvent, index: number) {
+		e.preventDefault();
+		dragHoverSector = index;
+	}
+
+	function handleDragLeave(e: DragEvent) {
+		dragHoverSector = null;
+	}
+
+	async function handleDrop(e: DragEvent, index: number) {
+		e.preventDefault();
+		dragHoverSector = null;
+		
+		const dt = e.dataTransfer;
+		if (dt && dt.files.length > 0) {
+			const file = dt.files[0];
+			if (file.name.endsWith('.tos-session')) {
+				const text = await file.text();
+				const baseName = file.name.replace('.tos-session', '');
+				// Switch to sector then import session
+				await ipc.switchSector(index);
+				await ipc.sendCommand(`session_import:${baseName};${text}`);
+			}
+		}
 	}
 </script>
 
@@ -19,7 +47,11 @@
 			<button
 				class="sector-tile"
 				class:active={i === activeIndex}
+				class:drag-hover={dragHoverSector === i}
 				onclick={() => handleSectorClick(i)}
+				ondragover={(e) => handleDragOver(e, i)}
+				ondragleave={handleDragLeave}
+				ondrop={(e) => handleDrop(e, i)}
 			>
 				<div class="sector-thumbnail">
 					{#if sector.snapshot}
@@ -94,6 +126,12 @@
 
 	.sector-tile.active::before {
 		opacity: 1;
+	}
+
+	.sector-tile.drag-hover {
+		border-color: var(--color-success) !important;
+		box-shadow: 0 0 16px rgba(102, 204, 102, 0.4) !important;
+		transform: scale(1.02);
 	}
 
 	.sector-thumbnail {

@@ -22,6 +22,9 @@ fn test_manifest_cryptographic_verification() {
         integration: None,
         assets: None,
         capabilities: None,
+        provider: None,
+        endpoint: None,
+        latency_profile: None,
         signature: None,
     };
 

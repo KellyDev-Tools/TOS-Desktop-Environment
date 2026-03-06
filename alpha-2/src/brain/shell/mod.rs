@@ -13,10 +13,11 @@ pub struct ShellApi {
     master: Box<dyn portable_pty::MasterPty + Send>,
     _child: Box<dyn Child + Send + Sync>,
     ai: Arc<crate::services::AiService>,
+    heuristic: Arc<crate::services::HeuristicService>,
 }
 
 impl ShellApi {
-    pub fn new(state: Arc<Mutex<TosState>>, modules: Arc<crate::brain::module_manager::ModuleManager>, ai: Arc<crate::services::AiService>, sector_id: uuid::Uuid, hub_id: uuid::Uuid) -> anyhow::Result<Self> {
+    pub fn new(state: Arc<Mutex<TosState>>, modules: Arc<crate::brain::module_manager::ModuleManager>, ai: Arc<crate::services::AiService>, heuristic: Arc<crate::services::HeuristicService>, sector_id: uuid::Uuid, hub_id: uuid::Uuid) -> anyhow::Result<Self> {
         let pty_system = native_pty_system();
         let pair = pty_system.openpty(PtySize {
             rows: 24,
@@ -86,11 +87,12 @@ impl ShellApi {
 
         let state_clone = state.clone();
         let ai_clone = ai.clone();
+        let heuristic_clone = heuristic.clone();
         let sid_clone = sector_id;
         let hid_clone = hub_id;
         let handle = tokio::runtime::Handle::current();
         thread::spawn(move || {
-            Self::read_loop(reader, state_clone, ai_clone, sid_clone, hid_clone, handle);
+            Self::read_loop(reader, state_clone, ai_clone, heuristic_clone, sid_clone, hid_clone, handle);
         });
 
         Ok(Self {
@@ -101,6 +103,7 @@ impl ShellApi {
             master: pair.master,
             _child: child,
             ai,
+            heuristic,
         })
     }
 
@@ -136,7 +139,7 @@ impl ShellApi {
         Ok(())
     }
 
-    fn read_loop(mut reader: Box<dyn Read + Send>, state: Arc<Mutex<TosState>>, ai: Arc<crate::services::AiService>, sector_id: uuid::Uuid, hub_id: uuid::Uuid, handle: tokio::runtime::Handle) {
+    fn read_loop(mut reader: Box<dyn Read + Send>, state: Arc<Mutex<TosState>>, ai: Arc<crate::services::AiService>, heuristic: Arc<crate::services::HeuristicService>, sector_id: uuid::Uuid, hub_id: uuid::Uuid, handle: tokio::runtime::Handle) {
         let mut osc_parser = OscParser::new();
         let mut line_buffer = String::new();
         let mut buffer = [0u8; 4096];
@@ -182,57 +185,104 @@ impl ShellApi {
                         let (clean_text, events) = osc_parser.process(&line);
                         
                         let mut state_lock = state.lock().unwrap();
-                        if let Some(sector) = state_lock.sectors.iter_mut().find(|s| s.id == sector_id) {
-                            if let Some(hub) = sector.hubs.iter_mut().find(|h| h.id == hub_id) {
-                                for event in events {
-                                    match event {
-                                        OscEvent::Priority(p) => osc_parser.current_priority = p,
-                                        OscEvent::Cwd(path) => {
-                                            hub.current_directory = std::path::PathBuf::from(path);
+                        // We no longer hold a mutable reference to `hub` across the entire loop iteration.
+                        // Instead, we re-find `sector` and `hub` as needed within each event handler
+                        // to avoid borrow conflicts when `state_lock` might be modified.
+                        for event in events {
+                            match event {
+                                OscEvent::Priority(p) => osc_parser.current_priority = p,
+                                OscEvent::Cwd(path) => {
+                                    let path_buf = std::path::PathBuf::from(path);
+                                    if let Some(sector) = state_lock.sectors.iter_mut().find(|s| s.id == sector_id) {
+                                        if let Some(hub) = sector.hubs.iter_mut().find(|h| h.id == hub_id) {
+                                            hub.current_directory = path_buf;
+                                            
+                                            // §10.3: Heuristic Sector Renaming
+                                            if sector.name == "Primary" || sector.name == "unnamed" || sector.name.starts_with("Sector ") {
+                                                if let Some(name) = hub.current_directory.file_name().and_then(|s| s.to_str()) {
+                                                    if !name.is_empty() {
+                                                        sector.name = name.to_string();
+                                                    }
+                                                } else if hub.current_directory.to_string_lossy() == "/" {
+                                                    sector.name = "Root".to_string();
+                                                }
+                                            }
                                         }
-                                        OscEvent::DirectoryListing(listing) => {
+                                    }
+                                }
+                                OscEvent::DirectoryListing(listing) => {
+                                    if let Some(sector) = state_lock.sectors.iter_mut().find(|s| s.id == sector_id) {
+                                        if let Some(hub) = sector.hubs.iter_mut().find(|h| h.id == hub_id) {
                                             hub.shell_listing = Some(listing);
                                         }
-                                        OscEvent::CommandResult { command, status, output } => {
-                                            if status != 0 {
-                                                let ai_trigger = ai.clone();
-                                                let cmd_trigger = command.clone();
-                                                let out_trigger = output.clone();
-                                                handle.spawn(async move {
-                                                    let _ = ai_trigger.passive_observe(&cmd_trigger, status, out_trigger.as_deref()).await;
-                                                });
-                                            }
-                                            
-                                            // §10.2: Implicit Correction Trigger for 127
-                                            if status == 127 {
-                                                let ipc_trigger = ipc.clone();
-                                                let cmd_trigger = command.clone();
-                                                handle.spawn(async move {
-                                                    // Request typo correction from Heuristic Service
-                                                    let resp = ipc_trigger.dispatch(&format!("heuristic_query:{}", cmd_trigger));
-                                                    if let Ok(suggestions) = serde_json::from_str::<serde_json::Value>(resp.split(" (").next().unwrap_or(&resp)) {
-                                                        if let Some(best) = suggestions.as_array().and_then(|a| a.first()) {
-                                                            let fix = best["text"].as_str().unwrap_or("");
-                                                            if !fix.is_empty() {
-                                                                let payload = serde_json::json!({
-                                                                    "behavior": "tos-heuristic",
-                                                                    "command": fix,
-                                                                    "explanation": format!("✦ TYPO? Suggested: {}", fix)
-                                                                });
-                                                                ipc_trigger.dispatch(&format!("ai_chip_stage:{}", payload));
+                                    }
+                                }
+                                OscEvent::CommandResult { command, status, output } => {
+                                    if status != 0 {
+                                        let ai_trigger = ai.clone();
+                                        let cmd_trigger = command.clone();
+                                        let out_trigger = output.clone();
+                                        tokio::spawn(async move {
+                                            let _ = ai_trigger.passive_observe(&cmd_trigger, status, out_trigger.as_deref()).await;
+                                        });
+                                    }
+
+                                    // §145: Handle auto-collapse
+                                    let dismiss_behavior = state_lock.settings.resolve("tos.interface.bezel.dismiss", None, None);
+                                    if state_lock.bezel_expanded && dismiss_behavior == Some("auto".to_string()) {
+                                        state_lock.bezel_expanded = false;
+                                        state_lock.version += 1;
+                                    }
+                                
+                                    // §10.2: Implicit Correction Trigger for 127
+                                    if status == 127 {
+                                        let heuristic_trigger = heuristic.clone();
+                                        let state_trigger = state.clone();
+                                        let cmd_trigger = command.clone();
+                                        handle.spawn(async move {
+                                            // Request typo correction from Heuristic Service
+                                            let cwd = {
+                                                let lock = state_trigger.lock().unwrap();
+                                                if let Some(s) = lock.sectors.iter().find(|s| s.id == sector_id) {
+                                                    if let Some(h) = s.hubs.iter().find(|h| h.id == hub_id) {
+                                                        h.current_directory.to_string_lossy().to_string()
+                                                    } else { ".".to_string() }
+                                                } else { ".".to_string() }
+                                            };
+                                            if let Ok(resp) = heuristic_trigger.query(&cmd_trigger, &cwd).await {
+                                                if let Ok(suggestions) = serde_json::from_str::<serde_json::Value>(resp.split(" (").next().unwrap_or(&resp)) {
+                                                    if let Some(best) = suggestions.as_array().and_then(|a| a.first()) {
+                                                        let fix = best["text"].as_str().unwrap_or("");
+                                                        if !fix.is_empty() {
+                                                            let mut lock = state_trigger.lock().unwrap();
+                                                            if let Some(s) = lock.sectors.iter_mut().find(|s| s.id == sector_id) {
+                                                                if let Some(h) = s.hubs.iter_mut().find(|h| h.id == hub_id) {
+                                                                    h.staged_command = Some(fix.to_string());
+                                                                    h.ai_explanation = Some(format!("✦ TYPO? Suggested: {}", fix));
+                                                                    lock.version += 1;
+                                                                }
                                                             }
                                                         }
                                                     }
-                                                });
+                                                }
                                             }
-                                        }
-                                        OscEvent::JsonContext(json) => {
+                                        });
+                                    }
+                                }
+                                OscEvent::JsonContext(json) => {
+                                    if let Some(sector) = state_lock.sectors.iter_mut().find(|s| s.id == sector_id) {
+                                        if let Some(hub) = sector.hubs.iter_mut().find(|h| h.id == hub_id) {
                                             hub.json_context = Some(json);
                                         }
                                     }
                                 }
+                            }
+                        }
 
-                                if !clean_text.is_empty() {
+                        // This part still needs to find the hub to append output
+                        if !clean_text.is_empty() {
+                            if let Some(sector) = state_lock.sectors.iter_mut().find(|s| s.id == sector_id) {
+                                if let Some(hub) = sector.hubs.iter_mut().find(|h| h.id == hub_id) {
                                     hub.terminal_output.push(TerminalLine {
                                         text: clean_text.to_string(),
                                         priority: osc_parser.current_priority,

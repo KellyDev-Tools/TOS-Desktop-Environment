@@ -2,6 +2,8 @@
 	import { getTosState } from '$lib/stores/ipc.svelte';
 
 	import SplitLayout from './SplitLayout.svelte';
+	import AiChat from './AiChat.svelte';
+	import { getPromptMode } from '$lib/stores/ui.svelte';
 
 	const state = $derived(getTosState());
 	const activeSector = $derived(state.sectors[state.active_sector_index]);
@@ -35,7 +37,9 @@
 		<!-- Classic Dual-Column View (Fallback) -->
 		<!-- Left Column: Context Chips -->
 		<div class="left-column">
-			{#if activeHub?.json_context}
+			{#if getPromptMode() === 'ai'}
+				<AiChat />
+			{:else if activeHub?.json_context}
 				{@const ctx = activeHub.json_context}
 				<div class="context-chip glass-panel">
 					<div class="chip-title">JSON CONTEXT // {ctx.type || 'DATA'}</div>

@@ -110,7 +110,9 @@ This roadmap defines the transition from Alpha-2.1 (Experimental/Mocked) to Alph
     - [x] Insert **Step 0 — Trust Configuration** before guided demo: present `privilege_escalation` and `recursive_bulk` toggles with no pre-selection; Skip defers all to WARN.
     - [x] Implement ambient hints system: per-hint `[x]` dismissal, auto-dismissal on independent action, opacity decay tiers (100% → 70% → 40% → auto-suppress), master suppress toggle in Settings → Interface → Onboarding.
     - [x] Add permanent `[?]` Help Badge to Top Bezel Right: Replay Tour / Open Manual / Reset Hints.
-    - [ ] Add **Settings → Security → Trust** panel: global class toggles, per-sector override column, bulk detection threshold field.
+    - [x] Implement **Settings → Security → Trust** panel with global policy selectors (Block/Warn/Allow).
+    - [x] Implement Sector Overrides list in Trust panel for per-workspace sandboxing.
+    - [x] Add **Settings → Sector** panel for renaming and freezing sectors.
     - [x] Add onboarding IPC prefix handler: `onboarding_skip_cinematic`, `onboarding_skip_tour`, `onboarding_advance_step`, `onboarding_hint_dismiss:<id>`, `onboarding_hints_suppress`, `onboarding_replay_tour`, `onboarding_reset_hints`.
 
 - [x] **Session Restore UI** *(Session-Persistence-Specification):*
@@ -142,7 +144,7 @@ This roadmap defines the transition from Alpha-2.1 (Experimental/Mocked) to Alph
     - [x] Implement ephemeral pane: spawns for "New Terminal" path, closes on bezel dismiss, `[⊞ Promote to Split]` chip appears after first command.
     - [x] Implement output panel: renders via active Terminal Output Module, max 40% viewport height, scrollable; amber border on non-zero exit.
     - [x] Implement post-output action chips: `[→ Command Hub]`, `[⊞ Split View]`, `[✕ Dismiss]`, `[⧉ Keep Open]`.
-    - [ ] Implement configurable dismiss behaviour in **Settings → Interface → Expanded Bezel**: Stay Open / Auto-collapse on complete / Auto-collapse after timeout (default 5s).
+    - [x] Implement configurable dismiss behaviour in **Settings → Interface → Expanded Bezel**: Stay Open / Auto-collapse on complete / Auto-collapse after timeout (default 5s).
     - [x] Disable expansion trigger during Tactical Reset (Level 4 God Mode).
     - [x] Add Brain `bezel_expanded` boolean flag (not persisted to session).
     - [x] Add IPC messages: `bezel_expand`, `bezel_collapse`, `bezel_output_action`, `bezel_pane_promote`, `bezel_swipe`.
@@ -181,7 +183,7 @@ This roadmap defines the transition from Alpha-2.1 (Experimental/Mocked) to Alph
     - *Depends on: Standalone Heuristic Service (Phase 2), OSC-Exclusive Mode Switching (Phase 1).*
     - [x] Implement **Autocomplete-to-Chip**: real-time shell/path completion resulting in clickable left/right chips.
     - [x] Implement **Implicit Correction Trigger**: hook into shell error state `127` / `command not found` to trigger typo-matching chips.
-    - [ ] Implement **Heuristic Sector Renaming**: update sector names based on `Cwd` or `ActiveApp`.
+    - [x] Implement **Heuristic Sector Renaming**: update sector names based on `Cwd` or `ActiveApp`.
 
 - [ ] **Vector Search Engine** *(Architecture Spec §18.3):*
     - Replace "token-overlap" algorithm in `src/services/search.rs` with local vector embedding search (`fastembed` or local vector store).

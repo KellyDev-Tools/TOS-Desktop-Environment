@@ -32,7 +32,7 @@ fn boot_face() -> (Face, Arc<IpcHandler>, Arc<Mutex<TosState>>) {
     let hid = state.lock().unwrap().sectors[0].hubs[0].id;
 
     let shell = tos_alpha2::brain::shell::ShellApi::new(
-        state.clone(), modules.clone(), sid, hid,
+        state.clone(), modules.clone(), services.ai.clone(), services.heuristic.clone(), sid, hid,
     ).expect("Face stimulator requires at least /bin/sh");
 
     let shell = Arc::new(Mutex::new(shell));

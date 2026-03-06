@@ -215,6 +215,9 @@ mod tests {
             ai_explanation: None,
             json_context: None,
             shell_module: None,
+            focused_pane_id: None,
+            split_layout: None,
+            ai_history: vec![],
             version: 0,
         };
         let hub_b = CommandHub {
@@ -231,6 +234,9 @@ mod tests {
             ai_explanation: Some("Shows working tree status".to_string()),
             json_context: None,
             shell_module: Some("tos-shell-fish".to_string()),
+            focused_pane_id: None,
+            split_layout: None,
+            ai_history: vec![],
             version: 0,
         };
 

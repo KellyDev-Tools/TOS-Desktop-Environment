@@ -177,9 +177,9 @@
 							<div class="settings-group-title">TRUST CLASSES</div>
 							<div class="settings-row">
 								<span class="settings-label">Privileged Escalation</span>
-								<select class="settings-select warning" onchange={(e) => setSetting('tos.trust.policy.escalation', (e.target as HTMLSelectElement).value)}>
+								<select class="settings-select warning" onchange={(e) => setSetting('tos.trust.privilege_escalation', (e.target as HTMLSelectElement).value)}>
 									<option value="block">BLOCK</option>
-									<option value="confirm" selected>CONFIRM</option>
+									<option value="warn" selected>WARN</option>
 									<option value="allow">ALLOW</option>
 								</select>
 							</div>
@@ -192,7 +192,17 @@
 						</div>
 						<div class="settings-group">
 							<div class="settings-group-title">SECTOR OVERRIDES</div>
-							<div class="settings-empty">No sector-specific trust overrides defined.</div>
+							{#each state.sectors as sector}
+								<div class="settings-row">
+									<span class="settings-label">{sector.name}</span>
+									<select class="settings-select small" onchange={(e) => sendCommand(`sector_set_setting:${sector.id};tos.trust.override_tier;${(e.target as HTMLSelectElement).value}`)}>
+										<option value="">(Inherit Global)</option>
+										<option value="Trusted">TRUSTED</option>
+										<option value="Filtered">FILTERED</option>
+										<option value="Sandboxed">SANDBOXED</option>
+									</select>
+								</div>
+							{/each}
 						</div>
 
 					<!-- ═══ AI TAB ═══ -->

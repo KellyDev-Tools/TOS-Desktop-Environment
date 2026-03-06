@@ -28,6 +28,7 @@ pub struct AiContext {
     pub active_mode: String,
     pub session_version: u64,
     pub env_hint: String,
+    pub chat_history: Vec<String>,
 }
 
 impl AiContext {
@@ -48,6 +49,11 @@ impl AiContext {
                 "mode" => result.push(format!("mode:{}", self.active_mode)),
                 "session_version" => result.push(format!("session_v:{}", self.session_version)),
                 "env_hint" => result.push(format!("env:{}", self.env_hint)),
+                "chat_history" => {
+                    for line in &self.chat_history {
+                        result.push(format!("ai_history:{}", line));
+                    }
+                }
                 _ => {}
             }
         }
@@ -80,6 +86,9 @@ pub fn build_context(state: &TosState) -> AiContext {
         active_mode: format!("{:?}", hub.mode),
         session_version: state.version,
         env_hint,
+        chat_history: hub.ai_history.iter()
+            .map(|m| format!("{}: {}", m.role, m.content))
+            .collect(),
     }
 }
 
@@ -229,6 +238,7 @@ impl AiService {
                 let ctx_fields = vec![
                     "cwd".to_string(), "sector_name".to_string(), "shell".to_string(),
                     "terminal_tail".to_string(), "last_command".to_string(), "mode".to_string(),
+                    "chat_history".to_string(),
                 ];
                 let context = ctx.filter_to_fields(&ctx_fields);
                 let req = crate::common::modules::AiQuery {
@@ -263,7 +273,7 @@ impl AiService {
         let _ = ipc.dispatch(&format!("ai_stage_command:{}", payload));
 
         // Append to history (§7.3)
-        let msg = format!("User: {}\nAI: staged command '{}' because {}", prompt, command, explanation);
+        let msg = format!("staged command '{}' because {}", command, explanation);
         let _ = ipc.dispatch(&format!("ai_history_append:{}", msg));
 
         Ok(())

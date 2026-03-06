@@ -36,6 +36,7 @@ impl SectorManager {
                 shell_module: Some("tos-shell-fish".to_string()),
                 split_layout: None,
                 focused_pane_id: None,
+                ai_history: vec![],
                 version: 0,
             }],
             active_hub_index: 0,
@@ -79,6 +80,7 @@ impl SectorManager {
                 shell_module: Some(hub_tmpl.shell.clone()),
                 split_layout: None,
                 focused_pane_id: None,
+                ai_history: vec![],
                 version: 0,
             });
         }
@@ -513,6 +515,7 @@ impl SectorManager {
                 shell_module: Some("tos-shell-fish".to_string()),
                 split_layout: None,
                 focused_pane_id: None,
+                ai_history: vec![],
                 version: 0,
             }],
             active_hub_index: 0,

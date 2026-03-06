@@ -73,7 +73,7 @@ impl TrustService {
             CommandClass::Standard => return "allow".to_string(),
         };
         state.settings.resolve(class_key, sector_id, None)
-            .unwrap_or_else(|| "warn".to_string())
+            .unwrap_or_else(|| "confirm".to_string())
     }
 
     /// Promote a class to "allow" globally.

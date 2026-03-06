@@ -27,7 +27,9 @@ impl IpcHandler {
             "zoom_in" => self.handle_zoom_in(),
             "zoom_out" => self.handle_zoom_out(),
             "zoom_to" => self.handle_zoom_to(args.get(0).copied()),
-            "set_setting" => self.handle_set_setting(args.get(0).copied(), args.get(1).copied()),
+            "set_setting" => self.handle_set_setting(args.get(0).copied(), args.get(1).copied(), args.get(2).copied()),
+            "sector_set_setting" => self.handle_set_sector_setting(args.get(0).copied(), args.get(1).copied(), args.get(2).copied()),
+            "get_settings" => self.handle_get_settings(),
             "set_sector_setting" => self.handle_set_sector_setting(args.get(0).copied(), args.get(1).copied(), args.get(2).copied()),
             "sector_create" => self.handle_sector_create(args.get(0).copied()),
             "sector_create_from_template" => self.handle_sector_create_from_template(payload),
@@ -41,8 +43,8 @@ impl IpcHandler {
             "signal_app" => self.handle_signal_app(args.get(0).copied(), args.get(1).copied()),
             "search" => self.handle_search(payload),
             "semantic_search" => self.handle_semantic_search(payload),
-            "prompt_submit" => self.handle_prompt_submit(payload),
-            "ai_submit" => self.handle_ai_submit(payload),
+            "prompt_submit" => self.handle_prompt_submit(payload, false),
+            "force_prompt_submit" => self.handle_prompt_submit(payload, true),
             "ai_suggestion_accept" => self.handle_ai_suggestion_accept(),
             "ai_stage_command" => self.handle_ai_stage_command(payload),
             "system_log_append" => self.handle_system_log_append(args.get(0).copied(), args.get(1).copied()),
@@ -84,7 +86,16 @@ impl IpcHandler {
             "ai_backend_set_behavior" => self.handle_ai_backend_set_behavior(args.get(0).copied(), args.get(1).copied()),
             "ai_backend_clear_behavior" => self.handle_ai_backend_clear_behavior(args.get(0).copied()),
             "ai_history_clear" => self.handle_ai_history_clear(),
-            "ai_history_append" => self.handle_ai_history_append(payload),
+            "ai_history_append" => self.handle_ai_history_append(payload, "assistant"),
+            "ai_submit" => {
+                let ai = self.services.ai.clone();
+                let prompt = payload.to_string();
+                self.handle_ai_history_append(&prompt, "user");
+                tokio::spawn(async move {
+                    let _ = ai.query(&prompt).await;
+                });
+                "AI_SUBMITTED".to_string()
+            }
             
             // Bezel
             "bezel_expand" => self.handle_bezel_expand(),
@@ -108,6 +119,9 @@ impl IpcHandler {
             "trust_clear_sector" => self.handle_trust_clear_sector(args.get(0).copied()),
             "trust_get_config" => self.handle_trust_get_config(),
             "heuristic_query" => self.handle_heuristic_query(args.get(0).copied()),
+            "confirmation_accept" => self.handle_confirmation_accept(args.get(0).copied()),
+            "confirmation_reject" => self.handle_confirmation_reject(args.get(0).copied()),
+            "update_confirmation_progress" => self.handle_update_confirmation_progress(args.get(0).copied(), args.get(1).copied()),
             _ => "ERROR: Unknown prefix".to_string(),
         };
 
@@ -134,7 +148,7 @@ impl IpcHandler {
 
 
 
-    fn handle_prompt_submit(&self, command: &str) -> String {
+    fn handle_prompt_submit(&self, command: &str, force: bool) -> String {
         let cmd = command.trim();
         if cmd.is_empty() {
             return "ERROR: Empty command".to_string();
@@ -143,7 +157,7 @@ impl IpcHandler {
         // Non-blocking Trust Chip Emission
         // Classify the command and push a warning chip to system_log if needed.
         // This does NOT block or delay PTY submission.
-        {
+        if !force {
             let mut state = self.state.lock().unwrap();
             let idx = state.active_sector_index;
             let sector_id_str = state.sectors.get(idx).map(|s| s.id.to_string());
@@ -185,6 +199,16 @@ impl IpcHandler {
 
                 if policy == "block" {
                     return format!("TRUST_BLOCKED: {:?}", class);
+                }
+                if policy == "confirm" {
+                    state.pending_confirmation = Some(crate::common::ConfirmationRequest {
+                        id: Uuid::new_v4(),
+                        original_request: format!("force_prompt_submit:{}", cmd),
+                        message: format!("⚠ DANGEROUS COMMAND: {}", cmd),
+                        progress: 0.0,
+                    });
+                    state.version += 1;
+                    return "CONFIRMATION_REQUIRED".to_string();
                 }
             }
         }
@@ -250,15 +274,21 @@ impl IpcHandler {
         format!("ZOOMED_TO: {:?}", level)
     }
 
-    fn handle_set_setting(&self, key: Option<&str>, val: Option<&str>) -> String {
+    fn handle_set_setting(&self, key: Option<&str>, val: Option<&str>, sector_id: Option<&str>) -> String {
         if let (Some(k), Some(v)) = (key, val) {
             let mut state = self.state.lock().unwrap();
-            state.settings.global.insert(k.to_string(), v.to_string());
-            // Implicit save - in production this would debounce via daemon
-            let _ = self.services.settings.save(&state.settings);
+            if let Some(sid) = sector_id {
+                state.settings.sectors
+                    .entry(sid.to_string())
+                    .or_default()
+                    .insert(k.to_string(), v.to_string());
+            } else {
+                state.settings.global.insert(k.to_string(), v.to_string());
+            }
+            state.version += 1;
             return format!("SETTING_UPDATE: {}={}", k, v);
         }
-        "ERROR: Invalid setting args".to_string()
+        "ERROR: Key and value required".to_string()
     }
 
     fn handle_set_sector_setting(&self, sector_id: Option<&str>, key: Option<&str>, val: Option<&str>) -> String {
@@ -676,9 +706,9 @@ impl IpcHandler {
         serde_json::to_string(&*state).unwrap_or_else(|_| "ERROR: Serialization failed".to_string())
     }
 
-    fn handle_trust_get_config(&self) -> String {
+    fn handle_get_settings(&self) -> String {
         let state = self.state.lock().unwrap();
-        serde_json::to_string(&state.sectors.iter().map(|s| (s.id.to_string(), s.trust_tier)).collect::<std::collections::HashMap<_,_>>()).unwrap_or_default()
+        serde_json::to_string(&state.settings).unwrap_or_else(|_| "ERROR: Serialization failed".to_string())
     }
 
     fn handle_heuristic_query(&self, keyword: Option<&str>) -> String {
@@ -1129,9 +1159,12 @@ impl IpcHandler {
             .map(|b| b.context_fields.clone())
             .unwrap_or_else(|| vec![
                 "cwd".to_string(), "sector_name".to_string(), "shell".to_string(),
+                "terminal_tail".to_string(), "last_command".to_string(), "mode".to_string(),
+            ]);
+
         let context_entries = ctx.filter_to_fields(&fields);
-        let payload = serde_json::to_string(&context_entries).unwrap_or_else(|_| "[]".to_string());
-        format!("AI_CONTEXT_RETURNED: {} fields", fields.len())
+        let json = serde_json::to_string(&context_entries).unwrap_or_else(|_| "[]".to_string());
+        format!("AI_CONTEXT:{}", json)
     }
 
     // ----- Bezel Handlers -----
@@ -1405,22 +1438,92 @@ impl IpcHandler {
         "ERROR: Hub not found".to_string()
     }
 
-    fn handle_ai_history_append(&self, message: &str) -> String {
+    fn handle_ai_history_append(&self, message: &str, role: &str) -> String {
         let mut state = self.state.lock().unwrap();
         let idx = state.active_sector_index;
         if let Some(sector) = state.sectors.get_mut(idx) {
             let h_idx = sector.active_hub_index;
             if let Some(hub) = sector.hubs.get_mut(h_idx) {
                 hub.ai_history.push(crate::common::AiMessage {
-                    role: "assistant".to_string(), // Simplified role
+                    role: role.to_string(),
                     content: message.to_string(),
                     timestamp: chrono::Local::now(),
                 });
+                if hub.ai_history.len() > 200 {
+                    hub.ai_history.remove(0);
+                }
                 state.version += 1;
                 return "AI_HISTORY_APPENDED".to_string();
             }
         }
         "ERROR: Hub not found".to_string()
+    }
+
+    fn handle_confirmation_accept(&self, id_str: Option<&str>) -> String {
+        if let Some(id_str) = id_str {
+            if let Ok(id) = Uuid::parse_str(id_str) {
+                let mut state = self.state.lock().unwrap();
+                if let Some(conf) = state.pending_confirmation.take() {
+                    if conf.id == id {
+                        let original = conf.original_request.clone();
+                        drop(state);
+                        return self.handle_request(&original);
+                    }
+                }
+            }
+        }
+        "ERROR: Invalid confirmation ID".to_string()
+    }
+
+    fn handle_confirmation_reject(&self, id_str: Option<&str>) -> String {
+        if let Some(id_str) = id_str {
+            if let Ok(id) = Uuid::parse_str(id_str) {
+                let mut state = self.state.lock().unwrap();
+                if let Some(conf) = state.pending_confirmation.take() {
+                    if conf.id == id {
+                        state.version += 1;
+                        return "CONFIRMATION_REJECTED".to_string();
+                    }
+                }
+            }
+        }
+        "ERROR: Invalid confirmation ID".to_string()
+    }
+
+    fn handle_update_confirmation_progress(&self, id_str: Option<&str>, progress_str: Option<&str>) -> String {
+        if let (Some(id_str), Some(p_str)) = (id_str, progress_str) {
+            if let (Ok(id), Ok(p)) = (Uuid::parse_str(id_str), p_str.parse::<f32>()) {
+                let mut state = self.state.lock().unwrap();
+                let mut should_execute = false;
+                let mut original_request = String::new();
+
+                if let Some(ref mut conf) = state.pending_confirmation {
+                    if conf.id == id {
+                        conf.progress = p;
+                        if p >= 1.0 {
+                            should_execute = true;
+                            original_request = conf.original_request.clone();
+                        }
+                    }
+                }
+
+                if should_execute {
+                    state.pending_confirmation = None;
+                    state.version += 1;
+                    drop(state);
+                    return self.handle_request(&original_request);
+                } else if !original_request.is_empty() { // Wait, if not executing but found id
+                     // This branch is redundant because original_request is only non-empty if p >= 1.0
+                }
+
+                // If we updated progress but didn't execute
+                if state.pending_confirmation.as_ref().map(|c| c.id == id).unwrap_or(false) {
+                    state.version += 1;
+                    return format!("CONFIRMATION_PROGRESS: {}", p);
+                }
+            }
+        }
+        "ERROR: Invalid confirmation update".to_string()
     }
 }
 

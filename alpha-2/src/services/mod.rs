@@ -84,7 +84,7 @@ impl ServiceManager {
             haptic,
             portal,
             priority,
-            registry,
+            registry: registry.clone(),
             session,
             trust,
             heuristic: Arc::new(HeuristicService::new(registry.clone())),

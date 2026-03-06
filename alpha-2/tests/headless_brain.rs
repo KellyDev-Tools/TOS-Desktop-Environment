@@ -24,7 +24,7 @@ fn headless_ipc() -> (Arc<IpcHandler>, Arc<Mutex<TosState>>) {
     let hid = state.lock().unwrap().sectors[0].hubs[0].id;
 
     let shell = tos_alpha2::brain::shell::ShellApi::new(
-        state.clone(), modules.clone(), sid, hid,
+        state.clone(), modules.clone(), services.ai.clone(), services.heuristic.clone(), sid, hid,
     ).expect("Headless tests require at least /bin/sh");
 
     let shell = Arc::new(Mutex::new(shell));
@@ -388,7 +388,10 @@ async fn test_bezel_label_rejection() {
 async fn trust_classify_privilege_escalation() {
     let (ipc, state) = headless_ipc();
 
-    // sudo should trigger a chip but not block (default policy = warn)
+    // Set policy to warn specifically for this test
+    ipc.handle_request("set_setting:tos.trust.privilege_escalation;warn");
+
+    // sudo should trigger a chip but not block
     let res = ipc.handle_request("prompt_submit:sudo rm /tmp/test");
     assert!(res.contains("SUBMITTED"), "Expected SUBMITTED, got: {}", res);
 

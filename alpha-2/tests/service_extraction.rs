@@ -79,6 +79,9 @@ async fn test_service_extraction_lifecycle() -> anyhow::Result<()> {
         integration: None,
         assets: None,
         capabilities: None,
+        provider: None,
+        endpoint: None,
+        latency_profile: None,
         signature: None,
     };
     

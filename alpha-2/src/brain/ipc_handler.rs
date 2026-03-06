@@ -2,7 +2,6 @@ use crate::common::{TosState, CommandHubMode, HierarchyLevel};
 use crate::services::MarketplaceService;
 use std::sync::{Arc, Mutex};
 use uuid::Uuid;
-use std::path::PathBuf;
 use std::time::Instant;
 
 pub struct IpcHandler {
@@ -164,36 +163,6 @@ impl IpcHandler {
             });
             tracing::warn!("Intercepted dangerous command: {}", command);
             return format!("INTERCEPTED: {}", id);
-        }
-
-        // Prompt Interception Layer (sniffing for ls/cd)
-        let mut state = self.state.lock().unwrap();
-        let idx = state.active_sector_index;
-        let cmd_lower = command.to_lowercase();
-
-        if cmd_lower.starts_with("ls") {
-            // Resolve target path and switch to Directory mode
-            if let Some(sector) = state.sectors.get_mut(idx) {
-                if let Some(hub) = sector.hubs.get_mut(sector.active_hub_index) {
-                    hub.mode = CommandHubMode::Directory;
-                }
-            }
-            crate::brain::sector::SectorManager::refresh_directory_listing(&mut state);
-        } else if cmd_lower.starts_with("cd ") {
-            // Resolve target path and update current_directory
-            let new_path_str = &command[3..].trim();
-            if let Some(sector) = state.sectors.get_mut(idx) {
-                if let Some(hub) = sector.hubs.get_mut(sector.active_hub_index) {
-                    let mut new_path = hub.current_directory.clone();
-                    new_path.push(new_path_str);
-                    // Minimal validation: if it's absolute, use it
-                    if PathBuf::from(new_path_str).is_absolute() {
-                        hub.current_directory = PathBuf::from(new_path_str);
-                    } else {
-                        hub.current_directory = new_path;
-                    }
-                }
-            }
         }
         
         // Final submission to PTY
@@ -423,7 +392,7 @@ impl IpcHandler {
                     let state_clone = self.state.clone();
                     let id_clone = id;
                     tokio::spawn(async move {
-                        tokio::time::sleep(tokio::time::Duration::from_millis(5100)).await;
+                        tokio::time::sleep(tokio::time::Duration::from_millis(500)).await;
                         let mut state = state_clone.lock().unwrap();
                         if let Some(sector) = state.sectors.iter().find(|s| s.id == id_clone) {
                             if sector.disconnected {

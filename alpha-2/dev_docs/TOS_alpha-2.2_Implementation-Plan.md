@@ -14,9 +14,9 @@ The roadmap defines 5 phases. We execute Phase 1 first because *every subsequent
 | 1.1 | `tos-protocol` Extraction | ✅ DONE | Workspace created, 14 protocol tests passing, bridge re-exports preserve all import paths |
 | 1.2 | Settings Daemon Schema Extensions | ✅ DONE | 6 namespaces added (onboarding, trust, AI, bezel, splits, network), 8 tests passing |
 | 1.3 | Service Registry & Port Infrastructure | ✅ DONE | `ServiceRegistry` with CRUD/heartbeat, `tos_ports` IPC command, 6 inline tests |
-| 1.4 | Unified Visual Token System | 🔶 PARTIAL | CSS tokens live in `svelte_ui/src/app.css`; LinuxRenderer consumption still needed |
-| 1.5 | Headless Brain Testing | ⬜ QUEUED | `test-protocol` suite for Brain state deltas |
-| 1.6 | OSC-Exclusive Mode Switching | ⬜ QUEUED | Deprecate string sniffing in `ipc_handler.rs` |
+| 1.4 | Unified Visual Token System | ✅ DONE | `assets/design_tokens.json` consumed by `svelte_ui` and `LinuxRenderer` |
+| 1.5 | Headless Brain Testing | ✅ DONE | `test-protocol` suite validation added in `headless_brain.rs` |
+| 1.6 | OSC-Exclusive Mode Switching | ✅ DONE | String sniffing removed from `ipc_handler.rs`; pure OSC 7/9004 driven |
 
 ### Phase 1 Implementation Order (within sprint)
 

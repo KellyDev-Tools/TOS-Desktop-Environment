@@ -350,8 +350,8 @@ async fn test_remote_disconnect_timer() {
     assert!(state.lock().unwrap().sectors[1].disconnected);
     assert_eq!(state.lock().unwrap().sectors.len(), 2);
 
-    // Wait 5.2s (since timer is 5.1s)
-    tokio::time::sleep(tokio::time::Duration::from_millis(5200)).await;
+    // Wait 0.6s (since timer is 0.5s)
+    tokio::time::sleep(tokio::time::Duration::from_millis(600)).await;
 
     // Verify it's removed
     assert_eq!(state.lock().unwrap().sectors.len(), 1);

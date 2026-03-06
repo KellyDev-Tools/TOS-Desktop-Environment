@@ -41,6 +41,12 @@ impl Drop for WaylandBuffer {
 
 impl LinuxRenderer {
     pub fn new() -> Self {
+        let tokens_json = include_str!("../../../assets/design_tokens.json");
+        let tokens: serde_json::Value = serde_json::from_str(tokens_json).unwrap_or_default();
+        if let Some(primary) = tokens.pointer("/themes/dark/primary") {
+            tracing::info!("Wayland Renderer loaded theme tokens (Primary: {})", primary.as_str().unwrap_or(""));
+        }
+
         Self {
             surfaces: std::collections::HashMap::new(),
             next_handle: 1,

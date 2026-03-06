@@ -160,6 +160,29 @@ async fn sector_freeze_toggle() {
     assert!(!state.lock().unwrap().sectors[0].frozen);
 }
 
+#[tokio::test]
+async fn sector_clone_duplicates_state() {
+    let (ipc, state) = headless_ipc();
+
+    let source_id = state.lock().unwrap().sectors[0].id;
+    let original_name = state.lock().unwrap().sectors[0].name.clone();
+
+    let result = ipc.handle_request(&format!("sector_clone:{}", source_id));
+    assert!(result.contains("SECTOR_CLONED"));
+
+    let state_lock = state.lock().unwrap();
+    assert_eq!(state_lock.sectors.len(), 2);
+    let cloned_sector = &state_lock.sectors[1];
+    
+    assert_ne!(cloned_sector.id, source_id);
+    assert_eq!(cloned_sector.name, format!("{} (Clone)", original_name));
+    
+    assert_eq!(cloned_sector.hubs.len(), state_lock.sectors[0].hubs.len());
+    if !cloned_sector.hubs.is_empty() {
+        assert_ne!(cloned_sector.hubs[0].id, state_lock.sectors[0].hubs[0].id);
+    }
+}
+
 // ---------------------------------------------------------------------------
 // Service Registry (via IPC)
 // ---------------------------------------------------------------------------

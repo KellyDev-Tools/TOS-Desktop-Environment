@@ -18,14 +18,7 @@ impl IpcHandler {
     /// Standardized Message Format: prefix:payload;payload...
     pub fn handle_request(&self, request: &str) -> String {
         let start = Instant::now();
-        let parts: Vec<&str> = request.splitn(2, ':').collect();
-        if parts.len() < 2 {
-            tracing::warn!("Malformed IPC request: {}", request);
-            return "ERROR: Malformed request".to_string();
-        }
-
-        let prefix = parts[0];
-        let payload = parts[1];
+        let (prefix, payload) = request.split_once(':').unwrap_or((request, ""));
         let args: Vec<&str> = payload.split(';').collect();
 
         let result = match prefix {

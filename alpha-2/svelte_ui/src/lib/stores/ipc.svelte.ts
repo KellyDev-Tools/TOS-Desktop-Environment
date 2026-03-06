@@ -47,17 +47,20 @@ export function sendCommand(cmd: string): Promise<string | null> {
         return Promise.resolve(null);
     }
 
+    const activeWs = ws;
+    if (!activeWs) return Promise.resolve(null);
+
     return new Promise((resolve) => {
         const handler = (event: MessageEvent) => {
-            ws?.removeEventListener('message', handler);
+            activeWs.removeEventListener('message', handler);
             resolve(event.data);
         };
-        ws.addEventListener('message', handler);
-        ws.send(cmd);
+        activeWs.addEventListener('message', handler);
+        activeWs.send(cmd);
 
         // Timeout after 5s
         setTimeout(() => {
-            ws?.removeEventListener('message', handler);
+            activeWs.removeEventListener('message', handler);
             resolve(null);
         }, 5000);
     });
@@ -180,3 +183,37 @@ export async function createPortal(): Promise<string | null> {
 export async function revokePortal(token: string): Promise<void> {
     await sendCommand(`portal_revoke:${token}`);
 }
+
+// --- Split Layout Helpers ---
+
+export async function splitCreate(w?: number, h?: number): Promise<void> {
+    const payload = (w && h) ? `${w};${h}` : '';
+    await sendCommand(`split_create:${payload}`);
+}
+
+export async function splitClose(paneId?: string): Promise<void> {
+    const payload = paneId || '';
+    await sendCommand(`split_close:${payload}`);
+}
+
+export async function splitFocus(paneId: string): Promise<void> {
+    await sendCommand(`split_focus:${paneId}`);
+}
+
+export async function splitFocusDirection(dir: 'Up' | 'Down' | 'Left' | 'Right'): Promise<void> {
+    await sendCommand(`split_focus_direction:${dir}`);
+}
+
+export async function splitEqualize(): Promise<void> {
+    await sendCommand('split_equalize');
+}
+
+export async function splitFullscreen(paneId?: string): Promise<void> {
+    const payload = paneId || '';
+    await sendCommand(`split_fullscreen:${payload}`);
+}
+
+export async function splitFullscreenExit(): Promise<void> {
+    await sendCommand('split_fullscreen_exit');
+}
+

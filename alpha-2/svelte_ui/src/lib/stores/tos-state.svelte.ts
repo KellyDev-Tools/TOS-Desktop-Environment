@@ -16,18 +16,6 @@ export interface TerminalLine {
     priority: number;
 }
 
-export interface Hub {
-    mode: string;
-    prompt: string;
-    current_directory: string;
-    terminal_output: TerminalLine[];
-    staged_command?: string | null;
-    ai_explanation?: string | null;
-    json_context?: Record<string, any> | null;
-    shell_listing?: { path: string; entries: { name: string; is_dir: boolean; size: number }[] } | null;
-    activity_listing?: { processes: ProcessInfo[] } | null;
-}
-
 export interface ProcessInfo {
     pid: number;
     name: string;
@@ -42,6 +30,21 @@ export interface Participant {
     id: string;
     alias: string;
     current_level: number;
+}
+
+export interface Hub {
+    id?: string;
+    mode: string;
+    prompt: string;
+    current_directory: string;
+    terminal_output: TerminalLine[];
+    staged_command?: string | null;
+    ai_explanation?: string | null;
+    json_context?: Record<string, any> | null;
+    shell_listing?: { path: string; entries: { name: string; is_dir: boolean; size: number }[] } | null;
+    activity_listing?: { processes: ProcessInfo[] } | null;
+    split_layout?: SplitNode | null;
+    focused_pane_id?: string | null;
 }
 
 export interface Sector {
@@ -61,6 +64,34 @@ export interface ModuleInfo {
     name: string;
     layout: string;
 }
+
+export interface AiModuleInfo {
+    id: string;
+    name: string;
+    provider?: string;
+}
+
+export interface AiBehavior {
+    id: string;
+    name: string;
+    enabled: boolean;
+    backend_override?: string | null;
+    context_fields: string[];
+    config: Record<string, string>;
+}
+
+export type PaneContent = 'Terminal' | { Application: string };
+
+export interface SplitPane {
+    id: string;
+    weight: number;
+    cwd: string;
+    content: PaneContent;
+}
+
+export type SplitNode =
+    | { Leaf: SplitPane }
+    | { Container: { orientation: 'Vertical' | 'Horizontal'; children: SplitNode[] } };
 
 export interface ThemeInfo {
     id: string;
@@ -97,6 +128,11 @@ export interface TosState {
     available_themes: ThemeInfo[];
     active_theme: string;
     portal?: PortalInfo;
+    // AI
+    available_ai_modules: AiModuleInfo[];
+    active_ai_module: string;
+    ai_behaviors: AiBehavior[];
+    ai_default_backend: string;
 }
 
 // --- Default state (used when Brain is not connected) ---
@@ -114,7 +150,14 @@ export function getDefaultState(): TosState {
                 name: 'Primary',
                 type: 'Standard',
                 status: 'Active',
-                hubs: [{ mode: 'Command', prompt: '', current_directory: '~', terminal_output: [], staged_command: null, ai_explanation: null }],
+                hubs: [{
+                    mode: 'Command',
+                    prompt: '',
+                    current_directory: '~',
+                    terminal_output: [],
+                    staged_command: null,
+                    ai_explanation: null
+                }],
                 active_hub_index: 0
             }
         ],
@@ -131,6 +174,10 @@ export function getDefaultState(): TosState {
         available_modules: [],
         active_terminal_module: '',
         available_themes: [],
-        active_theme: ''
+        active_theme: '',
+        available_ai_modules: [],
+        active_ai_module: '',
+        ai_behaviors: [],
+        ai_default_backend: ''
     };
 }

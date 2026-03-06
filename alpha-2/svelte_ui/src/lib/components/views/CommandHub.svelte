@@ -1,6 +1,8 @@
 <script lang="ts">
 	import { getTosState } from '$lib/stores/ipc.svelte';
 
+	import SplitLayout from './SplitLayout.svelte';
+
 	const state = $derived(getTosState());
 	const activeSector = $derived(state.sectors[state.active_sector_index]);
 	const activeHub = $derived(
@@ -8,6 +10,8 @@
 			? activeSector.hubs[activeSector.active_hub_index]
 			: null
 	);
+
+	const splitLayout = $derived(activeHub?.split_layout);
 
 	// Terminal output — prefer hub-level, fall back to global
 	const termOutput = $derived(
@@ -25,78 +29,84 @@
 </script>
 
 <div class="command-hub">
-	<!-- Left Column: Context Chips -->
-	<div class="left-column">
-		{#if activeHub?.json_context}
-			{@const ctx = activeHub.json_context}
-			<div class="context-chip glass-panel">
-				<div class="chip-title">JSON CONTEXT // {ctx.type || 'DATA'}</div>
-				<div class="chip-row"><strong>NAME:</strong> {ctx.name || '--'}</div>
-				{#if ctx.state}
-					<div class="chip-row"><strong>STATE:</strong> <span class="ctx-state">{ctx.state}</span></div>
-				{/if}
-				{#if ctx.active_file}
-					<div class="chip-row"><strong>FILE:</strong> {ctx.active_file}</div>
-				{/if}
-				{#if ctx.metadata}
-					<div class="chip-metadata">
-						{#each Object.entries(ctx.metadata) as [k, v]}
-							<div><strong>{k.toUpperCase()}:</strong> {v}</div>
+	{#if splitLayout}
+		<SplitLayout node={splitLayout} {activeHub} />
+	{:else}
+		<!-- Classic Dual-Column View (Fallback) -->
+		<!-- Left Column: Context Chips -->
+		<div class="left-column">
+			{#if activeHub?.json_context}
+				{@const ctx = activeHub.json_context}
+				<div class="context-chip glass-panel">
+					<div class="chip-title">JSON CONTEXT // {ctx.type || 'DATA'}</div>
+					<div class="chip-row"><strong>NAME:</strong> {ctx.name || '--'}</div>
+					{#if ctx.state}
+						<div class="chip-row"><strong>STATE:</strong> <span class="ctx-state">{ctx.state}</span></div>
+					{/if}
+					{#if ctx.active_file}
+						<div class="chip-row"><strong>FILE:</strong> {ctx.active_file}</div>
+					{/if}
+					{#if ctx.metadata}
+						<div class="chip-metadata">
+							{#each Object.entries(ctx.metadata) as [k, v]}
+								<div><strong>{k.toUpperCase()}:</strong> {v}</div>
+							{/each}
+						</div>
+					{/if}
+				</div>
+			{:else if activeHub?.shell_listing}
+				{@const dir = activeHub.shell_listing}
+				<div class="context-chip glass-panel">
+					<div class="chip-title" style="color: var(--color-primary)">DIR PREVIEW // {dir.path}</div>
+					<div class="directory-list">
+						{#each dir.entries as entry}
+							<div class="dir-entry">
+								<span class="dir-type" class:is-dir={entry.is_dir}>{entry.is_dir ? '[DIR]' : ''}</span>
+								<span class="dir-name" class:is-dir={entry.is_dir}>{entry.name}</span>
+								{#if !entry.is_dir}
+									<span class="dir-size">{entry.size} B</span>
+								{/if}
+							</div>
 						{/each}
 					</div>
-				{/if}
-			</div>
-		{:else if activeHub?.shell_listing}
-			{@const dir = activeHub.shell_listing}
-			<div class="context-chip glass-panel">
-				<div class="chip-title" style="color: var(--color-primary)">DIR PREVIEW // {dir.path}</div>
-				<div class="directory-list">
-					{#each dir.entries as entry}
-						<div class="dir-entry">
-							<span class="dir-type" class:is-dir={entry.is_dir}>{entry.is_dir ? '[DIR]' : ''}</span>
-							<span class="dir-name" class:is-dir={entry.is_dir}>{entry.name}</span>
-							{#if !entry.is_dir}
-								<span class="dir-size">{entry.size} B</span>
-							{/if}
-						</div>
-					{/each}
 				</div>
-			</div>
-		{:else if activeHub?.activity_listing}
-			{@const act = activeHub.activity_listing}
-			<div class="context-chip glass-panel">
-				<div class="chip-title" style="color: var(--color-warning)">SYSTEM ACTIVITY // RECENT</div>
-				<div class="activity-list">
-					{#each act.processes.slice(0, 10) as proc}
-						<div class="activity-item" class:stopped={proc.status === 'stopped' || proc.status === 'sleeping'}>
-							<div class="proc-meta">
-								<span class="proc-pid">PID {proc.pid}:</span>
-								<span class="proc-name">{proc.name.toUpperCase()}</span>
+			{:else if activeHub?.activity_listing}
+				{@const act = activeHub.activity_listing}
+				<div class="context-chip glass-panel">
+					<div class="chip-title" style="color: var(--color-warning)">SYSTEM ACTIVITY // RECENT</div>
+					<div class="activity-list">
+						{#each act.processes.slice(0, 10) as proc}
+							<div class="activity-item" class:stopped={proc.status === 'stopped' || proc.status === 'sleeping'}>
+								<div class="proc-meta">
+									<span class="proc-pid">PID {proc.pid}:</span>
+									<span class="proc-name">{proc.name.toUpperCase()}</span>
+								</div>
+								<div class="proc-stats">
+									CPU: {proc.cpu_usage.toFixed(1)}% | MEM: {(proc.mem_usage / 1024 / 1024).toFixed(1)} MB
+								</div>
 							</div>
-							<div class="proc-stats">
-								CPU: {proc.cpu_usage.toFixed(1)}% | MEM: {(proc.mem_usage / 1024 / 1024).toFixed(1)} MB
-							</div>
-						</div>
-					{/each}
+						{/each}
+					</div>
 				</div>
-			</div>
-		{:else}
-			<div class="context-chip glass-panel empty-chip">
-				<div class="empty-text">AWAITING CONTEXT EXPORT...</div>
-			</div>
-		{/if}
-	</div>
-
-	<!-- Right Column: Terminal Output -->
-	<div class="right-column">
-		<div class="terminal-container">
-			{#each termOutput as line}
-				<div class="term-line" style="color: {priorityColor(line.priority)}">{line.text || ''}</div>
-			{/each}
-			<div class="cursor-blink">_</div>
+			{:else}
+				<div class="context-chip glass-panel empty-chip">
+					<div class="empty-text">AWAITING CONTEXT EXPORT...</div>
+				</div>
+			{/if}
 		</div>
-	</div>
+
+		<!-- Right Column: Terminal Output -->
+		<div class="right-column">
+			<div class="terminal-container">
+				{#each termOutput as line}
+					<div class="term-line" style="color: {priorityColor(line.priority)}">{line.text || ''}</div>
+				{/each}
+				<div class="cursor-blink">_</div>
+			</div>
+		</div>
+	{/if}
 </div>
+
 
 <style>
 	.command-hub {

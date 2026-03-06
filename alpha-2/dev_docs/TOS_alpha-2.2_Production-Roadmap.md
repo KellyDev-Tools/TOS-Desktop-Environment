@@ -7,36 +7,36 @@ This roadmap defines the transition from Alpha-2.1 (Experimental/Mocked) to Alph
 ## Phase 1 — Core Infrastructure
 *No external dependencies. These tasks unblock everything else and should begin in parallel.*
 
-- [ ] **`tos-protocol` Extraction:** Move all `common/` state and IPC structs into a shared library to stabilize the Face-Brain contract.
+- [x] **`tos-protocol` Extraction:** Move all `common/` state and IPC structs into a shared library to stabilize the Face-Brain contract.
     - All subsequent IPC work in this roadmap depends on this contract being stable.
-- [ ] **Unified Visual Token System:** Create `assets/design_tokens.json` and update both `svelte_ui/src/app.css` and `LinuxRenderer` to consume these values.
+- [x] **Unified Visual Token System:** Create `assets/design_tokens.json` and update both `svelte_ui/src/app.css` and `LinuxRenderer` to consume these values.
     - CSS tokens are partially in place via `svelte_ui/src/app.css` design system; need to extract into standalone JSON consumed by both Face and Wayland renderer.
     - Required before any new Face components are built (Onboarding, Expanded Bezel, Marketplace).
-- [ ] **Headless Brain Testing:** Build a `test-protocol` suite that validates Brain state deltas without requiring a renderer.
+- [x] **Headless Brain Testing:** Build a `test-protocol` suite that validates Brain state deltas without requiring a renderer.
     - Required before adding new Brain services (TrustService, AIService, SessionService) to ensure regressions are caught.
-- [ ] **Settings Daemon Schema Extensions:** Add new namespaces to the Settings Daemon for Alpha-2.2 features.
+- [x] **Settings Daemon Schema Extensions:** Add new namespaces to the Settings Daemon for Alpha-2.2 features.
     - `tos.onboarding` — state fields: `first_run_complete`, `wizard_complete`, `hints_dismissed`, `hint_suppressed`, `sessions_count`, `commands_run`, `levels_visited`.
     - `tos.trust` — trust level per command class, per-sector overrides.
     - `tos.ai.behaviors` — per-behavior configs and backend overrides.
     - `tos.interface.bezel` — expanded bezel dismiss behaviour preference.
     - `tos.interface.splits` — divider snap preference.
     - `tos.network` — `anchor_port` (default `7000`), `mdns_enabled` (default `true`).
-- [ ] **OSC-Exclusive Mode Switching:** Deprecate "String Sniffing" in `ipc_handler.rs`.
+- [x] **OSC-Exclusive Mode Switching:** Deprecate "String Sniffing" in `ipc_handler.rs`.
     - Force all mode transitions (`CMD → DIR`, etc.) to be driven by `OSC 7` and `OSC 9004` sequences emitted by the shell.
     - *Required before onboarding guided demo step detection can rely on shell events.*
-- [ ] **Service Registry & Port Infrastructure** *(Ecosystem-Orchestration):*
-    - Implement Brain Unix domain socket at `$XDG_RUNTIME_DIR/tos/brain.sock` for local daemon registration and client discovery.
-    - Implement Brain in-memory service registry: register, deregister, health probe (TCP connect, 30s interval, 3-strike offline marking).
-    - Implement daemon registration protocol: daemon binds Port 0, connects to `brain.sock`, sends `{ "type": "register", "name": "<name>", "port": <port> }`, receives ACK. Retry with exponential backoff if socket not yet available.
-    - Implement **always-on anchor port**: Brain binds a stable TCP port on every startup (resolved from: `TOS_ANCHOR_PORT` env var → `tos.network.anchor_port` setting → default `7000`). If occupied, scan upward +1 to +10; if all taken, fall back to Port 0 with warning. Write active value back to settings.
-    - Implement `get_port_map` IPC message on both Unix socket and Brain TCP socket: returns JSON service map including `anchor_port` field.
-    - Implement `tos ports` CLI: queries Brain registry, displays formatted table with reachability probes. Flags: `--json`, `--wait`, `--remote <host>[:<port>]`.
-    - Implement mDNS/DNS-SD advertisement via Avahi (`_tos-brain._tcp` service type with `brain_tcp` and `brain_ws` TXT records). Controlled by `tos.network.mdns_enabled` setting.
-    - Implement `tos discover` CLI: scans LAN for `_tos-brain._tcp` services.
-    - Implement remote Face connection dialog: mDNS scan + saved hosts + manual host:port entry (port defaults to anchor port). Save connections to `~/.config/tos/remote-hosts.toml`.
-    - Implement daemon deregistration on graceful shutdown; socket cleanup on Brain exit.
-    - Flip `Makefile` startup order: Brain first (`make run-brain`), then services (`make run-services`), then Face (`make run-web` runs all three in sequence).
-    - Add **Settings → Network** panel: Remote Access Port field (writes `tos.network.anchor_port`, takes effect on restart), WebSocket Port (read-only, auto), mDNS toggle, service registry status count, [View Port Map] inline table.
+- [x] **Service Registry & Port Infrastructure** *(Ecosystem-Orchestration):*
+    - [x] Implement Brain Unix domain socket at `$XDG_RUNTIME_DIR/tos/brain.sock` for local daemon registration and client discovery.
+    - [x] Implement Brain in-memory service registry: register, deregister, health probe (TCP connect, 30s interval, 3-strike offline marking).
+    - [x] Implement daemon registration protocol: daemon binds Port 0, connects to `brain.sock`, sends `{ "type": "register", "name": "<name>", "port": <port> }`, receives ACK. Retry with exponential backoff if socket not yet available.
+    - [x] Implement **always-on anchor port**: Brain binds a stable TCP port on every startup (resolved from: `TOS_ANCHOR_PORT` env var → `tos.network.anchor_port` setting → default `7000`). If occupied, scan upward +1 to +10; if all taken, fall back to Port 0 with warning. Write active value back to settings.
+    - [x] Implement `get_port_map` IPC message on both Unix socket and Brain TCP socket: returns JSON service map including `anchor_port` field.
+    - [x] Implement `tos ports` CLI: queries Brain registry, displays formatted table with reachability probes. Flags: `--json`, `--wait`, `--remote <host>[:<port>]`.
+    - [x] Implement mDNS/DNS-SD advertisement via Avahi (`_tos-brain._tcp` service type with `brain_tcp` and `brain_ws` TXT records). Controlled by `tos.network.mdns_enabled` setting.
+    - [x] Implement `tos discover` CLI: scans LAN for `_tos-brain._tcp` services.
+    - [x] Implement remote Face connection dialog: mDNS scan + saved hosts + manual host:port entry (port defaults to anchor port). Save connections to `~/.config/tos/remote-hosts.toml`.
+    - [x] Implement daemon deregistration on graceful shutdown; socket cleanup on Brain exit.
+    - [x] Flip `Makefile` startup order: Brain first (`make run-brain`), then services (`make run-services`), then Face (`make run-web` runs all three in sequence).
+    - [x] Add **Settings → Network** panel: Remote Access Port field (writes `tos.network.anchor_port`, takes effect on restart), WebSocket Port (read-only, auto), mDNS toggle, service registry status count, [View Port Map] inline table.
     - *Required before any remote Face work (Phase 5) and before Session Service, as all daemons depend on this infrastructure.*
 
 ---
@@ -122,16 +122,16 @@ This roadmap defines the transition from Alpha-2.1 (Experimental/Mocked) to Alph
     - Implement relaunch chip for Level 3 app panes that cannot be auto-restored.
     - Add **Settings → Sessions → Import** entry point.
 
-- [ ] **Split Viewport Face Rendering** *(Split-Viewport-Specification):*
+- [x] **Split Viewport Face Rendering** *(Split-Viewport-Specification):*
     - *Depends on: Split Pane Tree (Phase 2).*
-    - Implement pane tree renderer: tiled layout, freely draggable dividers with optional 50% snap-assist.
-    - Implement focused pane amber border; unfocused panes at full opacity (peers, not backgrounds).
-    - Implement `Ctrl+\` / `Ctrl+-` / `Shift+Ctrl+\` split shortcuts; `Ctrl+Arrow` focus navigation; `Ctrl+W` pane close; double-click divider equalize.
-    - Implement blocked-split feedback: amber pane border flash + earcon.
-    - Implement fullscreen pane promotion: expand focused pane, preserve layout in memory, show `[⊞ Return to Split]` chip in Top Bezel.
-    - Wire pane management chips into Expanded Bezel surface (see below): `[⛶ Fullscreen]`, `[⇄ Swap]`, `[⊞ Detach →Sector]`, `[💾 Save Layout]`.
-    - Implement detach context chips: `[📦 Bring Context]` / `[✦ Fresh Start]`.
-    - Implement layout save as `.tos-template` — prompt for name, write via `tos-marketplaced`.
+    - [x] Implement pane tree renderer: tiled layout, freely draggable dividers with optional 50% snap-assist.
+    - [x] Implement focused pane amber border; unfocused panes at full opacity (peers, not backgrounds).
+    - [x] Implement `Ctrl+\` / `Ctrl+-` / `Shift+Ctrl+\` split shortcuts; `Ctrl+Arrow` focus navigation; `Ctrl+W` pane close; double-click divider equalize.
+    - [x] Implement blocked-split feedback: amber pane border flash + earcon.
+    - [x] Implement fullscreen pane promotion: expand focused pane, preserve layout in memory, show `[⊞ Return to Split]` chip in Top Bezel.
+    - [x] Wire pane management chips into Expanded Bezel surface (see below): `[⛶ Fullscreen]`, `[⇄ Swap]`, `[⊞ Detach →Sector]`, `[💾 Save Layout]`.
+    - [x] Implement detach context chips: `[📦 Bring Context]` / `[✦ Fresh Start]`.
+    - [x] Implement layout save as `.tos-template` — prompt for name, write via `tos-marketplaced`.
 
 - [ ] **Expanded Bezel Command Surface** *(Expanded-Bezel-Specification — supplements Architecture Spec §7.1 & §8.1):*
     - *Depends on: Split Pane Tree (Phase 2), `tos-sessiond` (Phase 2 — for ephemeral pane promotion).*

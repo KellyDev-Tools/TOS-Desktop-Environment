@@ -1,12 +1,16 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
-	import { connect, disconnect, getTosState, getConnectionState, submitCommand, sendCommand } from '$lib/stores/ipc.svelte';
+	import {
+		connect, disconnect, getTosState, getConnectionState,
+		submitCommand, sendCommand,
+		splitCreate, splitClose, splitFocusDirection, splitEqualize
+	} from '$lib/stores/ipc.svelte';
 	import {
 		getCurrentMode, setCurrentMode,
 		isSidebarLeftExpanded, isSidebarRightExpanded,
 		toggleSidebarLeft, toggleSidebarRight,
 		isSettingsOpen, isPortalModalOpen,
-		openSettings, toggleTerminalToFront,
+		openSettings, setSettingsTab, toggleTerminalToFront,
 		getPromptMode, setPromptMode,
 		type ViewMode, type PromptMode
 	} from '$lib/stores/ui.svelte';
@@ -148,6 +152,32 @@
 				toggleTerminalToFront();
 				return;
 			}
+
+			// Split Pane Controls (Only when not in input)
+			if (!isInput) {
+				if (e.key === '\\' || e.key === '-') {
+					e.preventDefault();
+					splitCreate();
+					return;
+				}
+
+				if (e.key === 'ArrowUp') { e.preventDefault(); splitFocusDirection('Up'); return; }
+				if (e.key === 'ArrowDown') { e.preventDefault(); splitFocusDirection('Down'); return; }
+				if (e.key === 'ArrowLeft') { e.preventDefault(); splitFocusDirection('Left'); return; }
+				if (e.key === 'ArrowRight') { e.preventDefault(); splitFocusDirection('Right'); return; }
+
+				if (e.key === 'W' && e.shiftKey) { // Ctrl+Shift+W to avoid browser close
+					e.preventDefault();
+					splitClose();
+					return;
+				}
+
+				if (e.key === '0') {
+					e.preventDefault();
+					splitEqualize();
+					return;
+				}
+			}
 		}
 	}
 </script>
@@ -181,6 +211,9 @@
 			<!-- Right Section: Status Badges -->
 			<div class="header-section header-right">
 				<StatusBadges />
+				<button class="bezel-btn" title="Open Portal" onclick={() => import('$lib/stores/ui.svelte').then(m => m.openPortalModal())}>⊕ PORTAL</button>
+				<button class="bezel-btn settings-btn" title="System Settings (Ctrl+,)" onclick={() => openSettings()}>⚙ SYS</button>
+				<button class="bezel-btn help-btn" title="Help & Onboarding" onclick={() => { setSettingsTab('global'); openSettings(); }}>?</button>
 				<button class="bezel-btn" title="Toggle Right Sidebar" onclick={() => toggleSidebarRight()}>▶</button>
 			</div>
 

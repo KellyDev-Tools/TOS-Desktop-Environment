@@ -39,7 +39,7 @@ impl Brain {
         let modules = Arc::new(ModuleManager::new(std::path::PathBuf::from("./modules")));
         services.ai.set_module_manager(modules.clone());
         
-        let shell_obj = ShellApi::new(state.clone(), modules.clone(), sid, hid)?;
+        let shell_obj = ShellApi::new(state.clone(), modules.clone(), services.ai.clone(), sid, hid)?;
         let shell = Arc::new(Mutex::new(shell_obj));
         let ipc = Arc::new(IpcHandler::new(state.clone(), shell.clone(), services.clone()));
         
@@ -61,6 +61,12 @@ impl Brain {
                 lock.settings = settings;
             }
             services.logger.log("Persistent settings loaded.", 1);
+        }
+
+        // --- Initialize AI Behaviors ---
+        {
+            let mut lock = state.lock().unwrap();
+            services.ai.register_defaults(&mut lock);
         }
 
         services.logger.log("Brain Core Initialized.", 2);

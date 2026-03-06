@@ -12,10 +12,11 @@ pub struct ShellApi {
     writer: Box<dyn Write + Send>,
     master: Box<dyn portable_pty::MasterPty + Send>,
     _child: Box<dyn Child + Send + Sync>,
+    ai: Arc<crate::services::AiService>,
 }
 
 impl ShellApi {
-    pub fn new(state: Arc<Mutex<TosState>>, modules: Arc<crate::brain::module_manager::ModuleManager>, sector_id: uuid::Uuid, hub_id: uuid::Uuid) -> anyhow::Result<Self> {
+    pub fn new(state: Arc<Mutex<TosState>>, modules: Arc<crate::brain::module_manager::ModuleManager>, ai: Arc<crate::services::AiService>, sector_id: uuid::Uuid, hub_id: uuid::Uuid) -> anyhow::Result<Self> {
         let pty_system = native_pty_system();
         let pair = pty_system.openpty(PtySize {
             rows: 24,
@@ -84,11 +85,12 @@ impl ShellApi {
         let writer = pair.master.take_writer()?;
 
         let state_clone = state.clone();
+        let ai_clone = ai.clone();
         let sid_clone = sector_id;
         let hid_clone = hub_id;
         let handle = tokio::runtime::Handle::current();
         thread::spawn(move || {
-            Self::read_loop(reader, state_clone, sid_clone, hid_clone, handle);
+            Self::read_loop(reader, state_clone, ai_clone, sid_clone, hid_clone, handle);
         });
 
         Ok(Self {
@@ -98,6 +100,7 @@ impl ShellApi {
             writer,
             master: pair.master,
             _child: child,
+            ai,
         })
     }
 
@@ -133,7 +136,7 @@ impl ShellApi {
         Ok(())
     }
 
-    fn read_loop(mut reader: Box<dyn Read + Send>, state: Arc<Mutex<TosState>>, sector_id: uuid::Uuid, hub_id: uuid::Uuid, handle: tokio::runtime::Handle) {
+    fn read_loop(mut reader: Box<dyn Read + Send>, state: Arc<Mutex<TosState>>, ai: Arc<crate::services::AiService>, sector_id: uuid::Uuid, hub_id: uuid::Uuid, handle: tokio::runtime::Handle) {
         let mut osc_parser = OscParser::new();
         let mut line_buffer = String::new();
         let mut buffer = [0u8; 4096];
@@ -190,7 +193,16 @@ impl ShellApi {
                                         OscEvent::DirectoryListing(listing) => {
                                             hub.shell_listing = Some(listing);
                                         }
-                                        OscEvent::CommandResult { .. } => {}
+                                        OscEvent::CommandResult { command, status, output } => {
+                                            if status != 0 {
+                                                let ai_trigger = ai.clone();
+                                                let cmd_trigger = command.clone();
+                                                let out_trigger = output.clone();
+                                                handle.spawn(async move {
+                                                    let _ = ai_trigger.passive_observe(&cmd_trigger, status, out_trigger.as_deref()).await;
+                                                });
+                                            }
+                                        }
                                         OscEvent::JsonContext(json) => {
                                             hub.json_context = Some(json);
                                         }

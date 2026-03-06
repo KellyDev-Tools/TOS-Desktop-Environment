@@ -83,6 +83,12 @@ impl IpcHandler {
             "ai_backend_set_default" => self.handle_ai_backend_set_default(args.get(0).copied()),
             "ai_backend_set_behavior" => self.handle_ai_backend_set_behavior(args.get(0).copied(), args.get(1).copied()),
             "ai_backend_clear_behavior" => self.handle_ai_backend_clear_behavior(args.get(0).copied()),
+            
+            // Bezel
+            "bezel_expand" => self.handle_bezel_expand(),
+            "bezel_collapse" => self.handle_bezel_collapse(),
+            "bezel_swipe" => self.handle_bezel_swipe(args.get(0).copied()),
+
             "split_create" => self.handle_split_create(args.get(0).copied(), args.get(1).copied()),
             "split_close" => self.handle_split_close(args.get(0).copied()),
             "split_focus" => self.handle_split_focus(args.get(0).copied()),
@@ -1095,12 +1101,47 @@ impl IpcHandler {
             .map(|b| b.context_fields.clone())
             .unwrap_or_else(|| vec![
                 "cwd".to_string(), "sector_name".to_string(), "shell".to_string(),
-                "last_command".to_string(), "mode".to_string(),
-            ]);
-
         let context_entries = ctx.filter_to_fields(&fields);
         let payload = serde_json::to_string(&context_entries).unwrap_or_else(|_| "[]".to_string());
-        format!("AI_CONTEXT: {}", payload)
+        format!("AI_CONTEXT_RETURNED: {} fields", fields.len())
+    }
+
+    // ----- Bezel Handlers -----
+
+    fn handle_bezel_expand(&self) -> String {
+        let mut state = self.state.lock().unwrap();
+        state.bezel_expanded = true;
+        state.version += 1;
+        "BEZEL_EXPANDED".to_string()
+    }
+
+    fn handle_bezel_collapse(&self) -> String {
+        let mut state = self.state.lock().unwrap();
+        state.bezel_expanded = false;
+        state.version += 1;
+        "BEZEL_COLLAPSED".to_string()
+    }
+
+    fn handle_bezel_swipe(&self, dir: Option<&str>) -> String {
+        let dir = dir.unwrap_or("Right");
+        let mut state = self.state.lock().unwrap();
+        let idx = state.active_sector_index;
+        if let Some(sector) = state.sectors.get_mut(idx) {
+            if !sector.active_apps.is_empty() {
+                if dir == "Right" {
+                    sector.active_app_index = (sector.active_app_index + 1) % sector.active_apps.len();
+                } else {
+                    if sector.active_app_index == 0 {
+                        sector.active_app_index = sector.active_apps.len() - 1;
+                    } else {
+                        sector.active_app_index -= 1;
+                    }
+                }
+                state.version += 1;
+                return format!("BEZEL_SWIPED: {}", dir);
+            }
+        }
+        "ERROR: No apps to swipe".to_string()
     }
 
     fn handle_ai_backend_set_default(&self, backend_id: Option<&str>) -> String {

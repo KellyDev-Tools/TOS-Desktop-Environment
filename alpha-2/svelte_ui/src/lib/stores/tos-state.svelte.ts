@@ -132,6 +132,7 @@ export interface TosState {
     available_ai_modules: AiModuleInfo[];
     active_ai_module: string;
     ai_behaviors: AiBehavior[];
+    bezel_expanded: boolean;
     ai_default_backend: string;
 }
 
@@ -178,6 +179,7 @@ export function getDefaultState(): TosState {
         available_ai_modules: [],
         active_ai_module: '',
         ai_behaviors: [],
-        ai_default_backend: ''
+        bezel_expanded: false,
+        ai_default_backend: 'tos-ai-standard'
     };
 }

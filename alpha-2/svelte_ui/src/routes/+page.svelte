@@ -19,6 +19,7 @@
 	import GlobalOverview from '$lib/components/views/GlobalOverview.svelte';
 	import CommandHub from '$lib/components/views/CommandHub.svelte';
 	import ApplicationFocus from '$lib/components/views/ApplicationFocus.svelte';
+	import Marketplace from '$lib/components/views/Marketplace.svelte';
 
 	// Module Components
 	import BrainStatus from '$lib/components/modules/BrainStatus.svelte';
@@ -79,10 +80,39 @@
 
 	let cmdInput = $state('');
 
+	import OnboardingOverlay from '$lib/components/OnboardingOverlay.svelte';
+	import ExpandedBezel from '$lib/components/ExpandedBezel.svelte';
+	import { bezelExpand } from '$lib/stores/ipc.svelte';
+
+	let cinematicActive = $state(false);
+	let cinematicStage = $state<'none' | 'sweep' | 'logs' | 'zoom'>('none');
+	let sessionPopoverOpen = $state(false);
+
 	onMount(() => {
 		connect();
+		
+		// Check for first run to trigger cinematic
+		const isFirstRun = getTosState().settings.global['tos.onboarding.first_run_complete'] !== 'true';
+		if (isFirstRun) {
+			startCinematic();
+		}
+
 		return () => disconnect();
 	});
+
+	function startCinematic() {
+		cinematicActive = true;
+		cinematicStage = 'sweep';
+		
+		setTimeout(() => { if (cinematicActive) cinematicStage = 'logs'; }, 4000);
+		setTimeout(() => { if (cinematicActive) cinematicStage = 'zoom'; }, 8000);
+		setTimeout(() => { if (cinematicActive) skipCinematic(); }, 12000);
+	}
+
+	function skipCinematic() {
+		cinematicActive = false;
+		cinematicStage = 'none';
+	}
 
 	async function handleSubmit(e: Event) {
 		e.preventDefault();
@@ -115,8 +145,13 @@
 		'TOS'
 	);
 
-	// Global keyboard shortcuts
 	function handleGlobalKeydown(e: KeyboardEvent) {
+		if (cinematicActive) {
+			e.preventDefault();
+			skipCinematic();
+			return;
+		}
+
 		// Don't intercept if typing in an input
 		const tag = (e.target as HTMLElement)?.tagName;
 		const isInput = tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT';
@@ -200,6 +235,32 @@
 				<div class="lcars-title-area">
 					<span class="lcars-prefix">{state.sys_prefix || 'ALPHA-2.2 // INTEL-DRIVEN'}</span>
 				</div>
+				
+				<!-- Sector Chip with Popover -->
+				{#if state.sectors[state.active_sector_index]}
+					{@const activeSec = state.sectors[state.active_sector_index]}
+					<div class="sector-chip-wrapper">
+						<button class="sector-name-chip" onclick={() => sessionPopoverOpen = !sessionPopoverOpen}>
+							<span class="live-pulse"></span>
+							{activeSec.name.toUpperCase()}
+						</button>
+						
+						{#if sessionPopoverOpen}
+							<div class="session-popover glass-panel" transition:fade={{duration: 200}}>
+								<div class="popover-header">SESSION_MANAGER</div>
+								<div class="popover-actions">
+									<button class="popover-btn" onclick={() => { /* sessionSave(); */ sessionPopoverOpen = false; }}>SAVE_SESSION</button>
+									<button class="popover-btn" onclick={() => { /* sessionExport(); */ sessionPopoverOpen = false; }}>EXPORT_JSON</button>
+									<div class="divider"></div>
+									<div class="popover-label">NAMED_SESSIONS</div>
+									<div class="session-list">
+										<div class="session-item empty">NO_NAMED_SESSIONS</div>
+									</div>
+								</div>
+							</div>
+						{/if}
+					</div>
+				{/if}
 			</div>
 
 			<!-- Center Section: Brain Status + Telemetry -->
@@ -259,12 +320,41 @@
 					<div class="viewport-content">
 						<SystemOutput />
 						<DisconnectOverlay />
+						<OnboardingOverlay />
+						<ExpandedBezel />
 
-						{#if connState === 'connected'}
+						{#if cinematicActive}
+							<!-- svelte-ignore a11y_click_events_have_key_events -->
+							<!-- svelte-ignore a11y_no_static_element_interactions -->
+							<div 
+								class="cinematic-overlay {cinematicStage}" 
+								transition:fade={{ duration: 1000 }}
+								onclick={skipCinematic}
+							>
+								{#if cinematicStage === 'sweep'}
+									<div class="sweep-grid"></div>
+									<div class="intro-title" in:scale={{ duration: 2000 }}>TOS // TACTICAL_OPERATING_SYSTEM</div>
+								{:else if cinematicStage === 'logs'}
+									<div class="boot-logs">
+										{#each state.system_log.slice(-30) as log}
+											<div class="boot-line">{log.text}</div>
+										{/each}
+									</div>
+								{:else if cinematicStage === 'zoom'}
+									<div class="zoom-effect"></div>
+								{/if}
+								
+								<div class="skip-hint">Press any key to skip</div>
+							</div>
+						{/if}
+
+						{#if connState === 'connected' && !cinematicActive}
 							{#if mode === 'global'}
 								<GlobalOverview />
 							{:else if mode === 'hubs'}
 								<CommandHub />
+							{:else if mode === 'marketplace'}
+								<Marketplace />
 							{:else if mode === 'sectors'}
 								<ApplicationFocus />
 							{:else if mode === 'detail'}
@@ -289,7 +379,17 @@
 			</div>
 
 			<!-- ═══════════ BOTTOM BEZEL ═══════════ -->
-			<footer class="lcars-footer {bottomBezelState}">
+			<!-- svelte-ignore a11y_click_events_have_key_events -->
+			<!-- svelte-ignore a11y_no_static_element_interactions -->
+			<footer 
+				class="lcars-footer {bottomBezelState}"
+				onclick={(e) => {
+					// Only expand if clicking the bezel area, not the inputs/buttons
+					if ((e.target as HTMLElement).classList.contains('lcars-bar')) {
+						bezelExpand();
+					}
+				}}
+			>
 				<div class="lcars-bar lcars-bar-bottom">
 					<div class="lcars-elbow bottom-left"></div>
 					<div class="lcars-input-area">
@@ -501,6 +601,125 @@
 		flex-direction: column;
 		min-width: 0;
 	}
+	/* ── Sector Chip & Session Popover ── */
+	.sector-chip-wrapper {
+		position: relative;
+		margin-left: 1rem;
+	}
+
+	.sector-name-chip {
+		background: rgba(255, 255, 255, 0.05);
+		border: 1px solid var(--color-primary);
+		color: var(--color-primary);
+		font-family: var(--font-display);
+		font-weight: 700;
+		font-size: 0.75rem;
+		padding: 4px 12px;
+		border-radius: var(--radius-pill);
+		display: flex;
+		align-items: center;
+		gap: 8px;
+		cursor: pointer;
+		transition: all 0.2s;
+	}
+
+	.sector-name-chip:hover {
+		background: var(--color-primary);
+		color: #000;
+	}
+
+	.live-pulse {
+		width: 8px;
+		height: 8px;
+		background: var(--color-primary);
+		border-radius: 50%;
+		box-shadow: 0 0 10px var(--color-primary);
+		animation: blink 2s infinite;
+	}
+
+	@keyframes blink {
+		0%, 100% { opacity: 1; transform: scale(1); }
+		50% { opacity: 0.3; transform: scale(0.8); }
+	}
+
+	.session-popover {
+		position: absolute;
+		top: 130%;
+		left: 0;
+		width: 200px;
+		background: rgba(10, 10, 20, 0.95);
+		border: 1px solid var(--color-border);
+		border-radius: 4px;
+		box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+		z-index: 1100;
+		display: flex;
+		flex-direction: column;
+		overflow: hidden;
+		backdrop-filter: blur(20px);
+	}
+
+	.popover-header {
+		background: rgba(255, 255, 255, 0.05);
+		padding: 8px 12px;
+		font-family: var(--font-mono);
+		font-size: 0.6rem;
+		font-weight: 700;
+		color: var(--color-text-dim);
+		border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+	}
+
+	.popover-actions {
+		padding: 10px;
+		display: flex;
+		flex-direction: column;
+		gap: 5px;
+	}
+
+	.popover-btn {
+		background: transparent;
+		border: none;
+		border-left: 3px solid var(--color-secondary);
+		color: var(--color-text);
+		text-align: left;
+		padding: 6px 12px;
+		font-family: var(--font-display);
+		font-weight: 600;
+		font-size: 0.7rem;
+		cursor: pointer;
+		transition: all 0.2s;
+	}
+
+	.popover-btn:hover {
+		background: rgba(255, 255, 255, 0.1);
+		border-left-width: 8px;
+	}
+
+	.divider {
+		height: 1px;
+		background: rgba(255, 255, 255, 0.1);
+		margin: 5px 0;
+	}
+
+	.popover-label {
+		font-size: 0.6rem;
+		font-family: var(--font-mono);
+		color: var(--color-text-muted);
+		margin-bottom: 5px;
+	}
+
+	.session-list {
+		max-height: 150px;
+		overflow-y: auto;
+	}
+
+	.session-item.empty {
+		font-size: 0.65rem;
+		color: var(--color-text-dim);
+		opacity: 0.5;
+		font-style: italic;
+		text-align: center;
+		padding: 10px;
+	}
 
 	.lcars-content-bezel {
 		flex: 1;
@@ -711,4 +930,101 @@
 		background: var(--color-secondary);
 		border-top-left-radius: var(--radius-elbow);
 	}
+	/* ── Cinematic Intro Styles ── */
+	.cinematic-overlay {
+		position: absolute;
+		top: 0;
+		left: 0;
+		right: 0;
+		bottom: 0;
+		z-index: 1000;
+		background: #000;
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		justify-content: center;
+		overflow: hidden;
+		cursor: pointer;
+	}
+
+	.sweep-grid {
+		position: absolute;
+		width: 200%;
+		height: 200%;
+		background: 
+			linear-gradient(90deg, var(--color-primary-dim) 1px, transparent 1px),
+			linear-gradient(var(--color-primary-dim) 1px, transparent 1px);
+		background-size: 50px 50px;
+		animation: sweepMove 20s linear infinite;
+		mask-image: radial-gradient(circle at center, black 0%, transparent 70%);
+	}
+
+	@keyframes sweepMove {
+		from { transform: rotate(15deg) translateY(0); }
+		to { transform: rotate(15deg) translateY(-200px); }
+	}
+
+	.intro-title {
+		font-family: var(--font-display);
+		font-weight: 700;
+		font-size: 2.2rem;
+		letter-spacing: 0.15em;
+		color: var(--color-primary);
+		text-shadow: 0 0 20px var(--color-primary);
+		z-index: 2;
+	}
+
+	.boot-logs {
+		width: 80%;
+		height: 70%;
+		font-family: var(--font-mono);
+		font-size: 0.75rem;
+		color: var(--color-success);
+		padding: 40px;
+		display: flex;
+		flex-direction: column;
+		justify-content: flex-end;
+		gap: 2px;
+		overflow: hidden;
+		mask-image: linear-gradient(to top, black 80%, transparent 100%);
+	}
+
+	.boot-line {
+		animation: slideUpLog 0.1s ease-out;
+		opacity: 0.7;
+	}
+
+	@keyframes slideUpLog {
+		from { transform: translateY(10px); opacity: 0; }
+		to { transform: translateY(0); opacity: 0.7; }
+	}
+
+	.zoom-effect {
+		position: absolute;
+		width: 100%;
+		height: 100%;
+		border: 2px solid var(--color-primary);
+		animation: kineticZoom 4s ease-in forwards;
+	}
+
+	@keyframes kineticZoom {
+		from { transform: scale(0.5); opacity: 0; }
+		to { transform: scale(1.5); opacity: 1; border-width: 50px; }
+	}
+
+	.skip-hint {
+		position: absolute;
+		bottom: 40px;
+		font-family: var(--font-display);
+		font-size: 0.7rem;
+		letter-spacing: 0.2em;
+		color: var(--color-text-dim);
+		animation: pulse 2s infinite;
+	}
+
+	@keyframes pulse {
+		0%, 100% { opacity: 0.3; }
+		50% { opacity: 0.7; }
+	}
 </style>
+

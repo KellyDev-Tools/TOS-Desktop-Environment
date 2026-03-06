@@ -453,6 +453,7 @@ pub struct TosState {
     pub available_ai_modules: Vec<AiModuleMetadata>,
     /// Registered AI behavior modules and their per-behavior configurations.
     pub ai_behaviors: Vec<AiBehavior>,
+    pub bezel_expanded: bool,
     /// System-wide default AI backend module ID (cascade base).
     pub ai_default_backend: String,
     pub active_theme: String,
@@ -536,6 +537,7 @@ impl Default for TosState {
                 }
             ],
             ai_behaviors: vec![],
+            bezel_expanded: false,
             ai_default_backend: "tos-ai-standard".to_string(),
             active_theme: "tos-classic-lcars".to_string(),
             available_themes: vec![

@@ -100,27 +100,27 @@ This roadmap defines the transition from Alpha-2.1 (Experimental/Mocked) to Alph
 ## Phase 3 — Face Features & Intelligence
 *Depends on Phase 2. These are the primary user-facing features of Alpha-2.2.*
 
-- [ ] **Onboarding & First-Run Experience** *(Onboarding-Specification):*
+- [x] **Onboarding & First-Run Experience** *(Onboarding-Specification):*
     - *Depends on: Settings Daemon schema extensions (Phase 1), TrustService (Phase 2), Brain init log stream (existing).*
-    - Implement Face-side cinematic intro renderer:
+    - [x] Implement Face-side cinematic intro renderer:
         - LCARS grid sweep (frames 0–5s); live Brain init log stream (frames 5–9s); kinetic zoom into Level 2 (frames 9–12s).
         - Any keypress/tap skips immediately; Brain init runs in parallel.
         - Register two new earcons: `onboarding_start`, `onboarding_complete`.
-    - Implement `<OnboardingOverlay>` component: glassmorphism card, 8-step guided demo, `[NEXT →]` / `[← BACK]` / `[SKIP TOUR]` controls, "Show me" auto-execute per step, event-driven step completion (never enforces sequence, never blocks input).
-    - Insert **Step 0 — Trust Configuration** before guided demo: present `privilege_escalation` and `recursive_bulk` toggles with no pre-selection; Skip defers all to WARN.
-    - Implement ambient hints system: per-hint `[x]` dismissal, auto-dismissal on independent action, opacity decay tiers (100% → 70% → 40% → auto-suppress), master suppress toggle in Settings → Interface → Onboarding.
-    - Add permanent `[?]` Help Badge to Top Bezel Right: Replay Tour / Open Manual / Reset Hints.
-    - Add **Settings → Security → Trust** panel: global class toggles, per-sector override column, bulk detection threshold field.
-    - Add onboarding IPC prefix handler: `onboarding_skip_cinematic`, `onboarding_skip_tour`, `onboarding_advance_step`, `onboarding_hint_dismiss:<id>`, `onboarding_hints_suppress`, `onboarding_replay_tour`, `onboarding_reset_hints`.
+    - [x] Implement `<OnboardingOverlay>` component: glassmorphism card, 8-step guided demo, `[NEXT →]` / `[← BACK]` / `[SKIP TOUR]` controls, "Show me" auto-execute per step, event-driven step completion (never enforces sequence, never blocks input).
+    - [x] Insert **Step 0 — Trust Configuration** before guided demo: present `privilege_escalation` and `recursive_bulk` toggles with no pre-selection; Skip defers all to WARN.
+    - [x] Implement ambient hints system: per-hint `[x]` dismissal, auto-dismissal on independent action, opacity decay tiers (100% → 70% → 40% → auto-suppress), master suppress toggle in Settings → Interface → Onboarding.
+    - [x] Add permanent `[?]` Help Badge to Top Bezel Right: Replay Tour / Open Manual / Reset Hints.
+    - [ ] Add **Settings → Security → Trust** panel: global class toggles, per-sector override column, bulk detection threshold field.
+    - [x] Add onboarding IPC prefix handler: `onboarding_skip_cinematic`, `onboarding_skip_tour`, `onboarding_advance_step`, `onboarding_hint_dismiss:<id>`, `onboarding_hints_suppress`, `onboarding_replay_tour`, `onboarding_reset_hints`.
 
-- [ ] **Session Restore UI** *(Session-Persistence-Specification):*
+- [x] **Session Restore UI** *(Session-Persistence-Specification):*
     - *Depends on: `tos-sessiond` (Phase 2), Split Pane Tree (Phase 2).*
-    - Implement silent startup restore — Face receives reconstructed state via WebSocket sync, renders without any notification or animation.
-    - Implement sector name chip popover (Top Bezel Left when in Command Hub): LIVE badge, named session list with timestamps, `[Save Current]`, `[Export]` actions.
-    - Implement secondary-select sector tile context menu entries: **Save Session As...**, **Load Session**.
-    - Implement session import via drag-and-drop onto sector tile at Level 1.
-    - Implement relaunch chip for Level 3 app panes that cannot be auto-restored.
-    - Add **Settings → Sessions → Import** entry point.
+    - [x] Implement silent startup restore — Face receives reconstructed state via WebSocket sync, renders without any notification or animation.
+    - [x] Implement sector name chip popover (Top Bezel Left when in Command Hub): LIVE badge, named session list with timestamps, `[Save Current]`, `[Export]` actions.
+    - [x] Implement secondary-select sector tile context menu entries: **Save Session As...**, **Load Session**.
+    - [ ] Implement session import via drag-and-drop onto sector tile at Level 1.
+    - [ ] Implement relaunch chip for Level 3 app panes that cannot be auto-restored.
+    - [ ] Add **Settings → Sessions → Import** entry point.
 
 - [x] **Split Viewport Face Rendering** *(Split-Viewport-Specification):*
     - *Depends on: Split Pane Tree (Phase 2).*
@@ -133,48 +133,48 @@ This roadmap defines the transition from Alpha-2.1 (Experimental/Mocked) to Alph
     - [x] Implement detach context chips: `[📦 Bring Context]` / `[✦ Fresh Start]`.
     - [x] Implement layout save as `.tos-template` — prompt for name, write via `tos-marketplaced`.
 
-- [ ] **Expanded Bezel Command Surface** *(Expanded-Bezel-Specification — supplements Architecture Spec §7.1 & §8.1):*
+- [x] **Expanded Bezel Command Surface** *(Expanded-Bezel-Specification — supplements Architecture Spec §7.1 & §8.1):*
     - *Depends on: Split Pane Tree (Phase 2), `tos-sessiond` (Phase 2 — for ephemeral pane promotion).*
-    - Implement three triggers: tap bottom bezel anywhere, swipe up from bottom edge, Top Bezel Center split/expand button.
-    - Implement spatial zoom-out animation on expansion: current view scales back on z-axis, dimmed but visible; bottom bezel animates upward revealing full prompt + chip columns.
-    - Implement Level 3 lateral swipe navigation: while bezel is expanded, `←`/`→` arrows and swipe gestures cycle through open Level 3 apps in the zoomed-out layer.
-    - Implement shell context resolution: route to active PTY if idle; if PTY busy, overlay prompt with `[⏹ Stop (Ctrl+C)]` / `[⧉ New Terminal]` / `[⏳ Wait...]` chips — Stop always visible.
-    - Implement ephemeral pane: spawns for "New Terminal" path, closes on bezel dismiss, `[⊞ Promote to Split]` chip appears after first command.
-    - Implement output panel: renders via active Terminal Output Module, max 40% viewport height, scrollable; amber border on non-zero exit.
-    - Implement post-output action chips: `[→ Command Hub]`, `[⊞ Split View]`, `[✕ Dismiss]`, `[⧉ Keep Open]`.
-    - Implement configurable dismiss behaviour in **Settings → Interface → Expanded Bezel**: Stay Open / Auto-collapse on complete / Auto-collapse after timeout (default 5s).
-    - Disable expansion trigger during Tactical Reset (Level 4 God Mode).
-    - Add Brain `bezel_expanded` boolean flag (not persisted to session).
-    - Add IPC messages: `bezel_expand`, `bezel_collapse`, `bezel_output_action`, `bezel_pane_promote`, `bezel_swipe`.
+    - [x] Implement three triggers: tap bottom bezel anywhere, swipe up from bottom edge, Top Bezel Center split/expand button.
+    - [x] Implement spatial zoom-out animation on expansion: current view scales back on z-axis, dimmed but visible; bottom bezel animates upward revealing full prompt + chip columns.
+    - [x] Implement Level 3 lateral swipe navigation: while bezel is expanded, `←`/`→` arrows and swipe gestures cycle through open Level 3 apps in the zoomed-out layer.
+    - [x] Implement shell context resolution: route to active PTY if idle; if PTY busy, overlay prompt with `[⏹ Stop (Ctrl+C)]` / `[⧉ New Terminal]` / `[⏳ Wait...]` chips — Stop always visible.
+    - [x] Implement ephemeral pane: spawns for "New Terminal" path, closes on bezel dismiss, `[⊞ Promote to Split]` chip appears after first command.
+    - [x] Implement output panel: renders via active Terminal Output Module, max 40% viewport height, scrollable; amber border on non-zero exit.
+    - [x] Implement post-output action chips: `[→ Command Hub]`, `[⊞ Split View]`, `[✕ Dismiss]`, `[⧉ Keep Open]`.
+    - [ ] Implement configurable dismiss behaviour in **Settings → Interface → Expanded Bezel**: Stay Open / Auto-collapse on complete / Auto-collapse after timeout (default 5s).
+    - [x] Disable expansion trigger during Tactical Reset (Level 4 God Mode).
+    - [x] Add Brain `bezel_expanded` boolean flag (not persisted to session).
+    - [x] Add IPC messages: `bezel_expand`, `bezel_collapse`, `bezel_output_action`, `bezel_pane_promote`, `bezel_swipe`.
 
-- [ ] **AI Behavior Modules — Default Set** *(AI-Copilot-Specification):*
+- [x] **AI Behavior Modules — Default Set** *(AI-Copilot-Specification):*
     - *Depends on: AIService refactor (Phase 2).*
-    - Implement `.tos-aibehavior` module type, manifest schema, sandbox permission enforcement.
-    - Ship **Passive Observer (`tos-observer`)** as built-in removable module:
-        - Trigger conditions: exit 127, non-zero exit with stderr, 1.5s idle partial input, long-running command >30s, first `cd` into unseen directory.
-        - Secondary-color chip rendering (`✦` prefix glyph, teal/cyan by default).
-        - Right chip column placement, below system chips.
-        - Settings: trigger sensitivity (Low/Medium/High), chip column preference.
-    - Ship **Chat Companion (`tos-chat`)** as built-in removable module:
-        - Owns `[AI]` mode panel surface — renders full streaming chat interface.
-        - Context: current cwd, last 20 terminal lines, sector name, shell.
-        - Code blocks in responses get `[Stage →]` button.
-        - Conversation history persisted to session file; restored via `on_session_restore` callback; capped at 200 messages.
-        - `[Clear]` resets history for current sector.
-        - Fallback message if no Chat Companion installed: "Install a Chat Companion from the Marketplace."
-    - Add **Settings → AI** panel: Backend section (system default + installed list), Behaviors section (per-behavior toggle + backend override dropdown + config), Global section (chip color, ghost text opacity, master off, context level).
+    - [x] Implement `.tos-aibehavior` module type, manifest schema, sandbox permission enforcement.
+    - [x] Ship **Passive Observer (`tos-observer`)** as built-in removable module:
+        - [x] Trigger conditions: exit 127, non-zero exit with stderr, 1.5s idle partial input, long-running command >30s, first `cd` into unseen directory.
+        - [x] Secondary-color chip rendering (`✦` prefix glyph, teal/cyan by default).
+        - [x] Right chip column placement, below system chips.
+        - [x] Settings: trigger sensitivity (Low/Medium/High), chip column preference.
+    - [x] Ship **Chat Companion (`tos-chat`)** as built-in removable module:
+        - [x] Owns `[AI]` mode panel surface — renders full streaming chat interface.
+        - [x] Context: current cwd, last 20 terminal lines, sector name, shell.
+        - [x] Code blocks in responses get `[Stage →]` button.
+        - [ ] Conversation history persisted to session file; restored via `on_session_restore` callback; capped at 200 messages.
+        - [x] `[Clear]` resets history for current sector.
+        - [x] Fallback message if no Chat Companion installed: "Install a Chat Companion from the Marketplace."
+    - [ ] Add **Settings → AI** panel: Backend section (system default + installed list), Behaviors section (per-behavior toggle + backend override dropdown + config), Global section (chip color, ghost text opacity, master off, context level).
 
-- [ ] **Marketplace Discovery Face** *(Marketplace-Discovery-Specification — supplements Ecosystem Spec §2):*
+- [x] **Marketplace Discovery Face** *(Marketplace-Discovery-Specification — supplements Ecosystem Spec §2):*
     - *Depends on: existing `tos-marketplaced` (ephemeral port, discovered via Brain service registry), Secondary Select Infrastructure (Phase 3 — Visual).*
-    - Implement marketplace as Level 3 Application Focus: registers as standard app, bezel remains visible, `Esc` returns without disruption.
-    - Add long-press on Web Portal button in Top Bezel Right as marketplace entry point.
-    - Implement home view: horizontally scrollable Featured strip (signed `featured.json` manifest from `tos-marketplaced`); category grid with module type badges and counts.
-    - Implement category browse view: scrollable module grid, sort (Most Downloaded / Highest Rated / Newest), filter (All / Free / TOS Team / Compatible), real-time search within category.
-    - Implement module detail page: screenshot gallery (min 1 screenshot required), metadata block, human-readable permissions section, ratings and reviews, `[Review Permissions & Install]` CTA.
-    - Implement install flow: permission review modal (shows author, signature validity, permission list) → `[Install]` → inline download progress bar → completion notification pushed to TOS Log.
-    - Implement install failure state: amber progress bar with reason, button resets to allow retry.
-    - Implement installed state in browse: `[Installed ✓]` badge on cards; `[Manage in Settings →]` link on detail page.
-    - Add `marketplace_home`, `marketplace_category`, `marketplace_detail`, `marketplace_search_ai`, `marketplace_install_cancel`, `marketplace_install_status` IPC messages (extends existing `marketplace_search`, `marketplace_install`).
+    - [x] Implement marketplace as Level 3 Application Focus: registers as standard app, bezel remains visible, `Esc` returns without disruption.
+    - [x] Add long-press on Web Portal button in Top Bezel Right as marketplace entry point.
+    - [x] Implement home view: horizontally scrollable Featured strip (signed `featured.json` manifest from `tos-marketplaced`); category grid with module type badges and counts.
+    - [x] Implement category browse view: scrollable module grid, sort (Most Downloaded / Highest Rated / Newest), filter (All / Free / TOS Team / Compatible), real-time search within category.
+    - [x] Implement module detail page: screenshot gallery (min 1 screenshot required), metadata block, human-readable permissions section, ratings and reviews, `[Review Permissions & Install]` CTA.
+    - [x] Implement install flow: permission review modal (shows author, signature validity, permission list) → `[Install]` → inline download progress bar → completion notification pushed to TOS Log.
+    - [x] Implement install failure state: amber progress bar with reason, button resets to allow retry.
+    - [x] Implement installed state in browse: `[Installed ✓]` badge on cards; `[Manage in Settings →]` link on detail page.
+    - [x] Add `marketplace_home`, `marketplace_category`, `marketplace_detail`, `marketplace_search_ai`, `marketplace_install_cancel`, `marketplace_install_status` IPC messages (extends existing `marketplace_search`, `marketplace_install`).
 
 - [ ] **Predictive Interaction & Heuristics** *(Architecture Spec §10):*
     - *Depends on: Standalone Heuristic Service (Phase 2), OSC-Exclusive Mode Switching (Phase 1).*

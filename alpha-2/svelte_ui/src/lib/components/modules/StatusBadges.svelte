@@ -4,6 +4,7 @@
 
 <div class="status-badges">
 	<button class="bezel-btn" title="Toggle Terminal" onclick={() => toggleTerminalToFront()}>👁</button>
+	<button class="bezel-btn" title="Marketplace" onclick={() => setCurrentMode('marketplace')}>⊞</button>
 	<button class="bezel-btn" title="Web Portal" onclick={() => openPortalModal()}>📡</button>
 	<button class="bezel-btn" title="Settings" onclick={() => openSettings()}>⚙</button>
 </div>

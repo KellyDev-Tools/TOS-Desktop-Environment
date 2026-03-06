@@ -108,6 +108,29 @@ impl AiService {
         *self.modules.lock().unwrap() = Some(modules);
     }
 
+    /// Register the built-in behaviors (tos-chat, tos-observer) into the system state.
+    pub fn register_defaults(&self, state: &mut TosState) {
+        // 1. Chat Companion
+        self.register_behavior(state, AiBehavior {
+            id: "tos-chat".to_string(),
+            name: "Chat Companion".to_string(),
+            enabled: true,
+            backend_override: None,
+            context_fields: vec!["cwd".to_string(), "sector_name".to_string(), "shell".to_string(), "terminal_tail".to_string(), "last_command".to_string(), "mode".to_string()],
+            config: std::collections::HashMap::new(),
+        });
+
+        // 2. Passive Observer
+        self.register_behavior(state, AiBehavior {
+            id: "tos-observer".to_string(),
+            name: "Passive Observer".to_string(),
+            enabled: true,
+            backend_override: None,
+            context_fields: vec!["cwd".to_string(), "terminal_tail".to_string(), "last_command".to_string()],
+            config: [("sensitivity".to_string(), "Medium".to_string())].iter().cloned().collect(),
+        });
+    }
+
     // --- Behavior Registry Ops ---
 
     pub fn register_behavior(&self, state: &mut TosState, behavior: AiBehavior) {
@@ -238,6 +261,63 @@ impl AiService {
 
         let payload = json!({ "command": command, "explanation": explanation });
         let _ = ipc.dispatch(&format!("ai_stage_command:{}", payload));
+        Ok(())
+    }
+
+    /// Observe a command result and trigger the passive observer if conditions match.
+    pub async fn passive_observe(&self, command: &str, status: i32, stderr: Option<&str>) -> anyhow::Result<()> {
+        let ipc = self.ipc.lock().unwrap().clone()
+            .ok_or_else(|| anyhow::anyhow!("IPC dispatcher not set"))?;
+
+        let state_json = ipc.dispatch("get_state:");
+        let clean_json = state_json.split(" (").next().unwrap_or(&state_json);
+        let state: TosState = serde_json::from_str(clean_json)?;
+
+        // Only proceed if tos-observer is enabled
+        let observer = state.ai_behaviors.iter().find(|b| b.id == "tos-observer");
+        if observer.is_none() || !observer.unwrap().enabled {
+            return Ok(());
+        }
+
+        // Trigger conditions: exit 127 (not found) or non-zero with error output
+        if status == 127 || (status != 0 && stderr.is_some()) {
+            let ctx = build_context(&state);
+            let backend_id = self.resolve_backend(&state, "tos-observer").to_string();
+            
+            let maybe_modules = self.modules.lock().unwrap().clone();
+            if let Some(modules) = maybe_modules {
+                if let Ok(ai_mod) = modules.load_ai(&backend_id) {
+                    let prompt = format!(
+                        "COMMAND FAILED: '{}' with status {}. Stderr: '{}'. \
+                         Analyze the error and provide a one-line JSON FIX: \
+                         {{\"command\": \"<staged_fix>\", \"explanation\": \"<short_description>\"}}.",
+                        command, status, stderr.unwrap_or("none")
+                    );
+                    
+                    let req = crate::common::modules::AiQuery {
+                        prompt,
+                        context: ctx.filter_to_fields(&["cwd", "terminal_tail", "last_command"].iter().map(|s| s.to_string()).collect::<Vec<_>>()),
+                        stream: false,
+                    };
+
+                    if let Ok(resp) = ai_mod.query(req) {
+                        if let Ok(parsed) = serde_json::from_str::<serde_json::Value>(&resp.choice.content) {
+                            let cmd = parsed["command"].as_str().unwrap_or("").to_string();
+                            let expl = parsed["explanation"].as_str().unwrap_or("").to_string();
+                            if !cmd.is_empty() {
+                                let payload = json!({ 
+                                    "behavior": "tos-observer", 
+                                    "command": cmd, 
+                                    "explanation": format!("✦ OBSERVER: {}", expl) 
+                                });
+                                let _ = ipc.dispatch(&format!("ai_stage_command:{}", payload));
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
         Ok(())
     }
 

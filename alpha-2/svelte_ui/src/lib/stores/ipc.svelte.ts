@@ -217,3 +217,55 @@ export async function splitFullscreenExit(): Promise<void> {
     await sendCommand('split_fullscreen_exit');
 }
 
+// --- Onboarding Helpers ---
+
+export async function onboardingSkipCinematic(): Promise<void> {
+    await sendCommand('onboarding_skip_cinematic');
+}
+
+export async function onboardingSkipTour(): Promise<void> {
+    await sendCommand('onboarding_skip_tour');
+}
+
+export async function onboardingAdvanceStep(step?: number): Promise<void> {
+    const payload = step !== undefined ? `${step}` : '';
+    await sendCommand(`onboarding_advance_step:${payload}`);
+}
+
+export async function onboardingHintDismiss(id: string): Promise<void> {
+    await sendCommand(`onboarding_hint_dismiss:${id}`);
+}
+
+export async function onboardingHintsSuppress(): Promise<void> {
+    await sendCommand('onboarding_hints_suppress');
+}
+
+export async function onboardingReplayTour(): Promise<void> {
+    await sendCommand('onboarding_replay_tour');
+}
+
+export async function onboardingResetHints(): Promise<void> {
+    await sendCommand('onboarding_reset_hints');
+}
+
+// --- Bezel Helpers ---
+
+export async function bezelExpand(): Promise<void> {
+    await sendCommand('bezel_expand');
+}
+
+export async function bezelCollapse(): Promise<void> {
+    await sendCommand('bezel_collapse');
+}
+
+export async function bezelOutputAction(action: string): Promise<void> {
+    await sendCommand(`bezel_output_action:${action}`);
+}
+
+export async function bezelPanePromote(): Promise<void> {
+    await sendCommand('bezel_pane_promote');
+}
+
+export async function bezelSwipe(dir: 'Left' | 'Right'): Promise<void> {
+    await sendCommand(`bezel_swipe:${dir}`);
+}

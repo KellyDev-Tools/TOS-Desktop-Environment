@@ -424,6 +424,16 @@
 							{/if}
 						</div>
 
+                        <div class="settings-footer-action">
+                            <button class="lcars-btn marketplace-jump" onclick={() => {
+                                import('$lib/stores/ui.svelte').then(m => m.setCurrentMode('marketplace'));
+                                sendCommand('set_mode:marketplace');
+                                closeSettings();
+                            }}>
+                                <span class="nav-icon">⊞</span> BROWSE MARKETPLACE
+                            </button>
+                        </div>
+
 					<!-- ═══ SECTORS TAB ═══ -->
 					{:else if activeTab === 'sectors'}
 						<div class="settings-group">
@@ -609,6 +619,30 @@
 		width: 12rem;
 	}
 	.settings-input:focus { border-color: var(--color-primary); }
+    
+    .settings-footer-action {
+        margin-top: 40px;
+        display: flex;
+        justify-content: center;
+    }
+    
+    .marketplace-jump {
+        width: 100%;
+        gap: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: linear-gradient(135deg, var(--color-primary), var(--color-accent)) !important;
+        color: black !important;
+        font-weight: 800;
+        border: none;
+        box-shadow: 0 4px 15px rgba(247, 168, 51, 0.2);
+    }
+    
+    .marketplace-jump:hover {
+        box-shadow: 0 6px 20px rgba(247, 168, 51, 0.4);
+        transform: translateY(-2px);
+    }
 
 	.settings-select {
 		background: var(--color-surface-raised);

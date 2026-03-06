@@ -340,6 +340,15 @@
 						{level.key}
 					</button>
 				{/each}
+				<div class="sidebar-divider"></div>
+				<button
+					class="lcars-btn market-btn"
+					class:active={mode === 'marketplace'}
+					onclick={() => { setCurrentMode('marketplace'); sendCommand('set_mode:marketplace'); }}
+					title="Marketplace (⊞)"
+				>
+					⊞
+				</button>
 			</div>
 			<div class="sidebar-modules">
 				<Minimap />
@@ -703,6 +712,24 @@
 		background: rgba(247, 168, 51, 0.12);
 		color: var(--color-primary);
 	}
+
+    .sidebar-divider {
+        height: 1px;
+        background: rgba(255, 255, 255, 0.1);
+        margin: 10px 4px;
+    }
+
+    .market-btn {
+        background: rgba(92, 136, 218, 0.1) !important;
+        border: 1px solid rgba(92, 136, 218, 0.2) !important;
+        color: var(--color-secondary) !important;
+    }
+
+    .market-btn.active {
+        background: var(--color-secondary) !important;
+        color: #000 !important;
+        box-shadow: 0 0 15px var(--color-secondary);
+    }
 
 	/* ── Content Area ── */
 	.lcars-content-area {

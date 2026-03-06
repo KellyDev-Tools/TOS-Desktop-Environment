@@ -295,3 +295,8 @@ export async function marketplaceGetStatus(id: string): Promise<any> {
     const raw = await sendCommand(`marketplace_status:${id}`);
     return raw ? JSON.parse(raw) : null;
 }
+
+export async function marketplaceSearchAi(query: string): Promise<any> {
+    const raw = await sendCommand(`marketplace_search_ai:${query}`);
+    return raw ? JSON.parse(raw) : null;
+}

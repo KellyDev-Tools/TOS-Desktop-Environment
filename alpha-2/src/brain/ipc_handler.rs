@@ -97,6 +97,10 @@ impl IpcHandler {
                 });
                 "AI_SUBMITTED".to_string()
             }
+            "tactical_kill_switch" => self.handle_tactical_kill_switch(),
+            "process_inspect" => self.handle_process_inspect(args.get(0).copied()),
+            "process_renice" => self.handle_process_renice(args.get(0).copied(), args.get(1).copied()),
+            "process_signal" => self.handle_process_signal(args.get(0).copied(), args.get(1).copied()),
             
             // Bezel
             "bezel_expand" => self.handle_bezel_expand(),
@@ -217,6 +221,20 @@ impl IpcHandler {
                     });
                     state.version += 1;
                     return "CONFIRMATION_REQUIRED".to_string();
+                }
+            }
+        }
+
+        {
+            let mut state_lock = self.state.lock().unwrap();
+            let idx = state_lock.active_sector_index;
+            if let Some(sector) = state_lock.sectors.get_mut(idx) {
+                let hub_idx = sector.active_hub_index;
+                if let Some(hub) = sector.hubs.get_mut(hub_idx) {
+                    hub.is_running = true;
+                    hub.last_exit_status = None;
+                    hub.json_context = None;
+                    state_lock.version += 1;
                 }
             }
         }
@@ -709,6 +727,66 @@ impl IpcHandler {
         "ERROR: Invalid arguments for log".to_string()
     }
 
+    fn handle_tactical_kill_switch(&self) -> String {
+        tracing::warn!("TACTICAL KILL SWITCH ACTIVATED!");
+        let mut state = self.state.lock().unwrap();
+        // Disconnect all sectors as a form of reset
+        for sector in state.sectors.iter_mut() {
+            sector.frozen = true;
+            sector.disconnected = true;
+        }
+        state.version += 1;
+        state.system_log.push(crate::common::TerminalLine {
+            text: "[CRITICAL] LEVEL 4 TACTICAL RESET EXECUTED".to_string(),
+            priority: 3,
+            timestamp: chrono::Local::now(),
+        });
+        "TACTICAL_RESET_EXECUTED".to_string()
+    }
+
+    fn handle_process_inspect(&self, pid: Option<&str>) -> String {
+        if let Some(pid_str) = pid {
+            return format!("PROCESS_INSPECTED: {}", pid_str);
+        }
+        "ERROR: Missing PID".to_string()
+    }
+
+    fn handle_process_renice(&self, pid: Option<&str>, adjustment: Option<&str>) -> String {
+        if let (Some(pid_str), Some(adj_str)) = (pid, adjustment) {
+            // Run renice command
+            let output = std::process::Command::new("renice")
+                .arg("-n")
+                .arg(adj_str)
+                .arg("-p")
+                .arg(pid_str)
+                .output();
+            if let Ok(out) = output {
+                if out.status.success() {
+                    return format!("PROCESS_RENICED: {}", pid_str);
+                }
+            }
+            return "ERROR: Renice failed".to_string();
+        }
+        "ERROR: Missing arguments".to_string()
+    }
+
+    fn handle_process_signal(&self, pid: Option<&str>, signal: Option<&str>) -> String {
+        if let (Some(pid_str), Some(sig_str)) = (pid, signal) {
+            let output = std::process::Command::new("kill")
+                .arg(format!("-s"))
+                .arg(sig_str)
+                .arg(pid_str)
+                .output();
+            if let Ok(out) = output {
+                if out.status.success() {
+                    return format!("PROCESS_SIGNALED: {}", pid_str);
+                }
+            }
+            return "ERROR: Signal failed".to_string();
+        }
+        "ERROR: Missing arguments".to_string()
+    }
+
     fn handle_get_state(&self) -> String {
         let state = self.state.lock().unwrap();
         serde_json::to_string(&*state).unwrap_or_else(|_| "ERROR: Serialization failed".to_string())
@@ -720,23 +798,27 @@ impl IpcHandler {
     }
 
     fn handle_heuristic_query(&self, keyword: Option<&str>) -> String {
-        let keyword = keyword.unwrap_or("");
-        let state = self.state.lock().unwrap();
-        let idx = state.active_sector_index;
-        let cwd = state.sectors.get(idx)
-            .and_then(|s| s.hubs.get(s.active_hub_index))
-            .map(|h| h.current_directory.display().to_string())
-            .unwrap_or_else(|| "/".to_string());
+        let keyword = keyword.unwrap_or("").to_string();
+        let cwd = {
+            let state = self.state.lock().unwrap();
+            let idx = state.active_sector_index;
+            state.sectors.get(idx)
+                .and_then(|s| s.hubs.get(s.active_hub_index))
+                .map(|h| h.current_directory.display().to_string())
+                .unwrap_or_else(|| "/".to_string())
+        };
         
         let svc = self.services.heuristic.clone();
         
-        // We need to run this in a block_on or return a placeholder if we want to be truly async,
-        // but for now the dispatch is sync. I'll use a local runtime or just handle the future.
-        let rt = tokio::runtime::Handle::current();
-        match rt.block_on(async move { svc.query(keyword, &cwd).await }) {
-            Ok(json) => json,
-            Err(e) => format!("ERROR: Heuristic query failed: {}", e),
-        }
+        // Use block_in_place to prevent "Cannot start a runtime from within a runtime" panic
+        tokio::task::block_in_place(move || {
+            tokio::runtime::Handle::current().block_on(async move {
+                match svc.query(&keyword, &cwd).await {
+                    Ok(json) => json,
+                    Err(e) => format!("ERROR: Heuristic query failed: {}", e),
+                }
+            })
+        })
     }
 
     fn handle_play_earcon(&self, name: Option<&str>) -> String {

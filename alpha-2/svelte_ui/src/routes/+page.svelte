@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
-	import { slide } from 'svelte/transition';
+	import { slide, scale, fade } from 'svelte/transition';
 	import {
 		connect, disconnect, getTosState, getConnectionState,
 		submitCommand, sendCommand,
@@ -21,6 +21,7 @@
 	import CommandHub from '$lib/components/views/CommandHub.svelte';
 	import ApplicationFocus from '$lib/components/views/ApplicationFocus.svelte';
 	import Marketplace from '$lib/components/views/Marketplace.svelte';
+	import DetailInspector from '$lib/components/views/DetailInspector.svelte';
 
 	// Module Components
 	import BrainStatus from '$lib/components/modules/BrainStatus.svelte';
@@ -360,8 +361,7 @@
 					</div>
 
 					<!-- Viewport Content -->
-					<div class="viewport-content">
-						<SystemOutput />
+					<div class="viewport-content" class:bezel-zoomed={state.bezel_expanded}>
 						<DisconnectOverlay />
 						<OnboardingOverlay />
 						<ExpandedBezel />
@@ -392,28 +392,39 @@
 						{/if}
 
 						{#if connState === 'connected' && !cinematicActive}
-							{#if mode === 'global'}
-								<GlobalOverview />
-							{:else if mode === 'hubs'}
-								<CommandHub />
-							{:else if mode === 'marketplace'}
-								<Marketplace />
-							{:else if mode === 'sectors'}
-								<ApplicationFocus />
-							{:else if mode === 'detail'}
-								<div class="placeholder-view">
-									<div class="placeholder-title">DETAIL INSPECTOR</div>
-									<div class="placeholder-sub">Level 4 — Deep Inspection &amp; Recovery</div>
-								</div>
-							{:else if mode === 'buffer'}
-								<div class="placeholder-view">
-									<div class="placeholder-title">RAW DATA BUFFER</div>
-									<div class="placeholder-sub">Level 5 — Hex Stream View</div>
-								</div>
-							{:else if mode === 'spatial'}
-								<div class="placeholder-view">
-									<div class="placeholder-title">SPATIAL TOPOLOGY</div>
-									<div class="placeholder-sub">3D Sector Shell</div>
+							<!-- Background / Level 1 Layer -->
+							<div class="spatial-layer level-1" class:zoomed={mode !== 'global'}>
+								<SystemOutput />
+								{#if mode === 'global' || mode === 'hubs' || mode === 'sectors'}
+									<!-- Keep Global visible underneath for blur effect when zoomed -->
+									<div transition:fade={{duration: 200}} style="width:100%; height:100%;">
+										<GlobalOverview />
+									</div>
+								{/if}
+							</div>
+
+							<!-- Higher Levels Layer -->
+							{#if mode !== 'global'}
+								<div class="spatial-layer level-higher" in:scale={{start: 0.95, duration: 400, opacity: 0}} out:fade={{duration: 200}}>
+									{#if mode === 'hubs'}
+										<CommandHub />
+									{:else if mode === 'marketplace'}
+										<Marketplace />
+									{:else if mode === 'sectors'}
+										<ApplicationFocus />
+									{:else if mode === 'detail'}
+										<DetailInspector />
+									{:else if mode === 'buffer'}
+										<div class="placeholder-view">
+											<div class="placeholder-title">RAW DATA BUFFER</div>
+											<div class="placeholder-sub">Level 5 — Hex Stream View</div>
+										</div>
+									{:else if mode === 'spatial'}
+										<div class="placeholder-view">
+											<div class="placeholder-title">SPATIAL TOPOLOGY</div>
+											<div class="placeholder-sub">3D Sector Shell</div>
+										</div>
+									{/if}
 								</div>
 							{/if}
 						{/if}
@@ -428,7 +439,7 @@
 				class="lcars-footer {bottomBezelState}"
 				onclick={(e) => {
 					// Only expand if clicking the bezel area, not the inputs/buttons
-					if ((e.target as HTMLElement).classList.contains('lcars-bar')) {
+					if ((e.target as HTMLElement).classList.contains('lcars-bar') && mode !== 'detail') {
 						bezelExpand();
 					}
 				}}
@@ -457,6 +468,7 @@
 								autocomplete="off"
 								bind:value={cmdInput}
 								oninput={handleInput}
+								disabled={mode === 'detail'}
 							/>
 						</form>
 						
@@ -976,6 +988,44 @@
 		font-family: var(--font-display);
 		letter-spacing: 0.08em;
 		font-size: 0.75rem;
+	}
+
+	.prefix { color: var(--color-primary); }
+	.input-placeholder { color: var(--color-text-dim); opacity: 0.5; font-style: italic; }
+
+	/* ── Spatial Zoom Animations ── */
+	.viewport-content {
+		position: relative;
+		transform-style: preserve-3d;
+		perspective: 1200px;
+		transition: transform 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+	}
+
+	.viewport-content.bezel-zoomed {
+		transform: scale(0.9) translateY(-5%);
+	}
+
+	.spatial-layer {
+		position: absolute;
+		inset: 0;
+		transition: all 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+	}
+
+	.spatial-layer.level-1 {
+		z-index: 10;
+	}
+
+	.spatial-layer.level-1.zoomed {
+		transform: translateZ(-200px) scale(0.95);
+		opacity: 0.4;
+		filter: blur(4px);
+		pointer-events: none;
+	}
+
+	.spatial-layer.level-higher {
+		z-index: 20;
+		background: rgba(10, 10, 20, 0.7);
+		backdrop-filter: blur(10px);
 	}
 
 	/* ── Placeholder Views (Detail/Buffer/Spatial) ── */

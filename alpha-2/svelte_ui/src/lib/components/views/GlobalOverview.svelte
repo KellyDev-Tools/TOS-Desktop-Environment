@@ -39,13 +39,24 @@
 			}
 		}
 	}
+
+	function getBorderClass(sector: any): string {
+		const hub = sector.hubs?.[sector.active_hub_index];
+		if (!hub) return '';
+		if (hub.is_running) return 'border-running';
+		if (hub.last_exit_status !== null && hub.last_exit_status !== undefined) {
+			if (hub.last_exit_status === 0) return 'border-success';
+			return 'border-error';
+		}
+		return '';
+	}
 </script>
 
 <div class="global-overview">
 	<div class="sector-grid">
 		{#each sectors as sector, i}
 			<button
-				class="sector-tile"
+				class="sector-tile {getBorderClass(sector)}"
 				class:active={i === activeIndex}
 				class:drag-hover={dragHoverSector === i}
 				onclick={() => handleSectorClick(i)}
@@ -54,8 +65,24 @@
 				ondrop={(e) => handleDrop(e, i)}
 			>
 				<div class="sector-thumbnail">
-					{#if sector.snapshot}
-						<img src={sector.snapshot} alt="Sector {i} Preview" />
+					{#if sector.active_apps && sector.active_apps.length > 0}
+						<div class="app-matrix">
+							{#each sector.active_apps.slice(0, 4) as app}
+								<div class="matrix-item app-item">
+									<div class="matrix-icon">⊞</div>
+									<div class="matrix-label">{app.title || app.model_id}</div>
+								</div>
+							{/each}
+						</div>
+					{:else if sector.hubs && sector.hubs.length > 0}
+						<div class="app-matrix">
+							{#each sector.hubs.slice(0, 4) as hub}
+								<div class="matrix-item hub-item">
+									<div class="matrix-icon">_</div>
+									<div class="matrix-label">{hub.mode || 'CMD'}</div>
+								</div>
+							{/each}
+						</div>
 					{:else}
 						<div class="no-feed">NO ACTIVE FEED</div>
 					{/if}
@@ -134,6 +161,37 @@
 		transform: scale(1.02);
 	}
 
+	/* Kinetic Borders */
+	.sector-tile.border-running {
+		border: 2px solid transparent;
+		background-clip: padding-box;
+		position: relative;
+	}
+
+	.sector-tile.border-running::after {
+		content: '';
+		position: absolute;
+		inset: -2px;
+		z-index: -1;
+		border-radius: inherit;
+		background: linear-gradient(90deg, var(--color-primary), var(--color-accent), var(--color-primary));
+		background-size: 200% 100%;
+		animation: slide-gradient 1.5s linear infinite;
+	}
+
+	.sector-tile.border-success {
+		border-color: var(--color-success);
+	}
+
+	.sector-tile.border-error {
+		border-color: var(--color-warning);
+	}
+
+	@keyframes slide-gradient {
+		0% { background-position: 100% 0; }
+		100% { background-position: -100% 0; }
+	}
+
 	.sector-thumbnail {
 		width: 100%;
 		aspect-ratio: 16 / 9;
@@ -164,6 +222,61 @@
 		font-family: var(--font-display);
 		letter-spacing: 0.1em;
 		color: var(--color-text-muted);
+	}
+
+	.app-matrix {
+		display: grid;
+		grid-template-columns: 1fr 1fr;
+		grid-template-rows: 1fr 1fr;
+		gap: 4px;
+		width: 100%;
+		height: 100%;
+		padding: 4px;
+	}
+
+	.matrix-item {
+		background: rgba(0, 0, 0, 0.4);
+		border: 1px solid rgba(255, 255, 255, 0.1);
+		border-radius: 2px;
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		justify-content: center;
+		overflow: hidden;
+	}
+
+	.matrix-item.hub-item {
+		border-color: rgba(247, 168, 51, 0.2);
+	}
+
+	.matrix-item.app-item {
+		border-color: rgba(102, 204, 102, 0.2);
+	}
+
+	.matrix-icon {
+		font-size: 1.2rem;
+		margin-bottom: 2px;
+		color: var(--color-text-dim);
+	}
+
+	.hub-item .matrix-icon {
+		color: var(--color-primary);
+		font-family: var(--font-mono);
+		animation: blink 1s infinite;
+	}
+
+	.app-item .matrix-icon {
+		color: var(--color-success);
+	}
+
+	.matrix-label {
+		font-size: 0.45rem;
+		font-family: var(--font-mono);
+		opacity: 0.8;
+		white-space: nowrap;
+		overflow: hidden;
+		text-overflow: ellipsis;
+		max-width: 90%;
 	}
 
 	.sector-id {

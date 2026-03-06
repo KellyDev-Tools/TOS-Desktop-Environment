@@ -3,6 +3,7 @@
 
 	import SplitLayout from './SplitLayout.svelte';
 	import AiChat from './AiChat.svelte';
+	import TacticalContextMenu from '../TacticalContextMenu.svelte';
 	import { getPromptMode } from '$lib/stores/ui.svelte';
 
 	const state = $derived(getTosState());
@@ -27,6 +28,31 @@
 		if (p === 2) return 'var(--color-primary)';
 		if (p === 1) return 'var(--color-success)';
 		return 'inherit';
+	}
+
+	let cmState = $state<{
+		open: boolean;
+		x: number;
+		y: number;
+		processName: string;
+		processPid: number;
+	}>({
+		open: false,
+		x: 0,
+		y: 0,
+		processName: '',
+		processPid: 0
+	});
+
+	function handleContextMenu(e: MouseEvent, proc: any) {
+		e.preventDefault();
+		cmState = {
+			open: true,
+			x: e.clientX,
+			y: e.clientY,
+			processName: proc.name,
+			processPid: proc.pid
+		};
 	}
 </script>
 
@@ -80,13 +106,21 @@
 					<div class="chip-title" style="color: var(--color-warning)">SYSTEM ACTIVITY // RECENT</div>
 					<div class="activity-list">
 						{#each act.processes.slice(0, 10) as proc}
-							<div class="activity-item" class:stopped={proc.status === 'stopped' || proc.status === 'sleeping'}>
-								<div class="proc-meta">
-									<span class="proc-pid">PID {proc.pid}:</span>
-									<span class="proc-name">{proc.name.toUpperCase()}</span>
-								</div>
-								<div class="proc-stats">
-									CPU: {proc.cpu_usage.toFixed(1)}% | MEM: {(proc.mem_usage / 1024 / 1024).toFixed(1)} MB
+							<!-- svelte-ignore a11y_no_static_element_interactions -->
+							<div class="activity-item" class:stopped={proc.status === 'stopped' || proc.status === 'sleeping'} oncontextmenu={(e) => handleContextMenu(e, proc)}>
+								{#if proc.snapshot}
+									<img class="proc-thumb snapshot" src="data:image/jpeg;base64,{proc.snapshot}" alt="Process Thumbnail" />
+								{:else}
+									<div class="proc-thumb icon">⊞</div>
+								{/if}
+								<div class="proc-info">
+									<div class="proc-meta">
+										<span class="proc-pid">PID {proc.pid}:</span>
+										<span class="proc-name">{proc.name.toUpperCase()}</span>
+									</div>
+									<div class="proc-stats">
+										CPU: {proc.cpu_usage.toFixed(1)}% | MEM: {(proc.mem_usage / 1024 / 1024).toFixed(1)} MB
+									</div>
 								</div>
 							</div>
 						{/each}
@@ -108,6 +142,16 @@
 				<div class="cursor-blink">_</div>
 			</div>
 		</div>
+	{/if}
+
+	{#if cmState.open}
+		<TacticalContextMenu 
+			x={cmState.x} 
+			y={cmState.y} 
+			processName={cmState.processName} 
+			processPid={cmState.processPid} 
+			onClose={() => cmState.open = false} 
+		/>
 	{/if}
 </div>
 
@@ -213,10 +257,41 @@
 		border-radius: var(--radius-sm);
 		border: 1px solid var(--color-border);
 		transition: opacity var(--transition-fast);
+		display: flex;
+		gap: var(--space-sm);
+		align-items: center;
 	}
 
 	.activity-item.stopped {
 		opacity: 0.4;
+	}
+
+	.proc-thumb {
+		width: 32px;
+		height: 32px;
+		flex-shrink: 0;
+		border-radius: 4px;
+		border: 1px solid rgba(255, 255, 255, 0.1);
+	}
+
+	.proc-thumb.snapshot {
+		object-fit: cover;
+	}
+
+	.proc-thumb.icon {
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		background: rgba(255, 255, 255, 0.05);
+		font-size: 1.2rem;
+		color: var(--color-text-dim);
+	}
+
+	.proc-info {
+		flex: 1;
+		display: flex;
+		flex-direction: column;
+		min-width: 0;
 	}
 
 	.proc-meta {

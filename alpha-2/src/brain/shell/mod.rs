@@ -218,6 +218,13 @@ impl ShellApi {
                                     }
                                 }
                                 OscEvent::CommandResult { command, status, output } => {
+                                    if let Some(sector) = state_lock.sectors.iter_mut().find(|s| s.id == sector_id) {
+                                        if let Some(hub) = sector.hubs.iter_mut().find(|h| h.id == hub_id) {
+                                            hub.last_exit_status = Some(status);
+                                            hub.is_running = false;
+                                        }
+                                    }
+
                                     if status != 0 {
                                         let ai_trigger = ai.clone();
                                         let cmd_trigger = command.clone();

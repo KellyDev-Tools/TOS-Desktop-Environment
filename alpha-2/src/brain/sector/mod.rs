@@ -38,6 +38,8 @@ impl SectorManager {
                 focused_pane_id: None,
                 ai_history: vec![],
                 version: 0,
+                is_running: false,
+                last_exit_status: None,
             }],
             active_hub_index: 0,
             frozen: false,
@@ -82,6 +84,8 @@ impl SectorManager {
                 focused_pane_id: None,
                 ai_history: vec![],
                 version: 0,
+                is_running: false,
+                last_exit_status: None,
             });
         }
 
@@ -517,6 +521,8 @@ impl SectorManager {
                 focused_pane_id: None,
                 ai_history: vec![],
                 version: 0,
+                is_running: false,
+                last_exit_status: None,
             }],
             active_hub_index: 0,
             frozen: false,

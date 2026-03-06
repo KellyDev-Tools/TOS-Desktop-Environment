@@ -206,7 +206,8 @@
 
 	.onboarding-card {
 		width: 600px;
-		height: 400px;
+		min-height: 400px;
+		max-height: 90vh;
 		background: rgba(10, 10, 15, 0.8);
 		border-radius: 4px;
 		border: 1px solid var(--color-border);
@@ -222,6 +223,7 @@
 		align-items: center;
 		gap: 20px;
 		background: rgba(255, 255, 255, 0.03);
+		flex-shrink: 0;
 	}
 
 	.card-bezel.top {
@@ -256,6 +258,8 @@
 		flex: 1;
 		padding: 40px;
 		position: relative;
+		min-height: 0;
+		overflow-y: auto;
 	}
 
 	.step-title {
@@ -315,7 +319,7 @@
 
 	.lcars-btn-sm:hover { background: rgba(255, 255, 255, 0.1); color: white; }
 	.lcars-btn-sm.active { background: var(--color-primary); color: black; }
-	.lcars-btn-sm.subtle { flex: 0; background: transparent; opacity: 0.5; font-size: 0.6rem; }
+	.lcars-btn-sm.subtle { flex: 0; background: transparent; color: var(--color-text); opacity: 0.7; font-size: 0.7rem; }
 	.lcars-btn-sm.primary { border-left: 10px solid var(--color-primary); }
 
 	.footer-right { display: flex; gap: 10px; align-items: center; }
@@ -347,12 +351,15 @@
 		height: 100%;
 		gap: 5px;
 		padding: 10px;
+		box-sizing: border-box;
 	}
 
 	.viz-pane {
 		flex: 1;
 		background: rgba(247, 168, 51, 0.1);
 		border: 1px solid rgba(247, 168, 51, 0.3);
+		box-sizing: border-box;
+		min-height: 0;
 	}
 
 	.sub-split {
@@ -361,11 +368,15 @@
 		border: none;
 		background: transparent;
 		gap: 5px;
+		padding: 0;
+		height: 100%;
 	}
 
 	.sub-split div {
 		flex: 1;
 		background: rgba(247, 168, 51, 0.1);
 		border: 1px solid rgba(247, 168, 51, 0.3);
+		box-sizing: border-box;
+		min-height: 0;
 	}
 </style>

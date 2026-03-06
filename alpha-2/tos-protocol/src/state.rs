@@ -261,6 +261,8 @@ pub struct CommandHub {
     pub focused_pane_id: Option<Uuid>,
     pub version: u64,
     pub ai_history: Vec<AiMessage>,
+    pub last_exit_status: Option<i32>,
+    pub is_running: bool,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -490,6 +492,8 @@ impl Default for TosState {
                 focused_pane_id: None,
                 version: 0,
                 ai_history: vec![],
+                last_exit_status: None,
+                is_running: false,
             }],
             active_hub_index: 0,
             frozen: false,

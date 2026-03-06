@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { openSettings, openPortalModal, toggleTerminalToFront } from '$lib/stores/ui.svelte';
+	import { openSettings, openPortalModal, toggleTerminalToFront, setCurrentMode } from '$lib/stores/ui.svelte';
 </script>
 
 <div class="status-badges">

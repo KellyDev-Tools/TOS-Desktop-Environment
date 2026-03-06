@@ -194,30 +194,30 @@ This roadmap defines the transition from Alpha-2.1 (Experimental/Mocked) to Alph
 ## Phase 4 — High-Fidelity Visual Layer
 *Depends on Phase 3 being stable. Visual polish and platform-specific rendering.*
 
-- [ ] **Global Console Implementation:** Update `svelte_ui/src/lib/components/SystemOutput.svelte` to fully implement the "System Output Area" (Level 1 Middle Layer).
+- [x] **Global Console Implementation:** Update `svelte_ui/src/lib/components/SystemOutput.svelte` to fully implement the "System Output Area" (Level 1 Middle Layer).
     - Render Brain terminal log behind sector tiles.
     - Implement the "Bring Terminal to Front" bezel toggle logic.
     - *Note: Basic implementation exists in `SystemOutput.svelte` — needs Level 1 z-layering and spatial integration.*
-- [ ] **Kinetic Zoom Transitions:** Implement the z-axis zoom animation between Levels 1 and 2.
+- [x] **Kinetic Zoom Transitions:** Implement the z-axis zoom animation between Levels 1 and 2.
     - Animate sector tile borders expanding to become the Tactical Bezel.
     - Apply depth-blur/fade to background layers (Global Map/Brain Console).
     - *Also powers the Expanded Bezel spatial zoom-out — reuse the same animation system.*
-- [ ] **Tiered Thumbnailing System:**
+- [x] **Tiered Thumbnailing System:**
     - **Sector Tiles (Level 1):** Render dynamic thumbnails of active hubs/apps within the tile interior.
     - **App Tiles (Level 2 ACT):** Implement 10Hz live thumbnails for running apps.
     - **Inactive Chips (Level 2 ACT):** Fallback to static app icons for non-running applications.
     - **Generic Fallback:** Symbolic placeholder for system processes lacking icons and frame buffers.
-- [ ] **Secondary Select Infrastructure:** Implement long-press/right-click trigger for all chip types.
+- [x] **Secondary Select Infrastructure:** Implement long-press/right-click trigger for all chip types.
     - Create "Tactical Context Menu" glassmorphism UI component.
     - Implement IPC handlers for `[Signal]`, `[Renice]`, `[Inspect]` actions.
-- [ ] **Kinetic Sector Borders:** Implement dynamic CSS border animations for sector tiles.
+- [x] **Kinetic Sector Borders:** Implement dynamic CSS border animations for sector tiles.
     - Solid Green/Red for last command exit status.
     - Sliding Gradient for active PTY tasks.
     - *Depends on PTY exit code telemetry being broadcast via IPC versioned state.*
 - [ ] **Wayland Frame Captures:** Replace `base64` mock thumbnails in `src/brain/sector/mod.rs` with actual frame buffer fetches.
     - Utilize DMABUF Native Path to share sub-surface textures with UI thread at 10Hz.
     - *Requires Face renderer to support `dmabuf` texture bindings.*
-- [ ] **Level 4 Tactical Reset (God Mode) Implementation:**
+- [x] **Level 4 Tactical Reset (God Mode) Implementation:**
     - Develop Wireframe Diagnostic Renderer (low-poly, high-performance view).
     - Implement Global Process Kill-Switch in Brain (with re-auth and confirmation).
     - Implement Prompt Interlocking (lock prompt during Tactical Reset; disable Expanded Bezel trigger).

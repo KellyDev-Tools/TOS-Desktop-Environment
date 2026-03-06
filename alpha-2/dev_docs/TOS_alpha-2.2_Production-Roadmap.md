@@ -162,7 +162,7 @@ This roadmap defines the transition from Alpha-2.1 (Experimental/Mocked) to Alph
         - [x] Owns `[AI]` mode panel surface — renders full streaming chat interface.
         - [x] Context: current cwd, last 20 terminal lines, sector name, shell.
         - [x] Code blocks in responses get `[Stage →]` button.
-        - [ ] Conversation history persisted to session file; restored via `on_session_restore` callback; capped at 200 messages.
+        - [x] Conversation history persisted to session file; restored via `on_session_restore` callback; capped at 200 messages.
         - [x] `[Clear]` resets history for current sector.
         - [x] Fallback message if no Chat Companion installed: "Install a Chat Companion from the Marketplace."
     - [x] Add **Settings → AI** panel: Backend section (system default + installed list), Behaviors section (per-behavior toggle + backend override dropdown + config), Global section (chip color, ghost text opacity, master off, context level).
@@ -179,13 +179,13 @@ This roadmap defines the transition from Alpha-2.1 (Experimental/Mocked) to Alph
     - [x] Implement installed state in browse: `[Installed ✓]` badge on cards; `[Manage in Settings →]` link on detail page.
     - [x] Add `marketplace_home`, `marketplace_category`, `marketplace_detail`, `marketplace_search_ai`, `marketplace_install_cancel`, `marketplace_install_status` IPC messages (extends existing `marketplace_search`, `marketplace_install`).
 
-- [ ] **Predictive Interaction & Heuristics** *(Architecture Spec §10):*
+- [x] **Predictive Interaction & Heuristics** *(Architecture Spec §10):*
     - *Depends on: Standalone Heuristic Service (Phase 2), OSC-Exclusive Mode Switching (Phase 1).*
     - [x] Implement **Autocomplete-to-Chip**: real-time shell/path completion resulting in clickable left/right chips.
     - [x] Implement **Implicit Correction Trigger**: hook into shell error state `127` / `command not found` to trigger typo-matching chips.
     - [x] Implement **Heuristic Sector Renaming**: update sector names based on `Cwd` or `ActiveApp`.
 
-- [ ] **Vector Search Engine** *(Architecture Spec §18.3):*
+- [x] **Vector Search Engine** *(Architecture Spec §18.3):*
     - Replace "token-overlap" algorithm in `src/services/search.rs` with local vector embedding search (`fastembed` or local vector store).
     - *Requires background indexer generating and caching embeddings on file changes.*
 

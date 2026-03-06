@@ -4,7 +4,7 @@
  */
 
 export type ViewMode = 'global' | 'hubs' | 'sectors' | 'app' | 'marketplace' | 'detail' | 'buffer' | 'spatial';
-export type SettingsTab = 'global' | 'sectors' | 'interface' | 'marketplace' | 'ai';
+export type SettingsTab = 'global' | 'interface' | 'security' | 'ai' | 'sessions' | 'marketplace' | 'sectors';
 export type PromptMode = 'cmd' | 'search' | 'ai';
 
 // --- Reactive state ---

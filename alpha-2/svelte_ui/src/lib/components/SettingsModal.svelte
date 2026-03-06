@@ -13,7 +13,9 @@
 	const tabs: { id: SettingsTab; label: string; icon: string }[] = [
 		{ id: 'global',      label: 'SYSTEM',      icon: '⬡' },
 		{ id: 'interface',   label: 'INTERFACE',   icon: '◈' },
+		{ id: 'security',    label: 'SECURITY',    icon: '🛡' },
 		{ id: 'ai',          label: 'AI',           icon: '✦' },
+		{ id: 'sessions',    label: 'SESSIONS',     icon: '💾' },
 		{ id: 'marketplace', label: 'MARKETPLACE',  icon: '⊞' },
 		{ id: 'sectors',     label: 'SECTORS',      icon: '⬡' },
 	];
@@ -149,17 +151,85 @@
 									<span class="settings-range-value text-mono">{uiFeedback}%</span>
 								</div>
 							</div>
+							<div class="settings-row">
+								<span class="settings-label">Dismiss Behavior</span>
+								<select class="settings-select" onchange={(e) => setSetting('tos.interface.bezel.dismiss', (e.target as HTMLSelectElement).value)}>
+									<option value="stay">Stay Open</option>
+									<option value="auto">Auto-collapse on Complete</option>
+									<option value="timeout" selected>Auto-collapse (5s)</option>
+								</select>
+							</div>
 						</div>
 						<div class="settings-group">
-							<div class="settings-group-title">TERMINAL</div>
+							<div class="settings-group-title">DYNAMICS</div>
 							<div class="settings-row">
-								<span class="settings-label">Active Module</span>
-								<span class="settings-value text-mono">{state.active_terminal_module || 'default'}</span>
+								<span class="settings-label">Motion Blur</span>
+								<label class="toggle">
+									<input type="checkbox" checked={true} onchange={(e) => setSetting('tos.interface.effects.blur', (e.target as HTMLInputElement).checked.toString())} />
+									<span class="toggle-slider"></span>
+								</label>
 							</div>
+						</div>
+
+					<!-- ═══ SECURITY TAB ═══ -->
+					{:else if activeTab === 'security'}
+						<div class="settings-group">
+							<div class="settings-group-title">TRUST CLASSES</div>
+							<div class="settings-row">
+								<span class="settings-label">Privileged Escalation</span>
+								<select class="settings-select warning" onchange={(e) => setSetting('tos.trust.policy.escalation', (e.target as HTMLSelectElement).value)}>
+									<option value="block">BLOCK</option>
+									<option value="confirm" selected>CONFIRM</option>
+									<option value="allow">ALLOW</option>
+								</select>
+							</div>
+							<div class="settings-row">
+								<span class="settings-label">Bulk Detection Threshold</span>
+								<div class="settings-input-row">
+									<input type="number" class="settings-input text-mono" value="10" onchange={(e) => setSetting('tos.trust.bulk_threshold', (e.target as HTMLInputElement).value)} />
+								</div>
+							</div>
+						</div>
+						<div class="settings-group">
+							<div class="settings-group-title">SECTOR OVERRIDES</div>
+							<div class="settings-empty">No sector-specific trust overrides defined.</div>
 						</div>
 
 					<!-- ═══ AI TAB ═══ -->
 					{:else if activeTab === 'ai'}
+						<div class="settings-group">
+							<div class="settings-group-title">HEURISTICS</div>
+							<div class="settings-row">
+								<span class="settings-label">Autocomplete-to-Chip</span>
+								<label class="toggle">
+									<input type="checkbox" checked={true} onchange={(e) => setSetting('tos.ai.heuristic.autocomplete', (e.target as HTMLInputElement).checked.toString())} />
+									<span class="toggle-slider"></span>
+								</label>
+							</div>
+							<div class="settings-row">
+								<span class="settings-label">Implicit Correction</span>
+								<label class="toggle">
+									<input type="checkbox" checked={true} onchange={(e) => setSetting('tos.ai.heuristic.correction', (e.target as HTMLInputElement).checked.toString())} />
+									<span class="toggle-slider"></span>
+								</label>
+							</div>
+						</div>
+
+						<div class="settings-group">
+							<div class="settings-group-title">GLOBAL AI</div>
+							<div class="settings-row">
+								<span class="settings-label">Conversation History</span>
+								<div class="settings-row-actions">
+									<span class="settings-value">Persisted (200 msg)</span>
+									<button class="lcars-btn-sm danger" onclick={() => sendCommand('ai_history_clear')}>CLEAR</button>
+								</div>
+							</div>
+							<div class="settings-row">
+								<span class="settings-label">Ghost Text Opacity</span>
+								<input type="range" class="settings-range" min="0" max="100" value="40" onchange={(e) => setSetting('tos.ai.ghost_opacity', (e.target as HTMLInputElement).value)} />
+							</div>
+						</div>
+
 						<div class="settings-group">
 							<div class="settings-group-title">BACKEND</div>
 							<div class="settings-row">
@@ -266,6 +336,33 @@
 							{:else}
 								<div class="settings-empty">No behaviors registered.</div>
 							{/if}
+						</div>
+
+					<!-- ═══ SESSIONS TAB ═══ -->
+					{:else if activeTab === 'sessions'}
+						<div class="settings-group">
+							<div class="settings-group-title">MEMORY MANAGEMENT</div>
+							<div class="settings-row">
+								<span class="settings-label">Auto-Restore Workspace</span>
+								<label class="toggle">
+									<input type="checkbox" checked={true} />
+									<span class="toggle-slider"></span>
+								</label>
+							</div>
+							<div class="settings-row">
+								<span class="settings-label">Atomic Write Mode</span>
+								<span class="settings-value text-mono">STABLE</span>
+							</div>
+						</div>
+						<div class="settings-group">
+							<div class="settings-group-title">IMPORT / EXPORT</div>
+							<div class="settings-row">
+								<span class="settings-label">Import Session Package</span>
+								<button class="lcars-btn-sm primary" onclick={() => sendCommand('session_import_dialog')}>BROWSE...</button>
+							</div>
+							<div class="settings-desc">
+								Drag and drop <code>.tos-session</code> files onto sector tiles at Level 1 for targeted restoration.
+							</div>
 						</div>
 
 					<!-- ═══ MARKETPLACE TAB ═══ -->

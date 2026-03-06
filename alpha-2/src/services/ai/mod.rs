@@ -261,6 +261,11 @@ impl AiService {
 
         let payload = json!({ "command": command, "explanation": explanation });
         let _ = ipc.dispatch(&format!("ai_stage_command:{}", payload));
+
+        // Append to history (§7.3)
+        let msg = format!("User: {}\nAI: staged command '{}' because {}", prompt, command, explanation);
+        let _ = ipc.dispatch(&format!("ai_history_append:{}", msg));
+
         Ok(())
     }
 

@@ -202,6 +202,29 @@ impl ShellApi {
                                                     let _ = ai_trigger.passive_observe(&cmd_trigger, status, out_trigger.as_deref()).await;
                                                 });
                                             }
+                                            
+                                            // §10.2: Implicit Correction Trigger for 127
+                                            if status == 127 {
+                                                let ipc_trigger = ipc.clone();
+                                                let cmd_trigger = command.clone();
+                                                handle.spawn(async move {
+                                                    // Request typo correction from Heuristic Service
+                                                    let resp = ipc_trigger.dispatch(&format!("heuristic_query:{}", cmd_trigger));
+                                                    if let Ok(suggestions) = serde_json::from_str::<serde_json::Value>(resp.split(" (").next().unwrap_or(&resp)) {
+                                                        if let Some(best) = suggestions.as_array().and_then(|a| a.first()) {
+                                                            let fix = best["text"].as_str().unwrap_or("");
+                                                            if !fix.is_empty() {
+                                                                let payload = serde_json::json!({
+                                                                    "behavior": "tos-heuristic",
+                                                                    "command": fix,
+                                                                    "explanation": format!("✦ TYPO? Suggested: {}", fix)
+                                                                });
+                                                                ipc_trigger.dispatch(&format!("ai_chip_stage:{}", payload));
+                                                            }
+                                                        }
+                                                    }
+                                                });
+                                            }
                                         }
                                         OscEvent::JsonContext(json) => {
                                             hub.json_context = Some(json);

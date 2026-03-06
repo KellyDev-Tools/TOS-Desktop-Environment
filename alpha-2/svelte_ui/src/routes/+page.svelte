@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
+	import { slide } from 'svelte/transition';
 	import {
 		connect, disconnect, getTosState, getConnectionState,
 		submitCommand, sendCommand,
@@ -87,6 +88,7 @@
 	let cinematicActive = $state(false);
 	let cinematicStage = $state<'none' | 'sweep' | 'logs' | 'zoom'>('none');
 	let sessionPopoverOpen = $state(false);
+	let heuristicSuggestions = $state<{ text: string, score: f32, source: String }[]>([]);
 
 	onMount(() => {
 		connect();
@@ -127,6 +129,33 @@
 		} else if (promptMode === 'ai') {
 			await sendCommand(`ai_submit:${input}`);
 		}
+	}
+
+	async function handleInput(e: Event) {
+		const target = e.target as HTMLInputElement;
+		const val = target.value;
+		
+		if (promptMode === 'cmd' && val.length > 1) {
+			const resp = await sendCommand(`heuristic_query:${val}`);
+			const cleanJson = resp.split(' (').next() || '[]';
+			try {
+				heuristicSuggestions = JSON.parse(cleanJson);
+			} catch (e) {
+				heuristicSuggestions = [];
+			}
+		} else {
+			heuristicSuggestions = [];
+		}
+	}
+
+	function applySuggestion(suggestion: string) {
+		// Simple replacement for now: find last whitespace or beginning
+		const parts = cmdInput.split(' ');
+		parts[parts.length - 1] = suggestion;
+		cmdInput = parts.join(' ');
+		heuristicSuggestions = [];
+		// Re-focus
+		document.getElementById('cmd-input')?.focus();
 	}
 
 	function handleLevelClick(m: ViewMode) {
@@ -413,8 +442,20 @@
 								placeholder={promptPlaceholder}
 								autocomplete="off"
 								bind:value={cmdInput}
+								oninput={handleInput}
 							/>
 						</form>
+						
+						{#if heuristicSuggestions.length > 0}
+							<div class="heuristic-chips" transition:slide={{ axis: 'y', duration: 200 }}>
+								{#each heuristicSuggestions as sug}
+									<button class="heuristic-chip" onclick={() => applySuggestion(sug.text)}>
+										<span class="chip-source">{sug.source}</span>
+										{sug.text}
+									</button>
+								{/each}
+							</div>
+						{/if}
 					</div>
 					<div class="lcars-elbow bottom-right"></div>
 				</div>
@@ -436,6 +477,49 @@
 <PortalModal />
 
 <style>
+	/* Heuristic Chips */
+	.heuristic-chips {
+		position: absolute;
+		bottom: 100%;
+		left: var(--space-md);
+		right: var(--space-md);
+		display: flex;
+		gap: var(--space-xs);
+		padding: var(--space-xs) 0;
+		overflow-x: auto;
+		z-index: 1000;
+	}
+
+	.heuristic-chip {
+		background: rgba(247, 168, 51, 0.1);
+		border: 1px solid rgba(247, 168, 51, 0.3);
+		color: var(--color-primary);
+		font-family: var(--font-mono);
+		font-size: 0.7rem;
+		padding: 4px 10px;
+		border-radius: var(--radius-pill);
+		cursor: pointer;
+		white-space: nowrap;
+		display: flex;
+		align-items: center;
+		gap: 6px;
+		transition: all 0.2s;
+	}
+
+	.heuristic-chip:hover {
+		background: var(--color-primary);
+		color: #000;
+	}
+
+	.chip-source {
+		font-size: 0.5rem;
+		opacity: 0.6;
+		font-weight: 700;
+		text-transform: uppercase;
+		border-right: 1px solid currentColor;
+		padding-right: 6px;
+	}
+
 	/* ── Container ── */
 	.lcars-container {
 		width: 100vw;

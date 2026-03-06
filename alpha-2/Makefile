@@ -157,11 +157,15 @@ run-services:
 	@pkill -x tos-marketplaced || true
 	@pkill -x tos-priorityd || true
 	@pkill -x tos-sessiond || true
+	@pkill -x tos-heuristicd || true
+	@pkill -x tos-searchd || true
 	@cargo run --bin tos-settingsd > logs/settingsd.log 2>&1 &
 	@cargo run --bin tos-loggerd > logs/loggerd.log 2>&1 &
 	@cargo run --bin tos-marketplaced > logs/marketplaced.log 2>&1 &
 	@cargo run --bin tos-priorityd > logs/priorityd.log 2>&1 &
 	@cargo run --bin tos-sessiond > logs/sessiond.log 2>&1 &
+	@cargo run --bin tos-heuristicd > logs/heuristicd.log 2>&1 &
+	@cargo run --bin tos-searchd > logs/searchd.log 2>&1 &
 	@echo "[TOS] Auxiliary Constellation: ONLINE"
 
 # -----------------------------------------------------------------------------

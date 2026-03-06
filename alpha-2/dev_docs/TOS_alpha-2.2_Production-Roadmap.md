@@ -92,8 +92,8 @@ This roadmap defines the transition from Alpha-2.1 (Experimental/Mocked) to Alph
     - [x] Add IPC messages: `split_create`, `split_close`, `split_focus`, `split_focus_direction`, `split_resize`, `split_equalize`, `split_fullscreen`, `split_fullscreen_exit`, `split_swap`, `split_detach:context`, `split_detach:fresh`, `split_save_template`.
     - *Blocks: Split Viewport Face rendering, Expanded Bezel split actions, session restore of pane layouts.*
 
-- [ ] **Standalone Heuristic Service:** Extract predictive logic from the Brain into a separate `tos-heuristic` service.
-    - *Required before Predictive Interaction (Phase 3) to avoid coupling.*
+- [x] **Standalone Heuristic Service:** Extract predictive logic from the Brain into a separate `tos-heuristic` service.
+    - [x] Implement predictive suggestions and typo correction in `tos-heuristicd`.
 
 ---
 
@@ -146,6 +146,7 @@ This roadmap defines the transition from Alpha-2.1 (Experimental/Mocked) to Alph
     - [x] Disable expansion trigger during Tactical Reset (Level 4 God Mode).
     - [x] Add Brain `bezel_expanded` boolean flag (not persisted to session).
     - [x] Add IPC messages: `bezel_expand`, `bezel_collapse`, `bezel_output_action`, `bezel_pane_promote`, `bezel_swipe`.
+    - [x] **Standalone Search Service:** Refactored global search into `tos-searchd` daemon with simulated semantic scoring.
 
 - [x] **AI Behavior Modules — Default Set** *(AI-Copilot-Specification):*
     - *Depends on: AIService refactor (Phase 2).*
@@ -178,9 +179,9 @@ This roadmap defines the transition from Alpha-2.1 (Experimental/Mocked) to Alph
 
 - [ ] **Predictive Interaction & Heuristics** *(Architecture Spec §10):*
     - *Depends on: Standalone Heuristic Service (Phase 2), OSC-Exclusive Mode Switching (Phase 1).*
-    - Implement **Autocomplete-to-Chip**: real-time shell/path completion resulting in clickable left/right chips.
-    - Implement **Implicit Correction Trigger**: hook into shell error state `127` / `command not found` to trigger typo-matching chips.
-    - Implement **Heuristic Sector Renaming**: update sector names based on `Cwd` or `ActiveApp`.
+    - [x] Implement **Autocomplete-to-Chip**: real-time shell/path completion resulting in clickable left/right chips.
+    - [x] Implement **Implicit Correction Trigger**: hook into shell error state `127` / `command not found` to trigger typo-matching chips.
+    - [ ] Implement **Heuristic Sector Renaming**: update sector names based on `Cwd` or `ActiveApp`.
 
 - [ ] **Vector Search Engine** *(Architecture Spec §18.3):*
     - Replace "token-overlap" algorithm in `src/services/search.rs` with local vector embedding search (`fastembed` or local vector store).

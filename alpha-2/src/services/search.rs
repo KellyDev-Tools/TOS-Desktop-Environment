@@ -1,113 +1,58 @@
-use std::sync::{Arc, RwLock};
-use std::thread;
-use std::path::PathBuf;
-use walkdir::WalkDir;
-use regex::Regex;
+//! Search Service — interface for global and semantic retrieval.
+//!
+//! This service communicates with the `tos-searchd` daemon to provide
+//! indexed file searching and semantic "vector" retrieval.
 
-#[derive(Clone, Debug)]
+use std::sync::{Arc, Mutex};
+use tokio::io::{AsyncBufReadExt, AsyncWriteExt, BufReader};
+use crate::services::registry::ServiceRegistry;
+
+#[derive(Clone, serde::Deserialize)]
 pub struct SearchHit {
     pub path: String,
     pub is_dir: bool,
-    pub size: u64,
+    pub score: f32,
 }
 
 pub struct SearchService {
-    index: Arc<RwLock<Vec<SearchHit>>>,
+    registry: Arc<Mutex<ServiceRegistry>>,
 }
 
 impl SearchService {
-    pub fn new() -> Self {
-        let index = Arc::new(RwLock::new(Vec::new()));
-        let index_clone = index.clone();
-        
-        // Spawn background indexer
-        thread::spawn(move || {
-            let mut local_index = Vec::new();
-            
-            // Base directories to scan - limit for Alpha-2 implementation
-            let dirs_to_scan = vec![
-                std::env::current_dir().unwrap_or_else(|_| PathBuf::from("/")),
-                dirs::home_dir().unwrap_or_else(|| PathBuf::from("/tmp")).join(".config/tos"),
-            ];
-
-            for root in dirs_to_scan {
-                if !root.exists() { continue; }
-                
-                // Fast shallow walk for alpha to prevent blocking
-                for entry in WalkDir::new(&root).max_depth(3).into_iter().filter_map(|e| e.ok()) {
-                    let path_str = entry.path().to_string_lossy().to_string();
-                    
-                    // Exclude massive generic dirs
-                    if path_str.contains(".git") || path_str.contains("node_modules") || path_str.contains("target") {
-                        continue;
-                    }
-                    
-                    local_index.push(SearchHit {
-                        path: path_str,
-                        is_dir: entry.file_type().is_dir(),
-                        size: entry.metadata().map(|m: std::fs::Metadata| m.len()).unwrap_or(0),
-                    });
-                }
-            }
-            
-            // Atomically swap the new index in
-            if let Ok(mut lock) = index_clone.write() {
-                *lock = local_index;
-            }
-        });
-
-        Self {
-            index,
-        }
+    pub fn new(registry: Arc<Mutex<ServiceRegistry>>) -> Self {
+        Self { registry }
     }
 
+    /// Perform a literal regex/substring search.
     pub fn query(&self, pattern: &str) -> Vec<SearchHit> {
-        let lock = match self.index.read() {
-            Ok(l) => l,
-            Err(_) => return vec![],
-        };
-        
-        let safe_pattern = regex::escape(pattern);
-        let re = match Regex::new(&format!("(?i){}", safe_pattern)) {
-            Ok(r) => r,
-            Err(_) => return vec![],
-        };
-
-        lock.iter()
-            .filter(|hit| re.is_match(&hit.path))
-            .take(50) // Cap results sent over IPC
-            .cloned()
-            .collect()
+        let rt = tokio::runtime::Handle::current();
+        rt.block_on(async move {
+            self.remote_call("search", pattern).await.unwrap_or_default()
+        })
     }
 
-    /// Simulates semantic embedding-based retrieval by tokenising natural language queries
-    /// and performing an overlap scoring, mimicking TF-IDF or dot-product embeddings for Alpha-2
+    /// Perform a semantic "vector" search.
     pub fn semantic_query(&self, prompt: &str) -> Vec<SearchHit> {
-        let lock = match self.index.read() {
-            Ok(l) => l,
-            Err(_) => return vec![],
-        };
+        let rt = tokio::runtime::Handle::current();
+        rt.block_on(async move {
+            self.remote_call("semantic_search", prompt).await.unwrap_or_default()
+        })
+    }
 
-        let stop_words = ["find", "search", "where", "is", "for", "the", "my", "a", "an", "all", "show", "me"];
-        let words: Vec<String> = prompt.split_whitespace()
-            .map(|w| w.trim_matches(|c: char| !c.is_alphanumeric()).to_lowercase())
-            .filter(|w| !w.is_empty() && !stop_words.contains(&w.as_str()))
-            .collect();
+    async fn remote_call(&self, cmd: &str, payload: &str) -> anyhow::Result<Vec<SearchHit>> {
+        let port = {
+            let reg = self.registry.lock().unwrap();
+            reg.port_of("tos-searchd")
+        }.ok_or_else(|| anyhow::anyhow!("Search daemon not found"))?;
 
-        if words.is_empty() {
-            return vec![];
-        }
+        let mut stream = tokio::net::TcpStream::connect(format!("127.0.0.1:{}", port)).await?;
+        stream.write_all(format!("{}:{}\n", cmd, payload).as_bytes()).await?;
 
-        let mut scored_hits: Vec<(&SearchHit, usize)> = lock.iter().map(|hit| {
-            let path_lower = hit.path.to_lowercase();
-            // Score by how many semantic tokens exist in the file path
-            let score = words.iter().filter(|w| path_lower.contains(*w)).count();
-            (hit, score)
-        }).filter(|(_, score)| *score > 0).collect();
+        let mut reader = BufReader::new(stream);
+        let mut response = String::new();
+        reader.read_line(&mut response).await?;
 
-        // Sort by highest overlap (mock highest cosine similarity)
-        scored_hits.sort_by(|a, b| b.1.cmp(&a.1));
-
-        scored_hits.into_iter().take(20).map(|(h, _)| h.clone()).collect()
+        let hits: Vec<SearchHit> = serde_json::from_str(response.trim())?;
+        Ok(hits)
     }
 }

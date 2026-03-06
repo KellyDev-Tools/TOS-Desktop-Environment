@@ -257,11 +257,17 @@ pub struct CommandHub {
     pub json_context: Option<serde_json::Value>,
     /// Preferred shell module identifier.
     pub shell_module: Option<String>,
-    /// Split pane layout tree for this hub. None when in single-pane mode.
     pub split_layout: Option<SplitNode>,
-    /// ID of the currently focused pane (if in split mode).
     pub focused_pane_id: Option<Uuid>,
     pub version: u64,
+    pub ai_history: Vec<AiMessage>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct AiMessage {
+    pub role: String,
+    pub content: String,
+    pub timestamp: chrono::DateTime<chrono::Local>,
 }
 
 // ---------------------------------------------------------------------------
@@ -483,6 +489,7 @@ impl Default for TosState {
                 split_layout: None,
                 focused_pane_id: None,
                 version: 0,
+                ai_history: vec![],
             }],
             active_hub_index: 0,
             frozen: false,

@@ -83,6 +83,8 @@ impl IpcHandler {
             "ai_backend_set_default" => self.handle_ai_backend_set_default(args.get(0).copied()),
             "ai_backend_set_behavior" => self.handle_ai_backend_set_behavior(args.get(0).copied(), args.get(1).copied()),
             "ai_backend_clear_behavior" => self.handle_ai_backend_clear_behavior(args.get(0).copied()),
+            "ai_history_clear" => self.handle_ai_history_clear(),
+            "ai_history_append" => self.handle_ai_history_append(payload),
             
             // Bezel
             "bezel_expand" => self.handle_bezel_expand(),
@@ -105,6 +107,7 @@ impl IpcHandler {
             "trust_demote_sector" => self.handle_trust_demote_sector(args.get(0).copied(), args.get(1).copied()),
             "trust_clear_sector" => self.handle_trust_clear_sector(args.get(0).copied()),
             "trust_get_config" => self.handle_trust_get_config(),
+            "heuristic_query" => self.handle_heuristic_query(args.get(0).copied()),
             _ => "ERROR: Unknown prefix".to_string(),
         };
 
@@ -671,6 +674,31 @@ impl IpcHandler {
     fn handle_get_state(&self) -> String {
         let state = self.state.lock().unwrap();
         serde_json::to_string(&*state).unwrap_or_else(|_| "ERROR: Serialization failed".to_string())
+    }
+
+    fn handle_trust_get_config(&self) -> String {
+        let state = self.state.lock().unwrap();
+        serde_json::to_string(&state.sectors.iter().map(|s| (s.id.to_string(), s.trust_tier)).collect::<std::collections::HashMap<_,_>>()).unwrap_or_default()
+    }
+
+    fn handle_heuristic_query(&self, keyword: Option<&str>) -> String {
+        let keyword = keyword.unwrap_or("");
+        let state = self.state.lock().unwrap();
+        let idx = state.active_sector_index;
+        let cwd = state.sectors.get(idx)
+            .and_then(|s| s.hubs.get(s.active_hub_index))
+            .map(|h| h.current_directory.display().to_string())
+            .unwrap_or_else(|| "/".to_string());
+        
+        let svc = self.services.heuristic.clone();
+        
+        // We need to run this in a block_on or return a placeholder if we want to be truly async,
+        // but for now the dispatch is sync. I'll use a local runtime or just handle the future.
+        let rt = tokio::runtime::Handle::current();
+        match rt.block_on(async move { svc.query(keyword, &cwd).await }) {
+            Ok(json) => json,
+            Err(e) => format!("ERROR: Heuristic query failed: {}", e),
+        }
     }
 
     fn handle_play_earcon(&self, name: Option<&str>) -> String {
@@ -1362,6 +1390,37 @@ impl IpcHandler {
         } else {
             "ERROR: No split layout to save".to_string()
         }
+    }
+    fn handle_ai_history_clear(&self) -> String {
+        let mut state = self.state.lock().unwrap();
+        let idx = state.active_sector_index;
+        if let Some(sector) = state.sectors.get_mut(idx) {
+            let h_idx = sector.active_hub_index;
+            if let Some(hub) = sector.hubs.get_mut(h_idx) {
+                hub.ai_history.clear();
+                state.version += 1;
+                return "AI_HISTORY_CLEARED".to_string();
+            }
+        }
+        "ERROR: Hub not found".to_string()
+    }
+
+    fn handle_ai_history_append(&self, message: &str) -> String {
+        let mut state = self.state.lock().unwrap();
+        let idx = state.active_sector_index;
+        if let Some(sector) = state.sectors.get_mut(idx) {
+            let h_idx = sector.active_hub_index;
+            if let Some(hub) = sector.hubs.get_mut(h_idx) {
+                hub.ai_history.push(crate::common::AiMessage {
+                    role: "assistant".to_string(), // Simplified role
+                    content: message.to_string(),
+                    timestamp: chrono::Local::now(),
+                });
+                state.version += 1;
+                return "AI_HISTORY_APPENDED".to_string();
+            }
+        }
+        "ERROR: Hub not found".to_string()
     }
 }
 

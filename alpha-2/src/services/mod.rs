@@ -11,6 +11,7 @@ pub mod priority;
 pub mod registry;
 pub mod session;
 pub mod trust;
+pub mod heuristic;
 
 pub use logger::LoggerService;
 pub use settings::SettingsService;
@@ -24,6 +25,7 @@ pub use priority::PriorityService;
 pub use registry::ServiceRegistry;
 pub use session::SessionService;
 pub use trust::TrustService;
+pub use heuristic::HeuristicService;
 
 use std::sync::{Arc, Mutex};
 
@@ -39,19 +41,13 @@ pub struct ServiceManager {
     pub registry: Arc<Mutex<ServiceRegistry>>,
     pub session: Arc<SessionService>,
     pub trust: Arc<TrustService>,
+    pub heuristic: Arc<HeuristicService>,
 }
 
 impl ServiceManager {
     pub fn new() -> Self {
         let logger = Arc::new(LoggerService::new());
         let settings = Arc::new(SettingsService::new());
-        let (audio_svc, audio_warning) = AudioService::new();
-        let audio = Arc::new(audio_svc);
-        let ai = Arc::new(AiService::new());
-        let search = Arc::new(SearchService::new());
-        let haptic = Arc::new(HapticService::new());
-        let portal = Arc::new(PortalService::new());
-        let priority = Arc::new(PriorityService::new());
 
         // Read anchor port from settings, default 7000.
         let anchor_port: u16 = settings.default_settings_public()
@@ -59,6 +55,15 @@ impl ServiceManager {
             .and_then(|v| v.parse().ok())
             .unwrap_or(7000);
         let registry = Arc::new(Mutex::new(ServiceRegistry::new(anchor_port)));
+
+        let (audio_svc, audio_warning) = AudioService::new();
+        let audio = Arc::new(audio_svc);
+        let ai = Arc::new(AiService::new());
+        let search = Arc::new(SearchService::new(registry.clone()));
+        let haptic = Arc::new(HapticService::new());
+        let portal = Arc::new(PortalService::new());
+        let priority = Arc::new(PriorityService::new());
+
         let session = Arc::new(SessionService::new(registry.clone()));
         let trust = Arc::new(TrustService::new());
         
@@ -82,6 +87,7 @@ impl ServiceManager {
             registry,
             session,
             trust,
+            heuristic: Arc::new(HeuristicService::new(registry.clone())),
         }
     }
     pub fn set_ipc(&self, ipc: std::sync::Arc<dyn crate::common::ipc_dispatcher::IpcDispatcher>) {

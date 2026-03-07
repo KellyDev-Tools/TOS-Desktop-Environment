@@ -190,7 +190,7 @@
 
 		if (e.ctrlKey || e.metaKey) {
 			// Ctrl+1-4: Switch hierarchy levels
-			const levelMap: Record<string, ViewMode> = { '1': 'global', '2': 'hubs', '3': 'sectors', '4': 'detail' };
+			const levelMap: Record<string, ViewMode> = { '1': 'global', '2': 'hubs', '3': 'sectors', '4': 'detail', 'm': 'marketplace' };
 			if (levelMap[e.key]) {
 				e.preventDefault();
 				handleLevelClick(levelMap[e.key]);

@@ -162,6 +162,7 @@
 					<div class="module-action">
 						{#if module.installed}
 							<div class="status-indicator">
+                                <div class="pulse-dot-small"></div>
                                 <span class="status-badge installed">INSTALLED</span>
                             </div>
 						{:else}
@@ -181,8 +182,8 @@
 	</main>
 
     {#if selectedModule}
-        <div class="detail-overlay" transition:fade onclick={() => selectedModule = null}>
-            <div class="detail-card glass-panel" onclick={(e) => e.stopPropagation()} in:fly={{ y: 100, duration: 500 }}>
+        <div class="detail-overlay" transition:fade onclick={() => selectedModule = null} role="button" tabindex="0" onkeydown={(e) => e.key === 'Escape' && (selectedModule = null)}>
+            <div class="detail-card glass-panel" onclick={(e) => e.stopPropagation()} in:fly={{ y: 100, duration: 500 }} role="dialog" aria-modal="true" tabindex="-1">
                 <header class="detail-header">
                     <div class="detail-icon">{selectedModule.summary.icon || '⊞'}</div>
                     <div class="detail-meta">
@@ -624,10 +625,6 @@
 	}
 
     .lcars-btn-sm:hover { filter: brightness(1.2); }
-
-	.lcars-btn-sm.primary {
-		background: var(--color-primary);
-	}
 
     .lcars-btn {
 		background: var(--color-primary);

@@ -1,0 +1,74 @@
+# Page snapshot
+
+```yaml
+- generic [ref=e3]:
+  - banner [ref=e4]:
+    - generic [ref=e5]:
+      - generic [ref=e7]:
+        - button "◀" [ref=e8] [cursor=pointer]
+        - generic [ref=e10]: ALPHA-2.2 // INTEL-DRIVEN
+        - button "TEST SECTOR" [ref=e12] [cursor=pointer]: TEST SECTOR
+      - generic [ref=e14]:
+        - generic [ref=e15]:
+          - generic [ref=e16]: BRAIN TIME
+          - generic [ref=e17]: "--:--:--"
+          - generic [ref=e18]: DISCONNECTED
+        - generic [ref=e19]:
+          - generic [ref=e20]: SYSTEM TELEMETRY
+          - generic [ref=e21]:
+            - generic [ref=e22]: "CPU: 12%"
+            - generic [ref=e23]: "|"
+            - generic [ref=e24]: "MEM: 4.2GB"
+            - generic [ref=e25]: "|"
+            - generic [ref=e26]: "NET: 1.2MB/s"
+      - generic [ref=e27]:
+        - generic [ref=e28]:
+          - button "👁" [ref=e29] [cursor=pointer]
+          - button "⊞" [ref=e30] [cursor=pointer]
+          - button "📡" [ref=e31] [cursor=pointer]
+          - button "⚙" [ref=e32] [cursor=pointer]
+        - button "⊕ PORTAL" [ref=e33] [cursor=pointer]
+        - button "⚙ SYS" [ref=e34] [cursor=pointer]
+        - button "?" [ref=e35] [cursor=pointer]
+        - button "▶" [ref=e36] [cursor=pointer]
+  - main [ref=e38]:
+    - navigation [ref=e39]:
+      - generic [ref=e40]:
+        - button "1" [ref=e41] [cursor=pointer]
+        - button "2" [ref=e42] [cursor=pointer]
+        - button "3" [ref=e43] [cursor=pointer]
+        - button "4" [ref=e44] [cursor=pointer]
+        - button "⊞" [ref=e46] [cursor=pointer]
+      - generic [ref=e48]:
+        - generic [ref=e49]: TACTICAL MAP
+        - generic [ref=e52] [cursor=pointer]: S0
+    - generic [ref=e54]:
+      - generic [ref=e56]:
+        - generic [ref=e57]:
+          - generic [ref=e58]: GLOBAL OVERVIEW
+          - generic [ref=e59]:
+            - button "+" [ref=e60] [cursor=pointer]
+            - button "−" [ref=e61] [cursor=pointer]
+        - 'button "NO ACTIVE FEED S00 TEST SECTOR TYPE: STANDARD STATUS: ACTIVE" [ref=e67] [cursor=pointer]':
+          - generic [ref=e69]: NO ACTIVE FEED
+          - generic [ref=e70]: S00
+          - generic [ref=e71]: TEST SECTOR
+          - generic [ref=e72]: "TYPE: STANDARD"
+          - generic [ref=e73]: "STATUS: ACTIVE"
+      - generic [ref=e74]:
+        - generic:
+          - generic:
+            - generic:
+              - button "CMD"
+              - button "SEARCH"
+              - button "AI"
+            - generic:
+              - generic: CMD ▸
+              - textbox "ENTER COMMAND..."
+    - complementary [ref=e75]:
+      - generic [ref=e76]:
+        - generic [ref=e77]:
+          - generic [ref=e78]: PRIORITY
+          - generic [ref=e79]: NO ALERTS
+        - generic [ref=e81]: SYSTEM READY.
+```

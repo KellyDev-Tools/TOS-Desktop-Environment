@@ -74,8 +74,15 @@ export function sendCommand(cmd: string): Promise<string | null> {
     };
 
     const next = commandQueue.then(() => runCommand());
-    commandQueue = next.catch(() => null); // Ensure queue continues even on failure
-    return next;
+    commandQueue = next.then(() => { }).catch(() => { });
+
+    return next.then(res => {
+        if (!res) return null;
+        if (res.includes(' (')) {
+            return res.substring(0, res.lastIndexOf(' ('));
+        }
+        return res;
+    }).catch(() => null);
 }
 
 // --- State Synchronization ---
@@ -94,13 +101,7 @@ async function syncState(): Promise<void> {
             return;
         }
 
-        let rawState = response;
-        // Strip the Rust diagnostic duration suffix e.g. "JSON (123µs)"
-        if (rawState.includes(' (')) {
-            rawState = rawState.substring(0, rawState.lastIndexOf(' ('));
-        }
-
-        const parsed = JSON.parse(rawState) as TosState;
+        const parsed = JSON.parse(response) as TosState;
         tosState = parsed;
         lastSyncTime = Date.now();
         syncLatency = `${(performance.now() - start).toFixed(0)}ms`;

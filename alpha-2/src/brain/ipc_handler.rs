@@ -311,22 +311,6 @@ impl IpcHandler {
         "ZOOMED_OUT".to_string()
     }
 
-    fn handle_zoom_to(&self, level_str: Option<&str>) -> String {
-        // Multi-Level Navigation
-        let level = match level_str {
-            Some("GlobalOverview") => HierarchyLevel::GlobalOverview,
-            Some("CommandHub") => HierarchyLevel::CommandHub,
-            Some("ApplicationFocus") => HierarchyLevel::ApplicationFocus,
-            Some("DetailView") => HierarchyLevel::DetailView,
-            Some("BufferView") => HierarchyLevel::BufferView,
-            _ => return "ERROR: Unknown level".to_string(),
-        };
-
-        let mut state = self.state.lock().unwrap();
-        crate::brain::hierarchy::HierarchyManager::set_level(&mut state, level);
-        format!("ZOOMED_TO: {:?}", level)
-    }
-
     fn handle_set_setting(&self, key: Option<&str>, val: Option<&str>, sector_id: Option<&str>) -> String {
         if let (Some(k), Some(v)) = (key, val) {
             let mut state = self.state.lock().unwrap();

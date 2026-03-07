@@ -20,6 +20,7 @@ impl HierarchyManager {
                 }
             }
             HierarchyLevel::BufferView => None,
+            HierarchyLevel::Marketplace => None,
         };
 
         if let Some(level) = next_level {

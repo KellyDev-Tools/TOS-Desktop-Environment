@@ -15,12 +15,20 @@
     let isAiSearching = $state(false);
     let aiSearchResults = $state<any[]>([]);
 
-	onMount(async () => {
-		homeData = await marketplaceGetHome();
+	onMount(() => {
+		fetchHome();
+	});
+
+    async function fetchHome() {
+        if (homeData) return;
+        homeData = await marketplaceGetHome();
         if (homeData) {
             categories = ['Featured', ...homeData.categories.map((c: any) => c.name)];
+        } else {
+            // Retry in 1s if failed to fetch (likely not connected yet)
+            setTimeout(fetchHome, 1000);
         }
-	});
+    }
 
     onDestroy(() => {
         if (pollingInterval) clearInterval(pollingInterval);
@@ -46,6 +54,7 @@
             categoryModules = [];
             return;
         }
+        if (!homeData) return;
         const cat = homeData.categories.find((c: any) => c.name === categoryName);
         if (cat) {
             categoryModules = await marketplaceGetCategory(cat.id);

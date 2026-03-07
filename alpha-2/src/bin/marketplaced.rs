@@ -93,8 +93,11 @@ async fn handle_client(socket: TcpStream) -> anyhow::Result<()> {
                 serde_json::to_string(&progress).unwrap_or_default()
             }
             "marketplace_search_ai" => {
-                let query = payload.trim();
-                let results = vec![get_mock_home().featured[0].clone()]; // Mock search
+                let query = payload.to_lowercase();
+                let results = get_all_mock_modules()
+                    .into_iter()
+                    .filter(|m| m.name.to_lowercase().contains(&query) || m.module_type.to_lowercase().contains(&query))
+                    .collect::<Vec<_>>();
                 serde_json::to_string(&results).unwrap_or_default()
             }
             "marketplace_install_cancel" => {
@@ -134,84 +137,122 @@ async fn handle_client(socket: TcpStream) -> anyhow::Result<()> {
     Ok(())
 }
 
-fn get_mock_home() -> MarketplaceHome {
-    MarketplaceHome {
-        featured: vec![
-            MarketplaceModuleSummary {
-                id: "tos-observer".to_string(),
-                name: "Passive Observer".to_string(),
-                module_type: "AI Behavior".to_string(),
-                author: "TOS Team".to_string(),
-                icon: Some("✦".to_string()),
-                rating: 4.8,
-                price: "Free".to_string(),
-                installed: true,
-            },
-            MarketplaceModuleSummary {
-                id: "tos-aurora-theme".to_string(),
-                name: "Aurora Borealis".to_string(),
-                module_type: "Theme".to_string(),
-                author: "TOS Art".to_string(),
-                icon: Some("⊞".to_string()),
-                rating: 4.5,
-                price: "$5.00".to_string(),
-                installed: false,
+fn get_all_mock_modules() -> Vec<MarketplaceModuleSummary> {
+    let mut modules = Vec::new();
+    let mut base_path = dirs::home_dir().unwrap_or_else(|| std::path::PathBuf::from("/tmp"));
+    base_path.push(".config/tos/modules");
+
+    // Recurse through all categories
+    let categories = vec!["ai", "terminal", "themes", "renderers", "templates"];
+    for cat in categories {
+        let mut cat_path = base_path.clone();
+        cat_path.push(cat);
+        
+        if let Ok(entries) = std::fs::read_dir(cat_path) {
+            for entry in entries.flatten() {
+                if let Ok(manifest) = MarketplaceService::discover_module_local(entry.path()) {
+                    modules.push(MarketplaceModuleSummary {
+                        id: manifest.id,
+                        name: manifest.name,
+                        module_type: manifest.module_type,
+                        author: manifest.author,
+                        icon: manifest.icon,
+                        rating: 4.5, // Default for mock
+                        price: "Free".to_string(),
+                        installed: true, // If we found it in .config/tos/modules, it's "installed"
+                    });
+                }
             }
-        ],
+        }
+    }
+
+    // Add some "uninstalled" ones for variety if we have few
+    modules
+}
+
+fn get_mock_home() -> MarketplaceHome {
+    let all = get_all_mock_modules();
+    let mut featured = Vec::new();
+    
+    // Pick first few as featured if they exist
+    if !all.is_empty() { featured.push(all[0].clone()); }
+    if all.len() > 3 { featured.push(all[3].clone()); }
+    if all.len() > 5 { featured.push(all[5].clone()); }
+
+    MarketplaceHome {
+        featured,
         categories: vec![
-            MarketplaceCategory { id: "ai".to_string(), name: "AI Behaviors".to_string(), icon: "🧠".to_string(), module_count: 12 },
-            MarketplaceCategory { id: "shell".to_string(), name: "Shell Modules".to_string(), icon: "🐚".to_string(), module_count: 5 },
-            MarketplaceCategory { id: "theme".to_string(), name: "Themes".to_string(), icon: "🎨".to_string(), module_count: 24 },
+            MarketplaceCategory { id: "ai".to_string(), name: "AI Behaviors".to_string(), icon: "🧠".to_string(), module_count: all.iter().filter(|m| m.module_type.to_lowercase().contains("ai")).count() as u32 },
+            MarketplaceCategory { id: "shell".to_string(), name: "Shell Modules".to_string(), icon: "🐚".to_string(), module_count: all.iter().filter(|m| m.module_type.to_lowercase().contains("shell")).count() as u32 },
+            MarketplaceCategory { id: "theme".to_string(), name: "Themes".to_string(), icon: "🎨".to_string(), module_count: all.iter().filter(|m| m.module_type.to_lowercase().contains("theme")).count() as u32 },
+            MarketplaceCategory { id: "renderer".to_string(), name: "Renderers".to_string(), icon: "📺".to_string(), module_count: all.iter().filter(|m| m.module_type.to_lowercase().contains("renderer") || m.module_type.to_lowercase().contains("terminaloutput")).count() as u32 },
+            MarketplaceCategory { id: "template".to_string(), name: "Templates".to_string(), icon: "📝".to_string(), module_count: all.iter().filter(|m| m.module_type.to_lowercase().contains("template")).count() as u32 },
         ]
     }
 }
 
-fn get_mock_category_modules(_cat_id: &str) -> Vec<MarketplaceModuleSummary> {
-    vec![
-        MarketplaceModuleSummary {
-            id: "tos-observer".to_string(),
-            name: "Passive Observer".to_string(),
-            module_type: "AI Behavior".to_string(),
-            author: "TOS Team".to_string(),
-            icon: Some("✦".to_string()),
-            rating: 4.8,
-            price: "Free".to_string(),
-            installed: true,
-        },
-        MarketplaceModuleSummary {
-            id: "tos-chat".to_string(),
-            name: "Chat Companion".to_string(),
-            module_type: "AI Behavior".to_string(),
-            author: "TOS Team".to_string(),
-            icon: Some("💬".to_string()),
-            rating: 4.9,
-            price: "Free".to_string(),
-            installed: true,
-        },
-    ]
+fn get_mock_category_modules(cat_id: &str) -> Vec<MarketplaceModuleSummary> {
+    get_all_mock_modules()
+        .into_iter()
+        .filter(|m| {
+            let m_type = m.module_type.to_lowercase();
+            match cat_id {
+                "ai" => m_type.contains("ai"),
+                "shell" => m_type.contains("shell"),
+                "theme" => m_type.contains("theme"),
+                "renderer" => m_type.contains("renderer") || m_type.contains("terminaloutput"),
+                "template" => m_type.contains("template"),
+                _ => true,
+            }
+        })
+        .collect()
 }
 
 fn get_mock_detail(id: &str) -> MarketplaceModuleDetail {
+    let summary = get_all_mock_modules().into_iter().find(|m| m.id == id).unwrap_or_else(|| MarketplaceModuleSummary {
+        id: id.to_string(),
+        name: "Unknown Module".to_string(),
+        module_type: "Unknown".to_string(),
+        author: "Unknown".to_string(),
+        icon: None,
+        rating: 0.0,
+        price: "N/A".to_string(),
+        installed: false,
+    });
+
+    let description = match id {
+        "tos-observer" => "A built-in AI behavior that monitors terminal output and suggests fixes for errors (127) or long-running tasks. Non-intrusive and non-blocking.".to_string(),
+        "tos-chat" => "Your primary conversational interface for TOS. Supports deep context awareness, code staging, and multi-sector history.".to_string(),
+        "tos-shell-fish" => "The canonical TOS shell module. High-performance, with full OSC sequence support for mode-aware transitions and heuristic path completion.".to_string(),
+        "tos-aurora-theme" => "A premium theme inspired by the Northern Lights. Deep blues and vibrant teals with glassmorphic transparency.".to_string(),
+        "tos-cinematic" => "A wide-screen terminal rendering module with high-fidelity typography and dynamic layout adjustments for presentation-grade output.".to_string(),
+        "tos-retro-crt" => "Brings back the glow. Simulated phosphor persistence, scanlines, and subtle spherical curvature for that classic mainframe feel.".to_string(),
+        "tos-monochrome" => "Peak efficiency. A black-and-white theme with high contrast and zero distractions. Optimized for clarity.".to_string(),
+        "tos-sentinel" => "Enterprise-grade security monitoring. Analyzes command patterns for suspicious privilege escalation and bulk destructive operations.".to_string(),
+        "tos-dev-layout" => "A pre-configured Split Viewport template optimized for Rust/Svelte development. Includes a 3-pane layout with dedicated terminal, logs, and a file browser.".to_string(),
+        _ => "No detailed description available for this module.".to_string(),
+    };
+
+    let permissions = match id {
+        "tos-observer" | "tos-sentinel" => vec!["terminal_read".to_string(), "system_log_write".to_string()],
+        "tos-chat" => vec!["terminal_read".to_string(), "terminal_write".to_string(), "filesystem_read".to_string()],
+        "tos-shell-fish" => vec!["pty_access".to_string(), "filesystem_full".to_string()],
+        "tos-aurora-theme" | "tos-monochrome" => vec!["ui_style_override".to_string()],
+        "tos-cinematic" | "tos-retro-crt" => vec!["terminal_render_hook".to_string()],
+        _ => vec![],
+    };
+
     MarketplaceModuleDetail {
-        summary: MarketplaceModuleSummary {
-            id: id.to_string(),
-            name: "Passive Observer".to_string(),
-            module_type: "AI Behavior".to_string(),
-            author: "TOS Team".to_string(),
-            icon: Some("✦".to_string()),
-            rating: 4.8,
-            price: "Free".to_string(),
-            installed: true,
-        },
-        description: "A built-in AI behavior that monitors terminal output and suggests fixes for errors (127) or long-running tasks. Non-intrusive and non-blocking.".to_string(),
-        screenshots: vec!["https://example.com/obs1.png".to_string()],
-        permissions: vec!["terminal_read".to_string(), "system_log_write".to_string()],
+        summary,
+        description,
+        screenshots: vec!["https://tos.live/assets/modules/preview.png".to_string()],
+        permissions,
         reviews: vec![
             MarketplaceReview {
                 author: "Archer".to_string(),
                 rating: 5,
-                comment: "Saved me from typos a hundred times already!".to_string(),
-                date: "2026-02-15".to_string(),
+                comment: "Essential for any TOS installation.".to_string(),
+                date: "2026-03-01".to_string(),
             }
         ],
     }

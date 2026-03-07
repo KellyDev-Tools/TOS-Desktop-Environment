@@ -296,7 +296,25 @@ impl IpcHandler {
     }
 
     fn handle_zoom_to(&self, level_str: Option<&str>) -> String {
-        self.handle_set_mode(level_str)
+        let mode_raw = level_str.unwrap_or("");
+
+        let target_level = match mode_raw {
+            "global" | "GlobalOverview" => Some(HierarchyLevel::GlobalOverview),
+            "hubs" | "CommandHub" => Some(HierarchyLevel::CommandHub),
+            "sectors" | "ApplicationFocus" => Some(HierarchyLevel::ApplicationFocus),
+            "detail" | "DetailView" => Some(HierarchyLevel::DetailView),
+            "buffer" | "BufferView" => Some(HierarchyLevel::BufferView),
+            "marketplace" | "Marketplace" => Some(HierarchyLevel::Marketplace),
+            _ => None,
+        };
+
+        if let Some(level) = target_level {
+            let mut state = self.state.lock().unwrap();
+            crate::brain::hierarchy::HierarchyManager::set_level(&mut state, level);
+            return format!("ZOOMED_TO: {:?}", level);
+        }
+
+        "ERROR: Unknown level".to_string()
     }
 
     fn handle_zoom_in(&self) -> String {

@@ -245,31 +245,58 @@ impl IpcHandler {
     }
 
     fn handle_set_mode(&self, mode_str: Option<&str>) -> String {
-        // Context-Aware Mode Transitions
-        let mode = match mode_str {
-            Some("command") => CommandHubMode::Command,
-            Some("directory") => CommandHubMode::Directory,
-            Some("activity") => CommandHubMode::Activity,
-            Some("search") => CommandHubMode::Search,
-            Some("ai") => CommandHubMode::Ai,
-            _ => return "ERROR: Unknown mode".to_string(),
+        let mode_raw = mode_str.unwrap_or("");
+        
+        // 1. Try Hierarchy Levels / ViewModes
+        let target_level = match mode_raw {
+            "global" | "GlobalOverview" => Some(HierarchyLevel::GlobalOverview),
+            "hubs" | "CommandHub" => Some(HierarchyLevel::CommandHub),
+            "sectors" | "ApplicationFocus" => Some(HierarchyLevel::ApplicationFocus),
+            "detail" | "DetailView" => Some(HierarchyLevel::DetailView),
+            "buffer" | "BufferView" => Some(HierarchyLevel::BufferView),
+            "marketplace" | "Marketplace" => Some(HierarchyLevel::Marketplace),
+            _ => None,
         };
 
-        let mut state = self.state.lock().unwrap();
-        let idx = state.active_sector_index;
-        if let Some(sector) = state.sectors.get_mut(idx) {
-            let hub_idx = sector.active_hub_index;
-            if let Some(hub) = sector.hubs.get_mut(hub_idx) {
-                hub.mode = mode;
-                if mode == CommandHubMode::Directory {
-                    crate::brain::sector::SectorManager::refresh_directory_listing(&mut state);
-                } else if mode == CommandHubMode::Activity {
-                    crate::brain::sector::SectorManager::refresh_activity_listing(&mut state);
-                }
-                return format!("MODE_SET: {:?}", mode);
-            }
+        if let Some(level) = target_level {
+            let mut state = self.state.lock().unwrap();
+            crate::brain::hierarchy::HierarchyManager::set_level(&mut state, level);
+            return format!("LEVEL_SET: {:?}", level);
         }
-        "ERROR: Hub not found".to_string()
+
+        // 2. Try Command Hub Modes
+        let hub_mode = match mode_raw {
+            "command" => Some(CommandHubMode::Command),
+            "directory" => Some(CommandHubMode::Directory),
+            "activity" => Some(CommandHubMode::Activity),
+            "search" => Some(CommandHubMode::Search),
+            "ai" => Some(CommandHubMode::Ai),
+            _ => None,
+        };
+
+        if let Some(mode) = hub_mode {
+            let mut state = self.state.lock().unwrap();
+            let idx = state.active_sector_index;
+            if let Some(sector) = state.sectors.get_mut(idx) {
+                let hub_idx = sector.active_hub_index;
+                if let Some(hub) = sector.hubs.get_mut(hub_idx) {
+                    hub.mode = mode;
+                    if mode == CommandHubMode::Directory {
+                        crate::brain::sector::SectorManager::refresh_directory_listing(&mut state);
+                    } else if mode == CommandHubMode::Activity {
+                        crate::brain::sector::SectorManager::refresh_activity_listing(&mut state, Some(&self.services.capture));
+                    }
+                    return format!("MODE_SET: {:?}", mode);
+                }
+            }
+            return "ERROR: Hub not found".to_string();
+        }
+
+        "ERROR: Unknown mode or level".to_string()
+    }
+
+    fn handle_zoom_to(&self, level_str: Option<&str>) -> String {
+        self.handle_set_mode(level_str)
     }
 
     fn handle_zoom_in(&self) -> String {
@@ -729,15 +756,23 @@ impl IpcHandler {
 
     fn handle_tactical_kill_switch(&self) -> String {
         tracing::warn!("TACTICAL KILL SWITCH ACTIVATED!");
+        
+        // 1. Force-kill the active shell (§22)
+        if let Ok(mut shell) = self.shell.lock() {
+            if let Err(e) = shell.force_kill() {
+                tracing::error!("Failed to force-kill shell: {}", e);
+            }
+        }
+
+        // 2. Disconnect/Freeze all sectors
         let mut state = self.state.lock().unwrap();
-        // Disconnect all sectors as a form of reset
         for sector in state.sectors.iter_mut() {
             sector.frozen = true;
             sector.disconnected = true;
         }
         state.version += 1;
         state.system_log.push(crate::common::TerminalLine {
-            text: "[CRITICAL] LEVEL 4 TACTICAL RESET EXECUTED".to_string(),
+            text: "[CRITICAL] LEVEL 4 TACTICAL RESET EXECUTED - ALL PROCESSES TERMINATED".to_string(),
             priority: 3,
             timestamp: chrono::Local::now(),
         });

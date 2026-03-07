@@ -36,6 +36,7 @@ impl HierarchyManager {
             HierarchyLevel::DetailView => Some(HierarchyLevel::ApplicationFocus),
             HierarchyLevel::ApplicationFocus => Some(HierarchyLevel::CommandHub),
             HierarchyLevel::CommandHub => Some(HierarchyLevel::GlobalOverview),
+            HierarchyLevel::Marketplace => Some(HierarchyLevel::GlobalOverview),
             HierarchyLevel::GlobalOverview => None,
         };
 

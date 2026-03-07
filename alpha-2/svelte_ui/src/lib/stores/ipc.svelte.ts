@@ -37,9 +37,16 @@ export function getSyncLatency(): string {
 
 // --- IPC Command Dispatch ---
 
+// --- Internal Command Queue ---
+let commandQueue: Promise<any> = Promise.resolve();
+
 /**
  * Send a command to the Brain and return the response.
  * Returns null if not connected.
+ * 
+ * NOTE: This is wrapped in a sequential queue to prevent overlapping 
+ * commands from stealing each other's responses (since the Brain
+ * currently sends a single line in response to a single-line request).
  */
 export function sendCommand(cmd: string): Promise<string | null> {
     if (!ws || ws.readyState !== WebSocket.OPEN) {
@@ -48,33 +55,44 @@ export function sendCommand(cmd: string): Promise<string | null> {
     }
 
     const activeWs = ws;
-    if (!activeWs) return Promise.resolve(null);
 
-    return new Promise((resolve) => {
-        const handler = (event: MessageEvent) => {
-            activeWs.removeEventListener('message', handler);
-            resolve(event.data);
-        };
-        activeWs.addEventListener('message', handler);
-        activeWs.send(cmd);
+    const runCommand = (): Promise<string | null> => {
+        return new Promise((resolve) => {
+            const handler = (event: MessageEvent) => {
+                activeWs.removeEventListener('message', handler);
+                resolve(event.data);
+            };
+            activeWs.addEventListener('message', handler);
+            activeWs.send(cmd);
 
-        // Timeout after 5s
-        setTimeout(() => {
-            activeWs.removeEventListener('message', handler);
-            resolve(null);
-        }, 5000);
-    });
+            // Timeout after 5s
+            setTimeout(() => {
+                activeWs.removeEventListener('message', handler);
+                resolve(null);
+            }, 5000);
+        });
+    };
+
+    const next = commandQueue.then(() => runCommand());
+    commandQueue = next.catch(() => null); // Ensure queue continues even on failure
+    return next;
 }
 
 // --- State Synchronization ---
+let isSyncing = false;
 
 async function syncState(): Promise<void> {
     if (!ws || ws.readyState !== WebSocket.OPEN) return;
+    if (isSyncing) return;
+    isSyncing = true;
 
     const start = performance.now();
     try {
         const response = await sendCommand('get_state:');
-        if (!response) return;
+        if (!response) {
+            isSyncing = false;
+            return;
+        }
 
         let rawState = response;
         // Strip the Rust diagnostic duration suffix e.g. "JSON (123µs)"
@@ -88,6 +106,8 @@ async function syncState(): Promise<void> {
         syncLatency = `${(performance.now() - start).toFixed(0)}ms`;
     } catch (e) {
         console.error('[IPC] Sync failure:', e);
+    } finally {
+        isSyncing = false;
     }
 }
 

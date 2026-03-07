@@ -76,6 +76,12 @@ impl Face {
         match state.current_level {
             HierarchyLevel::GlobalOverview => self.render_level1_to(&state, &mut out),
             HierarchyLevel::CommandHub => self.render_level2_to(&state, &mut out),
+            HierarchyLevel::Marketplace => {
+                out.push_str("+----------------------------------------------------------------------------------+\n");
+                out.push_str("| [MARKETPLACE COMPRISING ALL KNOWN MODULES]                                       |\n");
+                out.push_str("| Use the Web Interface to browse, search, and install new behaviors.              |\n");
+                out.push_str("+----------------------------------------------------------------------------------+\n");
+            }
             _ => {
                 out.push_str(&format!("+{:->82}+\n", ""));
                 out.push_str(&format!("| {:^80} |\n", format!("{:?} VIEW", state.current_level)));

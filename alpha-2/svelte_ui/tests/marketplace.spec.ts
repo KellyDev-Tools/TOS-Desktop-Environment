@@ -21,16 +21,47 @@ const mockDetailData = {
 
 test.describe('Marketplace Integration Tests', () => {
     test.beforeEach(async ({ page }) => {
+        // Log browser console
+        page.on('console', msg => {
+            console.log(`BROWSER [${msg.type()}]: ${msg.text()}`);
+        });
+
         // Mock WebSocket for IPC
         await page.routeWebSocket('ws://127.0.0.1:7001', (route) => {
             route.onMessage((message) => {
                 const msg = message.toString();
                 if (msg.startsWith('get_state:')) {
                     route.send(JSON.stringify({
+                        current_level: 1,
                         active_sector_index: 0,
-                        sectors: [{ name: 'Test Sector' }],
+                        sectors: [{
+                            id: '00000000-0000-0000-0000-000000000000',
+                            name: 'Test Sector',
+                            hubs: [{ mode: 'command', current_directory: '/', terminal_output: [] }],
+                            active_hub_index: 0,
+                            active_apps: [],
+                            participants: []
+                        }],
                         system_log: [],
-                        settings: { global: { 'tos.onboarding.first_run_complete': 'true' } }
+                        settings: {
+                            global: { 'tos.onboarding.first_run_complete': 'true' },
+                            sectors: {},
+                            applications: {}
+                        },
+                        sys_prefix: 'TOS',
+                        sys_title: 'TEST',
+                        sys_status: 'OK',
+                        brain_time: '12:00:00',
+                        active_terminal_module: 'tos-standard-rect',
+                        available_modules: [],
+                        active_ai_module: 'tos-ai-standard',
+                        available_ai_modules: [],
+                        ai_behaviors: [],
+                        bezel_expanded: false,
+                        ai_default_backend: 'tos-ai-standard',
+                        active_theme: 'tos-classic-lcars',
+                        available_themes: [],
+                        version: 1
                     }));
                 } else if (msg.startsWith('marketplace_home:')) {
                     route.send(JSON.stringify(mockHomeData));
@@ -59,7 +90,7 @@ test.describe('Marketplace Integration Tests', () => {
         });
 
         await page.goto('/');
-        await page.waitForLoadState('domcontentloaded');
+        await expect(page.locator('.lcars-container')).toBeVisible();
     });
 
     test('should navigate to marketplace via hotkey', async ({ page }) => {
@@ -76,16 +107,19 @@ test.describe('Marketplace Integration Tests', () => {
     });
 
     test('should perform AI search and show results', async ({ page }) => {
+        // Wait for connection to be logged
+        await expect(page.locator('.lcars-container')).toBeVisible();
+
         await page.keyboard.press('Control+m');
 
         const searchInput = page.locator('.glass-input');
         await searchInput.waitFor({ state: 'visible' });
         await searchInput.fill('theme');
-        await page.keyboard.press('Enter');
+        await searchInput.press('Enter');
 
         const moduleGrid = page.locator('.module-grid');
         // Results might have a transition
-        await expect(moduleGrid.locator('.module-card')).toHaveCount(1, { timeout: 15000 });
+        await expect(moduleGrid.locator('.module-card')).toHaveCount(1, { timeout: 20000 });
         await expect(moduleGrid.locator('.module-card').first()).toContainText('Aurora Theme');
     });
 

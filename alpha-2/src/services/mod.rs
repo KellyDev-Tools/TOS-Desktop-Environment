@@ -12,6 +12,7 @@ pub mod registry;
 pub mod session;
 pub mod trust;
 pub mod heuristic;
+pub mod capture;
 
 pub use logger::LoggerService;
 pub use settings::SettingsService;
@@ -26,6 +27,7 @@ pub use registry::ServiceRegistry;
 pub use session::SessionService;
 pub use trust::TrustService;
 pub use heuristic::HeuristicService;
+pub use capture::CaptureService;
 
 use std::sync::{Arc, Mutex};
 
@@ -43,6 +45,7 @@ pub struct ServiceManager {
     pub trust: Arc<TrustService>,
     pub heuristic: Arc<HeuristicService>,
     pub marketplace: Arc<MarketplaceService>,
+    pub capture: Arc<CaptureService>,
 }
 
 impl ServiceManager {
@@ -70,6 +73,10 @@ impl ServiceManager {
         let heuristic = Arc::new(HeuristicService::new(registry.clone()));
         let marketplace = Arc::new(MarketplaceService::new(registry.clone()));
         
+        let mut capture_svc = CaptureService::new();
+        capture_svc.set_backend(Arc::new(capture::MockCaptureBackend));
+        let capture = Arc::new(capture_svc);
+        
         // Establish cross-service dependencies (e.g., logging triggers audio cues)
         logger.set_audio_service(audio.clone());
 
@@ -92,6 +99,7 @@ impl ServiceManager {
             trust,
             heuristic,
             marketplace,
+            capture,
         }
     }
     pub fn set_ipc(&self, ipc: std::sync::Arc<dyn crate::common::ipc_dispatcher::IpcDispatcher>) {

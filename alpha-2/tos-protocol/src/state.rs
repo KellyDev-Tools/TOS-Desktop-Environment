@@ -19,6 +19,7 @@ pub enum HierarchyLevel {
     ApplicationFocus = 3,
     DetailView = 4,
     BufferView = 5,
+    Marketplace = 6,
 }
 
 /// Context for terminal module execution.

@@ -225,7 +225,7 @@ impl SectorManager {
     }
 
     /// Refresh activity listing for process monitoring hub modes.
-    pub fn refresh_activity_listing(state: &mut TosState) {
+    pub fn refresh_activity_listing(state: &mut TosState, capture_svc: Option<&crate::services::CaptureService>) {
         use sysinfo::System;
         let idx = state.active_sector_index;
         if let Some(sector) = state.sectors.get_mut(idx) {
@@ -238,17 +238,13 @@ impl SectorManager {
             sys.refresh_all();
             
             let mut processes = Vec::new();
-            for (pid, process) in sys.processes() {
-                // In production, snapshots are pulled from Wayland DMABUF shared memory via PID mapping
-                // For Alpha-2.1 UI testing, we generate a mock placeholder for active graphical PIDs
-                let snapshot = if process.cpu_usage() > 1.0 {
-                    Some("data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8/5+hHgAHggJ/PchI7wAAAABJRU5ErkJggg==".to_string())
-                } else {
-                    None
-                };
+            for (pid_type, process) in sys.processes() {
+                let pid = pid_type.as_u32();
+                // Fetch dynamic snapshot from the capture service if available
+                let snapshot = capture_svc.and_then(|svc| svc.get_snapshot(pid));
 
                 processes.push(crate::common::ProcessEntry {
-                    pid: pid.as_u32(),
+                    pid,
                     name: process.name().to_string(),
                     cpu_usage: process.cpu_usage(),
                     mem_usage: process.memory(),

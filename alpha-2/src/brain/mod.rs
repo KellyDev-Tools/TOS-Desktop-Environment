@@ -85,8 +85,9 @@ impl Brain {
                     lock.brain_time = chrono::Local::now().format("%H:%M:%S").to_string();
                     lock.version += 1;
 
-                    // Refresh tactical priorities every 5 ticks (§21)
+                    // Periodic Sector Maintenance
                     if tick % 5 == 0 {
+                        // Refresh tactical priorities (§21)
                         let sector_ids: Vec<uuid::Uuid> = lock.sectors.iter().map(|s| s.id).collect();
                         for sid in sector_ids {
                             if let Ok(score) = svc_clock.priority.calculate_priority(sid) {
@@ -96,6 +97,9 @@ impl Brain {
                             }
                         }
                     }
+
+                    // Refresh activity listing and process snapshots (1Hz)
+                    crate::brain::sector::SectorManager::refresh_activity_listing(&mut lock, Some(&svc_clock.capture));
                 }
             }
         });

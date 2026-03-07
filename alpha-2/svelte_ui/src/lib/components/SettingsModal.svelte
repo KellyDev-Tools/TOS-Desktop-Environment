@@ -92,8 +92,8 @@
 {#if open}
 	<!-- svelte-ignore a11y_click_events_have_key_events -->
 	<!-- svelte-ignore a11y_no_static_element_interactions -->
-	<div class="modal-overlay" onclick={handleOverlayClick}>
-		<div class="modal-container glass-panel">
+	<div class="modal-overlay" onclick={handleOverlayClick} role="button" tabindex="0">
+		<div class="modal-container glass-panel" role="dialog" aria-modal="true" tabindex="-1" onclick={(e) => e.stopPropagation()}>
 			<!-- Header -->
 			<div class="modal-header">
 				<div class="modal-elbow"></div>

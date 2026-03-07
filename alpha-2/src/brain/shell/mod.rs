@@ -131,11 +131,17 @@ impl ShellApi {
             }
             "TERM" | "SIGTERM" => {
                 // Common to send Ctrl+D for EOF or similar, but SIGTERM normally kills.
-                // For PTY, we might need OS-specific handles.
                 self.write("\x04")?; // Ctrl+D (EOT)
             }
             _ => return Err(anyhow::anyhow!("Unsupported signal: {}", signal)),
         }
+        Ok(())
+    }
+
+    /// Force-terminates the shell process (§22).
+    pub fn force_kill(&mut self) -> anyhow::Result<()> {
+        tracing::warn!("SHM: Force-killing shell process...");
+        self._child.kill()?;
         Ok(())
     }
 

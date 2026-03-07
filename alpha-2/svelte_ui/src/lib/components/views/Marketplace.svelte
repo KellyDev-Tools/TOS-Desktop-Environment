@@ -29,7 +29,7 @@
 	let categories = $state(['Featured', 'AI Behaviors', 'Shell Modules', 'Themes', 'Terminal Modules']);
 	
 	const filteredModules = $derived(
-		isAiSearching ? aiSearchResults : (
+		aiSearchResults.length > 0 ? aiSearchResults : (
             homeData ? (
                 selectedCategory === 'Featured' ? homeData.featured : categoryModules
             ).filter((m: any) => m.name.toLowerCase().includes(searchQuery.toLowerCase()))
@@ -41,8 +41,7 @@
 
     async function handleCategorySelect(categoryName: string) {
         selectedCategory = categoryName;
-        isAiSearching = false;
-        aiSearchResults = [];
+        resetAiSearch();
         if (categoryName === 'Featured') {
             categoryModules = [];
             return;
@@ -51,6 +50,12 @@
         if (cat) {
             categoryModules = await marketplaceGetCategory(cat.id);
         }
+    }
+
+    function resetAiSearch() {
+        isAiSearching = false;
+        aiSearchResults = [];
+        searchQuery = '';
     }
 
     async function handleAiSearch() {
@@ -142,9 +147,14 @@
 			</section>
 		{/if}
 
-		<div class="module-grid">
+		<div class="module-grid" class:searching={isAiSearching}>
 			{#each filteredModules as module}
-				<div class="module-card glass-panel" in:scale onclick={() => openDetail(module.id)}>
+				<div 
+                    class="module-card glass-panel" 
+                    class:ai-result={aiSearchResults.some(a => a.id === module.id)}
+                    in:fly={{ y: 20, duration: 300 }} 
+                    onclick={() => openDetail(module.id)}
+                >
 					<div class="module-icon">{module.icon || '⊞'}</div>
 					<div class="module-info">
 						<div class="module-name">
@@ -584,18 +594,47 @@
         100% { opacity: 1; transform: scale(1); }
     }
 
-    .empty-state {
-        grid-column: 1 / -1;
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        justify-content: center;
-        padding: 100px;
-        opacity: 0.5;
+    .empty-text { font-family: var(--font-display); font-weight: 700; letter-spacing: 0.1em; }
+
+    /* AI Search Branding */
+    .module-grid.searching {
+        position: relative;
     }
 
-    .empty-icon { font-size: 4rem; margin-bottom: 20px; }
-    .empty-text { font-family: var(--font-display); font-weight: 700; letter-spacing: 0.1em; }
+    .module-grid.searching::after {
+        content: "";
+        position: absolute;
+        inset: 0;
+        background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%), linear-gradient(90deg, rgba(255, 0, 0, 0.06), rgba(0, 255, 0, 0.02), rgba(0, 0, 255, 0.06));
+        background-size: 100% 4px, 3px 100%;
+        pointer-events: none;
+        z-index: 10;
+        opacity: 0.3;
+        animation: scanline 10s linear infinite;
+    }
+
+    @keyframes scanline {
+        from { background-position: 0 0; }
+        to { background-position: 0 100%; }
+    }
+
+    .module-card.ai-result {
+        border-color: var(--color-secondary);
+        box-shadow: 0 0 15px rgba(92, 136, 218, 0.2);
+        animation: aiPulsate 4s ease-in-out infinite;
+    }
+
+    @keyframes aiPulsate {
+        0% { box-shadow: 0 0 10px rgba(92, 136, 218, 0.1); }
+        50% { box-shadow: 0 0 25px rgba(92, 136, 218, 0.3); }
+        100% { box-shadow: 0 0 10px rgba(92, 136, 218, 0.1); }
+    }
+
+    .ai-result .module-icon {
+        background: rgba(92, 136, 218, 0.15);
+        color: var(--color-secondary);
+        border-color: var(--color-secondary);
+    }
 
 	.status-badge {
 		font-family: var(--font-display);

@@ -71,8 +71,8 @@
 {#if open}
 	<!-- svelte-ignore a11y_click_events_have_key_events -->
 	<!-- svelte-ignore a11y_no_static_element_interactions -->
-	<div class="modal-overlay" onclick={handleOverlayClick}>
-		<div class="portal-container glass-panel">
+	<div class="modal-overlay" onclick={handleOverlayClick} role="button" tabindex="0">
+		<div class="portal-container glass-panel" role="dialog" aria-modal="true" tabindex="-1" onclick={(e) => e.stopPropagation()}>
 			<!-- Header -->
 			<div class="portal-header">
 				<div class="portal-elbow"></div>

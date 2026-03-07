@@ -454,8 +454,8 @@
 			<!-- Footer -->
 			<div class="modal-footer">
 				<div class="modal-elbow-bottom"></div>
-				<button class="bezel-btn" onclick={() => setSettingsTab('ai')}>✦ AI CONFIG</button>
-				<button class="bezel-btn" onclick={() => setSettingsTab('marketplace')}>⊞ MARKETPLACE</button>
+				<button class="lcars-btn secondary" onclick={() => setSettingsTab('ai')}>✦ AI_MODES</button>
+				<button class="lcars-btn secondary" onclick={() => setSettingsTab('marketplace')}>⊞ ECOSYSTEM</button>
 				<button class="lcars-btn warning" onclick={handleSave}>COMMIT CHANGES</button>
 			</div>
 		</div>
@@ -848,11 +848,15 @@
 		display: flex;
 		align-items: center;
 		justify-content: flex-end;
-		gap: var(--space-sm);
+		gap: var(--space-md);
 		padding: var(--space-sm) var(--space-md);
 		border-top: 1px solid var(--color-border);
 		background: var(--color-surface-raised);
 		flex-shrink: 0;
+	}
+	.modal-footer .lcars-btn {
+		flex-shrink: 0;
+		white-space: nowrap;
 	}
 	.modal-elbow-bottom { flex: 1; }
 </style>

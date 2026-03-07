@@ -22,7 +22,7 @@
 		<div class="bezel-header">
 			<div class="lcars-pill primary">ACTIVE_HUB // {activeHub.mode.toUpperCase()}</div>
 			<div class="bezel-controls">
-				<button class="bezel-btn" onclick={() => bezelCollapse()}>✕ CLOSE</button>
+				<button class="lcars-btn-sm" onclick={() => bezelCollapse()}>✕ CLOSE</button>
 			</div>
 		</div>
 

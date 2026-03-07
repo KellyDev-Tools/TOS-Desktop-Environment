@@ -29,7 +29,6 @@
 	import Minimap from '$lib/components/modules/Minimap.svelte';
 	import PriorityStack from '$lib/components/modules/PriorityStack.svelte';
 	import MiniLog from '$lib/components/modules/MiniLog.svelte';
-	import StatusBadges from '$lib/components/modules/StatusBadges.svelte';
 
 	// Overlays
 	import SystemOutput from '$lib/components/SystemOutput.svelte';
@@ -250,14 +249,11 @@
 <svelte:window onkeydown={handleGlobalKeydown} />
 
 <div class="lcars-container">
-	<!-- Cinematic Background -->
-	<div class="tri-module tri-top-left"></div>
-	<div class="tri-module tri-bottom-right"></div>
+	<!-- Cinematic Background (Removed) -->
 
 	<!-- ═══════════ TOP BEZEL ═══════════ -->
 	<header class="lcars-header">
 		<div class="lcars-bar lcars-bar-top">
-			<div class="lcars-elbow top-left"></div>
 
 			<!-- Left Section: Title -->
 			<div class="header-section header-left">
@@ -299,30 +295,22 @@
 				<Telemetry />
 			</div>
 
-			<!-- Right Section: Status Badges -->
+			<!-- Right Section: System Controls -->
 			<div class="header-section header-right">
-				<StatusBadges />
+				<button class="bezel-btn" title="Toggle Terminal Overlay (Ctrl+T)" onclick={() => toggleTerminalToFront()}>👁</button>
+				<button class="bezel-btn" title="Marketplace (⊞)" onclick={() => { setCurrentMode('marketplace'); sendCommand('set_mode:marketplace'); }}>⊞</button>
 				<button 
 					class="bezel-btn" 
-					title="Open Portal (Long-press for Marketplace)" 
+					title="Open Web Portal" 
 					onclick={() => import('$lib/stores/ui.svelte').then(m => m.openPortalModal())}
-					onmousedown={(e) => {
-						const timer = setTimeout(() => {
-							setCurrentMode('marketplace');
-							sendCommand('set_mode:marketplace');
-						}, 800);
-						const up = () => { clearTimeout(timer); window.removeEventListener('mouseup', up); };
-						window.addEventListener('mouseup', up);
-					}}
 				>
-					⊕ PORTAL
+					📡
 				</button>
-				<button class="bezel-btn settings-btn" title="System Settings (Ctrl+,)" onclick={() => openSettings()}>⚙ SYS</button>
+				<button class="bezel-btn settings-btn" title="System Settings (Ctrl+,)" onclick={() => openSettings()}>⚙</button>
 				<button class="bezel-btn help-btn" title="Help & Onboarding" onclick={() => { setSettingsTab('global'); openSettings(); }}>?</button>
 				<button class="bezel-btn" title="Toggle Right Sidebar" onclick={() => toggleSidebarRight()}>▶</button>
 			</div>
 
-			<div class="lcars-elbow top-right"></div>
 		</div>
 	</header>
 
@@ -454,7 +442,6 @@
 				}}
 			>
 				<div class="lcars-bar lcars-bar-bottom">
-					<div class="lcars-elbow bottom-left"></div>
 					<div class="lcars-input-area">
 						<div class="mode-toggle-pill">
 							{#each promptModes as pm}
@@ -492,7 +479,6 @@
 							</div>
 						{/if}
 					</div>
-					<div class="lcars-elbow bottom-right"></div>
 				</div>
 			</footer>
 		</section>
@@ -565,29 +551,6 @@
 		overflow: hidden;
 	}
 
-	/* ── Triangular Background Modules ── */
-	.tri-module {
-		position: absolute;
-		width: 40vw;
-		height: 40vh;
-		opacity: 0.015;
-		pointer-events: none;
-		z-index: 0;
-	}
-
-	.tri-top-left {
-		top: -10vh;
-		left: -10vw;
-		background: linear-gradient(135deg, var(--color-primary), transparent);
-		clip-path: polygon(0 0, 100% 0, 0 100%);
-	}
-
-	.tri-bottom-right {
-		bottom: -10vh;
-		right: -10vw;
-		background: linear-gradient(315deg, var(--color-secondary), transparent);
-		clip-path: polygon(100% 0, 100% 100%, 0 100%);
-	}
 
 	/* ── Top Header/Bezel ── */
 	.lcars-header {
@@ -1079,32 +1042,6 @@
 		color: var(--color-text-dim);
 	}
 
-	/* ── Elbows ── */
-	.lcars-elbow {
-		width: 3rem;
-		height: 100%;
-		flex-shrink: 0;
-	}
-
-	.lcars-elbow.top-left {
-		background: var(--color-primary);
-		border-bottom-right-radius: var(--radius-elbow);
-	}
-
-	.lcars-elbow.top-right {
-		background: var(--color-secondary);
-		border-bottom-left-radius: var(--radius-elbow);
-	}
-
-	.lcars-elbow.bottom-left {
-		background: var(--color-primary);
-		border-top-right-radius: var(--radius-elbow);
-	}
-
-	.lcars-elbow.bottom-right {
-		background: var(--color-secondary);
-		border-top-left-radius: var(--radius-elbow);
-	}
 	/* ── Cinematic Intro Styles ── */
 	.cinematic-overlay {
 		position: absolute;

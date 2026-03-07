@@ -24,6 +24,7 @@
         homeData = await marketplaceGetHome();
         if (homeData) {
             categories = ['Featured', ...homeData.categories.map((c: any) => c.name)];
+            isConnecting = false;
         } else {
             // Retry in 1s if failed to fetch (likely not connected yet)
             setTimeout(fetchHome, 1000);
@@ -34,7 +35,8 @@
         if (pollingInterval) clearInterval(pollingInterval);
     });
 
-	let categories = $state(['Featured', 'AI Behaviors', 'Shell Modules', 'Themes', 'Terminal Modules']);
+    let categories = $state(['Featured']);
+    let isConnecting = $state(true);
 	
 	const filteredModules = $derived(
 		aiSearchResults.length > 0 ? aiSearchResults : (

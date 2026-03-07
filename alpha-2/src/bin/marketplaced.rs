@@ -185,7 +185,7 @@ fn get_mock_home() -> MarketplaceHome {
             MarketplaceCategory { id: "ai".to_string(), name: "AI Behaviors".to_string(), icon: "🧠".to_string(), module_count: all.iter().filter(|m| m.module_type.to_lowercase().contains("ai")).count() as u32 },
             MarketplaceCategory { id: "shell".to_string(), name: "Shell Modules".to_string(), icon: "🐚".to_string(), module_count: all.iter().filter(|m| m.module_type.to_lowercase().contains("shell")).count() as u32 },
             MarketplaceCategory { id: "theme".to_string(), name: "Themes".to_string(), icon: "🎨".to_string(), module_count: all.iter().filter(|m| m.module_type.to_lowercase().contains("theme")).count() as u32 },
-            MarketplaceCategory { id: "renderer".to_string(), name: "Renderers".to_string(), icon: "📺".to_string(), module_count: all.iter().filter(|m| m.module_type.to_lowercase().contains("renderer") || m.module_type.to_lowercase().contains("terminaloutput")).count() as u32 },
+            MarketplaceCategory { id: "renderer".to_string(), name: "Terminal Modules".to_string(), icon: "📺".to_string(), module_count: all.iter().filter(|m| m.module_type.to_lowercase().contains("renderer") || m.module_type.to_lowercase().contains("terminaloutput")).count() as u32 },
             MarketplaceCategory { id: "template".to_string(), name: "Templates".to_string(), icon: "📝".to_string(), module_count: all.iter().filter(|m| m.module_type.to_lowercase().contains("template")).count() as u32 },
         ]
     }

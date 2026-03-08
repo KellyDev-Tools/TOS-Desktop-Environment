@@ -7,7 +7,7 @@
 use tokio::net::{TcpListener, TcpStream};
 use tokio::io::{AsyncBufReadExt, AsyncWriteExt, BufReader};
 use std::sync::{Arc, Mutex};
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
 
 /// In-memory state for the heuristic service.
 struct HeuristicState {
@@ -42,7 +42,7 @@ async fn main() -> anyhow::Result<()> {
     // Register with Brain
     let brain_sock_path = "/tmp/tos.brain.sock";
     tokio::spawn(async move {
-        for attempt in 1..=10 {
+        for _attempt in 1..=10 {
             match tokio::net::UnixStream::connect(brain_sock_path).await {
                 Ok(mut sock) => {
                     let register_cmd = format!("service_register:tos-heuristicd;{}\n", port);

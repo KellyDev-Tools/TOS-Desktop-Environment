@@ -9,14 +9,18 @@ use std::ffi::CString;
 
 pub mod wayland;
 
+use ab_glyph::{Font, FontArc, PxScale, ScaleFont};
+use tiny_skia::{Paint, Rect, Transform, Color, PixmapMut};
+
 pub struct LinuxRenderer {
     pub surfaces: std::sync::Arc<std::sync::Mutex<std::collections::HashMap<u32, WaylandBuffer>>>,
     pub pid_map: std::sync::Arc<std::sync::Mutex<std::collections::HashMap<u32, u32>>>,
     next_handle: u32,
-    shell: wayland::WaylandShell,
+    shell: Option<wayland::WaylandShell>,
+    font: Option<FontArc>,
 }
 
-struct WaylandBuffer {
+pub struct WaylandBuffer {
     fd: RawFd,
     size: usize,
     width: u32,
@@ -48,11 +52,33 @@ impl LinuxRenderer {
             tracing::info!("Wayland Renderer loaded theme tokens (Primary: {})", primary.as_str().unwrap_or(""));
         }
 
+        let font_paths = [
+            "/usr/share/fonts/truetype/liberation/LiberationMono-Regular.ttf",
+            "/usr/share/fonts/truetype/dejavu/DejaVuSansMono.ttf",
+            "/usr/share/fonts/TTF/DejaVuSansMono.ttf",
+        ];
+        let mut font = None;
+        for path in font_paths {
+            if let Ok(data) = std::fs::read(path) {
+                if let Ok(f) = FontArc::try_from_vec(data) {
+                    font = Some(f);
+                    tracing::info!("Wayland Renderer loaded system font: {}", path);
+                    break;
+                }
+            }
+        }
+
+        let shell = wayland::WaylandShell::new();
+        if shell.is_none() {
+            tracing::warn!("Wayland: No display found. Running in Headless/Capture-only mode.");
+        }
+
         Self {
             surfaces: std::sync::Arc::new(std::sync::Mutex::new(std::collections::HashMap::new())),
             pid_map: std::sync::Arc::new(std::sync::Mutex::new(std::collections::HashMap::new())),
             next_handle: 1,
-            shell: wayland::WaylandShell::new(),
+            shell,
+            font,
         }
     }
 
@@ -105,6 +131,41 @@ impl LinuxRenderer {
     pub fn get_capture_backend(&self) -> LinuxCaptureBackend {
         LinuxCaptureBackend::new(self)
     }
+
+    fn render_text_to_buffer(&self, buf: &mut WaylandBuffer, text: &str) {
+        let mut pixmap = unsafe {
+             let slice = std::slice::from_raw_parts_mut(buf.memory_ptr as *mut u8, buf.size);
+             PixmapMut::from_bytes(slice, buf.width, buf.height)
+                .expect("Failed to create PixmapMut from Wayland buffer pointer")
+        };
+
+        // Clear with near-black (LCARS vibe)
+        pixmap.fill(Color::from_rgba8(10, 10, 15, 255));
+
+        if let Some(ref font) = self.font {
+            let scale = PxScale::from(16.0);
+            let scaled_font = font.as_scaled(scale);
+            let mut paint = Paint::default();
+            paint.set_color(Color::from_rgba8(0, 240, 255, 255)); // Cyan / LCARS accent
+
+            let x_offset = 20.0f32;
+            let mut y_offset = 30.0f32;
+
+            for line in text.lines() {
+                let mut x = x_offset;
+                for c in line.chars() {
+                    let glyph = scaled_font.scaled_glyph(c);
+                    if let Some(_outline) = font.outline_glyph(glyph) {
+                        // Drawing logic...
+                        let rect = Rect::from_xywh(x, y_offset - 12.0, 8.0, 14.0).unwrap();
+                        pixmap.fill_rect(rect, &paint, Transform::identity(), None);
+                    }
+                    x += 9.0;
+                }
+                y_offset += 18.0;
+            }
+        }
+    }
 }
 
 impl Renderer for LinuxRenderer {
@@ -113,7 +174,9 @@ impl Renderer for LinuxRenderer {
         self.next_handle += 1;
 
         // Wayland Layer Shell Integration
-        let _ = self.shell.create_layer_surface("TOS Native Layer", 2, config.width, config.height);
+        if let Some(ref mut shell) = self.shell {
+            shell.create_layer_surface("TOS Native Layer", config.width, config.height);
+        }
 
         match Self::allocate_dmabuf_shm(config.width, config.height) {
             Ok(buffer) => {
@@ -132,21 +195,23 @@ impl Renderer for LinuxRenderer {
         if let Some(buf) = surfaces.get_mut(&handle.0) {
             tracing::debug!("Synchronizing Wayland Buffer FD: {}", buf.fd);
             
-            let data = content.pixel_data();
-            if !data.is_empty() && data.len() <= buf.size {
-                unsafe {
-                    std::ptr::copy_nonoverlapping(
-                        data.as_ptr(),
-                        buf.memory_ptr as *mut u8,
-                        data.len(),
-                    );
+            if let Some(text) = content.text_data() {
+                self.render_text_to_buffer(buf, text);
+            } else {
+                let data = content.pixel_data();
+                if !data.is_empty() && data.len() <= buf.size {
+                    unsafe {
+                        std::ptr::copy_nonoverlapping(
+                            data.as_ptr(),
+                            buf.memory_ptr as *mut u8,
+                            data.len(),
+                        );
+                    }
+                    tracing::debug!("Copied {} bytes to Wayland SHM", data.len());
                 }
-                tracing::debug!("Copied {} bytes to Wayland SHM", data.len());
             }
 
-            // Wayland Compositor attachment simulation
-            tracing::debug!("wl_surface_attach(surface, buffer, 0, 0)");
-            tracing::debug!("wl_surface_damage_buffer(surface, 0, 0, {}, {})", buf.width, buf.height);
+            // Wayland Compositor attachment simulation (will be replaced by SCTK commits)
             tracing::debug!("wl_surface_commit(surface)");
         }
     }
@@ -159,6 +224,10 @@ impl Renderer for LinuxRenderer {
 
     fn composite(&mut self) {
         tracing::debug!("Triggering Native OS Composition Cycle (§6.1)");
+
+        if let Some(ref mut shell) = self.shell {
+            shell.dispatch();
+        }
         
         let surfaces = self.surfaces.lock().unwrap();
         let surface_count = surfaces.len();

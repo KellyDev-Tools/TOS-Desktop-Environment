@@ -85,6 +85,7 @@ async fn main() -> anyhow::Result<()> {
             eprintln!("[BRAIN] Terminal dashboard active. IPC on 7000/7001.");
 
             loop {
+                tracing::info!("[BRAIN] Life Signal: OS composition cycle active...");
                 face_raw.render();
                 sleep(Duration::from_millis(1000)).await;
             }

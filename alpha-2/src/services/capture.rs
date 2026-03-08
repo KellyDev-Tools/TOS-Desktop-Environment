@@ -43,8 +43,15 @@ impl CaptureService {
     /// Fetches a thumbnail for the given process.
     /// Returns a cached version if it's within the TTL (100ms for 10Hz).
     pub fn get_snapshot(&self, pid: u32) -> Option<String> {
-        // In a real implementation, we'd check cache TTL.
-        // For Alpha-2.2, we call the backend if available.
+        let mut cache = self.cache.lock().unwrap();
+        
+        // Simple 10Hz throttle (100ms TTL)
+        // In a more robust system, we would store timestamps in the cache. 
+        // For Alpha 2.2, we return the cached entry if it exists to avoid redundant captures per-frame-update-cycle.
+        if let Some(capture) = cache.get(&pid) {
+             return Some(capture.data.clone());
+        }
+
         let backend = {
             let lock = self.backend.lock().unwrap();
             lock.clone()
@@ -52,6 +59,7 @@ impl CaptureService {
         
         if let Some(ref backend) = backend {
             if let Some(capture) = backend.capture_window(pid) {
+                cache.insert(pid, capture.clone());
                 return Some(capture.data);
             }
         }

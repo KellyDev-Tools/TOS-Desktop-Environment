@@ -229,8 +229,8 @@ This roadmap defines the transition from Alpha-2.1 (Experimental/Mocked) to Alph
 *Depends on Phase 4. Requires stable visual layer and all IPC contracts locked.*
 
 **PRIORITY 1 — Native Linux Face (Wayland Shell):**
-- [ ] Replace `Face` struct's `println!` simulation with `LinuxRenderer` (Wayland).
-- [ ] Implement real `wlr-layer-shell` surface management in `src/platform/linux/`.
+- [x] Replace `Face` struct's `println!` simulation with `LinuxRenderer` (Wayland).
+- [x] Implement real `wlr-layer-shell` surface management in `src/platform/linux/`.
 - [ ] Native GL/Vulkan composition of Sector tiles and Hub viewports.
 - [ ] **Discovery & Connectivity:** Connect to local `brain.sock` first; if not found, scan via mDNS (`_tos-brain._tcp`); probe saved hosts; present manual host:port entry dialog as fallback. Save connections to `~/.config/tos/remote-hosts.toml`.
 

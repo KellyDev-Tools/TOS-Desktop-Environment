@@ -116,9 +116,9 @@ test-health:
 # --- NVM Helper (Node v20 required for Svelte) ---
 NVM_INIT = export NVM_DIR="$$HOME/.nvm" && [ -s "$$NVM_DIR/nvm.sh" ] && . "$$NVM_DIR/nvm.sh" && nvm use 20 --silent
 
-run:
+run: run-services
 	@mkdir -p logs
-	@pkill -f tos-brain || true
+	@pkill -x tos-brain || true
 	cargo run --bin tos-brain | tee logs/tos-brain.log
 
 build-web:

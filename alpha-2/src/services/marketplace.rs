@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
 use toml;
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
 use ed25519_dalek::{Signature, VerifyingKey};
 use ed25519_dalek::Verifier;
 use std::sync::{Arc, Mutex};

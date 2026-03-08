@@ -26,6 +26,9 @@ pub trait SurfaceContent {
     fn pixel_data(&self) -> &[u8] {
         &[]
     }
+    fn text_data(&self) -> Option<&str> {
+        None
+    }
 }
 
 pub trait Renderer: Send {

@@ -36,10 +36,6 @@ impl Face {
     /// Synchronize system state and trigger rendering.
     pub fn render(&mut self) {
         let frame = self.render_to_string();
-        // Clear screen, hide cursor, print frame, restore cursor.
-        print!("\x1B[?25l\x1B[2J\x1B[H");
-        print!("{}", frame);
-        print!("\x1B[?25h");
 
         // Native Surface Synchronization
         if let Some(renderer) = &mut self.renderer {
@@ -53,17 +49,22 @@ impl Face {
                 }
             };
 
-            struct NativeFrame;
-            impl crate::platform::SurfaceContent for NativeFrame {
-                fn pixel_data(&self) -> &[u8] {
-                    &[0u8; 100]
+            struct NativeFrame<'a> {
+                text: &'a str,
+            }
+            impl<'a> crate::platform::SurfaceContent for NativeFrame<'a> {
+                fn text_data(&self) -> Option<&str> {
+                    Some(self.text)
                 }
             }
-
-            renderer.update_surface(handle, &NativeFrame);
+            
+            renderer.update_surface(handle, &NativeFrame { text: &frame });
             renderer.composite();
             tracing::debug!("Native Linux Face: Syncing frame buffer to Wayland SHM");
         }
+
+        // Terminal Mirror (for development/headless visibility)
+        // println!("\x1B[2J\x1B[1;1H{}", frame);
     }
 
     /// Render the current frame to a String (testable — no ANSI clear/cursor control).

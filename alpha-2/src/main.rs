@@ -31,7 +31,10 @@ async fn main() -> anyhow::Result<()> {
         let mut face_raw = Face::new(state.clone(), ipc.clone());
         #[cfg(target_os = "linux")]
         {
-            face_raw = face_raw.with_renderer(Box::new(tos_alpha2::platform::linux::LinuxRenderer::new()));
+            let renderer = tos_alpha2::platform::linux::LinuxRenderer::new();
+            let backend = renderer.get_capture_backend();
+            brain.services.capture.set_backend(std::sync::Arc::new(backend));
+            face_raw = face_raw.with_renderer(Box::new(renderer));
         }
         let mut mock_face = MockFace(face_raw);
 
@@ -73,7 +76,10 @@ async fn main() -> anyhow::Result<()> {
             let mut face_raw = Face::new(state.clone(), ipc.clone());
             #[cfg(target_os = "linux")]
             {
-                face_raw = face_raw.with_renderer(Box::new(tos_alpha2::platform::linux::LinuxRenderer::new()));
+                let renderer = tos_alpha2::platform::linux::LinuxRenderer::new();
+                let backend = renderer.get_capture_backend();
+                brain.services.capture.set_backend(std::sync::Arc::new(backend));
+                face_raw = face_raw.with_renderer(Box::new(renderer));
             }
 
             eprintln!("[BRAIN] Terminal dashboard active. IPC on 7000/7001.");

@@ -10,6 +10,7 @@ impl Renderer for RemoteRenderer {
         SurfaceHandle(100)
     }
     fn update_surface(&mut self, _handle: SurfaceHandle, _content: &dyn SurfaceContent) {}
+    fn register_pid(&mut self, _pid: u32, _handle: SurfaceHandle) {}
     fn composite(&mut self) {}
 }
 

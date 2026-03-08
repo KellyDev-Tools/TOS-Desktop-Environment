@@ -73,7 +73,7 @@ impl ServiceManager {
         let heuristic = Arc::new(HeuristicService::new(registry.clone()));
         let marketplace = Arc::new(MarketplaceService::new(registry.clone()));
         
-        let mut capture_svc = CaptureService::new();
+        let capture_svc = CaptureService::new();
         capture_svc.set_backend(Arc::new(capture::MockCaptureBackend));
         let capture = Arc::new(capture_svc);
         

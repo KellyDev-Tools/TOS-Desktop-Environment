@@ -214,7 +214,7 @@ This roadmap defines the transition from Alpha-2.1 (Experimental/Mocked) to Alph
     - Solid Green/Red for last command exit status.
     - Sliding Gradient for active PTY tasks.
     - *Depends on PTY exit code telemetry being broadcast via IPC versioned state.*
-- [ ] **Wayland Frame Captures:** Replace `base64` mock thumbnails in `src/brain/sector/mod.rs` with actual frame buffer fetches.
+- [x] **Wayland Frame Captures:** Replace `base64` mock thumbnails in `src/brain/sector/mod.rs` with actual frame buffer fetches.
     - Utilize DMABUF Native Path to share sub-surface textures with UI thread at 10Hz.
     - *Requires Face renderer to support `dmabuf` texture bindings.*
 - [x] **Level 4 Tactical Reset (God Mode) Implementation:**

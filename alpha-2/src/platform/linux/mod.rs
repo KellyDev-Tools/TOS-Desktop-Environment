@@ -10,7 +10,8 @@ use std::ffi::CString;
 pub mod wayland;
 
 pub struct LinuxRenderer {
-    surfaces: std::collections::HashMap<u32, WaylandBuffer>,
+    pub surfaces: std::sync::Arc<std::sync::Mutex<std::collections::HashMap<u32, WaylandBuffer>>>,
+    pub pid_map: std::sync::Arc<std::sync::Mutex<std::collections::HashMap<u32, u32>>>,
     next_handle: u32,
     shell: wayland::WaylandShell,
 }
@@ -48,7 +49,8 @@ impl LinuxRenderer {
         }
 
         Self {
-            surfaces: std::collections::HashMap::new(),
+            surfaces: std::sync::Arc::new(std::sync::Mutex::new(std::collections::HashMap::new())),
+            pid_map: std::sync::Arc::new(std::sync::Mutex::new(std::collections::HashMap::new())),
             next_handle: 1,
             shell: wayland::WaylandShell::new(),
         }
@@ -99,6 +101,10 @@ impl LinuxRenderer {
             })
         }
     }
+
+    pub fn get_capture_backend(&self) -> LinuxCaptureBackend {
+        LinuxCaptureBackend::new(self)
+    }
 }
 
 impl Renderer for LinuxRenderer {
@@ -111,7 +117,7 @@ impl Renderer for LinuxRenderer {
 
         match Self::allocate_dmabuf_shm(config.width, config.height) {
             Ok(buffer) => {
-                self.surfaces.insert(handle_id, buffer);
+                self.surfaces.lock().unwrap().insert(handle_id, buffer);
             }
             Err(e) => {
                 tracing::error!("Wayland allocation failed: {}", e);
@@ -122,7 +128,8 @@ impl Renderer for LinuxRenderer {
     }
 
     fn update_surface(&mut self, handle: SurfaceHandle, content: &dyn SurfaceContent) {
-        if let Some(buf) = self.surfaces.get_mut(&handle.0) {
+        let mut surfaces = self.surfaces.lock().unwrap();
+        if let Some(buf) = surfaces.get_mut(&handle.0) {
             tracing::debug!("Synchronizing Wayland Buffer FD: {}", buf.fd);
             
             let data = content.pixel_data();
@@ -144,13 +151,20 @@ impl Renderer for LinuxRenderer {
         }
     }
 
+    fn register_pid(&mut self, pid: u32, handle: SurfaceHandle) {
+        let mut pid_map = self.pid_map.lock().unwrap();
+        pid_map.insert(pid, handle.0);
+        tracing::info!("Wayland: Associated PID {} with Surface Handle {}", pid, handle.0);
+    }
+
     fn composite(&mut self) {
         tracing::debug!("Triggering Native OS Composition Cycle (§6.1)");
         
-        let surface_count = self.surfaces.len();
+        let surfaces = self.surfaces.lock().unwrap();
+        let surface_count = surfaces.len();
         tracing::debug!("GL/Vulkan: Compositing Layer Stack ({} surfaces active)", surface_count);
         
-        for (handle, buf) in &self.surfaces {
+        for (handle, buf) in surfaces.iter() {
             // Simulated GL render pass
             tracing::debug!("   [PASS 1] Sampler2D(surface_handle={}) -> Texture0", handle);
             tracing::debug!("   [PASS 2] VertexShader: applying zoom_transform, border_scale");
@@ -227,12 +241,58 @@ mod tests {
         let handle = renderer.create_surface(config);
         assert!(handle.0 > 0, "Invalid handle ID returned");
 
-        let buffer = renderer.surfaces.get(&handle.0).expect("Surface buffer missing from tracking map");
+        let buffer_lock = renderer.surfaces.lock().unwrap();
+        let buffer = buffer_lock.get(&handle.0).expect("Surface buffer missing from tracking map");
         
         let expected_size = 1920 * 1080 * 4;
         assert_eq!(buffer.size, expected_size, "Memfd map size incorrect");
         assert!(buffer.fd > 0, "Invalid file descriptor assigned for DMABUF");
         assert!(!buffer.memory_ptr.is_null());
         assert_ne!(buffer.memory_ptr, libc::MAP_FAILED);
+    }
+}
+
+/// CaptureBackend implementation for Linux, leveraging the Wayland/DMABUF surfaces.
+pub struct LinuxCaptureBackend {
+    surfaces: std::sync::Arc<std::sync::Mutex<std::collections::HashMap<u32, WaylandBuffer>>>,
+    pid_map: std::sync::Arc<std::sync::Mutex<std::collections::HashMap<u32, u32>>>,
+}
+
+impl LinuxCaptureBackend {
+    pub fn new(renderer: &LinuxRenderer) -> Self {
+        Self {
+            surfaces: renderer.surfaces.clone(),
+            pid_map: renderer.pid_map.clone(),
+        }
+    }
+}
+
+impl crate::services::capture::CaptureBackend for LinuxCaptureBackend {
+    fn capture_window(&self, pid: u32) -> Option<crate::services::capture::FrameCapture> {
+        let handle = {
+            let pid_map = self.pid_map.lock().unwrap();
+            *pid_map.get(&pid)?
+        };
+
+        let surfaces = self.surfaces.lock().unwrap();
+        let buffer = surfaces.get(&handle)?;
+
+        // For Alpha-2.2, we convert the raw SHM/DMABUF data to a Base64 PNG.
+        // In the future, we could pass the FD directly for zero-copy.
+        
+        unsafe {
+            let data_slice = std::slice::from_raw_parts(buffer.memory_ptr as *const u8, buffer.size);
+            
+            // Basic RGBA -> PNG encoding (simulated for now, would use a crate like `image` or `png` in production)
+            use base64::{Engine as _, engine::general_purpose};
+            let encoded = general_purpose::STANDARD.encode(data_slice);
+            let data_url = format!("data:image/raw;base64,{}", encoded);
+
+            Some(crate::services::capture::FrameCapture {
+                data: data_url,
+                width: buffer.width,
+                height: buffer.height,
+            })
+        }
     }
 }

@@ -21,6 +21,8 @@ impl Renderer for QuestRenderer {
         
         tracing::debug!("xrReleaseSwapchainImage for handle {}", handle.0);
     }
+
+    fn register_pid(&mut self, _pid: u32, _handle: SurfaceHandle) {}
     
     fn composite(&mut self) {
         tracing::debug!("xrEndFrame: Compositing OpenXR projection layers");

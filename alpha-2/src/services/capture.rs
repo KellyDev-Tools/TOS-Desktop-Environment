@@ -23,20 +23,21 @@ pub trait CaptureBackend: Send + Sync {
 }
 
 pub struct CaptureService {
-    backend: Option<Arc<dyn CaptureBackend>>,
+    backend: Mutex<Option<Arc<dyn CaptureBackend>>>,
     cache: Mutex<HashMap<u32, FrameCapture>>,
 }
 
 impl CaptureService {
     pub fn new() -> Self {
         Self {
-            backend: None,
+            backend: Mutex::new(None),
             cache: Mutex::new(HashMap::new()),
         }
     }
 
-    pub fn set_backend(&mut self, backend: Arc<dyn CaptureBackend>) {
-        self.backend = Some(backend);
+    pub fn set_backend(&self, backend: Arc<dyn CaptureBackend>) {
+        let mut lock = self.backend.lock().unwrap();
+        *lock = Some(backend);
     }
 
     /// Fetches a thumbnail for the given process.
@@ -44,7 +45,12 @@ impl CaptureService {
     pub fn get_snapshot(&self, pid: u32) -> Option<String> {
         // In a real implementation, we'd check cache TTL.
         // For Alpha-2.2, we call the backend if available.
-        if let Some(ref backend) = self.backend {
+        let backend = {
+            let lock = self.backend.lock().unwrap();
+            lock.clone()
+        };
+        
+        if let Some(ref backend) = backend {
             if let Some(capture) = backend.capture_window(pid) {
                 return Some(capture.data);
             }

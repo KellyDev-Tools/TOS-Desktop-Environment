@@ -1,0 +1,970 @@
+# TOS Feature Specifications
+
+**Purpose:** This document consolidates the detailed specifications for major TOS features that extend the core architecture. Each section is self-contained and cross-references the [Architecture Specification](./TOS_beta-0_Architecture.md) and [Ecosystem Specification](./TOS_beta-0_Ecosystem.md) as needed.
+
+---
+
+## Table of Contents
+
+1. [Expanded Bezel Command Surface](#1-expanded-bezel-command-surface)
+2. [Session Persistence & Workspace Memory](#2-session-persistence--workspace-memory)
+3. [Onboarding & First-Run Experience](#3-onboarding--first-run-experience)
+4. [Ambient AI & Co-Pilot System](#4-ambient-ai--co-pilot-system)
+5. [Marketplace Discovery & Browse Experience](#5-marketplace-discovery--browse-experience)
+
+---
+
+## 1. Expanded Bezel Command Surface
+
+*Extends Architecture Specification §7.1 & §8.1*
+
+### 1.1 Philosophy
+
+The Persistent Unified Prompt exists at every level. It is always visible, always reachable. But in its collapsed state it is just an input — it does not surface output, context chips, or navigation. The Expanded Bezel Command Surface unlocks the full power of the prompt without requiring the user to navigate anywhere.
+
+This is not a new level. It is a persistent overlay state that sits above whatever level the user is currently on. It can be invoked at Level 1 while surveying sectors, at Level 3 while a graphical app is in focus, or anywhere in between. The user's current view zooms back spatially to make room. Output appears. Action chips offer what to do next. The user decides whether to dive in or dismiss and continue.
+
+### 1.2 Triggers
+
+| Trigger | Description |
+|:---|:---|
+| **Tap bottom bezel** | Tap anywhere on the collapsed bottom bezel bar |
+| **Swipe up from bottom edge** | Upward swipe gesture from the bottom bezel edge |
+| **Split button in Top Bezel** | A dedicated expand button in the Top Bezel Center section |
+
+All three triggers are equivalent and produce the same expansion animation and state.
+
+### 1.3 Expansion Animation
+
+When triggered, the current view undergoes a **spatial zoom-out**: the content scales down slightly along the z-axis, as if the user has stepped back from the screen. This uses the same depth language as level transitions.
+
+The bottom bezel animates upward, revealing:
+- The full **Persistent Unified Prompt** with all active bezel overlays visible
+- The **left and right chip columns** populated with context from the current sector
+- All active **ambient hint chips**, **AI co-pilot chips**, and **warning chips**
+
+The expanded surface occupies the lower portion of the viewport. The zoomed-out current view remains visible behind it — dimmed slightly but not occluded.
+
+```
+┌─────────────────────────────────────────────────────┐
+│  TOP BEZEL                              [⊞ Split]   │
+├─────────────────────────────────────────────────────┤
+│                                                     │
+│   [  Current view — zoomed back, dimmed  ]          │
+│   [  Level 1 / 2 / 3 content visible     ]         │
+│   [  Swipe ← → to move between L3 apps  ]          │
+│                                                     │
+├──────────────┬──────────────────────┬───────────────┤
+│  LEFT CHIPS  │  PROMPT              │  RIGHT CHIPS  │
+│  (context)   │  > _                 │  (AI / warn)  │
+└──────────────┴──────────────────────┴───────────────┘
+│  BOTTOM BEZEL (expanded)                            │
+└─────────────────────────────────────────────────────┘
+```
+
+### 1.4 Level 3 App Navigation
+
+While the Expanded Bezel Command Surface is open, the zoomed-out content layer becomes a **lateral swipe surface** for Level 3 applications. The user can swipe left/right (or press `←`/`→`) to cycle through open Level 3 applications without closing the expanded bezel.
+
+The lateral navigation does not change the active sector. The same app that was in focus when the bezel was opened remains the active Level 3 context for the prompt's shell.
+
+### 1.5 Shell Context
+
+#### 1.5.1 Active PTY Available
+
+If the current sector's active Command Hub PTY is idle, the submitted command is routed to that PTY. This is the default case.
+
+#### 1.5.2 Active PTY Busy
+
+If the active PTY is currently running a command, the prompt area displays three options as chips:
+
+```
+┌──────────────────────────────────────────────────────────────┐
+│  [⏹ Stop (Ctrl+C)]   [⧉ New Terminal]   [⏳ Wait...]        │
+└──────────────────────────────────────────────────────────────┘
+```
+
+- **[⏹ Stop (Ctrl+C)]** — sends `SIGINT` to the running process, freeing the PTY.
+- **[⧉ New Terminal]** — spawns a fresh ephemeral shell pane in the current sector. Commands run in this pane are associated with the sector but do not interfere with the running process. The new pane closes automatically when the bezel is dismissed unless promoted (see §1.8).
+- **[⏳ Wait...]** — dismisses the chip overlay and returns to a waiting state.
+
+The Stop button is always visible regardless of which chip is selected.
+
+### 1.6 Output Display
+
+When a command completes, its output is rendered by the active Terminal Output Module in an overlay panel that expands upward from the prompt. Maximum height: 40% of the viewport. Long outputs are scrollable within the panel.
+
+#### 1.6.1 Action Chips
+
+| Chip | Action |
+|:---|:---|
+| **[→ Command Hub]** | Zooms into the sector's Level 2 Command Hub with the output visible. The bezel collapses. |
+| **[⊞ Split View]** | Opens a split layout — output and terminal on one side, current Level 3 app on the other. |
+| **[✕ Dismiss]** | Collapses the bezel. Output is saved to the sector's terminal history. |
+| **[⧉ Keep Open]** | Pins the output panel open and returns focus to the background view. |
+
+Action chips appear after output completes, not during streaming.
+
+#### 1.6.2 Error Output
+
+If the command exits with a non-zero code, the output panel border renders in amber. The AI Passive Observer chip (if installed and active) may surface a correction or explanation chip alongside the standard action chips.
+
+### 1.7 Dismiss Behaviour
+
+Configurable in **Settings → Interface → Expanded Bezel**:
+
+| Setting | Behaviour |
+|:---|:---|
+| **Stay open** | The bezel remains expanded after output. |
+| **Auto-collapse on complete** | The bezel collapses when a command completes with exit code 0. Errors keep it open. |
+| **Auto-collapse after timeout** | The bezel collapses N seconds after output completes if no further input is detected (default: 5s). |
+
+Manual collapse: tap the Top Bezel split button again, swipe down on the expanded bezel, or press `Esc`.
+
+### 1.8 Ephemeral Pane Promotion
+
+When a **[⧉ New Terminal]** pane is created from the busy-PTY state, it is ephemeral by default. If the user runs commands they want to keep, a **[⊞ Promote to Split]** chip appears after the first command completes. Tapping it converts the ephemeral pane into a persistent split pane in the sector's hub layout.
+
+### 1.9 Architectural Position
+
+The Expanded Bezel Command Surface is **not a level**. It does not change `active_level` in the session state. The Brain tracks a single boolean flag: `bezel_expanded`. This flag is not persisted to the session file — the bezel always opens collapsed on launch.
+
+### 1.10 IPC Contracts
+
+| Message | Effect |
+|:---|:---|
+| `bezel_expand` | Opens the Expanded Bezel Command Surface |
+| `bezel_collapse` | Collapses the surface back to standard bezel |
+| `bezel_output_action:<action>` | Triggers a post-output action chip (`hub`, `split`, `dismiss`, `keep`) |
+| `bezel_pane_promote` | Promotes the ephemeral pane to a persistent sector split |
+| `bezel_swipe:<direction>` | Navigates between Level 3 apps (`left` / `right`) |
+
+---
+
+## 2. Session Persistence & Workspace Memory
+
+*Supplements Architecture Specification*
+
+### 2.1 Philosophy
+
+TOS should feel like it never forgot you left. When a user returns after closing the system, their sectors are where they left them, their terminals have their history, and their workspace is ready.
+
+Two concepts drive this spec:
+
+- **Live State** — continuously auto-saved snapshot of the current TOS environment. Written silently on every meaningful state change. Restored silently on every launch.
+- **Named Sessions** — portable, exportable sector-scoped snapshots the user explicitly saves and switches between.
+
+Both sit on top of the existing Settings Daemon, which continues to own user preferences. Session state is deliberately kept separate from preference state — the two never mix.
+
+### 2.2 What Persists
+
+#### 2.2.1 Per-Sector Persistent State
+
+| State Field | Description |
+|---|---|
+| `name` | Sector display name |
+| `position` | Index in Level 1 grid |
+| `cwd` | Last working directory |
+| `shell` | Active shell module ID |
+| `terminal_module` | Active terminal output module ID |
+| `environment` | Sector-level env vars |
+| `hub_layout` | Multi-terminal layout within the sector (see §2.4) |
+| `terminal_histories` | Scrollback buffers per terminal pane |
+| `ai_chat_history` | AI chat conversation for this sector |
+| `pinned_chips` | Pinned left/right chip entries |
+| `sector_type` | Sector type module ID if non-default |
+| `active_mode` | Last active hub mode (`CMD` / `SEARCH` / `AI`) |
+| `frozen` | Whether the sector was frozen at close |
+
+#### 2.2.2 Global Persistent State
+
+| State Field | Description |
+|---|---|
+| `bezel_slots` | Component assignments for all Top / Left / Right slots |
+| `active_sector_index` | Which sector was focused at close |
+| `active_level` | Which hierarchy level was active at close |
+
+#### 2.2.3 Separation from Settings Daemon
+
+| Owned by Settings Daemon | Owned by Session Files |
+|---|---|
+| Theme module selection | Sector layout and positions |
+| AI backend default | Terminal scrollback histories |
+| AI behavior configs | AI chat histories per sector |
+| Keybind mappings | Hub layouts (splits / tabs / panes) |
+| Audio / haptic preferences | Working directories per pane |
+| Accessibility settings | Pinned chips |
+| Sandboxing tier rules | Active mode per sector |
+| Module installation state | Bezel slot assignments |
+
+### 2.3 Session Files
+
+#### 2.3.1 Format & Location
+
+```
+~/.local/share/tos/sessions/
+├── _live.tos-session          # Auto-saved live state (always present)
+├── rust-project.tos-session   # Named session
+├── client-work.tos-session    # Named session
+└── experiments.tos-session    # Named session
+```
+
+#### 2.3.2 Schema
+
+```json
+{
+  "tos_session_version": "1.0",
+  "name": "rust-project",
+  "created_at": "2025-03-01T09:14:00Z",
+  "saved_at": "2025-03-04T17:42:11Z",
+  "global": {
+    "active_sector_index": 1,
+    "active_level": 2,
+    "bezel_slots": {
+      "top_center": ["clock", "cpu_usage", "memory_usage"],
+      "left": ["minimap"],
+      "right": ["priority_stream"]
+    }
+  },
+  "sectors": [
+    {
+      "id": "sector_a1b2",
+      "name": "dev",
+      "position": 0,
+      "cwd": "/home/user/projects/torpedo",
+      "shell": "fish",
+      "terminal_module": "cinematic-triangular",
+      "active_mode": "CMD",
+      "frozen": false,
+      "environment": { "RUST_LOG": "info" },
+      "hub_layout": {
+        "type": "splits",
+        "panes": [
+          { "id": "pane_1", "weight": 0.6, "cwd": "/home/user/projects/torpedo" },
+          { "id": "pane_2", "weight": 0.4, "cwd": "/home/user/projects/torpedo/src" }
+        ]
+      },
+      "terminal_histories": {
+        "pane_1": ["cargo build", "cargo test", "cargo run"],
+        "pane_2": ["ls", "vim main.rs"]
+      },
+      "ai_chat_history": [
+        { "role": "user", "content": "explain this error", "timestamp": "2025-03-04T17:40:00Z" },
+        { "role": "assistant", "content": "The error is a borrow checker violation...", "timestamp": "2025-03-04T17:40:02Z" }
+      ],
+      "pinned_chips": {
+        "left": ["~/projects", "/etc"],
+        "right": ["cargo build", "cargo test"]
+      }
+    }
+  ]
+}
+```
+
+#### 2.3.3 Auto-Save Triggers
+
+The live state file (`_live.tos-session`) is written automatically on every significant state change, debounced at 2 seconds.
+
+| Trigger | What Gets Written |
+|---|---|
+| Command submitted to PTY | `terminal_histories` for affected pane |
+| `cd` or directory change | `cwd` for affected pane |
+| Sector created, closed, or renamed | Full sector list |
+| Sector frozen / unfrozen | `frozen` flag |
+| Bezel slot reconfigured | `global.bezel_slots` |
+| AI chat message sent or received | `ai_chat_history` for affected sector |
+| Mode switch | `active_mode` for affected sector |
+| Hub layout changed | `hub_layout` for affected sector |
+| TOS graceful shutdown | Full synchronous write of all state |
+
+**Crash Recovery:** `tos-sessiond` writes to a temp file (`_live.tos-session.tmp`) and atomically renames it on success. A corrupted or incomplete temp file is discarded on next startup; the previous good state is used instead.
+
+### 2.4 Multi-Terminal Hub Layout
+
+Each sector can contain multiple terminal instances. Their arrangement is defined by the `hub_layout` object.
+
+#### 2.4.1 Layout Types
+
+| Layout Type | Description |
+|---|---|
+| `splits` | Tiled panes with resizable dividers (default). |
+| `tabs` | Stacked terminals, one visible at a time. Fallback for modules without `multi_terminal = true`. |
+| `module_defined` | Layout fully controlled by the Terminal Output Module. |
+
+#### 2.4.2 Splits Layout
+
+A split layout defines a tree of panes, each with a weight (proportional size), its own `cwd`, its own shell instance, and its own terminal history. For the full splits interaction model, see Architecture §11.
+
+### 2.5 Named Sessions
+
+#### 2.5.1 Saving a Named Session
+
+Named sessions are sector-scoped. To save: secondary select on a sector tile at Level 1 → **Save Session As...** → enter a name. Alternatively, tap the sector name chip in the Top Bezel Left section to open the **Sector Session Popover**:
+
+```
+┌─────────────────────────────┐
+│  dev  ●  LIVE               │
+├─────────────────────────────┤
+│  ✦ rust-project      Mar 01 │
+│    client-work       Feb 27 │
+│    experiments       Feb 20 │
+├─────────────────────────────┤
+│  [Save Current]  [Export]   │
+└─────────────────────────────┘
+```
+
+**[Export]** copies the `.tos-session` file to a user-selected path for portability.
+
+#### 2.5.2 Loading a Named Session
+
+Selecting a named session replaces the current sector's state with the saved one. The shell is re-spawned fresh in the restored `cwd` — running processes are not restored. The sector tile animates a brief reload pulse.
+
+If a named session references a shell or terminal module that is no longer installed, TOS substitutes the system default and renders a yellow alert chip noting the substitution.
+
+#### 2.5.3 Importing a Session
+
+A `.tos-session` file can be imported by dropping it onto a sector tile at Level 1, or via **Settings → Sessions → Import**. `tos-sessiond` validates the file format and version before the Brain applies it.
+
+### 2.6 Session Service (`tos-sessiond`)
+
+A dedicated auxiliary daemon handles all session file I/O. It registers with the Brain's service registry on startup (ephemeral port).
+
+**Responsibilities:**
+- Maintains `_live.tos-session` with 2s debounced auto-save via atomic temp-file rename.
+- Serves named session CRUD to the Brain via IPC.
+- Validates session file schema on load and import.
+- Detects and discards incomplete temp files on startup for crash recovery.
+
+#### 2.6.1 IPC Contracts
+
+| Message | Effect |
+|---|---|
+| `session_save:<sector_id>:<n>` | Saves current sector state as a named session |
+| `session_load:<sector_id>:<n>` | Loads a named session into the specified sector |
+| `session_delete:<sector_id>:<n>` | Deletes a named session |
+| `session_list:<sector_id>` | Returns list of named sessions for a sector |
+| `session_export:<sector_id>:<n>:<path>` | Exports a session file to the given path |
+| `session_import:<path>` | Imports a `.tos-session` file |
+| `session_live_write` | Forces an immediate synchronous live state write (used on graceful shutdown) |
+
+#### 2.6.2 Startup & Restore Sequence
+
+1. Brain starts and signals `tos-sessiond` to load `_live.tos-session`.
+2. `tos-sessiond` reads and validates the file. If valid, returns the full state object to the Brain.
+3. Brain reconstructs all sectors, hub layouts, and bezel slots.
+4. Each sector's shell is re-spawned in its restored `cwd`. Terminal histories are loaded into each pane's output buffer before the shell prompt appears.
+5. The Face receives the fully reconstructed state via the standard WebSocket state sync.
+6. If `_live.tos-session` is missing or corrupt, the Brain starts with a single default sector and empty state.
+
+**Silent by Design:** There is no restore notification, animation, or prompt. The system is simply there, as the user left it.
+
+### 2.7 Terminal History Persistence
+
+Terminal scrollback buffers are serialized as ordered arrays of strings per pane. On restore they are loaded into the terminal output module's buffer before the shell spawns, so history is visible immediately.
+
+The existing `terminal_buffer_limit` setting (default 500 lines) governs both the live buffer and what is written to disk.
+
+### 2.8 AI Chat History Persistence
+
+Each sector's AI chat history is persisted as an ordered array of message objects. On restore, the active Chat Companion behavior module receives the history via its `on_session_restore` callback.
+
+Chat history is capped at 200 messages per sector in the session file.
+
+---
+
+## 3. Onboarding & First-Run Experience
+
+*Supplements Architecture Specification*
+
+### 3.1 Philosophy
+
+TOS is a dense, powerful system. Its depth is a feature, not a bug — but that depth must not be a barrier. Three principles govern all onboarding design:
+
+- **SKIP** — Respect the skip. Every onboarding element must be skippable. No forced flows, no unskippable animations beyond 2 seconds.
+- **DO** — Teach through doing. Users learn TOS by using TOS, not by reading about it. Guided steps happen inside the live system, not in a sandbox.
+- **FADE** — Fade gracefully. Onboarding hints become less visible as user confidence grows.
+
+**Acceptance criterion for power users:** A user must be able to reach a live, unobstructed prompt within 5 seconds of launch. This is the single testable bar for the onboarding implementation.
+
+### 3.2 Onboarding State Model
+
+The Brain tracks a persistent onboarding state object in the Settings Daemon under `tos.onboarding`:
+
+```toml
+[onboarding]
+first_run_complete   = false
+wizard_complete      = false
+hints_dismissed      = []
+hint_suppressed      = false
+sessions_count       = 0
+commands_run         = 0
+levels_visited       = []
+```
+
+The Brain evaluates this state on startup and passes relevant flags to the Face via the standard IPC state sync. The Face is responsible for rendering all onboarding UI elements; the Brain manages state persistence only.
+
+### 3.3 First-Run Flow
+
+| Stage | Name | Trigger | Duration | Skip? |
+|:---|:---|:---|:---|:---|
+| **S1** | Cinematic Intro | `first_run_complete = false` | ~12 seconds | YES — any key / tap |
+| **S2** | Guided Demo | `wizard_complete = false` | ~4 minutes | YES — skip button always visible |
+| **S3** | Ambient Hints | Ongoing (fadeable) | Indefinite | YES — per-hint or master off |
+
+#### 3.3.1 Stage 1: Cinematic Intro
+
+A short, skippable cinematic sequence that plays before the system is interactive. This is the user's first impression of TOS's aesthetic identity.
+
+**Sequence:**
+- **Frame 0–2s:** Black screen. The TOS wordmark fades in with amber glow. Subtle startup earcon plays.
+- **Frame 2–5s:** LCARS grid lines sweep in from edges, forming the bezel skeleton.
+- **Frame 5–9s:** Sector tiles fade in at Level 1, one by one. The Brain console output area activates with scrolling boot log text (**real Brain init output streamed live**). The system is visibly waking up.
+- **Frame 9–12s:** Zoom transition inward to Level 2. The Command Hub assembles. Prompt cursor blinks. Text fades in: `SYSTEM READY.`
+- **Frame 12s:** Cinematic ends. If `wizard_complete` is false, Stage 2 begins automatically.
+
+**Skip Behavior:** Any keypress, mouse click, or touch immediately cuts to the end state (Level 2 Command Hub, live). `first_run_complete` is set to true. The skip is non-destructive: the Brain has already been initializing during the cinematic.
+
+#### 3.3.2 Stage 2: Guided Demo Workflow
+
+The Guided Demo is an interactive walkthrough that runs inside the live system. All commands run during the demo are real.
+
+A non-blocking overlay panel appears in the bottom-left of the viewport above the bezel:
+- **Style:** Glassmorphism card with LCARS amber accent border.
+- **Controls:** `[NEXT →]`, `[SKIP TOUR]`, `[← BACK]`
+- **"Show me" button:** Where applicable, auto-executes the step action.
+
+**Guided Demo Steps:**
+
+| Step | Instruction Shown | "Show Me" Action | What It Teaches |
+|:---|:---|:---|:---|
+| **1** | This is your Command Hub. The terminal is always here — it never goes away. | Highlights terminal output area | Core terminal-first identity |
+| **2** | Type a command, any command. Try: `ls` | Auto-types `ls` in the prompt | Basic prompt interaction |
+| **3** | Notice the chips that appeared? Click one to append it to your command. | Highlights nearest file chip | Directory context chips |
+| **4** | Hold `Ctrl+Tab` to see all your Sectors at Level 1. | Triggers `Ctrl+Tab` zoom out | Level 1 navigation |
+| **5** | Click your sector to zoom back in. | Highlights default sector tile | Level zoom mechanics |
+| **6** | Press `Ctrl+M` to bring up the Minimap. | Fires `Ctrl+M` shortcut | Minimap / bezel slot |
+| **7** | Type a question in plain English. Try: `show me running processes` | Auto-types query, switches to AI mode | AI Augmentation mode |
+| **8** | You're ready. Explore freely — press `[?]` any time for help. | Dismisses overlay, pulses `?` badge | Completion + help shortcut |
+
+The demo never blocks the user. At any step they can ignore the overlay and just use the system. The overlay tracks completion by detecting the relevant system event (e.g., a successful `ls` completing Step 2), not by enforcing sequence.
+
+**Trust Setup:** During Stage 2 onboarding (inserted before Step 1), the user is presented with the trust configuration screen (Architecture §17.2.1) for each command class. This is the only time TOS actively prompts the user to think about trust posture.
+
+On Step 8 or on `[SKIP TOUR]`, `wizard_complete` is set to true.
+
+#### 3.3.3 Stage 3: Ambient Hints
+
+After the guided demo, TOS continues to teach through non-blocking contextual hints — small tooltip-style overlays that appear when a user encounters a feature for the first time, and fade permanently once dismissed.
+
+**Hint Anatomy:** Target element + brief label (max 12 words) + optional action link. Appear with 300ms fade-in. Never occlude the prompt or terminal output.
+
+**Dismissal:** Clicking `[x]` adds the hint ID to `hints_dismissed` permanently. Performing the hinted action independently auto-dismisses the hint.
+
+**Hint Decay:**
+
+| Threshold | Opacity | Pulse |
+|:---|:---|:---|
+| Sessions 1–3 / Commands 0–50 | 100% | Amber pulse border active |
+| Sessions 4–7 / Commands 51–200 | 70% | No pulse |
+| Sessions 8–14 / Commands 200–499 | 40% | Whisper — barely visible |
+| Sessions 15+ / Commands 500+ | Auto-suppressed | Re-enable manually in Settings |
+
+**Hint Suppression:** A master toggle in **Settings → Interface → Onboarding** sets `hint_suppressed = true`, immediately hiding all active hints and preventing future ones.
+
+**Initial Hint Registry:**
+
+| Element | Tooltip Text | Condition |
+|:---|:---|:---|
+| Bezel Lateral Slots | These slots are configurable — dock any component here | First time Level 2 loads |
+| `[AI]` Mode Button | Ask anything in plain English — commands are staged, never auto-run | First time CMD mode used without AI |
+| Right-Click on Chip | Right-click any chip for deep options: inspect, signal, renice | First chip rendered |
+| `Ctrl+Tab` | See all your Sectors from Level 1 | After 3 commands run |
+| `Ctrl+Alt+Backspace` | Emergency recovery: Tactical Reset (God Mode) | After first error exit code |
+| Status Badge (top-right) | Generate a secure link to share this session remotely | After session 2 |
+| Earcons | Audio cues are configurable in Settings → Interface | First mode switch |
+| `[?]` Help Badge | Replay the guided tour or browse the full manual | End of tour / any time |
+
+### 3.4 Re-Access & Persistent Help
+
+#### 3.4.1 The [?] Help Badge
+
+A persistent `[?]` badge lives in the Top Bezel Right section. Always visible. Clicking it opens a Help Modal with three options:
+- **Replay Tour** — restarts the Guided Demo overlay from Step 1 without resetting `wizard_complete` or any system state.
+- **Open Manual** — opens the TOS User Manual in an Application Focus window (Level 3).
+- **Reset Hints** — clears `hints_dismissed`, re-enabling all ambient hints.
+
+#### 3.4.2 IPC Contracts
+
+| Message | Effect |
+|---|---|
+| `onboarding_skip_cinematic` | Immediately ends Stage 1 |
+| `onboarding_skip_tour` | Sets `wizard_complete = true`, dismisses overlay |
+| `onboarding_advance_step` | Advances guided demo to next step |
+| `onboarding_hint_dismiss:<hint_id>` | Permanently dismisses a specific hint |
+| `onboarding_hints_suppress` | Sets `hint_suppressed = true` |
+| `onboarding_replay_tour` | Re-opens guided demo overlay from Step 1 |
+| `onboarding_reset_hints` | Clears `hints_dismissed` array |
+
+### 3.5 Integration Points
+
+- **Settings Daemon:** New `tos.onboarding` namespace. No schema conflicts with existing settings.
+- **Brain IPC Handler:** New `onboarding_*` message prefix handled by a dedicated `OnboardingService` module.
+- **Face (Web UI):** New `<OnboardingOverlay>` component rendered at the root level, z-indexed above content but below modals.
+- **Earcon Service:** Two new earcons — `onboarding_start` (cinematic begin) and `onboarding_complete` (tour end).
+- **Top Bezel Right Section:** `[?]` badge added as a permanent non-configurable slot element alongside the existing status badge.
+
+**Dependency:** The cinematic intro requires the Brain to be fully initialized before Frame 5 begins. The init sequence should target completion within 4 seconds. If Brain init exceeds 4s, the cinematic holds on Frame 2–5 until ready.
+
+---
+
+## 4. Ambient AI & Co-Pilot System
+
+*Supplements Architecture Specification & Ecosystem Specification*
+
+### 4.1 Philosophy
+
+AI in TOS is not a room you walk into. It is a layer that runs underneath everything, watching, learning context, and surfacing help exactly when it is useful — then getting out of the way.
+
+Three principles govern all AI design in TOS:
+
+- **STAGE, NEVER RUN.** The AI never executes a command without the user submitting it from the prompt. Every suggestion, correction, and prediction ends up staged — visible, editable, and under user control.
+- **PLUGGABLE BY DEFAULT.** The LLM powering the system and the behaviors it exhibits are independent, swappable modules. The user is never locked into one model or one interaction style.
+- **REMOVABLE.** All AI behavior wrappers, including the defaults, can be uninstalled or disabled. A user who wants zero AI involvement gets zero AI involvement.
+
+### 4.2 Architecture Overview
+
+The AI system is split into two independent module layers that compose at runtime:
+
+```
+┌─────────────────────────────────────────────────┐
+│              AI Behavior Layer                  │
+│  ┌───────────┐ ┌───────────┐ ┌───────────────┐  │
+│  │ Passive   │ │   Chat    │ │   Predictor   │  │
+│  │ Observer  │ │ Companion │ │   (Ghost)     │  │
+│  │ [default] │ │ [Ollama▾] │ │ [default]    │  │
+│  └───────────┘ └───────────┘ └───────────────┘  │
+│         ↕ AI Engine API (JSON-RPC / IPC)        │
+├─────────────────────────────────────────────────┤
+│         AI Backend Layer (cascading)            │
+│   System Default ──► Behavior Override          │
+│  ┌──────────┐ ┌──────────┐ ┌──────────────┐    │
+│  │  Ollama  │ │ OpenAI   │ │  Anthropic   │    │
+│  │ (local)  │ │ (remote) │ │   (remote)   │    │
+│  └──────────┘ └──────────┘ └──────────────┘    │
+└─────────────────────────────────────────────────┘
+```
+
+- **AI Backend modules** (`.tos-ai`) define the LLM connection. One is the **system default**, selected in **Settings → AI → Backend**. Any behavior module can override this and target a specific installed backend.
+- **AI Behavior modules** (`.tos-aibehavior`) define how the AI acts, when it speaks, and what UI it renders. Multiple behavior modules can run simultaneously, each independently toggled in **Settings → AI → Behaviors**.
+
+**Backend Resolution Order:**
+1. **Behavior-level override** — if the behavior module has a specific backend set in its config, use that.
+2. **System default** — if no override is set, use the system default backend.
+
+The Brain's `AIService` brokers all communication between behavior modules and the active backend. Behavior modules never call the backend directly — they submit requests to the `AIService` via IPC.
+
+### 4.3 AI Behavior Modules (`.tos-aibehavior`)
+
+Behavior modules define a specific AI interaction pattern and own a specific region of the UI surface.
+
+#### 4.3.1 Manifest Structure
+
+```toml
+name        = "Passive Observer"
+version     = "1.0.0"
+type        = "aibehavior"
+description = "Watches terminal output and surfaces contextual chips silently"
+author      = "TOS Core"
+icon        = "observer.svg"
+
+[behavior]
+trigger     = "passive"           # passive | prompt_input | mode_switch | manual
+ui_surface  = "chips"             # chips | ghost_text | chat_panel | thought_bubble
+chip_color  = "secondary"         # primary | secondary | accent
+runs_always = true
+
+[capabilities_required]
+function_calling = false
+streaming        = true
+vision           = false
+
+[permissions]
+terminal_read  = true
+prompt_read    = true
+prompt_write   = false
+network        = false
+
+[context_required]
+# Only declared fields are sent, minimizing token usage
+last_command = true
+exit_code    = true
+terminal_buffer_tail = true
+```
+
+#### 4.3.2 UI Surfaces
+
+| Surface | Description | Default Color |
+|:---|:---|:---|
+| `chips` | AI-suggested chips in the left/right chip layout. Visually distinct via `secondary` color scheme. | Teal / cyan accent |
+| `ghost_text` | Inline ghost text rendered in the prompt, dimmed, accepted with `Tab` or `→`. | 40% opacity prompt color |
+| `chat_panel` | Replaces or augments the `[AI]` mode panel with a full chat interface. | Standard panel |
+| `thought_bubble` | Floating dismissable card that appears above the prompt. Tapping expands into chat. | Glassmorphism dark card |
+
+**Visual Identity:** AI chips always render in the secondary color (teal/cyan by default, themeable) with a subtle `✦` prefix glyph. This makes them immediately distinguishable from system-generated chips without any labeling required.
+
+#### 4.3.3 The Behavior API
+
+Behavior modules communicate with the Brain's `AIService` via IPC using the existing JSON-RPC format:
+
+**Submitting a request:**
+```json
+{
+  "behavior_id": "passive-observer",
+  "trigger": "terminal_output",
+  "context": {
+    "last_command": "git psh origin main",
+    "exit_code": 127,
+    "cwd": "/home/user/project",
+    "terminal_buffer_tail": ["git psh origin main", "git: 'psh' is not a git command"]
+  },
+  "request": "suggest correction",
+  "stream": false
+}
+```
+
+**Receiving a response (staged, never auto-run):**
+```json
+{
+  "behavior_id": "passive-observer",
+  "surface": "chips",
+  "chips": [
+    { "label": "git push origin main", "action": "stage_command", "color": "secondary" },
+    { "label": "Explain error", "action": "open_chat", "color": "secondary" }
+  ]
+}
+```
+
+The Brain receives this response and instructs the Face to render the chips. The behavior module never touches the Face directly.
+
+### 4.4 Default Behavior Modules (Shipped with TOS)
+
+#### 4.4.1 Passive Observer (`tos-observer`)
+
+Watches the terminal output buffer and prompt passively. Surfaces contextual AI chips when it detects actionable moments. Never interrupts. Never opens a panel unprompted.
+
+**Trigger conditions:**
+
+| Condition | What It Surfaces |
+|:---|:---|
+| Exit code `127` (command not found) | Correction chip: closest matching command staged |
+| Non-zero exit code with stderr output | "Explain error" chip + suggested fix chip |
+| Partial command typed, 1.5s idle, unsubmitted | Ghost text completion or chip suggestion |
+| Long-running command exceeds 30s | "Explain what this is doing" chip + "Cancel" chip |
+| `cd` into directory with no prior visits | "What's in here?" chip (summarizes directory structure) |
+
+**Settings:** `Settings → AI → Behaviors → Passive Observer` — toggle on/off, trigger sensitivity (Low/Medium/High), chip position.
+
+#### 4.4.2 Chat Companion (`tos-chat`)
+
+Provides the full chat interface within `[AI]` mode. When the user switches to `[AI]` mode, the terminal output area is replaced by a scrollable chat panel. Conversation history is maintained per-sector per-session.
+
+**Chat panel features:**
+- Full streaming responses with cursor animation.
+- Code blocks in responses include a `[Stage →]` button that appends the code/command to the prompt.
+- Context includes: current directory, last 20 terminal lines, active sector name, current shell.
+- `[Clear]` button resets conversation history for the current sector.
+- Switching away from `[AI]` mode preserves conversation history.
+
+The chat panel is a behavior module. It can be replaced by a marketplace alternative (DevOps chat companion, Git expert, documentation assistant) without changing any Brain or Face code.
+
+### 4.5 Marketplace Behavior Module Archetypes
+
+#### 4.5.1 Command Predictor
+
+- **Surface:** `ghost_text`
+- **Trigger:** `prompt_input` — fires on every keystroke with debounce
+- **Behavior:** Renders dimmed ghost text inline in the prompt. `Tab` or `→` accepts. `Esc` dismisses.
+- **Latency requirement:** must respond within 300ms or ghost text is suppressed for that keystroke cycle. Modules should declare `latency_profile = "local"` and warn users if connecting to a slow remote backend.
+
+```
+user types:  git che
+ghost shows: git checkout feature/my-branch█
+```
+
+#### 4.5.2 Workflow Agent
+
+- **Surface:** `thought_bubble` + `chat_panel`
+- **Trigger:** `manual` — activated explicitly by the user
+- **Behavior:** Plans and stages multi-step command sequences. Each step is presented as an ordered chip list with confirmation before any step is staged.
+- **Safety contract:** Workflow agents MUST use the Brain's tactile confirmation API for any command that modifies the filesystem, network, or process state. The Brain enforces this — any `stage_command` call from a workflow agent for a flagged command class is automatically wrapped in confirmation.
+
+```
+User: "set up a new rust project called torpedo in ~/projects"
+
+Agent proposes:
+  Step 1 of 4: cd ~/projects          [Stage]
+  Step 2 of 4: cargo new torpedo      [Stage]
+  Step 3 of 4: cd torpedo             [Stage]
+  Step 4 of 4: git init               [Stage]
+```
+
+#### 4.5.3 Domain Expert
+
+- **Surface:** `chips` or `thought_bubble`
+- **Trigger:** `passive` — activates based on detected context (e.g., presence of a `Dockerfile`, `.git`, `Cargo.toml`)
+- **Behavior:** A specialist module with a narrowly scoped system prompt tuned to a domain. Examples: Git Expert, Docker Expert, Kubernetes Navigator, SQL Analyst.
+
+```toml
+[behavior]
+trigger         = "passive"
+context_signals = [".git", "Makefile", "Cargo.toml"]
+ui_surface      = "chips"
+```
+
+#### 4.5.4 Thought Bubble Companion
+
+- **Surface:** `thought_bubble`
+- **Trigger:** `passive` — always watching
+- **Behavior:** A floating, dismissable card that appears in the corner of the terminal when the AI has something to say. More conversational than the Passive Observer — can initiate, ask clarifying questions, and be expanded into a full chat.
+- **Appearance:** Glassmorphism dark card with a cloud/bubble shape indicator. A small pulse animation indicates new content. `[×]` dismisses for the current session. Long-press `[×]` dismisses permanently until re-enabled.
+
+### 4.6 AI Mode ([AI]) — Extended
+
+The `[AI]` mode is preserved as a first-class Command Hub mode. Its behavior is now driven by whichever Chat Companion behavior module is active. The mode itself is a surface contract, not an implementation.
+
+- Switching to `[AI]` mode invokes the active Chat Companion module's `on_mode_enter` callback.
+- If no Chat Companion module is installed, `[AI]` mode falls back to a minimal built-in text interface with a notice to install a Chat Companion from the Marketplace.
+- `[AI]` mode remains one of three Command Hub modes: `[CMD]`, `[SEARCH]`, `[AI]`.
+
+### 4.7 Context Passed to All Behavior Modules
+
+The `AIService` maintains a rolling context object automatically included with every behavior module request:
+
+```json
+{
+  "cwd": "/home/user/project",
+  "sector_name": "dev-work",
+  "shell": "fish",
+  "terminal_buffer_tail": ["...last 20 lines..."],
+  "last_command": "cargo build",
+  "last_exit_code": 0,
+  "active_mode": "CMD",
+  "session_commands_run": 47,
+  "os": "Linux",
+  "env_hints": ["RUST_LOG=info", "NODE_ENV=development"]
+}
+```
+
+Modules declare which context fields they consume in their manifest under `[context_required]`. The `AIService` only sends declared fields, minimizing token usage.
+
+### 4.8 Settings Integration
+
+```
+Settings → AI
+├── Backend
+│   ├── System Default:  [Ollama (local) ▾]
+│   ├── Installed:       Ollama  |  OpenAI  |  Anthropic
+│   └── Manage Backends → (opens marketplace filtered to .tos-ai)
+├── Behaviors
+│   ├── Passive Observer
+│   │   ├── [●  ON]  [Remove]
+│   │   ├── Backend: [System Default ▾]
+│   │   └── Trigger Sensitivity: [Medium ▾]
+│   ├── Chat Companion
+│   │   ├── [●  ON]  [Remove]
+│   │   ├── Backend: [OpenAI (gpt-4o) ▾]
+│   │   └── Conversation Memory: [Per Session ▾]
+│   ├── Command Predictor
+│   │   ├── [●  ON]  [Remove]
+│   │   ├── Backend: [Ollama (local) ▾]
+│   │   └── Max Latency: [300ms ▾]
+│   └── + Add Behavior → (opens marketplace filtered to .tos-aibehavior)
+└── Global
+    ├── AI Chip Color:        [Secondary (teal) ▾]
+    ├── Ghost Text Opacity:   [40% ▾]
+    ├── Disable All AI:       [ ] (master off switch)
+    └── Context Sent:         [Standard ▾] (Standard / Minimal / Full)
+```
+
+### 4.9 IPC Contracts — AI System
+
+| Message | Effect |
+|:---|:---|
+| `ai_behavior_enable:<id>` | Enables a behavior module by ID |
+| `ai_behavior_disable:<id>` | Disables a behavior module by ID |
+| `ai_behavior_configure:<id>:<json>` | Updates a behavior module's config |
+| `ai_chip_stage:<command>` | Stages an AI-suggested chip command into the prompt |
+| `ai_chip_dismiss:<chip_id>` | Dismisses an AI chip without staging |
+| `ai_thought_expand` | Expands the active thought bubble into chat panel |
+| `ai_thought_dismiss` | Dismisses the thought bubble for current session |
+| `ai_thought_dismiss_permanent` | Dismisses thought bubble permanently |
+| `ai_context_request` | Face requests current AI context object from Brain |
+| `ai_backend_set_default:<id>` | Sets the system default backend |
+| `ai_backend_set_behavior:<behavior_id>:<backend_id>` | Sets a backend override for a specific behavior module |
+| `ai_backend_clear_behavior:<behavior_id>` | Removes the override, returns behavior to system default |
+
+### 4.10 Safety Contracts
+
+- **No auto-execution.** No behavior module may call `prompt_submit` directly. All command staging goes through `ai_chip_stage` or `stage_command`, placing text in the prompt without submitting.
+- **Workflow agent confirmation.** Any workflow agent staging a command in classes `filesystem_write`, `network`, `process_kill`, or `privilege_escalation` must route through the Brain's tactile confirmation API. The Brain enforces this regardless of module implementation.
+- **Context minimization.** Behavior modules only receive context fields they declare in their manifest.
+- **Backend isolation.** Behavior modules never communicate with the LLM backend directly. All requests route through `AIService`.
+
+---
+
+## 5. Marketplace Discovery & Browse Experience
+
+*Supplements Ecosystem Specification §2*
+
+### 5.1 Philosophy
+
+The marketplace is where TOS grows. Discovery is not a feature — it is the mechanism by which TOS becomes personal.
+
+Two principles:
+
+- **CURATED FIRST, EXHAUSTIVE SECOND.** The home view is a considered set of picks and categories. Exhaustive search is one tap away but is not the first thing a user sees.
+- **THE DETAIL PAGE EARNS THE INSTALL.** A user should understand what a module does, what it looks like, and what it asks for before committing. The install button is the last thing on the page, not the first.
+
+> **NOTE:** The marketplace is read from `tos-marketplaced` (ephemeral port, discovered via Brain service registry). This document describes the Face-side rendering of the data that daemon provides. No changes to the daemon or its package verification logic are required.
+
+### 5.2 UI Surface
+
+The marketplace opens as a **Level 3 Application Focus** and is accessed via:
+- The **Web Portal satellite button** in the Top Bezel Right section — long press opens the Marketplace; short tap opens the Web Portal sharing overlay as before.
+- The command `tos marketplace` typed in any Command Hub prompt.
+- **Settings → [any module category] → Browse Marketplace** — opens pre-filtered to the relevant category.
+- AI suggestion chips that fire when a missing or conflicting module is detected.
+
+`Esc` or zoom-out returns the user to their previous level and sector without disrupting any running processes.
+
+### 5.3 Home View
+
+The marketplace home view is divided into two vertical sections: **Featured** (top) and **Categories** (below).
+
+#### 5.3.1 Featured Strip
+
+A horizontally scrollable strip of curated module cards, served by `tos-marketplaced` as a signed, versioned `featured.json` manifest that updates independently of TOS releases.
+
+Each featured card shows: module name and type badge, a hero screenshot or animation, a one-line description (max 80 characters), install count and star rating, and a **[View]** button.
+
+```
+┌─────────────────────────────────────────────────────────────────────┐
+│  FEATURED                                              [← →  1/6]  │
+├──────────────────┬──────────────────┬──────────────────────────────┤
+│  Void Theme      │  Git Expert      │  Starship Shell               │
+│  THEME           │  AI BEHAVIOR     │  SHELL                        │
+│  Dark LCARS      │  Git-aware chips │  Rust prompt                  │
+│  ★ 4.8  12.4k   │  ★ 4.6  8.1k    │  ★ 4.9  21k                  │
+│  [View]          │  [View]          │  [View]                       │
+└──────────────────┴──────────────────┴──────────────────────────────┘
+```
+
+#### 5.3.2 Category Grid
+
+| Category Tile | Module Type | Description |
+|:---|:---|:---|
+| Themes | `.tos-theme` | Visual appearance, color palettes, LCARS variants |
+| Shells | `.tos-shell` | Shell implementations with OSC integration |
+| Terminal Output | `.tos-terminal` | Terminal rendering modules |
+| AI Backends | `.tos-ai` | LLM connections — local and remote |
+| AI Behaviors | `.tos-aibehavior` | Co-pilot interaction patterns |
+| Sector Types | `.tos-sector` | Workspace presets and specialized sector logic |
+| Bezel Components | `.tos-bezel` | Dockable bezel slot components |
+| Audio Themes | `.tos-audio` | Earcon sets and ambient audio layers |
+
+### 5.4 Category Browse View
+
+A scrollable grid of **Browse Cards** for each category.
+
+**Browse Card:**
+- Screenshot — a static preview image
+- Name and type badge
+- One-line description (max 80 characters)
+- Star rating and download count
+- **[View]** — navigates to the detail page. There is no install button on the browse card.
+
+**Sort/Filter bar:**
+- **Sort:** Most Downloaded / Highest Rated / Newest
+- **Filter:** All / Free / By the TOS Team / Compatible with current setup
+- **Search:** filters the current category in real time
+
+"Compatible with current setup" filters out modules that declare capability requirements the user's current AI backend or platform cannot satisfy.
+
+### 5.5 Module Detail Page
+
+Tapping **[View]** navigates to the module's full detail page.
+
+**Layout:**
+- Horizontally scrollable screenshot gallery at the top (module authors must submit at least one screenshot).
+- Name, author, type badge, star rating, install count, version, update date, license.
+- **[Review Permissions & Install]** — single call to action, positioned in the top-right metadata block.
+- Full description, changelog, compatibility notes.
+- **Permissions section** — human-readable permission statements (shown before installation, not as a surprise during it).
+- Ratings & reviews.
+
+**Permission display:**
+
+| Manifest Permission | Displayed As |
+|:---|:---|
+| `terminal_read = true` | Can read your terminal output |
+| `prompt_read = true` | Can read your current prompt |
+| `network = true` | Can make network requests |
+| `filesystem = true` | Can read and write files |
+| No permissions declared | No special permissions required |
+
+### 5.6 Install Flow
+
+#### 5.6.1 Permission Review Step
+
+Tapping **[Review Permissions & Install]** opens a modal showing the full permissions list for the module. This is the same information shown in the detail page permissions section, now presented as a formal review before commitment.
+
+For modules with no permissions, the review step is lightweight — it primarily confirms the author and signature validity. **[Install]** triggers the download immediately.
+
+#### 5.6.2 Download Progress
+
+After **[Install]** is tapped:
+- A download progress bar appears at the bottom of the detail page.
+- The install button becomes **[Installing... x%]** and is non-interactive.
+- The user can navigate away; the download continues in the background via `tos-marketplaced`.
+
+#### 5.6.3 Completion
+
+When the install completes:
+- A notification is pushed to the TOS Log: `Module installed: <Name> — available in Settings → <Category>`.
+- If the user is still on the detail page, the install button becomes **[Installed ✓]**.
+- If the user has navigated away, the log notification is the only signal. No toast, no alert.
+- The module is immediately available in its relevant Settings category.
+
+#### 5.6.4 Install Failure
+
+If the download or signature verification fails:
+- The progress bar turns amber and shows the failure reason.
+- The install button returns to **[Review Permissions & Install]** so the user can retry.
+- A failure notification is pushed to the TOS Log.
+
+### 5.7 Search
+
+Global marketplace search is accessible from the home view via a persistent search bar. Search queries are sent to `tos-marketplaced` which searches across all module types simultaneously. Results are grouped by category.
+
+The AI integration from Ecosystem Specification §2.4 is preserved: typing a natural language query in the search bar triggers the AI-assisted discovery path.
+
+### 5.8 Installed State in Browse
+
+When a user browses a category and encounters an already-installed module:
+- Browse card shows **[Installed ✓]** badge.
+- Detail page shows **[Installed ✓]** with a secondary link: **[Manage in Settings →]**.
+
+There is no separate "My Modules" section in the marketplace. Installed module management lives in Settings.
+
+### 5.9 IPC Contracts — Marketplace UI
+
+| Message | Effect |
+|:---|:---|
+| `marketplace_home` | Returns featured manifest and category counts |
+| `marketplace_category:<type>` | Returns paginated module list for a category |
+| `marketplace_detail:<id>` | Returns full module metadata, screenshots, permissions |
+| `marketplace_search:<query>` | Full-text search across all module types |
+| `marketplace_search_ai:<query>` | AI-assisted natural language discovery |
+| `marketplace_install:<id>` | Initiates install after permission review |
+| `marketplace_install_cancel:<id>` | Cancels an in-progress download |
+| `marketplace_install_status:<id>` | Returns current install progress (0–100, or error) |

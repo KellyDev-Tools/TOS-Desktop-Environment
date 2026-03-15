@@ -131,13 +131,13 @@ echo "=========================================================="
 export NVM_DIR="$HOME/.nvm"
 if [ ! -d "$NVM_DIR" ]; then
     echo "NVM not found. Installing NVM..."
+    unset NVM_DIR
     curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.7/install.sh | bash
-    # Load NVM for the current session
-    [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
-else
-    echo "NVM is already installed at $NVM_DIR"
-    [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
+    export NVM_DIR="$HOME/.nvm"
 fi
+
+# Load NVM for the current session
+[ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
 
 echo "Installing and using Node.js v20 (LTS)..."
 nvm install 20

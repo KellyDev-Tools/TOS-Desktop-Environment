@@ -24,26 +24,36 @@ Use Electron (or similar WebView-based framework) as the primary Face container 
 
 ### Architecture
 
-```
-┌─────────────────────────────────────────────────────────────────────┐
-│                         Electron App Layer                          │
-│  ┌─────────────────┐  ┌─────────────────┐  ┌─────────────────┐      │
-│  │   WinUI Shell   │  │   macOS Shell   │  │  Linux Shell    │      │
-│  │   (Win32 API)   │  │   (AppKit)      │  │  (Wayland)      │      │
-│  │  ┌─────────────┐│  │  ┌─────────────┐│  │ ┌─────────────┐ │      │
-│  │  │ WebView2    ││  │  │ WKWebView   ││  │ │ Gtk/WebKit  │ │      │
-│  │  │ (Svelte UI) ││  │  │ (Svelte UI) ││  │ │ (Svelte UI) │ │      │
-│  │  └──────┬──────┘│  │  └──────┬──────┘│  │ └──────┬──────┘ │      │
-│  └─────────┼───────┘  └─────────┼───────┘  └─────────┼───────┘      │
-│            │                    │                    │               │
-│            └────────────────────┼────────────────────┘               │
-│                                 │ IPC over TCP/WS                    │
-│                                 ▼                                    │
-│                          ┌──────────────┐                           │
-│                          │  Brain (TCP) │                           │
-│                          │   on Linux   │                           │
-│                          └──────────────┘                           │
-└─────────────────────────────────────────────────────────────────────┘
+```mermaid
+graph TB
+    subgraph "Electron App Layer"
+        Win[Windows Native<br/>WinUI 3 + WebView2]
+        Mac[macOS Native<br/>AppKit + WKWebView]
+        Linux[Linux Native<br/>GTK + WebKitGTK]
+    end
+
+    subgraph "Svelte UI"
+        UI1[(Svelte UI)]
+        UI2[(Svelte UI)]
+        UI3[(Svelte UI)]
+    end
+
+    Win --> UI1
+    Mac --> UI2
+    Linux --> UI3
+
+    UI1 -.->|IPC over TCP/WS| Brain
+    UI2 -.->|IPC over TCP/WS| Brain
+    UI3 -.->|IPC over TCP/WS| Brain
+
+    Brain[Brain (TCP)<br/>Linux] -->|IPC| Win
+    Brain -->|IPC| Mac
+    Brain -->|IPC| Linux
+
+    style Win fill:#e1f5fe
+    style Mac fill:#e1f5fe
+    style Linux fill:#e1f5fe
+    style Brain fill:#c8e6c9
 ```
 
 ### Implementation Plan
@@ -96,34 +106,75 @@ Use Electron (or similar WebView-based framework) as the primary Face container 
 
 ### Overview
 
-Create native platform applications (WinUI 3, AppKit, GTK) that embed the Svelte Face via WebView, with native fallback compositors when available.
+Create native platform applications (WinUI 3, AppKit, GTK, Android NDK, AndroidXR) that embed the Svelte Face via WebView, with native fallback compositors when available.
 
 ### Architecture
 
-```
-┌───────────────────────┐  ┌───────────────────────┐  ┌───────────────────────┐
-│    Windows Native     │  │   macOS Native        │  │   Linux Native        │
-│  ┌─────────────────┐  │  │  ┌─────────────────┐  │  │  ┌─────────────────┐  │
-│  │  WinUI 3 App    │  │  │  │  AppKit App     │  │  │  │  GTK App        │  │
-│  │  ┌─────────────┐│  │  │  │  ┌─────────────┐│  │  │  │  ┌─────────────┐│  │
-│  │  │ WebView2    ││  │  │  │  │ WKWebView   ││  │  │  │  │ WebKitGTK   ││  │
-│  │  │ (Svelte UI) ││  │  │  │  │ (Svelte UI) ││  │  │  │  │ (Svelte UI) ││  │
-│  │  └──────┬──────┘│  │  │  │  └──────┬──────┘│  │  │  │  └──────┬──────┘│  │
-│  └─────────┼───────┘  │  └─────────┼───────┘  │  └─────────┼───────┘  │
-│            │          │            │          │            │          │
-│  ┌─────────▼───────┐  │  ┌─────────▼───────┐  │  ┌─────────▼───────┐  │
-│  │  Native Renderer│  │  │  Native Renderer│  │  │ Wayland Shell   │  │
-│  │  (Direct3D 11)  │  │  │  (Metal)        │  │  │  (wlr-layer)    │  │
-│  └─────────────────┘  │  └─────────────────┘  │  └─────────────────┘  │
-└───────────────────────┘  └─────────────────────┘  └─────────────────────┘
-            │                        │                        │
-            └────────────────────────┼────────────────────────┘
-                                     │ IPC over TCP/WS
-                                     ▼
-                              ┌──────────────┐
-                              │  Brain (TCP) │
-                              │   on Linux   │
-                              └──────────────┘
+```mermaid
+graph TB
+    subgraph "Windows Native"
+        WinApp[WinUI 3 App]
+        WinWeb[WebView2]
+        WinRender[Direct3D 11/12]
+        WinApp --> WinWeb
+        WinWeb --> WinRender
+    end
+
+    subgraph "macOS Native"
+        MacApp[AppKit App]
+        MacWeb[WKWebView]
+        MacRender[Metal]
+        MacApp --> MacWeb
+        MacWeb --> MacRender
+    end
+
+    subgraph "Linux Native"
+        LinuxApp[GTK App]
+        LinuxWeb[WebKitGTK]
+        LinuxRender[Wayland<br/>wlr-layer]
+        LinuxApp --> LinuxWeb
+        LinuxWeb --> LinuxRender
+    end
+
+    subgraph "Android Native"
+        AndroidApp[Android App]
+        AndroidWeb[Android WebView]
+        AndroidRender[OpenGL ES 3.0+]
+        AndroidApp --> AndroidWeb
+        AndroidWeb --> AndroidRender
+    end
+
+    subgraph "AndroidXR / Horizon"
+        XRApp[AndroidXR App]
+        XRWeb[WebView (optional)]
+        XRRender[OpenXR]
+        XRApp --> XRWeb
+        XRWeb --> XRRender
+    end
+
+    WinRender -.->|IPC over TCP/WS| Brain
+    MacRender -.->|IPC over TCP/WS| Brain
+    LinuxRender -.->|IPC over TCP/WS| Brain
+    AndroidRender -.->|IPC over TCP/WS| Brain
+    XRRender -.->|IPC over TCP/WS| Brain
+
+    Brain[Brain (TCP)<br/>Linux] -->|IPC| WinRender
+    Brain -->|IPC| MacRender
+    Brain -->|IPC| LinuxRender
+    Brain -->|IPC| AndroidRender
+    Brain -->|IPC| XRRender
+
+    style WinApp fill:#e1f5fe
+    style MacApp fill:#e1f5fe
+    style LinuxApp fill:#e1f5fe
+    style AndroidApp fill:#e1f5fe
+    style XRApp fill:#e1f5fe
+    style Brain fill:#c8e6c9
+    style WinRender fill:#fff9c4
+    style MacRender fill:#fff9c4
+    style LinuxRender fill:#fff9c4
+    style AndroidRender fill:#fff9c4
+    style XRRender fill:#fff9c4
 ```
 
 ### Implementation Plan
@@ -133,6 +184,8 @@ Create native platform applications (WinUI 3, AppKit, GTK) that embed the Svelte
 | Windows | Direct3D 11/12 | WebView2 | WinUI 3 + C# |
 | macOS | Metal | WKWebView | AppKit + Swift |
 | Linux | Wayland (keep) | WebKitGTK | GTK + Rust |
+| Android | OpenGL ES 3.0+ | Android WebView | Android SDK + Java/Kotlin |
+| AndroidXR/Horizon | OpenXR | WebView (optional) | Android NDK + OpenXR |
 
 ### Advantages
 
@@ -141,23 +194,25 @@ Create native platform applications (WinUI 3, AppKit, GTK) that embed the Svelte
 | **Native Performance** | No Chromium overhead; startup in ~1-2s |
 | **Platform Integration** | Full access to native APIs (notifications, system tray, etc.) |
 | **Smaller Distribution** | ~20-40MB vs 150MB for Electron |
-| **Native Compositor** | Direct3D/Metal/Wayland for optimal rendering |
+| **Native Compositor** | Direct3D/Metal/Wayland/OpenGL ES for optimal rendering |
 | **Modular Installation** | Can install Face alone without Brain |
+| **XR Ready** | AndroidXR/Horizon support via OpenXR out of box |
 
 ### Disadvantages
 
 | Concern | Mitigation |
 |---------|------------|
-| **Three Codebases** | WinUI, AppKit, GTK all require different expertise |
+| **Four Codebases** | WinUI, AppKit, GTK, Android SDK all require different expertise |
 | **Longer Initial Path** | More setup before first cross-platform release |
-| **Feature Parity Challenges** | Keeping 3 platforms in sync requires discipline |
-| **Build Complexity** | CI/CD must build for 3 platforms |
+| **Feature Parity Challenges** | Keeping 4 platforms in sync requires discipline |
+| **Build Complexity** | CI/CD must build for 4 platforms |
+| **AndroidXR Limitations** | OpenXR on AndroidXR may require vendor-specific extensions |
 
 ### Recommended For
 
 - **Timeline:** Beta-1 → Alpha-3 (production-grade multiplatform)
-- **Target Users:** Production users on all platforms
-- **Development Resources:** Medium team (3-5 engineers)
+- **Target Users:** Production users on all platforms including Android and AndroidXR
+- **Development Resources:** Medium team (4-6 engineers)
 
 ---
 
@@ -169,26 +224,31 @@ Build the Face on top of OpenXR, treating 2D displays as just one type of "viewp
 
 ### Architecture
 
-```
-┌─────────────────────────────────────────────────────────────────────┐
-│                         OpenXR Face Layer                           │
-│  ┌───────────────┐  ┌───────────────┐  ┌───────────────┐            │
-│  │  Standard     │  │   VR/AR HMD   │  │   Mobile Tile │            │
-│  │  Monitor      │  │   (Quest)     │  │   (Android)   │            │
-│  │  ┌─────────┐  │  │  ┌─────────┐  │  │  ┌─────────┐  │            │
-│  │  │ 2D View │  │  │  │ 3D View │  │  │  │ Tiled 2D│  │            │
-│  │  │ (WebGPU)│  │  │  │ (XR)    │  │  │  │ (WebGPU)│  │            │
-│  │  └────┬────┘  │  │  └───┬─────┘  │  │  └────┬────┘  │            │
-│  └────────┼───────┘  └──────┼───────┘  └────────┼──────┘            │
-│           │                  │                  │                     │
-│           └──────────────────┼──────────────────┘                     │
-│                              │ OpenXR Runtime                         │
-│                              ▼                                        │
-│                    ┌───────────────────┐                             │
-│                    │  Brain (TCP/WS)   │                             │
-│                    │    on Linux       │                             │
-│                    └───────────────────┘                             │
-└─────────────────────────────────────────────────────────────────────┘
+```mermaid
+graph TB
+    subgraph "OpenXR Runtime"
+        XR[OpenXR Runtime<br/>XR_RUNTIME_PATH]
+    end
+
+    subgraph "OpenXR Face Layer"
+        Std[Standard Monitor<br/>2D Viewport]
+        VR[VR Headset<br/>Quest/VisionPro<br/>3D Viewport]
+        Mobile[Mobile Tile<br/>Tiled 2D]
+    end
+
+    Std -->|WebGPU| XR
+    VR -->|OpenXR| XR
+    Mobile -->|WebGPU| XR
+
+    XR -.->|IPC over TCP/WS| Brain
+
+    Brain[Brain (TCP/WS)<br/>Linux] -->|IPC| XR
+
+    style Std fill:#e1f5fe
+    style VR fill:#e1f5fe
+    style Mobile fill:#e1f5fe
+    style XR fill:#fff9c4
+    style Brain fill:#c8e6c9
 ```
 
 ### Implementation Plan
@@ -231,9 +291,11 @@ Build the Face on top of OpenXR, treating 2D displays as just one type of "viewp
 
 | Criterion | Option A (Electron) | Option B (Native) | Option C (OpenXR) |
 |-----------|---------------------|-------------------|-------------------|
-| **Windows Support** | ✅ Immediate | ✅ Medium-term | ✅ Yes (with fallback) |
-| **macOS Support** | ✅ Immediate | ✅ Medium-term | ✅ Yes (with fallback) |
+| **Windows Support** | ✅ Immediate | ✅ Immediate | ✅ Yes (with fallback) |
+| **macOS Support** | ✅ Immediate | ✅ Immediate | ✅ Yes (with fallback) |
 | **Linux Support** | ✅ Immediate | ✅ Immediate | ✅ Immediate |
+| **Android Support** | ✅ WebView only | ✅ Native (OpenGL ES) | ✅ Yes (via OpenXR) |
+| **AndroidXR/Horizon** | ❌ No | ✅ Native (OpenXR) | ✅ Native (OpenXR) |
 | **VR/AR Support** | ❌ No | ⚠️ Android only | ✅ Native |
 | **Performance** | ⚠️ Medium | ✅ High | ⚠️ Variable |
 | **Resource Usage** | ❌ High | ✅ Low-Medium | ⚠️ Medium |
@@ -251,10 +313,10 @@ Build the Face on top of OpenXR, treating 2D displays as just one type of "viewp
 ### Phase 1: Alpha-2.2.1 (Q2 2026)
 **Choose: Option A (Electron)**
 
-- Build Electron wrapper for Windows/macOS
+- Build Electron wrapper for Windows/macOS/Linux
 - Use existing WebSocket IPC protocol
 - Get multiplatform running quickly
-- **Goal:** Beta-0 with Windows + macOS support
+- **Goal:** Beta-0 with Windows + macOS + Android WebView support
 
 ### Phase 2: Alpha-2.3 (Q3 2026)
 **Choose: Option B (Native Shells)**
@@ -262,7 +324,7 @@ Build the Face on top of OpenXR, treating 2D displays as just one type of "viewp
 - Begin native implementation alongside Electron
 - Share Svelte UI codebase
 - Migrate users gradually
-- **Goal:** Production-grade native apps
+- **Goal:** Production-grade native apps on all platforms
 
 ### Phase 3: Alpha-3 (Q4 2026+)
 **Choose: Option C (OpenXR)**
@@ -274,8 +336,8 @@ Build the Face on top of OpenXR, treating 2D displays as just one type of "viewp
 
 ### Rationale
 
-1. **Electron gets you to market fastest** with working multiplatform
-2. **Native shells provide better UX** for production users
+1. **Electron gets you to market fastest** with working multiplatform (Windows, macOS, Linux, Android WebView)
+2. **Native shells provide better UX** for production users on all platforms including AndroidXR
 3. **OpenXR enables next-gen** experiences beyond traditional UI
 
 ---
@@ -283,6 +345,38 @@ Build the Face on top of OpenXR, treating 2D displays as just one type of "viewp
 ## Migration Strategy
 
 Your architecture already supports this path:
+
+```mermaid
+flowchart LR
+    subgraph "Current State"
+        B1[Linux Brain] -- IPC --> F1[Linux Face<br/>Wayland]
+    end
+
+    subgraph "Phase 1: Electron"
+        B2[Linux Brain] -- IPC --> F2[Electron Face<br/>Win/macOS/Linux]
+    end
+
+    subgraph "Phase 2: Native"
+        B3[Linux Brain] -- IPC --> F3a[Native Win]
+        B3 -- IPC --> F3b[Native macOS]
+        B3 -- IPC --> F3c[Native Linux]
+        B3 -- IPC --> F3d[Native Android]
+        B3 -- IPC --> F3e[AndroidXR/OpenXR]
+    end
+
+    subgraph "Phase 3: OpenXR"
+        B4[Linux Brain] -- IPC --> F4[OpenXR Face<br/>All Platforms]
+    end
+
+    B1 --> B2
+    B2 --> B3
+    B3 --> B4
+
+    style B1 fill:#b2dfdb
+    style B2 fill:#b2dfdb
+    style B3 fill:#b2dfdb
+    style B4 fill:#b2dfdb
+```
 
 ```
 Current: [Linux Brain] ↔ [Linux Face (Wayland)]
@@ -292,6 +386,8 @@ Phase 1: [Linux Brain] ↔ [Electron Face (Win/macOS/Linux)]
 Phase 2: [Linux Brain] ↔ [Native Face (Win)]       (separate processes)
                     ↔ [Native Face (macOS)]
                     ↔ [Wayland Face (Linux)]
+                    ↔ [Native Face (Android)]      (separate process)
+                    ↔ [AndroidXR Face (OpenXR)]    (separate process)
 
 Phase 3: [Linux Brain] ↔ [OpenXR Face (all platforms)]
 ```
@@ -305,6 +401,7 @@ The key insight: **The Face is already a network client.** Whether it's Electron
 | Question | A (Electron) | B (Native) | C (OpenXR) |
 |----------|--------------|------------|------------|
 | Need Windows support by Beta-0? | ✅ Yes | ❌ No | ❌ No |
+| Need Android support by Beta-0? | ✅ WebView only | ❌ No | ❌ No |
 | Have XR/VR on roadmap? | ⚠️ Later | ⚠️ Later | ✅ Now |
 | Small development team? | ✅ Yes | ❌ No | ❌ No |
 | Performance-critical? | ⚠️ No | ✅ Yes | ⚠️ Context-dependent |
@@ -337,9 +434,21 @@ All options work with your existing IPC:
 
 ### Build System Impact
 
-- **Electron:** Add `electron-builder` to existing Svelte build
-- **Native:** Add platform-specific build scripts (msbuild, xcodebuild, gcc)
-- **OpenXR:** Add `openxr-loader` dependency, platform-specific build
+| Option | Build System | Notes |
+|--------|--------------|-------|
+| Electron | `electron-builder` | Add to existing Svelte build |
+| Native | Platform-specific | msbuild (Win), xcodebuild (macOS), gcc (Linux/Android) |
+| OpenXR | `cmake` + `openxr-loader` | Platform-specific build, vendor extensions |
+
+### Rendering APIs by Platform
+
+| Platform | Option A | Option B | Option C |
+|----------|----------|----------|----------|
+| Windows | WebView2 (Chromium) | Direct3D 11/12 | OpenXR + WebGPU |
+| macOS | WKWebView (WebKit) | Metal | OpenXR + WebGPU |
+| Linux | WebKitGTK | Wayland (wlr-layer) | OpenXR + WebGPU |
+| Android | Android WebView | OpenGL ES 3.0+ | OpenXR |
+| AndroidXR | N/A | OpenXR | OpenXR |
 
 ---
 

@@ -75,6 +75,9 @@ These are code review gates, not test tasks. Every item is a hard requirement fr
 | Complete Linux Face integration guide | Medium |
 | Document OpenXR platform requirements | Low |
 | Document Android NDK requirements | Low |
+| Verify all `.tos-aibehavior` references replaced with `.tos-skill` in codebase and docs | High |
+| Add Editor pane type to Svelte Face hub layout renderer | High |
+| Document LSP server requirements per language in Developer Reference | Medium |
 
 ### 2.3 Asset Management
 
@@ -157,17 +160,22 @@ These must exist before native platform tests can run in CI.
 | Verify crash recovery: `_live.tos-session.tmp` atomic rename on success; corrupt temp file discarded on next launch | Medium | Features §2.6 |
 | Confirm restore is silent — no notification, animation, or prompt on launch | Medium | Features §2.6.2 |
 
-### 4.5 AI Co-Pilot System
+### 4.5 AI Skills System
 
 | Task | Priority | Spec Ref |
 |------|----------|----------|
 | Passive Observer surfaces correction and explanation chips after command failure | High | Features §4 |
 | Chat Companion: AI mode staging, editing, and submission flow works correctly | High | Features §4 |
-| **Gate test:** Confirm no AI module can auto-submit a command — staging only, always editable | Critical | Features §4 |
-| Test backend switching (e.g. Ollama, OpenAI) and per-sector behavior module overrides | High | Features §4 |
-| Validate context minimization — behavior modules only receive fields declared in their manifest | Medium | Features §4 |
+| **Gate test:** Confirm no AI skill can auto-submit a command — staging only, always editable | Critical | Features §4.12 |
+| Test backend switching (e.g. Ollama, OpenAI) and per-sector skill overrides | High | Features §4 |
+| Validate context minimization — skill modules only receive fields declared in their manifest | Medium | Features §4.12 |
 | Test ghost text and thought bubble display behaviors | Medium | Features §4 |
 | Verify AI chat history restores correctly when returning to a sector | High | Features §2.8 |
+| Verify Vibe Coder chip sequence proposes steps in order and persists pending steps to session | High | Features §4.8 |
+| Test skill tool bundle enforcement — Brain rejects undeclared tool calls at runtime | High | Ecosystem §1.4.3 |
+| Verify skill learned patterns are stored locally and visible in Settings → AI → Skills | Medium | Ecosystem §1.4.4 |
+| Test offline AI queue: requests queued on disconnect, drain on reconnect, expire after 30 min | Medium | Features §4.9 |
+| Confirm `.tos-aibehavior` module type is fully replaced by `.tos-skill` in all code paths | High | Ecosystem §1.4 |
 
 ### 4.6 Marketplace Discovery
 
@@ -177,6 +185,25 @@ These must exist before native platform tests can run in CI.
 | Test download progress display, cancellation, and failure recovery | High | Features §5.6.2–5.6.4 |
 | Verify signature verification and sideloading with a custom developer public key | High | Ecosystem §1.0 |
 | Confirm installed state badge renders correctly in both browse and detail views | Medium | Features §5.8 |
+| Verify AI Skills category renders and filters to `.tos-skill` module type | High | Features §5.3.2 |
+| Verify Languages category renders and filters to `.tos-language` module type | Medium | Features §5.3.2 |
+
+### 4.7 Editor & AI Edit Flow
+
+| Task | Priority | Spec Ref |
+|------|----------|----------|
+| Editor pane auto-opens on build error with correct file and line highlighted | High | Features §6.3.2, EDT-01 |
+| File preview on path typed in prompt opens in Viewer Mode | Medium | Features §6.3.2, EDT-02 |
+| Diff Mode renders correctly for Vibe Coder single-file proposals | High | Features §6.6.2, EDT-03 |
+| Multi-file edit chip sequence renders with individual Apply/Skip per step | High | Features §6.6.3, EDT-04 |
+| Pending edit proposal persists to session file and reconstructs on session restore | High | Features §2.9, EDT-05 |
+| Session handoff token generates, claims, and reconstructs editor state on second device | High | Features §2.10, EDT-05 |
+| Editor pane focus toggle `Ctrl+E` works correctly | Medium | Features §6.3.3 |
+| Save (`Ctrl+S`) and Save As (`Ctrl+Shift+S`) work correctly | High | Features §6.8 |
+| Trust confirmation chip fires for writes outside sector cwd | High | Features §6.8, Architecture §17.2 |
+| LSP diagnostics appear as annotation chips in editor margin when LSP server available | Medium | Features §6.9, EDT-08 |
+| Mobile: tap line number sends line to AI as context | Medium | Features §6.7, EDT-06 |
+| Editor state (file, scroll, pending proposal) persists in session file and restores correctly | High | Features §2.9 |
 
 ### 4.7 Split Viewports
 
@@ -253,12 +280,15 @@ These must exist before native platform tests can run in CI.
 |------|----------|
 | 100% Tier 1 & 2 test pass rate (resolve `test_service_orchestration_health` tier classification first) | Developer Ref §4.5 |
 | Cold launch → interactive prompt ≤ 5 seconds | Features §3.1 |
-| No AI module can auto-submit a command — staging only | Features §4 |
+| No AI skill can auto-submit a command — staging only | Features §4.12 |
 | All input goes through `SemanticEvent` — zero direct physical bindings | Standards §1.2 |
 | All errors routed through `LogManager` with correct `LogType` | Standards §2.1 |
 | No undocumented `unsafe` blocks | Standards §2.1 |
 | IPC round-trip latency < 16ms in local testing | Developer Ref §4.5 |
 | Manifest signature verification passes end-to-end | Ecosystem §1.0 |
+| No `.tos-aibehavior` references remain in codebase — all module types use `.tos-skill` | Ecosystem §1.4 |
+| Vibe Coder edit proposals never auto-apply — user must tap [Apply] in Diff Mode | Features §6.6.2 |
+| Skill tool bundle enforcement verified — undeclared tool calls rejected by Brain at runtime | Ecosystem §1.4.3 |
 
 ---
 

@@ -7,7 +7,7 @@
 
 1. [Navigation & Hierarchy](#1-navigation--hierarchy)
 2. [Command Hub & Persistent Unified Prompt](#2-command-hub--persistent-unified-prompt)
-3. [AI Co-Pilot System](#3-ai-co-pilot-system)
+3. [AI Skills System](#3-ai-co-pilot-system)
 4. [SEARCH Mode](#4-search-mode)
 5. [Trust & Security Model](#5-trust--security-model)
 6. [Multi-Sensory Feedback](#6-multi-sensory-feedback)
@@ -72,7 +72,7 @@ Stories covering the four hub modes, the always-visible prompt, and context-awar
 
 ---
 
-## 3. AI Co-Pilot System
+## 3. AI Skills System
 
 Stories covering the Passive Observer, Chat Companion, and the AI safety boundary — the AI never executes commands directly.
 
@@ -82,9 +82,9 @@ Stories covering the Passive Observer, Chat Companion, and the AI safety boundar
 | AI-02 | developer | ask a question in plain English in AI mode and receive a staged command | I can explore unfamiliar tools without memorizing syntax |
 | AI-03 | developer | review and edit the AI-staged command before it executes | I stay in full control — nothing runs behind my back |
 | AI-04 | operator | install an alternative AI backend from the Marketplace | I can use my preferred LLM provider or a local model |
-| AI-05 | operator | toggle individual AI behavior modules on or off independently | I can disable the Chat Companion without losing the Passive Observer |
+| AI-05 | operator | toggle individual AI skills on or off independently | I can disable the Chat Companion without losing the Passive Observer |
 | AI-06 | developer | have the AI silently watch for long-running commands and surface an explanation chip | I understand what a hung process is doing without interrupting it |
-| AI-07 | team lead | have AI behavior automatically activate based on project context signals | Domain-specific assistance appears without me configuring it manually per session |
+| AI-07 | team lead | have AI skill automatically activate based on project context signals | Domain-specific assistance appears without me configuring it manually per session |
 | AI-08 | developer | have AI chat history restored when I return to a sector | I can resume multi-turn conversations without losing context |
 
 ### AI-03 Acceptance Criteria
@@ -93,9 +93,35 @@ Stories covering the Passive Observer, Chat Companion, and the AI safety boundar
 - The AI explanation is visible in the terminal canvas alongside the staged command.
 
 ### AI-07 Acceptance Criteria
-- Behavior modules declare `context_signals` in their manifest (e.g., `.git`, `Cargo.toml`).
-- The AI Engine evaluates signals against the current `cwd` and activates the matching module.
+- Skills declare `context_signals` in their manifest (e.g., `.git`, `Cargo.toml`).
+- The AI Engine evaluates signals against the current `cwd` and activates the matching skill.
 - Activation is logged with the sector name and signal matched.
+
+### AI-09 through AI-14 — Editor & Skills
+
+| ID | As a… | I want to… | So that… |
+|---|---|---|---|
+| AI-09 | developer | have the editor automatically open the failing file when a build error occurs | I can see the error in context without typing a separate command |
+| AI-10 | developer | see AI annotation chips in the editor margin when the AI identifies a problem | I know exactly which line to focus on without reading the full AI response |
+| AI-11 | developer | describe a code change in plain English and have Vibe Coder propose it as a diff | I can make complex edits without knowing the exact syntax |
+| AI-12 | developer | approve or reject each step of a multi-file Vibe Coder edit individually | I stay in control of every change and can stop mid-sequence |
+| AI-13 | developer | have a pending Vibe Coder edit sequence survive switching from my phone to my laptop | I can start a workflow on one device and complete it on another |
+| AI-14 | developer | see AI-queued requests drain automatically when my backend connection restores | I don't lose context when my connection drops momentarily |
+
+### AI-11 Acceptance Criteria
+- Vibe Coder decomposes the natural language intent into a chip sequence with at minimum a read step and a write step.
+- The editor switches to Diff Mode before any write is committed.
+- No file is modified until the user taps **[Apply]** on the specific diff.
+
+### AI-12 Acceptance Criteria
+- Each step in the chip sequence has its own **[Apply]** and **[Skip]** controls.
+- Skipping a step does not cancel the remaining steps.
+- Applied steps are recorded in the undo stack with an "AI" label.
+
+### AI-13 Acceptance Criteria
+- `session_handoff:<sector_id>` generates a token valid for 10 minutes.
+- The claiming Face receives `pending_edit_proposal_id` and reconstructs the diff view.
+- The handoff token is single-use and invalidated after claim.
 
 ---
 
@@ -218,7 +244,41 @@ Stories covering real-time presence, following mode, role management, and the au
 
 ---
 
-## 10. Performance & Accessibility
+## 10. Editor
+
+Stories covering the TOS Editor pane, AI context integration, and the Vibe Coder edit flow.
+
+| ID | As a… | I want to… | So that… |
+|---|---|---|---|
+| EDT-01 | developer | see the failing file open automatically in the editor pane when a build fails | I can inspect the error in context without a separate command |
+| EDT-02 | developer | preview a file in the editor by typing its path in the prompt | I can read a file before deciding whether to open or edit it |
+| EDT-03 | developer | switch the editor to Diff Mode when Vibe Coder proposes a change | I can review exactly what will be modified before approving |
+| EDT-04 | developer | approve or reject each file in a multi-file edit sequence individually | I maintain granular control over every change |
+| EDT-05 | developer | have my pending Vibe Coder edit sequence persist when I switch devices | I can start a workflow on my phone and finish it on my laptop |
+| EDT-06 | mobile user | tap a line number in the editor to send that line to the AI as context | I can get AI help on specific lines without text selection on a small screen |
+| EDT-07 | developer | save a file from the editor with a keyboard shortcut | I don't need to navigate to a menu to persist my changes |
+| EDT-08 | developer | have LSP diagnostics from my language server appear as annotation chips in the editor margin | I see type errors and warnings in context without switching to a separate tool |
+
+### EDT-01 Acceptance Criteria
+- Brain parses PTY output for file path + line number patterns matching `<path>:<line>` or `<path>:<line>:<col>`.
+- `editor_open:<path>;<line>` IPC message is sent to the Face within 500ms of error detection.
+- The editor scrolls to the error line and renders it with an amber highlight.
+- Auto-open can be disabled per sector in **Settings → Editor → Auto-Open Triggers**.
+
+### EDT-03 Acceptance Criteria
+- Editor switches to Diff Mode automatically when `editor_edit_proposal` IPC is received.
+- Left column shows current file state; right column shows proposed state.
+- **[Apply]** commits the write and clears Diff Mode. **[✕]** rejects and returns to previous mode.
+- The user can edit the proposed (right) column before applying.
+
+### EDT-05 Acceptance Criteria
+- `pending_edit_proposal_id` is written to the session file when a proposal is pending.
+- On session handoff claim, the Brain reconstructs the diff view from the referenced AI chat turn.
+- The second Face enters Diff Mode with the pending proposal immediately after connecting.
+
+---
+
+## 11. Performance & Accessibility
 
 Stories covering frame-rate targets, headless testing, and keyboard/screen reader accessibility.
 
@@ -257,14 +317,28 @@ Stories covering frame-rate targets, headless testing, and keyboard/screen reade
 | HUB-06 | Command Hub | Prompt visible at all levels |
 | HUB-07 | Command Hub | Focus Error chip on build failure |
 | HUB-08 | Command Hub | Typo correction chips |
-| AI-01 | AI Co-Pilot | Non-blocking correction chip on failure |
-| AI-02 | AI Co-Pilot | Plain-English to staged command |
-| AI-03 | AI Co-Pilot | Review and edit staged command |
-| AI-04 | AI Co-Pilot | Install alternative AI backend |
-| AI-05 | AI Co-Pilot | Toggle behavior modules independently |
-| AI-06 | AI Co-Pilot | Long-running command explanation chip |
-| AI-07 | AI Co-Pilot | Context-signal behavior activation |
-| AI-08 | AI Co-Pilot | AI chat history restored on sector restore |
+| AI-01 | AI Skills | Non-blocking correction chip on failure |
+| AI-02 | AI Skills | Plain-English to staged command |
+| AI-03 | AI Skills | Review and edit staged command |
+| AI-04 | AI Skills | Install alternative AI backend |
+| AI-05 | AI Skills | Toggle skills independently |
+| AI-06 | AI Skills | Long-running command explanation chip |
+| AI-07 | AI Skills | Context-signal skill activation |
+| AI-08 | AI Skills | AI chat history restored on sector restore |
+| AI-09 | AI Skills | Editor auto-opens failing file |
+| AI-10 | AI Skills | AI annotation chips in editor margin |
+| AI-11 | AI Skills | Vibe Coder proposes change as diff |
+| AI-12 | AI Skills | Approve multi-file edit steps individually |
+| AI-13 | AI Skills | Pending edit persists across device handoff |
+| AI-14 | AI Skills | Offline AI queue drains on reconnect |
+| EDT-01 | Editor | Auto-open editor on build failure |
+| EDT-02 | Editor | Preview file by typing path in prompt |
+| EDT-03 | Editor | Diff Mode for Vibe Coder proposals |
+| EDT-04 | Editor | Individual approval of multi-file edits |
+| EDT-05 | Editor | Pending edit persists on device switch |
+| EDT-06 | Editor | Tap line number to send line to AI (mobile) |
+| EDT-07 | Editor | Save file with keyboard shortcut |
+| EDT-08 | Editor | LSP diagnostics as editor annotation chips |
 | SRC-01 | Search | Instant filesystem search results |
 | SRC-02 | Search | Scope filter chips |
 | SRC-03 | Search | Semantic natural-language queries |
@@ -290,6 +364,8 @@ Stories covering frame-rate targets, headless testing, and keyboard/screen reade
 | MKT-03 | Marketplace | Sideload via developer public key |
 | MKT-04 | Marketplace | Standard Tier sandboxing |
 | MKT-05 | Marketplace | Install alternative AI backend |
+| MKT-06 | Marketplace | Install AI Skill from Marketplace |
+| MKT-07 | Marketplace | Install Language Module from Marketplace |
 | COL-01 | Collaboration | One-time token invite |
 | COL-02 | Collaboration | Live avatar presence |
 | COL-03 | Collaboration | Following mode viewport sync |

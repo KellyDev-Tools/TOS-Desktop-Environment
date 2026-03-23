@@ -120,6 +120,31 @@ TOS adopts a clean separation between logic and presentation by running two conc
 - **Messages from Brain to Face:** State deltas, audio/haptic commands, UI control signals, and lines for the system-level terminal output.
 - **Messages from Face to Brain:** Semantic events (after mapping), prompt submissions, bezel clicks, and context menu actions.
 
+#### 3.3.5 Face Capability Profile
+
+Every Face MUST send a `face_register` message immediately after connecting. The Brain uses this profile to adapt layout defaults, AI skill activation, and bezel slot behavior to the connecting device.
+
+```json
+{
+  "type": "face_register",
+  "profile": "mobile",
+  "capabilities": ["touch", "voice"],
+  "viewport": { "w": 390, "h": 844 }
+}
+```
+
+| Profile | Description | Default Hub Layout | Default AI Skill |
+|:---|:---|:---|:---|
+| `desktop` | Mouse + keyboard, large viewport | Vertical split (terminal + editor) | Chat Companion |
+| `mobile` | Touch-first, small viewport | Tab layout (terminal / editor tabs) | Voice-first Chat Companion |
+| `vr` | OpenXR, spatial input | Single pane with spatial bezel | Passive Observer |
+
+On a `mobile` profile registration, the Brain automatically:
+- Sets default hub layout to `tabs` unless the session file specifies otherwise
+- Collapses all Left/Right bezel slots to their minimal state
+- Enables the Expanded Bezel Command Surface as the primary prompt interaction surface
+- Routes AI skill activation to voice-first mode if `voice` is declared in capabilities
+
 #### 3.3.1 Message Format Standard
 
 All IPC messages sent from the Face to the Brain MUST follow this scheme:
@@ -583,12 +608,24 @@ The split system follows three principles:
 
 ### 11.2 Supported Pane Content Types
 
-| Content Type | Description |
-|:---|:---|
-| **Terminal (Command Hub)** | A full Command Hub instance — prompt, chip columns, terminal output module. Shares the sector's shell context. |
-| **Level 3 Application** | Any running graphical application in Application Focus. |
+| Content Type | `pane_type` | Description |
+|:---|:---|:---|
+| **Terminal (Command Hub)** | `terminal` | A full Command Hub instance — prompt, chip columns, terminal output module. Shares the sector's shell context. |
+| **Editor** | `editor` | The TOS Editor surface — code/text viewer and editor with live AI context integration. See [Features Specification §6](./TOS_beta-0_Features.md). |
+| **Level 3 Application** | `app` | Any running graphical application in Application Focus. |
 
-These can be combined freely. Terminal + web portal is the same as terminal + Level 3 app.
+These can be combined freely. The default desktop layout is a vertical split with `terminal` on the left and `editor` on the right. On mobile, the default is a `tabs` layout with `terminal` as the first tab and `editor` as the second.
+
+**Example hub layout with editor pane:**
+```json
+{
+  "type": "splits",
+  "panes": [
+    { "id": "pane_1", "pane_type": "terminal", "weight": 0.55 },
+    { "id": "pane_2", "pane_type": "editor", "weight": 0.45, "file": "/8TB/tos/src/brain/main.rs" }
+  ]
+}
+```
 
 ### 11.3 Aspect-Ratio-Driven Split Orientation
 
@@ -1109,7 +1146,22 @@ All commands, security events, role changes, and deep inspection accesses are lo
 
 TOS implements a robust, modular plugin architecture using platform-specific dynamic libraries distributed via the Marketplace ecosystem.
 
-**All detailed specifications regarding module manifests (`module.toml`), sandboxing rules, terminal UI injection, and module profiles (Shells, Themes, AI Backends, AI Behaviors, Bezel Components) are documented in the [Ecosystem Specification](./TOS_beta-0_Ecosystem.md).**
+**All detailed specifications regarding module manifests (`module.toml`), sandboxing rules, terminal UI injection, and module profiles (Shells, Themes, AI Backends, AI Skills, Bezel Components, Language Modules) are documented in the [Ecosystem Specification](./TOS_beta-0_Ecosystem.md).**
+
+### 18.1 Module Type Summary
+
+| Type | Extension | Description |
+|:---|:---|:---|
+| Application Model | `.tos-appmodel` | Level 3 application integration |
+| Sector Type | `.tos-sector` | Sector defaults and presets |
+| AI Backend | `.tos-ai` | LLM connection and inference |
+| AI Skill | `.tos-skill` | Task-specific AI behavior, tools, prompts, and learned patterns |
+| Terminal Output | `.tos-terminal` | Terminal rendering style |
+| Theme | `.tos-theme` | Visual appearance |
+| Shell | `.tos-shell` | Shell implementations with OSC integration |
+| Bezel Component | `.tos-bezel` | Dockable bezel slot components |
+| Audio | `.tos-audio` | Earcon sets and ambient audio |
+| Language | `.tos-language` | Syntax highlighting grammar + LSP configuration for editor panes |
 
 ---
 
@@ -1507,6 +1559,44 @@ Terminal and Bezel modules interact with the Face via these specific UI-hooks:
 - **`update_view(html, data)`:** Components push their rendered state to the Face.
 - **`component_click(id, x, y)`:** The Face forwards clicks on specific component IDs to the underlying module.
 - **`request_projection(mode)`:** Components can request to "unfurl" a detailed panel (e.g., the Mini-Map expanding into the viewport).
+
+### 30.3 Editor Pane API (Brain → Face)
+
+| Message | Payload | Effect |
+|:---|:---|:---|
+| `editor_open` | `path;line` | Opens file in Viewer Mode at specified line |
+| `editor_open_ai` | `path;line;context_id` | Opens file with AI annotation from context_id |
+| `editor_diff` | `path;proposed_content_id` | Opens Diff Mode with proposed AI edit |
+| `editor_annotate` | `path;line;severity;message;context_id` | Adds annotation chip to editor margin |
+| `editor_clear_annotations` | `path` | Removes all annotations from a file |
+| `editor_scroll` | `path;line` | Scrolls editor to line (semantic scroll sync) |
+| `editor_edit_proposal` | `proposal_json` | Triggers Diff Mode with proposed changes |
+
+### 30.4 Editor Pane API (Face → Brain)
+
+| Message | Payload | Effect |
+|:---|:---|:---|
+| `editor_activate` | `pane_id` | Switches pane to Editor Mode |
+| `editor_save` | `pane_id` | Saves current buffer to file |
+| `editor_save_as` | `pane_id;path` | Saves buffer to new path |
+| `editor_context_update` | `pane_id;context_json` | Sends updated editor context to Brain on scroll/cursor move |
+| `editor_send_context` | `pane_id;scope` | Explicitly sends file content to AI at given scope |
+| `editor_edit_apply` | `proposal_id` | Applies the pending edit proposal |
+| `editor_edit_reject` | `proposal_id` | Rejects the pending edit proposal |
+| `editor_promote` | `pane_id` | Promotes editor pane to Level 3 |
+| `editor_mode_switch` | `pane_id;mode` | Switches between `viewer`, `editor`, `diff` |
+
+### 30.5 AI Context Sync API
+
+These messages support cross-device AI context roaming (see §12 Remote Sectors and Features §6).
+
+| Message | Direction | Effect |
+|:---|:---|:---|
+| `ai_context_sync:<sector_id>` | Face → Brain | Requests full AI context for a sector on remote Face connect |
+| `ai_context_delta:<sector_id>` | Brain → Face | Pushes AI context updates (chat history, annotations, pending proposals) |
+| `ai_skill_load:<skill_id>;<sector_id>` | Face → Brain | Loads a skill into the sector's AI engine |
+| `ai_skill_unload:<skill_id>;<sector_id>` | Face → Brain | Unloads a skill from the sector |
+| `ai_skill_list:<sector_id>` | Face → Brain | Returns active skills for the sector |
 
 ---
 

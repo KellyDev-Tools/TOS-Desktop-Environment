@@ -58,8 +58,10 @@
 | **Log Daemon** | `tos-loggerd` | Ephemeral | TCP | Unified system logging |
 | **Marketplace** | `tos-marketplaced` | Ephemeral | TCP | Module discovery & verification |
 | **Priority Engine** | `tos-priorityd` | Ephemeral | TCP | Tactical priority scoring |
-| **Session Service** | `tos-sessiond` | Ephemeral | TCP | Session persistence & workspace memory |
+| **Session Service** | `tos-sessiond` | Ephemeral | TCP | Session persistence, workspace memory, and offline AI queue |
 | **Web Face** | `svelte_ui/` | Ephemeral | HTTP | Svelte 5 LCARS interface |
+
+**Editor & LSP:** The TOS Editor runs as a pane type within the Web Face — it is not a separate daemon. LSP servers are spawned on-demand by the Face when a `.tos-language` module is active and a matching file is opened. LSP server processes are owned by the sector's process tree and terminated when the sector closes.
 
 To view actual live port assignments, use `tos ports` (queries the Brain's registry). See the [Ecosystem Specification §4](./TOS_beta-0_Ecosystem.md) for the full registration and discovery protocol.
 
@@ -193,7 +195,7 @@ The TOS Ecosystem is built on a "Local First" philosophy. Every extension — fr
 **Supported module types:**
 - **Themes (`.tos-theme`):** CSS layouts, icons, and typography.
 - **AI Backends (`.tos-ai`):** LLM adapters using the JSON Boundary Protocol.
-- **AI Behaviors (`.tos-aibehavior`):** Pluggable co-pilot interaction patterns.
+- **AI Skills (`.tos-skill`):** Pluggable co-pilot interaction patterns.
 - **Shells (`.tos-shell`):** PTY environments with OSC telemetry.
 - **Terminal Output (`.tos-terminal`):** Custom rendering logic for terminal canvases.
 - **Application Models (`.tos-appmodel`):** Metadata for deep Level 3 integration.
@@ -261,7 +263,7 @@ vision           = false
 latency_profile  = "fast_remote"   # local | fast_remote | slow_remote
 ```
 
-**AI Behavior:**
+**AI Skill:**
 ```toml
 [behavior]
 trigger    = "passive"      # passive | prompt_input | mode_switch | manual
@@ -515,3 +517,20 @@ To safely navigate these blockers, development MUST proceed in this order:
 1. **The Bedrock:** Build out the Ecosystem Auxiliary Services (Settings Daemon, Global Search) and Brain Hardware APIs (Wayland Compositor, Audio Sinks, WebRTC).
 2. **The Translators:** Build the Ecosystem Shell Scripts (OSC emission) and Brain AI Routing (Natural Language integrations).
 3. **The Interface:** Build the Face UI Overlays (Settings Panel, Live Thumbnails, Directory Previews, Audio Hooks) which simply consume the structured data pipelines established in steps 1 and 2.
+
+### 5.4 Editor & AI System Dependencies
+
+**Editor Pane (`pane_type: "editor"`)** (Features §6)
+- **Blocks [EDITOR]:** All editor features require the `hub_layout` pane type system (Architecture §11.2) to be implemented first — editor panes are inserted into the existing split layout, not a separate surface.
+- **Blocks [AI CONTEXT]:** The Editor Context Object (Features §6.5.1) cannot be included in AI queries until the Brain's `AIService` is updated to accept and merge the editor context delta alongside the standard rolling context.
+
+**LSP Integration** (Features §6.9)
+- **Blocks [LSP]:** LSP servers are not managed by TOS — they must exist in the sector's PATH. Development cannot test LSP features without a valid LSP server installed (e.g., `rust-analyzer` for Rust files).
+- **Not a blocker for core editor:** Viewer Mode, Diff Mode, AI annotations, and session persistence all function without LSP. LSP is an enhancement layer, not a foundation.
+
+**AI Skill Tool Registry** (Ecosystem §1.4.3)
+- **Blocks [VIBE CODER]:** The Vibe Coder skill (Features §4.8) cannot issue `write_file` or `read_file` tool calls until the Brain Tool Registry is implemented and the trust chip system is extended to handle AI-initiated file writes.
+- **Blocks [MULTI-FILE EDITS]:** Multi-file edit chip sequences (Features §6.6.3) require the session persistence layer to store `pending_edit_proposal_id` in the editor pane schema (Features §2.9).
+
+**Session Handoff** (Features §2.10)
+- **Blocks [HANDOFF]:** Cross-device handoff requires the `face_register` capability profile (Architecture §3.3.5) to be implemented first — the Brain must know the connecting Face profile before it can serve the appropriate session context.

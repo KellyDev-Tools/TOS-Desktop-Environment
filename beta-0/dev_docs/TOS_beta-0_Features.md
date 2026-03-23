@@ -9,8 +9,9 @@
 1. [Expanded Bezel Command Surface](#1-expanded-bezel-command-surface)
 2. [Session Persistence & Workspace Memory](#2-session-persistence--workspace-memory)
 3. [Onboarding & First-Run Experience](#3-onboarding--first-run-experience)
-4. [Ambient AI & Co-Pilot System](#4-ambient-ai--co-pilot-system)
+4. [Ambient AI & Skills System](#4-ambient-ai--skills-system)
 5. [Marketplace Discovery & Browse Experience](#5-marketplace-discovery--browse-experience)
+6. [TOS Editor](#6-tos-editor)
 
 ---
 
@@ -41,7 +42,7 @@ When triggered, the current view undergoes a **spatial zoom-out**: the content s
 The bottom bezel animates upward, revealing:
 - The full **Persistent Unified Prompt** with all active bezel overlays visible
 - The **left and right chip columns** populated with context from the current sector
-- All active **ambient hint chips**, **AI co-pilot chips**, and **warning chips**
+- All active **ambient hint chips**, **AI skill chips**, and **warning chips**
 
 The expanded surface occupies the lower portion of the viewport. The zoomed-out current view remains visible behind it — dimmed slightly but not occluded.
 
@@ -366,9 +367,58 @@ The existing `terminal_buffer_limit` setting (default 500 lines) governs both th
 
 ### 2.8 AI Chat History Persistence
 
-Each sector's AI chat history is persisted as an ordered array of message objects. On restore, the active Chat Companion behavior module receives the history via its `on_session_restore` callback.
+Each sector's AI chat history is persisted as an ordered array of message objects. On restore, the active Chat Companion skill module receives the history via its `on_session_restore` callback.
 
 Chat history is capped at 200 messages per sector in the session file.
+
+### 2.9 Editor Pane Persistence
+
+Editor pane state is persisted as part of the sector session. The following fields are added to the sector session schema:
+
+```json
+{
+  "editor_panes": [
+    {
+      "pane_id": "pane_2",
+      "file": "/8TB/tos/src/brain/main.rs",
+      "scroll_line": 138,
+      "cursor_line": 142,
+      "mode": "viewer",
+      "context_scope": "visible_range",
+      "pending_edit_proposal_id": null,
+      "unsaved_buffer": null
+    }
+  ]
+}
+```
+
+`unsaved_buffer` holds the full unsaved content if the user has made edits but not saved. This ensures edits survive session switches and device handoffs even before an explicit save.
+
+`pending_edit_proposal_id` references an AI chat turn ID. On session restore, the editor reconstructs the Diff Mode view from the chat history if a Vibe Coder proposal was pending approval.
+
+### 2.10 Cross-Device Session Handoff
+
+The session system supports explicit device-to-device handoff — transferring active context from one Face to another without requiring both devices to share a file.
+
+**Generating a handoff token:**
+
+Any Face can request a handoff token for a sector:
+```
+session_handoff:<sector_id>  →  returns one-time token (expires 10 minutes)
+```
+
+**Claiming a handoff on a second Face:**
+
+A connecting Face presents the token during the `face_register` handshake:
+```json
+{ "type": "face_register", "profile": "desktop", "handoff_token": "abc123xyz" }
+```
+
+The Brain responds with the full sector context: terminal history, AI chat, editor pane state (including pending proposals), cwd, active skill modules, and pinned chips. The second Face opens exactly where the first left off.
+
+**Use case:** Approve a Vibe Coder step on your phone → generate a handoff → open your laptop → claim the handoff → continue approving remaining steps with a full keyboard and larger screen.
+
+Handoff tokens are single-use and are invalidated after claim or expiry. They do not persist to disk.
 
 ---
 
@@ -517,7 +567,7 @@ A persistent `[?]` badge lives in the Top Bezel Right section. Always visible. C
 
 ---
 
-## 4. Ambient AI & Co-Pilot System
+## 4. Ambient AI & Skill System
 
 *Supplements Architecture Specification & Ecosystem Specification*
 
@@ -554,16 +604,16 @@ The AI system is split into two independent module layers that compose at runtim
 └─────────────────────────────────────────────────┘
 ```
 
-- **AI Backend modules** (`.tos-ai`) define the LLM connection. One is the **system default**, selected in **Settings → AI → Backend**. Any behavior module can override this and target a specific installed backend.
-- **AI Behavior modules** (`.tos-aibehavior`) define how the AI acts, when it speaks, and what UI it renders. Multiple behavior modules can run simultaneously, each independently toggled in **Settings → AI → Behaviors**.
+- **AI Backend modules** (`.tos-ai`) define the LLM connection. One is the **system default**, selected in **Settings → AI → Backend**. Any skill module can override this and target a specific installed backend.
+- **AI Behavior modules** (`.tos-skill`) define how the AI acts, when it speaks, and what UI it renders. Multiple skill modules can run simultaneously, each independently toggled in **Settings → AI → Skills**.
 
 **Backend Resolution Order:**
-1. **Behavior-level override** — if the behavior module has a specific backend set in its config, use that.
+1. **Behavior-level override** — if the skill module has a specific backend set in its config, use that.
 2. **System default** — if no override is set, use the system default backend.
 
-The Brain's `AIService` brokers all communication between behavior modules and the active backend. Behavior modules never call the backend directly — they submit requests to the `AIService` via IPC.
+The Brain's `AIService` brokers all communication between skill modules and the active backend. Behavior modules never call the backend directly — they submit requests to the `AIService` via IPC.
 
-### 4.3 AI Behavior Modules (`.tos-aibehavior`)
+### 4.3 AI Skill Modules (`.tos-skill`)
 
 Behavior modules define a specific AI interaction pattern and own a specific region of the UI surface.
 
@@ -644,7 +694,7 @@ Behavior modules communicate with the Brain's `AIService` via IPC using the exis
 }
 ```
 
-The Brain receives this response and instructs the Face to render the chips. The behavior module never touches the Face directly.
+The Brain receives this response and instructs the Face to render the chips. The skill module never touches the Face directly.
 
 ### 4.4 Default Behavior Modules (Shipped with TOS)
 
@@ -662,7 +712,7 @@ Watches the terminal output buffer and prompt passively. Surfaces contextual AI 
 | Long-running command exceeds 30s | "Explain what this is doing" chip + "Cancel" chip |
 | `cd` into directory with no prior visits | "What's in here?" chip (summarizes directory structure) |
 
-**Settings:** `Settings → AI → Behaviors → Passive Observer` — toggle on/off, trigger sensitivity (Low/Medium/High), chip position.
+**Settings:** `Settings → AI → Skills → Passive Observer` — toggle on/off, trigger sensitivity (Low/Medium/High), chip position.
 
 #### 4.4.2 Chat Companion (`tos-chat`)
 
@@ -675,7 +725,7 @@ Provides the full chat interface within `[AI]` mode. When the user switches to `
 - `[Clear]` button resets conversation history for the current sector.
 - Switching away from `[AI]` mode preserves conversation history.
 
-The chat panel is a behavior module. It can be replaced by a marketplace alternative (DevOps chat companion, Git expert, documentation assistant) without changing any Brain or Face code.
+The chat panel is a skill module. It can be replaced by a marketplace alternative (DevOps chat companion, Git expert, documentation assistant) without changing any Brain or Face code.
 
 ### 4.5 Marketplace Behavior Module Archetypes
 
@@ -730,15 +780,15 @@ ui_surface      = "chips"
 
 ### 4.6 AI Mode ([AI]) — Extended
 
-The `[AI]` mode is preserved as a first-class Command Hub mode. Its behavior is now driven by whichever Chat Companion behavior module is active. The mode itself is a surface contract, not an implementation.
+The `[AI]` mode is preserved as a first-class Command Hub mode. Its behavior is now driven by whichever Chat Companion skill module is active. The mode itself is a surface contract, not an implementation.
 
 - Switching to `[AI]` mode invokes the active Chat Companion module's `on_mode_enter` callback.
 - If no Chat Companion module is installed, `[AI]` mode falls back to a minimal built-in text interface with a notice to install a Chat Companion from the Marketplace.
 - `[AI]` mode remains one of three Command Hub modes: `[CMD]`, `[SEARCH]`, `[AI]`.
 
-### 4.7 Context Passed to All Behavior Modules
+### 4.7 Context Passed to All Skill Modules
 
-The `AIService` maintains a rolling context object automatically included with every behavior module request:
+The `AIService` maintains a rolling context object automatically included with every skill module request. When an Editor pane is open in the sector, the Editor Context Object (Features §6.5.1) is also included.
 
 ```json
 {
@@ -751,13 +801,60 @@ The `AIService` maintains a rolling context object automatically included with e
   "active_mode": "CMD",
   "session_commands_run": 47,
   "os": "Linux",
-  "env_hints": ["RUST_LOG=info", "NODE_ENV=development"]
+  "env_hints": ["RUST_LOG=info", "NODE_ENV=development"],
+  "editor_context": {
+    "file": "/8TB/tos/src/brain/main.rs",
+    "language": "rust",
+    "visible_range": { "start_line": 138, "end_line": 185 },
+    "cursor_line": 142,
+    "diagnostics": [{ "line": 142, "severity": "error", "message": "cannot borrow..." }]
+  }
 }
 ```
 
 Modules declare which context fields they consume in their manifest under `[context_required]`. The `AIService` only sends declared fields, minimizing token usage.
 
-### 4.8 Settings Integration
+### 4.8 Vibe Coder Skill (`tos-vibe-coder`)
+
+The Vibe Coder is the third built-in skill. It is disabled by default and activated by the user in **Settings → AI → Skills**.
+
+- **Surface:** `chip_sequence` — an ordered list of actionable chips in the Right Bezel, one per planned step
+- **Trigger:** `manual` — activated explicitly by the user typing a natural language intent in the prompt
+- **Behavior:** Decomposes natural language intent into a reviewable multi-step plan. Each step is a file edit, command, or search operation. Steps are presented as chips in sequence — the user approves each before it executes.
+
+```
+User: "add error handling to the session loader in brain/session.rs"
+
+Vibe Coder proposes:
+  Step 1 of 3: Read brain/session.rs          [View] [✓]
+  Step 2 of 3: Edit load_session() — add      [View] [✓]
+               Result return type
+  Step 3 of 3: Run cargo check                [Stage] [✓]
+```
+
+Multi-step edits spanning multiple files are presented as a full chip sequence. Each step can be approved individually. **Pending steps are persisted in the session file** — the user can approve Step 1 on their phone and continue from their laptop with the remaining steps intact.
+
+File edits proposed by Vibe Coder are routed through the Editor AI Edit Flow (§6.6), presenting a diff before any write is committed.
+
+**Context signals:** `.git`, `Cargo.toml`, `package.json`, `pyproject.toml` — activates automatically in development sector contexts.
+
+### 4.9 Offline AI Queue
+
+When the Brain cannot reach the configured AI backend (network loss, backend down, remote inference timeout), pending AI requests are queued rather than silently dropped.
+
+- The queue is stored by `tos-sessiond` in the live session state.
+- A **"N requests pending"** chip appears in the right bezel, replacing the normal AI chip output.
+- When the backend connection restores, the queue drains in order. Each response is delivered to its originating skill module as if it had responded in real time.
+- If the user navigates away from the sector while requests are queued, the queue persists and drains on return.
+- Queued requests have a maximum age of 30 minutes. Requests older than 30 minutes are discarded with a notification.
+
+**IPC:**
+| Message | Effect |
+|:---|:---|
+| `ai_queue_status` | Returns count of pending queued requests |
+| `ai_queue_flush` | Discards all queued requests |
+
+### 4.10 Settings Integration
 
 ```
 Settings → AI
@@ -765,7 +862,7 @@ Settings → AI
 │   ├── System Default:  [Ollama (local) ▾]
 │   ├── Installed:       Ollama  |  OpenAI  |  Anthropic
 │   └── Manage Backends → (opens marketplace filtered to .tos-ai)
-├── Behaviors
+├── Skills
 │   ├── Passive Observer
 │   │   ├── [●  ON]  [Remove]
 │   │   ├── Backend: [System Default ▾]
@@ -774,11 +871,15 @@ Settings → AI
 │   │   ├── [●  ON]  [Remove]
 │   │   ├── Backend: [OpenAI (gpt-4o) ▾]
 │   │   └── Conversation Memory: [Per Session ▾]
+│   ├── Vibe Coder
+│   │   ├── [○  OFF]  [Remove]
+│   │   ├── Backend: [System Default ▾]
+│   │   └── Learned Patterns: [View / Clear]
 │   ├── Command Predictor
 │   │   ├── [●  ON]  [Remove]
 │   │   ├── Backend: [Ollama (local) ▾]
 │   │   └── Max Latency: [300ms ▾]
-│   └── + Add Behavior → (opens marketplace filtered to .tos-aibehavior)
+│   └── + Add Skill → (opens marketplace filtered to .tos-skill)
 └── Global
     ├── AI Chip Color:        [Secondary (teal) ▾]
     ├── Ghost Text Opacity:   [40% ▾]
@@ -786,29 +887,35 @@ Settings → AI
     └── Context Sent:         [Standard ▾] (Standard / Minimal / Full)
 ```
 
-### 4.9 IPC Contracts — AI System
+### 4.11 IPC Contracts — AI System
 
 | Message | Effect |
 |:---|:---|
-| `ai_behavior_enable:<id>` | Enables a behavior module by ID |
-| `ai_behavior_disable:<id>` | Disables a behavior module by ID |
-| `ai_behavior_configure:<id>:<json>` | Updates a behavior module's config |
+| `ai_skill_enable:<id>` | Enables a skill module by ID |
+| `ai_skill_disable:<id>` | Disables a skill module by ID |
+| `ai_skill_configure:<id>:<json>` | Updates a skill module's config |
+| `ai_skill_load:<id>;<sector_id>` | Loads a skill into a specific sector |
+| `ai_skill_unload:<id>;<sector_id>` | Unloads a skill from a specific sector |
 | `ai_chip_stage:<command>` | Stages an AI-suggested chip command into the prompt |
 | `ai_chip_dismiss:<chip_id>` | Dismisses an AI chip without staging |
 | `ai_thought_expand` | Expands the active thought bubble into chat panel |
 | `ai_thought_dismiss` | Dismisses the thought bubble for current session |
 | `ai_thought_dismiss_permanent` | Dismisses thought bubble permanently |
 | `ai_context_request` | Face requests current AI context object from Brain |
+| `ai_context_sync:<sector_id>` | Remote Face requests full AI context for a sector |
 | `ai_backend_set_default:<id>` | Sets the system default backend |
-| `ai_backend_set_behavior:<behavior_id>:<backend_id>` | Sets a backend override for a specific behavior module |
-| `ai_backend_clear_behavior:<behavior_id>` | Removes the override, returns behavior to system default |
+| `ai_backend_set_skill:<skill_id>:<backend_id>` | Sets a backend override for a specific skill module |
+| `ai_backend_clear_skill:<skill_id>` | Removes the override, returns skill to system default |
+| `ai_queue_status` | Returns count of pending queued requests |
+| `ai_queue_flush` | Discards all queued requests |
 
-### 4.10 Safety Contracts
+### 4.12 Safety Contracts
 
-- **No auto-execution.** No behavior module may call `prompt_submit` directly. All command staging goes through `ai_chip_stage` or `stage_command`, placing text in the prompt without submitting.
+- **No auto-execution.** No skill module may call `prompt_submit` directly. All command staging goes through `ai_chip_stage` or `stage_command`, placing text in the prompt without submitting.
 - **Workflow agent confirmation.** Any workflow agent staging a command in classes `filesystem_write`, `network`, `process_kill`, or `privilege_escalation` must route through the Brain's tactile confirmation API. The Brain enforces this regardless of module implementation.
-- **Context minimization.** Behavior modules only receive context fields they declare in their manifest.
-- **Backend isolation.** Behavior modules never communicate with the LLM backend directly. All requests route through `AIService`.
+- **Context minimization.** Skill modules only receive context fields they declare in their manifest.
+- **Backend isolation.** Skill modules never communicate with the LLM backend directly. All requests route through `AIService`.
+- **Tool bundle enforcement.** Skill modules may only invoke Brain tools they declared in their `[tool_bundle]` manifest block. The Brain rejects undeclared tool calls at runtime.
 
 ---
 
@@ -867,10 +974,11 @@ Each featured card shows: module name and type badge, a hero screenshot or anima
 | Shells | `.tos-shell` | Shell implementations with OSC integration |
 | Terminal Output | `.tos-terminal` | Terminal rendering modules |
 | AI Backends | `.tos-ai` | LLM connections — local and remote |
-| AI Behaviors | `.tos-aibehavior` | Co-pilot interaction patterns |
+| AI Skills | `.tos-skill` | Task-specific AI behaviors, tool bundles, and learned patterns |
 | Sector Types | `.tos-sector` | Workspace presets and specialized sector logic |
 | Bezel Components | `.tos-bezel` | Dockable bezel slot components |
 | Audio Themes | `.tos-audio` | Earcon sets and ambient audio layers |
+| Languages | `.tos-language` | Editor syntax highlighting and LSP configurations |
 
 ### 5.4 Category Browse View
 
@@ -968,3 +1076,265 @@ There is no separate "My Modules" section in the marketplace. Installed module m
 | `marketplace_install:<id>` | Initiates install after permission review |
 | `marketplace_install_cancel:<id>` | Cancels an in-progress download |
 | `marketplace_install_status:<id>` | Returns current install progress (0–100, or error) |
+
+---
+
+## 6. TOS Editor
+
+*Supplements Architecture Specification §11 (Split Viewports) and §30 (UI Module Interaction APIs)*
+
+### 6.1 Philosophy
+
+The TOS Editor exists because code and terminal output are inseparable. A developer running `cargo build` in one pane should be able to see the failing file in the next pane without switching applications, losing focus, or losing AI context.
+
+Three principles govern all editor design decisions:
+
+- **OUTPUT AREA FIRST.** The editor is primarily a *viewer* of the file currently active in the terminal context. Editing is a secondary capability that activates on demand. The terminal drives; the editor follows.
+- **AI CONTEXT IS ALWAYS LIVE.** Every visible file, every selection, every cursor position is live context for the AI system. The AI knows what you are looking at without you pasting anything.
+- **NO ESCAPE FROM TOS.** The editor never opens a separate window or requires leaving the hierarchy. It is always a pane, an overlay, or a Level 3 surface — always surrounded by the Tactical Bezel, always connected to the Brain.
+
+### 6.2 Surface Modes
+
+| Mode | Description | Activation |
+|:---|:---|:---|
+| **Viewer** | Read-only. Displays file, scrolls to relevant lines, highlights syntax, provides AI context. No cursor, no input. | Automatic — triggered by terminal events or `editor_open` IPC |
+| **Editor** | Full cursor, keyboard input, syntax-aware editing, save operations. | User taps into the editor surface or sends `editor_activate` |
+| **Diff** | Side-by-side comparison. Left = current file; right = proposed or historical state. | `editor_diff` IPC or automatically by Vibe Coder AI Edit Flow (§6.6) |
+
+### 6.3 Editor Output Area — Level 2 Integration
+
+The editor integrates into the Command Hub as a named output area — a peer to the terminal pane, not subordinate to it.
+
+#### 6.3.1 Hub Layout Integration
+
+`pane_type: "editor"` is a first-class pane type alongside `"terminal"` (Architecture §11.2). Editor panes are persisted in the session file (§2.9).
+
+#### 6.3.2 Auto-Open Triggers
+
+The Brain automatically opens or updates the editor pane in response to terminal events:
+
+| Terminal Event | Editor Response |
+|:---|:---|
+| Command exits non-zero with a file path + line number in output | Opens file, scrolls to error line, highlights in amber |
+| `cd` to a directory | Editor shows directory listing in Viewer Mode |
+| User types a file path in the prompt | Editor previews the file before submission |
+| AI Passive Observer identifies a relevant file | Editor opens file with AI annotation overlay |
+| `git diff` or `git show` executed | Editor switches to Diff Mode |
+
+Auto-open is configurable per sector in **Settings → Editor → Auto-Open Triggers**.
+
+#### 6.3.3 Focus Rules
+
+- Keyboard input always goes to the terminal pane by default.
+- Clicking or tapping the editor pane switches keyboard focus to Editor Mode.
+- `Ctrl+E` / swipe right-to-left toggles focus between terminal and editor panes.
+- In mobile Face profile, focus follows the active tab.
+
+#### 6.3.4 Editor Pane Header
+
+```
+┌──────────────────────────────────────────────────────┐
+│  📄 src/brain/main.rs  ●  Rust  │ Ln 142  │ [AI] [⊞] │
+└──────────────────────────────────────────────────────┘
+```
+
+- **●** — unsaved changes indicator (amber dot)
+- **[AI]** — opens the AI Context Panel (§6.5) for this file
+- **[⊞]** — promotes editor pane to Level 3 Application Focus
+
+### 6.4 Editor Application Focus — Level 3
+
+When promoted to Level 3, the editor becomes a full-screen surface wrapped in the Tactical Bezel.
+
+```
+┌─────────────────────────────────────────────────────┐
+│  TOP BEZEL — File path, branch, dirty indicator     │
+├──────────────┬──────────────────────┬───────────────┤
+│  LEFT BEZEL  │                      │  RIGHT BEZEL  │
+│  File tree   │   EDITOR SURFACE     │  AI Context   │
+│  (optional)  │                      │  Panel (§6.5) │
+├──────────────┴──────────────────────┴───────────────┤
+│  BOTTOM BEZEL — Persistent Unified Prompt           │
+└─────────────────────────────────────────────────────┘
+```
+
+The Persistent Unified Prompt remains active at all times. Commands typed while the editor is at Level 3 route to the sector's active PTY — the editor never intercepts shell commands.
+
+The **File Tree** is an optional Bezel Component (`.tos-bezel`) docked to the Left Bezel slot showing the sector's cwd as a collapsible tree. A **minimap** of the current file occupies the Right Lateral Bezel slot when at Level 3.
+
+### 6.5 AI Context System
+
+#### 6.5.1 Editor Context Object
+
+The Brain maintains an Editor Context Object for each open editor pane. This object is automatically included in every AI query from the same sector (§4.7).
+
+```json
+{
+  "editor_context": {
+    "file": "/8TB/tos/src/brain/main.rs",
+    "language": "rust",
+    "visible_range": { "start_line": 138, "end_line": 185 },
+    "cursor_line": 142,
+    "cursor_col": 18,
+    "selection": null,
+    "unsaved_changes": false,
+    "git_status": "modified",
+    "diagnostics": [
+      { "line": 142, "severity": "error", "message": "cannot borrow `state` as mutable" }
+    ]
+  }
+}
+```
+
+By default only the visible range and diagnostics are included to keep context tokens bounded. The user can expand scope in the AI Context Panel.
+
+#### 6.5.2 AI Context Panel
+
+Dockable Right Bezel slot component showing the live relationship between the current file and the AI:
+
+```
+┌─────────────────────────────────┐
+│  AI CONTEXT          [⟳] [✕]   │
+├─────────────────────────────────┤
+│  📄 main.rs : Ln 142            │
+│  ⚠ 1 error in context           │
+│                                 │
+│  CONTEXT SCOPE                  │
+│  ○ Visible range (default)      │
+│  ● Selection only               │
+│  ○ Full file                    │
+│  ○ Full file + imports          │
+│                                 │
+│  ACTIVE ANNOTATIONS             │
+│  › Line 142 — borrow error      │
+│    [Ask AI] [Explain] [Fix]     │
+│                                 │
+│  RECENT AI EDITS                │
+│  › refactor_session_handler     │
+│    2 mins ago · [Undo]          │
+└─────────────────────────────────┘
+```
+
+#### 6.5.3 Context Send Actions
+
+| Action | How | Result |
+|:---|:---|:---|
+| Send visible range | Tap `[AI]` in pane header | Visible lines sent as user message |
+| Send selection | Select text → right-click → "Ask AI about this" | Selected text sent with ±10 lines context |
+| Send full file | Context Panel → Full file | Full content sent; AI warned if > 32K tokens |
+| Send error | Click annotation chip → [Ask AI] | Error + surrounding lines sent |
+| Send diff | In Diff Mode → [Ask AI about diff] | Both sides sent |
+
+#### 6.5.4 Inline AI Annotations
+
+When the AI references specific lines, the Brain renders annotation chips in the editor's right margin. Annotations are ephemeral — tied to the AI chat turn that generated them.
+
+#### 6.5.5 Semantic Scroll Sync
+
+When the AI references a line in its response, the editor automatically scrolls to that line with a brief amber pulse. Scrolling the editor updates the AI context object so the next message automatically has the correct visible range.
+
+### 6.6 AI Edit Flow (Vibe Coder Integration)
+
+#### 6.6.1 Triggering an Edit
+
+Initiated by:
+- Natural language edit request in the prompt while editor is open
+- Vibe Coder (§4.8) decomposing a task into a file edit step
+- Clicking **[Fix]** on an annotation chip
+- Selecting text → right-click → "Ask AI to rewrite this"
+
+#### 6.6.2 Diff Review
+
+The editor automatically switches to Diff Mode when an edit proposal is received:
+
+```
+┌──────────────────────────────────────────────────────┐
+│  PROPOSED EDIT — fix borrow error       [Apply] [✕]  │
+├─────────────────────┬────────────────────────────────┤
+│  CURRENT            │  PROPOSED                      │
+│  let state = self   │  let Some(state) = self        │
+│    .sessions        │    .sessions                   │
+│    .get_mut(&id)    │    .get_mut(&id) else {        │
+│    .expect("...");  │      return Err(...);          │
+│                     │    };                          │
+│  state.update();    │  state.update();               │
+└─────────────────────┴────────────────────────────────┘
+```
+
+**[Apply]** writes the change and returns to Editor Mode. **[✕]** rejects. The user can also edit the proposed side directly before applying.
+
+#### 6.6.3 Multi-File Edits
+
+When Vibe Coder proposes edits spanning multiple files, a chip sequence appears in the Right Bezel:
+
+```
+PROPOSED EDITS  (3 files)
+─────────────────────────
+✓ 1. main.rs — null check     [View] [Apply]
+○ 2. session.rs — error type  [View] [Apply]
+○ 3. lib.rs — re-export       [View] [Apply]
+
+[Apply All]  [Reject All]
+```
+
+Each step can be applied individually. **Pending steps are persisted in the session file (§2.9)** — the user can apply steps across devices and sessions.
+
+#### 6.6.4 Undo
+
+All AI-applied edits are recorded in the undo stack with a distinct AI label. `Ctrl+Z` undoes them like any other edit. The AI Context Panel maintains a Recent AI Edits list (last 10) with per-edit undo buttons.
+
+### 6.7 Multi-Device Rendering
+
+| Profile | Default Hub Layout | Editor Behavior |
+|:---|:---|:---|
+| `desktop` | Vertical split — terminal left, editor right | Full editor with minimap, file tree, keyboard shortcuts |
+| `mobile` | Tab layout — terminal tab / editor tab | Editor in second tab; AI Context Panel as bottom sheet; long-press line number sends line to AI |
+| `vr` | Single pane | Editor as spatial panel; spatial gestures for navigation |
+
+On mobile, tapping a line number in the margin sends that line to the AI as context. This is the primary mobile AI interaction with the editor — no text selection required.
+
+When the virtual keyboard appears on mobile, the editor shrinks to accommodate it. Bezel slots collapse automatically. The prompt remains accessible via a floating pill above the keyboard.
+
+### 6.8 File Management
+
+| Action | Behavior |
+|:---|:---|
+| `edit <path>` in prompt | Opens file in Editor Mode |
+| `view <path>` in prompt | Opens file in Viewer Mode |
+| `Ctrl+S` | Save to current path |
+| `Ctrl+Shift+S` | Save As — opens path input chip in prompt |
+| Close pane with unsaved changes | Warning chip: `[Save] [Discard] [Cancel]` |
+| Files outside sector cwd | Trust confirmation chip required before write |
+| Binary files | Viewer Mode only — hex dump via Terminal Output Module |
+| Files > 10MB | Viewer Mode only with warning chip |
+| Image files | Rendered inline if Face supports it; AI vision context if backend declares `vision = true` |
+
+### 6.9 Language & Syntax Support
+
+**Built-in languages (Tree-sitter):** Rust, TypeScript, JavaScript, Python, Bash/Zsh, JSON, TOML, YAML, Markdown, HTML, CSS, SQL, Dockerfile, Go, C, C++.
+
+**Language detection priority:**
+1. File extension
+2. Shebang line
+3. Content heuristics
+4. Manual override via language badge in pane header
+
+**LSP Integration:** When an LSP server is available in the sector's PATH for the current language, the editor activates diagnostics, hover, go-to-definition, and completion. LSP diagnostics are forwarded to the Editor Context Object automatically.
+
+Additional languages can be added via `.tos-language` modules (Ecosystem §1.10).
+
+### 6.10 Session Persistence
+
+See §2.9 for the full editor pane session schema.
+
+### 6.11 IPC Contracts
+
+See Architecture §30.3 (Brain → Face) and §30.4 (Face → Brain) for the full editor IPC message set.
+
+### 6.12 Accessibility
+
+- Screen reader: all annotation chips, line numbers, and editor controls have ARIA labels
+- High contrast: editor token colors switch to high-contrast variants when active theme supports it
+- Keyboard: full keyboard navigation in Editor Mode
+- Font size: inherits `--tos-font-size`; overridable per-pane in **Settings → Editor → Font Size**
+- Reduced motion: semantic scroll sync uses instant jump when `supports_reduced_motion = true`

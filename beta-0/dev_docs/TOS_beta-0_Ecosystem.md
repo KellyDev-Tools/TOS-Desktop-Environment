@@ -26,7 +26,7 @@ TOS employs a dual-tier trust model for modules:
 
 ### 1.0 Package Format & Structure
 
-All TOS modules are distributed as signed archives with a `.tos-<type>` extension. Recognized types: `.tos-appmodel`, `.tos-sector`, `.tos-ai`, `.tos-aibehavior`, `.tos-terminal`, `.tos-theme`, `.tos-shell`, `.tos-bezel`, `.tos-audio`.
+All TOS modules are distributed as signed archives with a `.tos-<type>` extension. Recognized types: `.tos-appmodel`, `.tos-sector`, `.tos-ai`, `.tos-skill`, `.tos-terminal`, `.tos-theme`, `.tos-shell`, `.tos-bezel`, `.tos-audio`.
 
 ```
 package.tos-terminal/
@@ -106,11 +106,91 @@ AI modules are executed as child processes. The Brain communicates via strict JS
 }
 ```
 
-### 1.4 AI Behavior Modules (`.tos-aibehavior`) — New Module Type
+### 1.4 AI Skill Modules (`.tos-skill`)
 
-Behavior modules define a specific AI interaction pattern and own a specific region of the UI surface. Multiple behavior modules can run simultaneously, each independently toggled and configured in **Settings → AI → Behaviors**.
+AI Skills are the primary unit of AI capability in TOS. A skill defines *what* the AI knows how to do for a specific task — its interaction pattern, tool access, system prompt, and learned user patterns. Multiple skills can run simultaneously, each independently toggled and configured in **Settings → AI → Skills**.
 
-**Full specification:** See [Features Specification §4 — Ambient AI & Co-Pilot System](./TOS_beta-0_Features.md).
+Skills replace the former `.tos-aibehavior` module type. All references to AI behaviors in prior specs refer to skills.
+
+#### 1.4.1 Skill Layers
+
+Every skill has four composable layers:
+
+| Layer | Description |
+|:---|:---|
+| **System Prompt** | Task-specific context and instructions injected into the AI context for this skill |
+| **Tool Bundle** | A declared subset of Brain tools (§1.4.3) this skill is permitted to invoke |
+| **Learned Patterns** | User-specific observations recorded by the skill over time, stored in `~/.local/share/tos/skills/<skill_id>/patterns.json` |
+| **Interaction Surface** | The UI region the skill owns (chip column, editor annotation, chat panel, etc.) |
+
+#### 1.4.2 Manifest
+
+```toml
+name = "Vibe Coder"
+version = "1.0.0"
+type = "skill"
+description = "Decomposes natural language intent into reviewable multi-step file edits"
+author = "TOS Team"
+icon = "vibe-coder.png"
+
+[capabilities]
+interaction_surface = "chip_sequence"   # chip_sequence | chat_panel | editor_annotation | ghost_text
+context_signals     = [".git", "Cargo.toml", "package.json"]
+learns_patterns     = true
+latency_profile     = "local"           # local | fast_remote | slow_remote
+
+[tool_bundle]
+allowed_tools = ["read_file", "write_file", "list_dir", "exec_cmd", "get_terminal_output", "get_sector_context", "search_codebase"]
+
+[permissions]
+filesystem = true
+terminal_read = true
+prompt_read = true
+```
+
+`context_signals` declares file or directory names that trigger automatic skill activation when present in the sector's `cwd`. The AI Engine evaluates signals on every `cd` and sector creation.
+
+#### 1.4.3 Brain Tool Registry
+
+The Brain exposes a set of built-in tools that any skill with the appropriate `tool_bundle` declaration can invoke. All tool calls go through the trust chip system (Architecture §17.2) — no skill can silently modify the system.
+
+| Tool | Description | Trust Required |
+|:---|:---|:---|
+| `exec_cmd(cmd, sector_id)` | Stages a command in the sector's prompt — never auto-executes | Always — staged only |
+| `read_file(path)` | Returns file contents, respecting filesystem permissions | No |
+| `write_file(path, content)` | Writes file content | Yes — if outside sector cwd |
+| `list_dir(path)` | Returns directory listing | No |
+| `get_terminal_output(sector_id, lines)` | Returns recent terminal output for context | No |
+| `get_sector_context(sector_id)` | Returns cwd, env, active shell, recent commands | No |
+| `search_codebase(query, path)` | Full-text or semantic search of files | No |
+| `create_file(path, content)` | Creates a new file | Yes |
+| `delete_file(path)` | Deletes a file | Yes — always |
+
+Skills must declare each tool they intend to use in their `[tool_bundle]` manifest block. The Brain rejects tool calls from skills that have not declared the tool. This is enforced at runtime, not just at install time.
+
+#### 1.4.4 Learned Patterns
+
+Skills with `learns_patterns = true` may observe user behavior and record patterns to improve future suggestions. Pattern storage is:
+- Stored locally in `~/.local/share/tos/skills/<skill_id>/patterns.json`
+- Never transmitted to any network endpoint without explicit user consent
+- Viewable and deletable in **Settings → AI → Skills → [Skill Name] → Learned Patterns**
+- Excluded from session export files (`.tos-session`) by default; opt-in export available
+
+#### 1.4.5 Built-in Skills
+
+TOS ships with three built-in skills that cannot be uninstalled but can be disabled:
+
+| Skill | Interaction Surface | Default State |
+|:---|:---|:---|
+| **Passive Observer** | Editor annotations + right chips | Enabled |
+| **Chat Companion** | Chat panel (AI mode) | Enabled |
+| **Vibe Coder** | Chip sequence + editor diff | Disabled until user enables |
+
+#### 1.4.6 Skill Context Minimization
+
+Skills only receive the context fields they declare in their manifest. A skill without `terminal_read = true` in its permissions block does not receive terminal output in its context. This is enforced by the AI Engine before any context is passed to a skill.
+
+**Full AI system specification:** See [Features Specification §4 — Ambient AI & Co-Pilot System](./TOS_beta-0_Features.md).
 
 ### 1.5 Terminal Output Modules (`.tos-terminal`)
 
@@ -243,19 +323,47 @@ For the complete list of core system components and their default slot assignmen
 
 Audio themes define earcon sets and ambient audio layers for the three-layer audio model (Architecture §23). Can be installed via the Marketplace and selected in **Settings → Interface → Audio Theme**.
 
-### 1.10 Module Isolation & Permissions
+### 1.10 Language Modules (`.tos-language`)
+
+Language modules add syntax highlighting and optional LSP configuration for languages not built into TOS. They are used exclusively by the TOS Editor (Features §6).
+
+**Manifest example:**
+```toml
+name = "Gleam Language Support"
+version = "1.0.0"
+type = "language"
+description = "Syntax highlighting and LSP for the Gleam functional language"
+author = "Community"
+file_extensions = [".gleam"]
+treesitter_grammar = "bin/gleam.so"
+
+[lsp]
+command = "gleam"
+args = ["lsp"]
+```
+
+**Installation and activation:**
+- After installation, the language appears in the editor's language detection pool.
+- The editor automatically uses the module when it detects a matching file extension.
+- LSP servers declared in the module are started on-demand when the editor opens a matching file — the LSP binary must be present in the sector's PATH.
+
+**Permissions:** Language modules require no special permissions. They are static grammar assets plus an optional LSP configuration. They do not run in the sandbox — they are loaded directly into the editor's rendering pipeline.
+
+### 1.11 Module Isolation & Permissions
 
 - Modules run in sandbox with limited access (network filtered, filesystem restricted).
 - Permissions are displayed to user during installation; user grants/denies.
 - Dangerous capabilities (e.g., local file access) require explicit consent.
+- AI Skill tool bundles are double-enforced: declared in the manifest at install time and verified by the Brain Tool Registry at runtime.
 
-### 1.11 Relationship Between Module Types
+### 1.12 Relationship Between Module Types
 
-- **Sector Types** may specify a preferred shell.
+- **Sector Types** may specify a preferred shell and a default set of AI skills to activate.
 - **Application Models** are shell-agnostic; they interact with the Brain, not directly with the shell.
 - **Terminal Output Modules** render the shell's output regardless of which shell is used.
-- **Theme Modules** affect the appearance of all UI elements, including terminal output.
-- **AI Backend Modules** can be invoked from the command line (via AI mode) and their responses appear in terminal output.
+- **Theme Modules** affect the appearance of all UI elements, including terminal output and the editor surface. Editor token colors are defined in the theme's CSS via `.tos-editor` class selectors.
+- **AI Backend Modules** provide the inference engine; **AI Skill Modules** define what tasks that engine performs and what tools it can access.
+- **Language Modules** are editor-only and have no interaction with the terminal or AI system unless an AI Skill explicitly requests file content via the Brain Tool Registry.
 
 ---
 
@@ -269,12 +377,13 @@ Audio themes define earcon sets and ambient audio layers for the three-layer aud
 | Sector Type | `.tos-sector` | Logic for special sector behavior. |
 | Application Model | `.tos-appmodel` | Customizes Level 3 integration. |
 | AI Backend | `.tos-ai` | Connection logic for LLMs. |
-| AI Behavior | `.tos-aibehavior` | Pluggable co-pilot interaction patterns. |
+| AI Skill | `.tos-skill` | Pluggable co-pilot interaction patterns, tool bundles, and learned behaviors. |
 | Terminal Output Module | `.tos-terminal` | Visual terminal rendering logic. |
 | Theme Module | `.tos-theme` | Global CSS and assets. |
 | Shell Module | `.tos-shell` | PTY integration and shell binaries. |
 | Audio Theme | `.tos-audio` | Earcons and ambient layers. |
 | Bezel Component | `.tos-bezel` | Dockable bezel slot components. |
+| Language Module | `.tos-language` | Syntax highlighting grammar and LSP configuration for the editor. |
 
 #### 2.1.1 Sector Template Schema
 

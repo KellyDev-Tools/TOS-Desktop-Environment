@@ -48,7 +48,7 @@ The prompt expands to full interactive mode at Level 2. At Level 3, it is collap
 
 ### 4.1 Expanded Bezel Command Surface
 
-From any level, tap the bottom bezel or swipe up from the bottom edge to open the **Expanded Bezel Command Surface**. This overlay brings the full prompt — with chip columns, AI co-pilot chips, and warning chips — to the foreground, while the current view zooms back slightly. You can run commands from Level 3 without leaving your application.
+From any level, tap the bottom bezel or swipe up from the bottom edge to open the **Expanded Bezel Command Surface**. This overlay brings the full prompt — with chip columns, AI skills chips, and warning chips — to the foreground, while the current view zooms back slightly. You can run commands from Level 3 without leaving your application.
 
 ---
 
@@ -101,16 +101,41 @@ Pane management (fullscreen, swap, detach to sector, save layout as template) is
 
 ---
 
-## 8. AI Co-Pilot System
+## 8. AI Skills System
 
-TOS ships with two AI behavior modules pre-installed:
+TOS ships with three built-in AI skills:
 
 - **Passive Observer** — Watches your terminal silently. If a command fails, it surfaces a correction chip. If a command runs too long, it offers an explanation chip. Always passive, never intrusive.
 - **Chat Companion** — Provides a full chat interface in `[AI]` mode. Ask anything in plain English; the AI stages commands for you to review and submit.
+- **Vibe Coder** — Accepts a natural language intent ("add error handling to session loader") and decomposes it into a reviewable chip sequence of file edits and commands. Each step requires your approval before it runs. Disabled by default — enable in **Settings → AI → Skills**.
 
-Additional AI behaviors and backends can be installed from the Marketplace. All AI is removable via **Settings → AI → Behaviors**.
+Additional AI skills and backends can be installed from the Marketplace. All AI is removable via **Settings → AI → Skills**.
 
 **Safety guarantee:** The AI never executes a command. Every suggestion ends up staged in the prompt — visible, editable, under your control.
+
+---
+
+## 8a. The TOS Editor
+
+The TOS Editor is a code and text viewer/editor that lives alongside your terminal as a split pane. It is not a separate application — it is part of the Command Hub.
+
+**In Level 2 (Command Hub):** The editor occupies a split pane next to the terminal. It automatically opens the relevant file when your terminal produces an error with a file path and line number. When you type a file path in the prompt, the editor previews it before you run the command.
+
+**In Level 3 (Application Focus):** Promote the editor to full screen via the `[⊞]` button in the pane header. The Left Bezel shows a file tree; the Right Bezel shows the AI Context Panel.
+
+**AI integration:** The editor is always live context for the AI. Every visible file, cursor position, and error annotation is automatically included in AI queries — you never have to paste code into a chat window.
+
+**Vibe Coder + Editor:** When Vibe Coder proposes a file edit, the editor switches to Diff Mode showing the proposed change. Tap **[Apply]** to commit or **[✕]** to reject. Multi-file edits are shown as a chip sequence — approve each step individually, even across devices.
+
+**Shortcuts:**
+
+| Shortcut | Action |
+|---|---|
+| `edit <path>` in prompt | Open file in Editor Mode |
+| `view <path>` in prompt | Open file in Viewer Mode |
+| `Ctrl+E` | Toggle focus between terminal and editor panes |
+| `Ctrl+S` | Save file |
+| `Ctrl+Shift+S` | Save As |
 
 ---
 
@@ -151,13 +176,14 @@ All shortcuts can be remapped in **Settings → Interface → Keyboard**.
 Access the **System Settings** modal (⚙ icon, Top Bezel Right) to adjust:
 
 1. **Appearance** — Theme, Terminal Output Module, font size, color palette.
-2. **AI** — Backend selection, behavior modules, ghost text, disable master switch.
-3. **Security** — Trust configuration for command classes, per-sector overrides, deep inspection toggle.
-4. **Interface** — Audio/haptic feedback, animation speeds, Expanded Bezel behaviour, split viewport snap settings.
-5. **Network** — Remote access port, mDNS advertisement, view port map.
-6. **Sessions** — Import/export session files, browse named sessions.
-7. **System** — Default shell, sandboxing tiers, resource limits per sector.
-8. **Onboarding** — Replay the guided tour, reset hints, suppress hints.
+2. **AI** — Backend selection, skills, ghost text, disable master switch.
+3. **Editor** — Auto-open triggers, font size, minimap, LSP integration per language.
+4. **Security** — Trust configuration for command classes, per-sector overrides, deep inspection toggle.
+5. **Interface** — Audio/haptic feedback, animation speeds, Expanded Bezel behaviour, split viewport snap settings.
+6. **Network** — Remote access port, mDNS advertisement, view port map.
+7. **Sessions** — Import/export session files, browse named sessions.
+8. **System** — Default shell, sandboxing tiers, resource limits per sector.
+9. **Onboarding** — Replay the guided tour, reset hints, suppress hints.
 
 ---
 

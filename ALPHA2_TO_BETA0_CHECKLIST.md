@@ -57,6 +57,8 @@ Based on the codebase analysis and your Production Roadmap, here's what needs to
 | Update README with Beta-0 announcement | High |
 | Update `dev_docs/` roadmap status | Medium |
 | Add "Upgrading from Alpha-2" guide | Medium |
+| Verify all `.tos-aibehavior` references replaced with `.tos-skill` in codebase | High |
+| Document LSP server requirements per language | Medium |
 
 ### 2.3 Asset Management
 | Task | Priority |
@@ -76,6 +78,8 @@ Based on the codebase analysis and your Production Roadmap, here's what needs to
 | Verify manifest signature verification works | High |
 | Test Trust Service command blocking | High |
 | Review credential handling in AI backends | High |
+| Audit skill tool bundle enforcement — verify Brain rejects undeclared tool calls | High |
+| Verify AI skill writes route through trust chip system for paths outside sector cwd | High |
 
 ### 3.2 Performance
 | Task | Priority |
@@ -111,6 +115,35 @@ Based on the codebase analysis and your Production Roadmap, here's what needs to
 | Complete Linux Face integration guide | Medium |
 | Document OpenXR platform requirements | Low |
 | Document Android NDK requirements | Low |
+
+### 4.3 AI Skills System
+| Task | Priority |
+|------|----------|
+| Verify `.tos-skill` module type accepted by Marketplace — `.tos-aibehavior` rejected | High |
+| Test Passive Observer correction chips after command failure | High |
+| Test Chat Companion full chat flow with streaming responses | High |
+| Test Vibe Coder chip sequence end-to-end: intent → steps → diff → apply | High |
+| **Gate test:** No skill can auto-submit — all suggestions staged only | Critical |
+| Test skill tool bundle enforcement — Brain rejects undeclared tools | High |
+| Test skill context minimization — only declared fields received | Medium |
+| Test offline AI queue: queue on disconnect, drain on reconnect, 30min expiry | Medium |
+| Verify learned patterns stored locally, viewable and clearable in Settings | Medium |
+
+### 4.4 Editor
+| Task | Priority |
+|------|----------|
+| Editor pane renders in split layout alongside terminal pane | High |
+| Auto-open on build error: correct file and line highlighted | High |
+| Viewer Mode: read-only, no cursor, scrolls to target line | High |
+| Editor Mode: keyboard input, syntax highlighting, save works | High |
+| Diff Mode: renders side-by-side, Apply commits, reject discards | High |
+| Multi-file edit chip sequence: individual Apply/Skip per step | High |
+| Pending edit proposal persists to session file and restores | High |
+| Session handoff: editor state reconstructs on claiming device | High |
+| LSP diagnostics appear as annotation chips (requires LSP binary in PATH) | Medium |
+| Mobile: tap line number sends line to AI context | Medium |
+| Trust chip fires for writes outside sector cwd | High |
+| Editor pane state persists and restores across sessions | High |
 
 ---
 
@@ -151,6 +184,8 @@ Based on the codebase analysis and your Production Roadmap, here's what needs to
 3. Update version numbers to `0.1.0-beta.0`
 4. Audit `unsafe` code blocks (sandbox, LinuxRenderer)
 5. Test Trust Service command blocking end-to-end
+6. Find and replace all `.tos-aibehavior` references with `.tos-skill` in codebase
+7. Implement Brain Tool Registry with runtime enforcement of skill tool bundles
 
 ---
 

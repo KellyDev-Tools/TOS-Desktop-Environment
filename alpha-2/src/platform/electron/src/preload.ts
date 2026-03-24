@@ -67,6 +67,21 @@ const tosElectronAPI = {
         ipcRenderer.on('tos:update-downloaded', handler);
         return () => ipcRenderer.removeListener('tos:update-downloaded', handler);
     },
+
+    // ── Brain Discovery ──────────────────────────────────────────────────
+    discoveryState: () => ipcRenderer.invoke('tos:discovery-state'),
+    discoveryScan: () => ipcRenderer.invoke('tos:discovery-scan'),
+    discoveryConnect: (wsUrl: string) => ipcRenderer.invoke('tos:discovery-connect', wsUrl),
+    discoveryAddHost: (host: string, port: number, name?: string) =>
+        ipcRenderer.invoke('tos:discovery-add-host', host, port, name),
+    discoveryRemoveHost: (wsUrl: string) => ipcRenderer.invoke('tos:discovery-remove-host', wsUrl),
+    discoveryProbe: (host: string, port: number) =>
+        ipcRenderer.invoke('tos:discovery-probe', host, port),
+    onDiscoveryUpdate: (callback: (instances: any[]) => void) => {
+        const handler = (_event: Electron.IpcRendererEvent, instances: any[]) => callback(instances);
+        ipcRenderer.on('tos:discovery-update', handler);
+        return () => ipcRenderer.removeListener('tos:discovery-update', handler);
+    },
 };
 
 // Expose the API to the renderer in a secure namespace

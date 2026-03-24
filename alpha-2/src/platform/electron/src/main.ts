@@ -21,6 +21,7 @@ import { createPlatformMenu } from './platform-menu';
 import { registerFileDialogHandlers } from './file-dialog-handler';
 import { registerPrintHandlers } from './print-handler';
 import { registerProtocolHandler } from './protocol-handler';
+import { registerDiscoveryHandlers, runFullDiscovery } from './brain-discovery';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Constants
@@ -310,6 +311,9 @@ function setupIPCBridge(): void {
             app.setBadgeCount(count);
         }
     });
+
+    // Discovery handlers
+    registerDiscoveryHandlers();
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -402,6 +406,16 @@ app.whenReady().then(async () => {
     if (config.enableAutoUpdater) {
         setupAutoUpdater(mainWindow!);
     }
+
+    // Run Brain discovery in the background
+    runFullDiscovery().then((instances) => {
+        const reachable = instances.filter(i => i.reachable);
+        if (reachable.length > 0) {
+            mainWindow?.webContents.send('tos:discovery-update', instances);
+        }
+    }).catch(err => {
+        console.warn('[Discovery] Background scan failed:', err);
+    });
 
     // macOS: re-create window when dock icon is clicked
     app.on('activate', () => {

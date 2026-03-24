@@ -228,6 +228,22 @@ This roadmap defines the transition from Alpha-2.1 (Experimental/Mocked) to Alph
 ## Phase 5 — Native Platform Faces
 *Depends on Phase 4. Requires stable visual layer and all IPC contracts locked.*
 
+**PRIORITY 0 — Electron Cross-Platform Face Container:**
+- [x] **Environment Setup:** Created `src/platform/electron/` with `package.json`, `tsconfig.json`, `electron-builder.json`.
+- [x] **Main Process (`main.ts`):** Window lifecycle, IPC bridge, tray icon, custom `tos-app://` protocol to serve Svelte build assets.
+- [x] **Preload Script (`preload.ts`):** Secure `contextBridge` exposing `window.tosElectron` API (window controls, dialogs, print, updates, navigation events).
+- [x] **Window State Persistence (`window-state-manager.ts`):** Position, size, and maximized state saved/restored via `electron-store` with display validation.
+- [x] **Platform Menus (`platform-menu.ts`):** macOS AppKit menu (6 top-level items, Cmd shortcuts, dock), Windows/Linux GTK menu (4 items, Ctrl shortcuts).
+- [x] **Native Dialogs:** File open/save (`file-dialog-handler.ts`) and print (`print-handler.ts`) via IPC handlers.
+- [x] **Auto-Updater (`auto-updater.ts`):** `electron-updater` with generic provider publishing, check on launch + 4h interval, download progress to renderer.
+- [x] **Deep-Link Protocol (`protocol-handler.ts`):** `tos://` scheme for `sector/`, `settings`, `hub`, `global`, `module/` navigation.
+- [x] **Security:** `contextIsolation: true`, `nodeIntegration: false`, `sandbox: true`, CSP override for custom protocol origin.
+- [x] **Build System:** Makefile targets: `electron-setup`, `electron-build`, `electron-dev`, `test-electron`, `build-electron-{win,macos,linux,all}`.
+- [x] **Packaging:** electron-builder config for Windows (NSIS + portable), macOS (DMG + zip + notarization), Linux (AppImage + deb + rpm).
+- [x] **Testing:** 105 tests across 8 vitest files (window management, IPC bridge, platform menus, auto-update, file dialogs, tray, protocol handler, window state).
+- [x] **Documentation:** `TOS_alpha-2.2.1_Electron-Platform-Guide.md` (developer guide) and User Manual §8 (end-user guide).
+- [x] **Discovery & Connectivity:** Query `window.tosElectron.getBrainUrl()` for configurable Brain WebSocket (`TOS_BRAIN_WS` env var → default `ws://127.0.0.1:7001`); mDNS scan for remote Brains completed.
+
 **PRIORITY 1 — Native Linux Face (Wayland Shell):**
 - [x] Replace `Face` struct's `println!` simulation with `LinuxRenderer` (Wayland).
 - [x] Implement real `wlr-layer-shell` surface management in `src/platform/linux/`.
@@ -281,4 +297,6 @@ This roadmap defines the transition from Alpha-2.1 (Experimental/Mocked) to Alph
 | `tos ports` CLI | Service Registry & Port Infrastructure |
 | mDNS discovery | Service Registry & Port Infrastructure + Avahi integration |
 | Remote Face manual entry | `get_port_map` IPC (Service Registry) |
+| Electron Face Container | Svelte UI build (`svelte_ui/build/`), Phase 4 stable |
+| Electron mDNS Discovery | Service Registry & Port Infrastructure, Electron Face Container |
 | Native Platform Faces | All Phase 4 items stable, Service Registry & Port Infrastructure |

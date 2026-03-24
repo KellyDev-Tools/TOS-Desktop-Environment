@@ -148,48 +148,48 @@ No class modifications required. This implementation uses Electron's built-in mo
 
 ## [Implementation Order]
 
-1. **Phase 5.1 — Setup Electron Environment**
-   - Add `electron` and build dependencies to `package.json`
-   - Create `electron-builder.json` configuration
-   - Create `main.ts` skeleton
+1. **Phase 5.1 — Setup Electron Environment** ✅
+   - ~~Add `electron` and build dependencies to `package.json`~~
+   - ~~Create `electron-builder.json` configuration~~
+   - ~~Create `main.ts` skeleton~~
 
-2. **Phase 5.2 — Implement Main Process**
-   - Create `createFaceWindow()` function
-   - Implement `handleWindowState()` for persistence
-   - Create tray icon handling
-   - Set up IPC bridge to WebSocket brain client
+2. **Phase 5.2 — Implement Main Process** ✅
+   - ~~Create `createFaceWindow()` function~~
+   - ~~Implement `handleWindowState()` for persistence~~
+   - ~~Create tray icon handling~~
+   - ~~Set up IPC bridge to WebSocket brain client~~
 
-3. **Phase 5.3 — Implement Platform-Specific Menus**
-   - `platform-menu-win.ts`: WinUI 3 style menu
-   - `platform-menu-macos.ts`: AppKit menu with dock integration
-   - `platform-menu-linux.ts`: GTK menu
+3. **Phase 5.3 — Implement Platform-Specific Menus** ✅
+   - ~~`platform-menu-win.ts`: WinUI 3 style menu~~
+   - ~~`platform-menu-macos.ts`: AppKit menu with dock integration~~
+   - ~~`platform-menu-linux.ts`: GTK menu~~
 
-4. **Phase 5.4 — Implement File Dialogs and Print**
-   - Platform-specific file dialogs
-   - Print preview handlers
+4. **Phase 5.4 — Implement File Dialogs and Print** ✅
+   - ~~Platform-specific file dialogs~~
+   - ~~Print preview handlers~~
 
-5. **Phase 5.5 — Implement Auto-Update**
-   - Update checking logic
-   - Installation handling
+5. **Phase 5.5 — Implement Auto-Update** ✅
+   - ~~Update checking logic~~
+   - ~~Installation handling~~
 
-6. **Phase 5.6 — Create Renderer Integration**
-   - Inject preload script into Svelte app
-   - Share UI state model with web renderer
-   - Load from `svelte_ui/build`
+6. **Phase 5.6 — Create Renderer Integration** ✅
+   - ~~Inject preload script into Svelte app~~
+   - ~~Share UI state model with web renderer~~
+   - ~~Load from `svelte_ui/build`~~
 
-7. **Phase 5.7 — Implement Protocol Handler**
-   - Handle `tos://` custom protocol
-   - File activation
+7. **Phase 5.7 — Implement Protocol Handler** ✅
+   - ~~Handle `tos://` custom protocol~~
+   - ~~File activation~~
 
-8. **Phase 5.8 — Build and Package**
-   - Create build targets in `Makefile`
-   - Package for Windows, macOS, Linux
-   - Configure auto-update
+8. **Phase 5.8 — Build and Package** ✅
+   - ~~Create build targets in `Makefile`~~
+   - ~~Package for Windows, macOS, Linux~~
+   - ~~Configure auto-update~~
 
-9. **Phase 5.9 — Testing**
+9. **Phase 5.9 — Testing** 🔲
    - Run all Electron tests
    - Integration testing with Brain
 
-10. **Phase 5.10 — Documentation**
+10. **Phase 5.10 — Documentation** 🔲
     - Update user manual for Electron app usage
     - Document platform-specific features

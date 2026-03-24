@@ -1,0 +1,122 @@
+{
+    "$schema": "https://raw.githubusercontent.com/electron-userland/electron-builder/master/packages/app-builder-lib/scheme.json",
+    "appId": "com.tos.desktop",
+    "productName": "TOS",
+    "copyright": "Copyright © 2026 TOS Project",
+    "directories": {
+        "output": "release",
+        "buildResources": "resources"
+    },
+    "files": [
+        "dist/**/*",
+        "renderer/**/*",
+        "resources/**/*"
+    ],
+    "extraResources": [
+        {
+            "from": "../../svelte_ui/build",
+            "to": "renderer",
+            "filter": [
+                "**/*"
+            ]
+        }
+    ],
+    "win": {
+        "target": [
+            {
+                "target": "nsis",
+                "arch": [
+                    "x64",
+                    "arm64"
+                ]
+            },
+            {
+                "target": "portable",
+                "arch": [
+                    "x64"
+                ]
+            }
+        ],
+        "icon": "resources/icon.ico",
+        "artifactName": "TOS-${version}-win-${arch}.${ext}"
+    },
+    "nsis": {
+        "oneClick": false,
+        "allowToChangeInstallationDirectory": true,
+        "installerIcon": "resources/icon.ico",
+        "uninstallerIcon": "resources/icon.ico",
+        "installerHeaderIcon": "resources/icon.ico",
+        "createDesktopShortcut": true,
+        "createStartMenuShortcut": true,
+        "shortcutName": "TOS"
+    },
+    "mac": {
+        "target": [
+            {
+                "target": "dmg",
+                "arch": [
+                    "x64",
+                    "arm64"
+                ]
+            },
+            {
+                "target": "zip",
+                "arch": [
+                    "x64",
+                    "arm64"
+                ]
+            }
+        ],
+        "icon": "resources/icon.icns",
+        "category": "public.app-category.utilities",
+        "darkModeSupport": true,
+        "hardenedRuntime": true,
+        "gatekeeperAssess": false,
+        "entitlements": "resources/entitlements.mac.plist",
+        "entitlementsInherit": "resources/entitlements.mac.plist",
+        "artifactName": "TOS-${version}-mac-${arch}.${ext}"
+    },
+    "dmg": {
+        "contents": [
+            {
+                "x": 130,
+                "y": 220
+            },
+            {
+                "x": 410,
+                "y": 220,
+                "type": "link",
+                "path": "/Applications"
+            }
+        ]
+    },
+    "linux": {
+        "target": [
+            {
+                "target": "AppImage",
+                "arch": [
+                    "x64"
+                ]
+            },
+            {
+                "target": "deb",
+                "arch": [
+                    "x64"
+                ]
+            },
+            {
+                "target": "rpm",
+                "arch": [
+                    "x64"
+                ]
+            }
+        ],
+        "icon": "resources/icons",
+        "category": "Utility",
+        "artifactName": "TOS-${version}-linux-${arch}.${ext}"
+    },
+    "publish": {
+        "provider": "generic",
+        "url": "https://updates.tos.dev/releases"
+    }
+}

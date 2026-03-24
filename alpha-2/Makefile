@@ -1,7 +1,7 @@
 # TOS Alpha-2 Build System
 # High-Fidelity OS Pipeline
 
-.PHONY: help build check fmt lint docs test test-all test-core test-shell test-ai test-sec test-system test-brain-component test-ui-component test-self run run-web run-web-dev build-web dev-web clean
+.PHONY: help build check fmt lint docs test test-all test-core test-shell test-ai test-sec test-system test-brain-component test-ui-component test-self run run-web run-web-dev build-web dev-web clean electron-setup electron-build electron-dev build-electron-win build-electron-macos build-electron-linux build-electron-all
 
 # -----------------------------------------------------------------------------
 # 1. HELP & DISCOVERY
@@ -35,6 +35,15 @@ help:
 	@echo "  make run             Direct launch of TOS Brain + Terminal Face"
 	@echo "  make run-web         Orchestrate full stack (Brain + Web UI Server)"
 	@echo "  make run-services    Spawn auxiliary background daemons"
+	@echo ""
+	@echo "\033[1;33mElectron Platform:\033[0m"
+	@echo "  make electron-setup        Install Electron dependencies"
+	@echo "  make electron-build        Compile Electron main process + Svelte UI"
+	@echo "  make electron-dev          Launch Electron in dev mode"
+	@echo "  make build-electron-win    Package for Windows (NSIS + portable)"
+	@echo "  make build-electron-macos  Package for macOS (DMG + zip)"
+	@echo "  make build-electron-linux  Package for Linux (AppImage + deb + rpm)"
+	@echo "  make build-electron-all    Package for all platforms"
 	@echo ""
 	@echo "\033[1;33mMaintenance:\033[0m"
 	@echo "  make clean           Purge build artifacts and logs"
@@ -169,11 +178,52 @@ run-services:
 	@echo "[TOS] Auxiliary Constellation: ONLINE"
 
 # -----------------------------------------------------------------------------
-# 5. MAINTENANCE
+# 5. ELECTRON PLATFORM
+# -----------------------------------------------------------------------------
+
+ELECTRON_DIR = src/platform/electron
+
+electron-setup:
+	@echo "[TOS] Installing Electron dependencies..."
+	@$(NVM_INIT) && cd $(ELECTRON_DIR) && npm install
+	@echo "[TOS] Electron dependencies: INSTALLED"
+
+electron-build: electron-setup build-web
+	@echo "[TOS] Building Electron main process..."
+	@$(NVM_INIT) && cd $(ELECTRON_DIR) && npm run build
+	@echo "[TOS] Electron main process: BUILT"
+
+electron-dev: electron-setup
+	@echo "[TOS] Starting Electron in dev mode..."
+	@$(NVM_INIT) && cd $(ELECTRON_DIR) && npm run dev
+
+build-electron-win: electron-build
+	@echo "[TOS] Packaging Electron for Windows..."
+	@$(NVM_INIT) && cd $(ELECTRON_DIR) && npm run pack:win
+	@echo "[TOS] Windows package: COMPLETE → $(ELECTRON_DIR)/release/"
+
+build-electron-macos: electron-build
+	@echo "[TOS] Packaging Electron for macOS..."
+	@$(NVM_INIT) && cd $(ELECTRON_DIR) && npm run pack:mac
+	@echo "[TOS] macOS package: COMPLETE → $(ELECTRON_DIR)/release/"
+
+build-electron-linux: electron-build
+	@echo "[TOS] Packaging Electron for Linux..."
+	@$(NVM_INIT) && cd $(ELECTRON_DIR) && npm run pack:linux
+	@echo "[TOS] Linux package: COMPLETE → $(ELECTRON_DIR)/release/"
+
+build-electron-all: electron-build
+	@echo "[TOS] Packaging Electron for ALL platforms..."
+	@$(NVM_INIT) && cd $(ELECTRON_DIR) && npm run pack:all
+	@echo "[TOS] All-platform packages: COMPLETE → $(ELECTRON_DIR)/release/"
+
+# -----------------------------------------------------------------------------
+# 6. MAINTENANCE
 # -----------------------------------------------------------------------------
 
 clean:
 	cargo clean
 	rm -rf logs/
 	rm -rf svelte_ui/build/ svelte_ui/.svelte-kit/
+	rm -rf $(ELECTRON_DIR)/dist/ $(ELECTRON_DIR)/release/ $(ELECTRON_DIR)/node_modules/
 

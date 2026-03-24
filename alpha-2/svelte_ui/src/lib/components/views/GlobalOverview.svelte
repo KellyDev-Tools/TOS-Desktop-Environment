@@ -2,12 +2,34 @@
 	import { getTosState } from '$lib/stores/ipc.svelte';
 	import { setCurrentMode, type ViewMode } from '$lib/stores/ui.svelte';
 	import * as ipc from '$lib/stores/ipc.svelte';
+	import { longpress } from '$lib/actions/longpress';
+	import SectorContextMenu from '../SectorContextMenu.svelte';
 
 	const state = $derived(getTosState());
 	const sectors = $derived(state.sectors || []);
 	const activeIndex = $derived(state.active_sector_index);
 
 	let dragHoverSector = $state<number | null>(null);
+
+	let cmState = $state<{
+		open: boolean;
+		x: number;
+		y: number;
+		sectorIndex: number;
+		sectorName: string;
+	}>({ open: false, x: 0, y: 0, sectorIndex: 0, sectorName: '' });
+
+	function openContextMenu(e: MouseEvent | CustomEvent, index: number, name: string) {
+		e.preventDefault();
+		const ev = e instanceof CustomEvent ? e.detail : e;
+		cmState = {
+			open: true,
+			x: ev.clientX,
+			y: ev.clientY,
+			sectorIndex: index,
+			sectorName: name
+		};
+	}
 
 	async function handleSectorClick(index: number) {
 		await ipc.switchSector(index);
@@ -56,6 +78,9 @@
 	<div class="sector-grid">
 		{#each sectors as sector, i}
 			<button
+				use:longpress
+				onlongpress={(e) => openContextMenu(e, i, sector.name)}
+				oncontextmenu={(e) => openContextMenu(e, i, sector.name)}
 				class="sector-tile {getBorderClass(sector)}"
 				class:active={i === activeIndex}
 				class:drag-hover={dragHoverSector === i}
@@ -94,6 +119,16 @@
 			</button>
 		{/each}
 	</div>
+	
+	{#if cmState.open}
+		<SectorContextMenu
+			x={cmState.x}
+			y={cmState.y}
+			sectorIndex={cmState.sectorIndex}
+			sectorName={cmState.sectorName}
+			onClose={() => cmState.open = false}
+		/>
+	{/if}
 </div>
 
 <style>

@@ -88,7 +88,7 @@
 	let cinematicActive = $state(false);
 	let cinematicStage = $state<'none' | 'sweep' | 'logs' | 'zoom'>('none');
 	let sessionPopoverOpen = $state(false);
-	let heuristicSuggestions = $state<{ text: string, score: f32, source: String }[]>([]);
+	let heuristicSuggestions = $state<{ text: string, score: number, source: string }[]>([]);
 
 	onMount(() => {
 		connect();
@@ -137,10 +137,10 @@
 		
 		if (promptMode === 'cmd' && val.length > 1) {
 			const resp = await sendCommand(`heuristic_query:${val}`);
-			const cleanJson = resp.split(' (').next() || '[]';
+			const cleanJson = resp ? resp.split(' (')[0] : '[]';
 			try {
 				heuristicSuggestions = JSON.parse(cleanJson);
-			} catch (e) {
+			} catch (err) {
 				heuristicSuggestions = [];
 			}
 		} else {

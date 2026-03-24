@@ -1,0 +1,92 @@
+<script lang="ts">
+	import { fade } from 'svelte/transition';
+	import { sendCommand } from '$lib/stores/ipc.svelte';
+	
+	let { x = 0, y = 0, sectorIndex = 0, sectorName = '', onClose }: {
+		x: number;
+		y: number;
+		sectorIndex: number;
+		sectorName: string;
+		onClose: () => void;
+	} = $props();
+
+	async function performAction(action: string) {
+		if (action === 'save_session') {
+			await sendCommand(`session_save:${sectorIndex}`);
+		} else if (action === 'load_session') {
+			await sendCommand(`session_load:${sectorIndex}`);
+		}
+		onClose();
+	}
+</script>
+
+<svelte:window onclick={onClose} oncontextmenu={(e) => { e.preventDefault(); onClose(); }} />
+
+<!-- svelte-ignore a11y_click_events_have_key_events -->
+<!-- svelte-ignore a11y_no_static_element_interactions -->
+<div 
+	class="sector-context-menu glass-panel" 
+	style="left: {x}px; top: {y}px;" 
+	transition:fade={{ duration: 150 }} 
+	onclick={(e) => e.stopPropagation()} 
+	oncontextmenu={(e) => { e.preventDefault(); e.stopPropagation(); }}
+>
+	<div class="menu-header">
+		SECTOR // {sectorName.toUpperCase()}
+	</div>
+	<div class="menu-body">
+		<button class="menu-btn" onclick={() => performAction('save_session')}>[SAVE] Save Session As...</button>
+		<button class="menu-btn" onclick={() => performAction('load_session')}>[LOAD] Load Session</button>
+	</div>
+</div>
+
+<style>
+	.sector-context-menu {
+		position: fixed;
+		z-index: 10000;
+		width: 250px;
+		background: rgba(10, 10, 15, 0.95);
+		border: 1px solid var(--color-border);
+		border-radius: var(--radius-sm);
+		backdrop-filter: blur(var(--glass-blur));
+		box-shadow: 0 10px 30px rgba(0, 0, 0, 0.8), 0 0 0 1px rgba(255, 255, 255, 0.05);
+		display: flex;
+		flex-direction: column;
+		overflow: hidden;
+	}
+
+	.menu-header {
+		background: rgba(255, 255, 255, 0.05);
+		color: var(--color-primary);
+		font-family: var(--font-mono);
+		font-size: 0.65rem;
+		font-weight: 700;
+		padding: 8px 12px;
+		border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+	}
+
+	.menu-body {
+		display: flex;
+		flex-direction: column;
+		padding: 4px;
+	}
+
+	.menu-btn {
+		background: transparent;
+		border: none;
+		color: var(--color-text);
+		text-align: left;
+		padding: 8px 12px;
+		font-family: var(--font-display);
+		font-size: 0.75rem;
+		cursor: pointer;
+		border-radius: 2px;
+		transition: all 0.2s;
+	}
+
+	.menu-btn:hover {
+		background: rgba(255, 255, 255, 0.05);
+		color: white;
+		padding-left: 16px;
+	}
+</style>

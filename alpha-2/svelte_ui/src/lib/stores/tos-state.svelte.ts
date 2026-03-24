@@ -157,7 +157,12 @@ export function getDefaultState(): TosState {
                     current_directory: '~',
                     terminal_output: [],
                     staged_command: null,
-                    ai_explanation: null
+                    ai_explanation: null,
+                    activity_listing: {
+                        processes: [
+                            { pid: 1, name: 'systemd', cpu_usage: 0.1, mem_usage: 1024, status: 'running' }
+                        ]
+                    }
                 }],
                 active_hub_index: 0
             }

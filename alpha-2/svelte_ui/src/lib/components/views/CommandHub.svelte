@@ -5,6 +5,7 @@
 	import AiChat from './AiChat.svelte';
 	import TacticalContextMenu from '../TacticalContextMenu.svelte';
 	import { getPromptMode } from '$lib/stores/ui.svelte';
+	import { longpress } from '$lib/actions/longpress';
 
 	const state = $derived(getTosState());
 	const activeSector = $derived(state.sectors[state.active_sector_index]);
@@ -44,12 +45,13 @@
 		processPid: 0
 	});
 
-	function handleContextMenu(e: MouseEvent, proc: any) {
+	function handleContextMenu(e: MouseEvent | CustomEvent, proc: any) {
 		e.preventDefault();
+		const ev = e instanceof CustomEvent ? e.detail : e;
 		cmState = {
 			open: true,
-			x: e.clientX,
-			y: e.clientY,
+			x: ev.clientX,
+			y: ev.clientY,
 			processName: proc.name,
 			processPid: proc.pid
 		};
@@ -107,7 +109,13 @@
 					<div class="activity-list">
 						{#each act.processes.slice(0, 10) as proc}
 							<!-- svelte-ignore a11y_no_static_element_interactions -->
-							<div class="activity-item" class:stopped={proc.status === 'stopped' || proc.status === 'sleeping'} oncontextmenu={(e) => handleContextMenu(e, proc)}>
+							<div 
+								class="activity-item" 
+								class:stopped={proc.status === 'stopped' || proc.status === 'sleeping'} 
+								use:longpress
+								onlongpress={(e) => handleContextMenu(e, proc)}
+								oncontextmenu={(e) => handleContextMenu(e, proc)}
+							>
 								{#if proc.snapshot}
 									<img class="proc-thumb snapshot" src="data:image/jpeg;base64,{proc.snapshot}" alt="Process Thumbnail" />
 								{:else}

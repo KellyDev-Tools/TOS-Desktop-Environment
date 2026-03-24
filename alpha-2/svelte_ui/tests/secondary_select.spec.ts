@@ -2,10 +2,29 @@ import { test, expect } from '@playwright/test';
 
 test.describe('Secondary Select Infrastructure', () => {
     test.beforeEach(async ({ page }) => {
-        // Mark onboarding as complete to avoid interference
+        // Mock state and mark onboarding complete
         await page.addInitScript(() => {
             window.localStorage.setItem('tos.onboarding.first_run_complete', 'true');
             window.localStorage.setItem('tos.onboarding.wizard_complete', 'true');
+
+            const OriginalWebSocket = window.WebSocket;
+            window.WebSocket = class MockWebSocket {
+                onopen: any = null;
+                onmessage: any = null;
+                onclose: any = null;
+                onerror: any = null;
+                readyState: number = 1;
+
+                constructor(url: string) {
+                    setTimeout(() => {
+                        if (this.onopen) this.onopen(new Event('open'));
+                    }, 50);
+                }
+                send(data: any) { }
+                close() { }
+                addEventListener() { }
+                removeEventListener() { }
+            } as any;
         });
         await page.goto('/');
         await page.waitForLoadState('domcontentloaded');

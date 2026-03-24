@@ -148,20 +148,17 @@ export function getDefaultState(): TosState {
         active_sector_index: 0,
         sectors: [
             {
-                name: 'Primary',
+                id: 'mock-sector-1',
+                name: 'TESTING',
                 type: 'Standard',
                 status: 'Active',
                 hubs: [{
                     mode: 'Command',
-                    prompt: '',
+                    prompt: 'tos> ',
                     current_directory: '~',
                     terminal_output: [],
-                    staged_command: null,
-                    ai_explanation: null,
                     activity_listing: {
-                        processes: [
-                            { pid: 1, name: 'systemd', cpu_usage: 0.1, mem_usage: 1024, status: 'running' }
-                        ]
+                        processes: [{ pid: 1, name: 'systemd', cpu_usage: 0.1, mem_usage: 1024, status: 'running' }]
                     }
                 }],
                 active_hub_index: 0
@@ -176,7 +173,14 @@ export function getDefaultState(): TosState {
         ],
         terminal_output: [],
         collab_presence: [],
-        settings: { global: {}, sectors: {}, applications: {} },
+        settings: {
+            global: {
+                'tos.onboarding.first_run_complete': 'true',
+                'tos.onboarding.wizard_complete': 'true'
+            },
+            sectors: {},
+            applications: {}
+        },
         available_modules: [],
         active_terminal_module: '',
         available_themes: [],

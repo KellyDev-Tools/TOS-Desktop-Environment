@@ -6,6 +6,25 @@ test.describe('TOS Alpha-2.2 UI Component Paces', () => {
         await page.addInitScript(() => {
             window.localStorage.setItem('tos.onboarding.first_run_complete', 'true');
             window.localStorage.setItem('tos.onboarding.wizard_complete', 'true');
+
+            const OriginalWebSocket = window.WebSocket;
+            window.WebSocket = class MockWebSocket {
+                onopen: any = null;
+                onmessage: any = null;
+                onclose: any = null;
+                onerror: any = null;
+                readyState: number = 1;
+
+                constructor(url: string) {
+                    setTimeout(() => {
+                        if (this.onopen) this.onopen(new Event('open'));
+                    }, 50);
+                }
+                send(data: any) { }
+                close() { }
+                addEventListener() { }
+                removeEventListener() { }
+            } as any;
         });
     });
 

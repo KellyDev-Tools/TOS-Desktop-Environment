@@ -10,9 +10,10 @@
  *                └── native APIs (tray, menus, dialogs, protocol)
  */
 
-import { app, BrowserWindow, Tray, Menu, nativeImage, ipcMain, session, shell } from 'electron';
+import { app, BrowserWindow, Tray, Menu, nativeImage, ipcMain, session, shell, protocol, net } from 'electron';
 import * as path from 'path';
 import * as fs from 'fs';
+import * as url from 'url';
 
 import { WindowStateManager } from './window-state-manager';
 import { setupAutoUpdater } from './auto-updater';
@@ -31,8 +32,8 @@ const BRAIN_WS_URL = process.env.TOS_BRAIN_WS ?? 'ws://127.0.0.1:7001';
 /** Path to the prebuilt Svelte UI renderer */
 function getRendererPath(): string {
     if (IS_DEV) {
-        // In dev mode, point to the svelte_ui build output
-        return path.resolve(__dirname, '..', '..', '..', 'svelte_ui', 'build');
+        // __dirname is dist/, so go up 4 levels: dist → electron → platform → src → alpha-2
+        return path.resolve(__dirname, '..', '..', '..', '..', 'svelte_ui', 'build');
     }
     // In production, the renderer is bundled as an extra resource
     return path.join(process.resourcesPath, 'renderer');
@@ -92,13 +93,32 @@ export async function createFaceWindow(config: PlatformConfig): Promise<void> {
             contextIsolation: true,
             nodeIntegration: false,
             sandbox: true,
-            webSecurity: true,
+            // webSecurity must be false when loading from custom protocol (tos-app://)
+            // to allow WebSocket connections to ws://127.0.0.1:7001
+            webSecurity: false,
             allowRunningInsecureContent: false,
         },
         icon: getAppIcon(),
     };
 
     mainWindow = new BrowserWindow(windowOptions);
+
+    // Override Content-Security-Policy for custom protocol loads
+    mainWindow.webContents.session.webRequest.onHeadersReceived((details, callback) => {
+        callback({
+            responseHeaders: {
+                ...details.responseHeaders,
+                'Content-Security-Policy': [
+                    "default-src 'self' tos-app: data: blob:; " +
+                    "script-src 'self' 'unsafe-inline' 'unsafe-eval' tos-app:; " +
+                    "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com tos-app:; " +
+                    "font-src 'self' https://fonts.gstatic.com data:; " +
+                    "connect-src 'self' ws://127.0.0.1:* wss://127.0.0.1:* http://127.0.0.1:* tos-app:; " +
+                    "img-src 'self' data: blob: tos-app:;"
+                ],
+            },
+        });
+    });
 
     // Restore maximized state
     if (savedState.isMaximized) {
@@ -108,22 +128,8 @@ export async function createFaceWindow(config: PlatformConfig): Promise<void> {
     // Setup window state tracking
     windowStateManager.track(mainWindow);
 
-    // Load the Svelte UI renderer
-    const indexPath = path.join(config.rendererBuildPath, 'index.html');
-
-    if (fs.existsSync(indexPath)) {
-        await mainWindow.loadFile(indexPath);
-    } else if (IS_DEV) {
-        // In dev, try loading from the Svelte dev server directly
-        console.log('[Electron] Loading from Svelte dev server...');
-        await mainWindow.loadURL('http://localhost:8080');
-    } else {
-        console.error('[Electron] ❌ Renderer build not found at:', indexPath);
-        app.quit();
-        return;
-    }
-
     // Show window once content is ready (avoids flash of white)
+    // IMPORTANT: Register BEFORE loadFile/loadURL so the event isn't missed
     mainWindow.once('ready-to-show', () => {
         mainWindow?.show();
         if (IS_DEV) {
@@ -141,6 +147,44 @@ export async function createFaceWindow(config: PlatformConfig): Promise<void> {
     mainWindow.on('closed', () => {
         mainWindow = null;
     });
+
+    // Load the Svelte UI renderer
+    const indexPath = path.join(config.rendererBuildPath, 'index.html');
+
+    if (fs.existsSync(indexPath)) {
+        console.log('[Electron] Loading renderer from build:', indexPath);
+        // Must use the custom tos-app:// protocol because the Svelte build
+        // emits absolute paths (/_app/immutable/...) that won't resolve via file://.
+        // Load root path '/' so SvelteKit client router matches the root route.
+        await mainWindow.loadURL('tos-app://renderer/');
+    } else if (IS_DEV) {
+        // In dev, try loading from the Svelte dev server directly
+        const devUrl = 'http://localhost:8080';
+        console.log('[Electron] Loading from Svelte dev server:', devUrl);
+        try {
+            await mainWindow.loadURL(devUrl);
+        } catch (err) {
+            console.warn(`[Electron] Dev server not reachable at ${devUrl}, loading boot shell...`);
+            // Fall back to the boot loader HTML
+            const bootHtml = path.join(__dirname, '..', 'src', 'index.html');
+            if (fs.existsSync(bootHtml)) {
+                await mainWindow.loadFile(bootHtml);
+            } else {
+                // Inline fallback
+                await mainWindow.loadURL(`data:text/html,
+                    <body style="background:#0a0a0f;color:#e0e0e0;font-family:sans-serif;display:flex;align-items:center;justify-content:center;height:100vh;margin:0">
+                    <div style="text-align:center">
+                        <h1 style="font-weight:300;letter-spacing:0.2em;color:#7c3aed">TOS</h1>
+                        <p>Svelte dev server not running. Start it with: <code>make dev-web</code></p>
+                        <p style="color:#666">Then reload this window (Ctrl+R)</p>
+                    </div></body>`);
+            }
+        }
+    } else {
+        console.error('[Electron] ❌ Renderer build not found at:', indexPath);
+        app.quit();
+        return;
+    }
 
     console.log('[Electron] ✅ Face window created');
 }
@@ -288,6 +332,23 @@ function getAppIcon(): Electron.NativeImage | undefined {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
+// Custom App Protocol — serves Svelte build assets
+// ─────────────────────────────────────────────────────────────────────────────
+
+// Must be called before app.whenReady()
+protocol.registerSchemesAsPrivileged([
+    {
+        scheme: 'tos-app',
+        privileges: {
+            standard: true,
+            secure: true,
+            supportFetchAPI: true,
+            corsEnabled: true,
+        },
+    },
+]);
+
+// ─────────────────────────────────────────────────────────────────────────────
 // Application Lifecycle
 // ─────────────────────────────────────────────────────────────────────────────
 
@@ -299,7 +360,25 @@ app.whenReady().then(async () => {
     console.log(`[TOS Electron] Brain WS: ${BRAIN_WS_URL}`);
     console.log(`[TOS Electron] Dev Mode: ${IS_DEV}`);
 
-    // Register custom protocol
+    // Register tos-app:// protocol to serve Svelte build files
+    protocol.handle('tos-app', (request) => {
+        const reqUrl = new URL(request.url);
+        // Map tos-app://renderer/path to buildDir/path
+        let filePath = decodeURIComponent(reqUrl.pathname);
+        // Remove leading slash on Windows
+        if (process.platform === 'win32' && filePath.startsWith('/')) {
+            filePath = filePath.substring(1);
+        }
+        // Serve index.html for directory requests (SPA fallback)
+        if (filePath === '/' || filePath === '' || filePath.endsWith('/')) {
+            filePath = '/index.html';
+        }
+        const fullPath = path.join(config.rendererBuildPath, filePath);
+        console.log(`[Protocol tos-app] ${reqUrl.pathname} → ${fullPath}`);
+        return net.fetch(url.pathToFileURL(fullPath).toString());
+    });
+
+    // Register tos:// deep-link protocol
     registerProtocolHandler();
 
     // Setup IPC bridge

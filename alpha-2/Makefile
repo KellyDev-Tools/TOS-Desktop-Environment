@@ -1,7 +1,7 @@
 # TOS Alpha-2 Build System
 # High-Fidelity OS Pipeline
 
-.PHONY: help build check fmt lint docs test test-all test-core test-shell test-ai test-sec test-system test-brain-component test-ui-component test-self run run-web run-web-dev build-web dev-web clean electron-setup electron-build electron-dev build-electron-win build-electron-macos build-electron-linux build-electron-all
+.PHONY: help build check fmt lint docs test test-all test-core test-shell test-ai test-sec test-system test-brain-component test-ui-component test-self run run-web run-web-dev build-web dev-web clean electron-setup electron-build electron-dev build-electron-win build-electron-macos build-electron-linux build-electron-all test-electron
 
 # -----------------------------------------------------------------------------
 # 1. HELP & DISCOVERY
@@ -216,6 +216,11 @@ build-electron-all: electron-build
 	@echo "[TOS] Packaging Electron for ALL platforms..."
 	@$(NVM_INIT) && cd $(ELECTRON_DIR) && npm run pack:all
 	@echo "[TOS] All-platform packages: COMPLETE → $(ELECTRON_DIR)/release/"
+
+test-electron: electron-setup
+	@echo "[TOS] Running Electron test suite..."
+	@$(NVM_INIT) && cd $(ELECTRON_DIR) && npm test
+	@echo "[TOS] Electron tests: COMPLETE"
 
 # -----------------------------------------------------------------------------
 # 6. MAINTENANCE

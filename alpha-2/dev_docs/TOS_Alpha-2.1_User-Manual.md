@@ -74,4 +74,50 @@ Access the **System Settings** modal (⚙ icon) to adjust:
 3.  **Interface Calibration**: Toggle multi-sensory feedback and UI animation speeds.
 
 ---
-*TOS Alpha-2.1 // Interface Specification Version 3.8 // Terminal On Steroids // Authorized Access Only*
+
+## 8. Desktop Application (Electron)
+
+TOS is available as a native desktop application for **Windows**, **macOS**, and **Linux** via Electron.
+
+### Installation
+
+| Platform | Format | How to Install |
+|----------|--------|----------------|
+| **Windows** | `.exe` installer | Run the NSIS installer; creates Start Menu and Desktop shortcuts |
+| **Windows** | Portable `.exe` | No installation required — run directly |
+| **macOS** | `.dmg` | Open DMG, drag TOS to Applications |
+| **Linux** | `.AppImage` | `chmod +x TOS-*.AppImage && ./TOS-*.AppImage` |
+| **Linux** | `.deb` | `sudo dpkg -i TOS-*.deb` |
+| **Linux** | `.rpm` | `sudo rpm -i TOS-*.rpm` |
+
+### Launch
+
+Once installed, TOS will:
+1. Start the Face window with the full TOS interface
+2. Create a **system tray icon** for quick access
+3. Connect to the Brain via WebSocket (`ws://127.0.0.1:7001`)
+
+### Platform Features
+
+*   **System Tray**: Right-click the tray icon to access Brain status, Settings, and Quit.
+*   **Deep Links**: Click `tos://` links to navigate directly (e.g., `tos://sector/3`, `tos://settings`).
+*   **Auto-Update**: TOS checks for updates on launch and every 4 hours. When a new version is downloaded, you'll be prompted to restart.
+*   **Window State**: Your window position, size, and maximized state are remembered across sessions.
+*   **Native Menus**: macOS uses the full AppKit menu bar; Windows/Linux use platform-appropriate menus.
+*   **Native Dialogs**: File open/save and print dialogs use your platform's native UI.
+
+### Keyboard Shortcuts (Desktop App)
+
+| Action | macOS | Windows/Linux |
+|--------|-------|---------------|
+| New Sector | `Cmd+N` | `Ctrl+N` |
+| Settings | `Cmd+,` | `Ctrl+,` |
+| Global Overview | `Cmd+1` | `Ctrl+1` |
+| Command Hub | `Cmd+2` | `Ctrl+2` |
+
+### Environment Variable
+
+Set `TOS_BRAIN_WS` to connect to a remote Brain: `TOS_BRAIN_WS=ws://192.168.1.100:7001`
+
+---
+*TOS Alpha-2.2.1 // Interface Specification Version 4.0 // Terminal On Steroids // Authorized Access Only*

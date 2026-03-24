@@ -1,7 +1,7 @@
 # TOS Alpha-2 Build System
 # High-Fidelity OS Pipeline
 
-.PHONY: help build check fmt lint docs test test-all test-core test-shell test-ai test-sec test-system test-brain-component test-ui-component test-self run run-web run-web-dev build-web dev-web clean electron-setup electron-build electron-dev build-electron-win build-electron-macos build-electron-linux build-electron-all test-electron
+.PHONY: help build check fmt lint docs test test-all test-core test-shell test-ai test-sec test-system test-brain-component test-ui-component test-self test-e2e run run-web run-web-dev build-web dev-web clean electron-setup electron-build electron-dev build-electron-win build-electron-macos build-electron-linux build-electron-all test-electron
 
 # -----------------------------------------------------------------------------
 # 1. HELP & DISCOVERY
@@ -28,7 +28,7 @@ help:
 	@echo "  make test-system          Single-process comprehensive system test"
 	@echo "  make test-brain-component  Two-process Stimulator/Node test"
 	@echo "  make test-ui-component     Playwright-based UI Component verification"
-	@echo "  make test-self            Internal Brain Self-Test Sequence"
+	@echo "  make test-self test-e2e            Internal Brain Self-Test Sequence"
 	@echo "  make test-health          Verify orchestration reachability (Tier 5)"
 	@echo ""
 	@echo "\033[1;33mExecution Targets:\033[0m"
@@ -111,7 +111,7 @@ test-ui-component:
 	@npx playwright install chromium
 	@npx playwright test tests/ui_component.spec.js
 
-test-self:
+test-self test-e2e:
 	cargo run -- --self-test
 
 test-health:
@@ -232,3 +232,7 @@ clean:
 	rm -rf svelte_ui/build/ svelte_ui/.svelte-kit/
 	rm -rf $(ELECTRON_DIR)/dist/ $(ELECTRON_DIR)/release/ $(ELECTRON_DIR)/node_modules/
 
+
+test-e2e:
+	@echo "[TOS] Launching Full-Stack E2E Paces (Playwright)..."
+	@$(NVM_INIT) && cd svelte_ui && npx playwright test -c playwright.e2e.config.ts

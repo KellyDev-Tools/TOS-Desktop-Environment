@@ -36,13 +36,13 @@
 	import SettingsModal from '$lib/components/SettingsModal.svelte';
 	import PortalModal from '$lib/components/PortalModal.svelte';
 
-	const state = $derived(getTosState());
+	const tosState = $derived(getTosState());
 	const connState = $derived(getConnectionState());
 	const mode = $derived(getCurrentMode());
 	const promptMode = $derived(getPromptMode());
 	const sidebarLeft = $derived(isSidebarLeftExpanded());
 	const sidebarRight = $derived(isSidebarRightExpanded());
-	const activeSector = $derived(state.sectors?.[state.active_sector_index]);
+	const activeSector = $derived(tosState.sectors?.[tosState.active_sector_index]);
 
 	// Bezel States based on Face Specification §3.1
 	const bottomBezelState = $derived(
@@ -259,12 +259,12 @@
 			<div class="header-section header-left">
 				<button class="bezel-btn" title="Toggle Left Sidebar" onclick={() => toggleSidebarLeft()}>◀</button>
 				<div class="lcars-title-area">
-					<span class="lcars-prefix">{state.sys_prefix || 'ALPHA-2.2 // INTEL-DRIVEN'}</span>
+					<span class="lcars-prefix">{tosState.sys_prefix || 'ALPHA-2.2 // INTEL-DRIVEN'}</span>
 				</div>
 				
 				<!-- Sector Chip with Popover -->
-				{#if state.sectors[state.active_sector_index]}
-					{@const activeSec = state.sectors[state.active_sector_index]}
+				{#if tosState.sectors[tosState.active_sector_index]}
+					{@const activeSec = tosState.sectors[tosState.active_sector_index]}
 					<div class="sector-chip-wrapper">
 						<button class="sector-name-chip" onclick={() => sessionPopoverOpen = !sessionPopoverOpen}>
 							<span class="live-pulse"></span>
@@ -358,7 +358,7 @@
 					</div>
 
 					<!-- Viewport Content -->
-					<div class="viewport-content" class:bezel-zoomed={state.bezel_expanded}>
+					<div class="viewport-content" class:bezel-zoomed={tosState.bezel_expanded}>
 						<DisconnectOverlay />
 						<OnboardingOverlay />
 						<ExpandedBezel />
@@ -376,7 +376,7 @@
 									<div class="intro-title" in:scale={{ duration: 2000 }}>TOS // TACTICAL_OPERATING_SYSTEM</div>
 								{:else if cinematicStage === 'logs'}
 									<div class="boot-logs">
-										{#each state.system_log.slice(-30) as log}
+										{#each tosState.system_log.slice(-30) as log}
 											<div class="boot-line">{log.text}</div>
 										{/each}
 									</div>
@@ -431,7 +431,7 @@
 
 			<!-- ═══════════ BOTTOM BEZEL ═══════════ -->
 			<!-- svelte-ignore a11y_click_events_have_key_events -->
-			<!-- svelte-ignore a11y_no_static_element_interactions -->
+			<!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
 			<footer 
 				class="lcars-footer {bottomBezelState}"
 				onclick={(e) => {

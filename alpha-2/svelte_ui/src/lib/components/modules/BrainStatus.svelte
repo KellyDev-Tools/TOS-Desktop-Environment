@@ -2,15 +2,15 @@
 	import { getTosState } from '$lib/stores/ipc.svelte';
 	import { getCurrentMode } from '$lib/stores/ui.svelte';
 
-	const state = $derived(getTosState());
+	const tosState = $derived(getTosState());
 	const mode = $derived(getCurrentMode());
-	const activeSector = $derived(state.sectors[state.active_sector_index]);
+	const activeSector = $derived(tosState.sectors[tosState.active_sector_index]);
 </script>
 
 <div class="brain-status">
 	<span class="time-label">BRAIN TIME</span>
-	<span class="time-value">{state.brain_time || '--:--:--'}</span>
-	<span class="status-badge active">{(state.sys_status || 'DISCONNECTED').toUpperCase()}</span>
+	<span class="time-value">{tosState.brain_time || '--:--:--'}</span>
+	<span class="status-badge active">{(tosState.sys_status || 'DISCONNECTED').toUpperCase()}</span>
 </div>
 
 <style>

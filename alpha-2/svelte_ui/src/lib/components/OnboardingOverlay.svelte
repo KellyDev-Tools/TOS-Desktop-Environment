@@ -5,8 +5,8 @@
 		onboardingSkipTour, onboardingAdvanceStep 
 	} from '$lib/stores/ipc.svelte';
 
-	const state = $derived(getTosState());
-	const isFirstRun = $derived(state.settings.global['tos.onboarding.first_run_complete'] !== 'true');
+	const tosState = $derived(getTosState());
+	const isFirstRun = $derived(tosState.settings.global['tos.onboarding.first_run_complete'] !== 'true');
 
 	let currentStep = $state(0);
 	let visible = $state(true);
@@ -29,7 +29,7 @@
 		},
 		{
 			title: 'MULTIPLE SECTORS',
-			desc: 'TOS can run dozens of isolated sectors simultaneously. Each sector has its own terminal history and application state.',
+			desc: 'TOS can run dozens of isolated sectors simultaneously. Each sector has its own terminal history and application tosState.',
 			action: 'Sector Management'
 		},
 		{
@@ -104,17 +104,17 @@
 									<div class="trust-btns">
 										<button 
 											class="lcars-btn-sm" 
-											class:active={state.settings.global['tos.trust.privilege_escalation'] === 'warn'}
+											class:active={tosState.settings.global['tos.trust.privilege_escalation'] === 'warn'}
 											onclick={() => setTrust('tos.trust.privilege_escalation', 'warn')}
 										>WARN</button>
 										<button 
 											class="lcars-btn-sm" 
-											class:active={state.settings.global['tos.trust.privilege_escalation'] === 'allow'}
+											class:active={tosState.settings.global['tos.trust.privilege_escalation'] === 'allow'}
 											onclick={() => setTrust('tos.trust.privilege_escalation', 'allow')}
 										>ALLOW</button>
 										<button 
 											class="lcars-btn-sm" 
-											class:active={state.settings.global['tos.trust.privilege_escalation'] === 'block'}
+											class:active={tosState.settings.global['tos.trust.privilege_escalation'] === 'block'}
 											onclick={() => setTrust('tos.trust.privilege_escalation', 'block')}
 										>BLOCK</button>
 									</div>
@@ -124,17 +124,17 @@
 									<div class="trust-btns">
 										<button 
 											class="lcars-btn-sm" 
-											class:active={state.settings.global['tos.trust.recursive_bulk'] === 'warn'}
+											class:active={tosState.settings.global['tos.trust.recursive_bulk'] === 'warn'}
 											onclick={() => setTrust('tos.trust.recursive_bulk', 'warn')}
 										>WARN</button>
 										<button 
 											class="lcars-btn-sm" 
-											class:active={state.settings.global['tos.trust.recursive_bulk'] === 'allow'}
+											class:active={tosState.settings.global['tos.trust.recursive_bulk'] === 'allow'}
 											onclick={() => setTrust('tos.trust.recursive_bulk', 'allow')}
 										>ALLOW</button>
 										<button 
 											class="lcars-btn-sm" 
-											class:active={state.settings.global['tos.trust.recursive_bulk'] === 'block'}
+											class:active={tosState.settings.global['tos.trust.recursive_bulk'] === 'block'}
 											onclick={() => setTrust('tos.trust.recursive_bulk', 'block')}
 										>BLOCK</button>
 									</div>

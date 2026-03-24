@@ -175,8 +175,8 @@ export function getDefaultState(): TosState {
         collab_presence: [],
         settings: {
             global: {
-                'tos.onboarding.first_run_complete': 'true',
-                'tos.onboarding.wizard_complete': 'true'
+                'tos.onboarding.first_run_complete': typeof window !== 'undefined' ? (window.localStorage.getItem('tos.onboarding.first_run_complete') || 'false') : 'false',
+                'tos.onboarding.wizard_complete': typeof window !== 'undefined' ? (window.localStorage.getItem('tos.onboarding.wizard_complete') || 'false') : 'false'
             },
             sectors: {},
             applications: {}

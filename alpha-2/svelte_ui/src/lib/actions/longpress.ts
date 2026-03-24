@@ -1,4 +1,5 @@
-export function longpress(node: HTMLElement, threshold = 600) {
+export function longpress(node: HTMLElement, options: { threshold?: number; onLongPress?: (e: Event) => void } = {}) {
+    let threshold = options.threshold || 600;
     let timer: number | null = null;
     let didTrigger = false;
 
@@ -6,7 +7,11 @@ export function longpress(node: HTMLElement, threshold = 600) {
         didTrigger = false;
         timer = window.setTimeout(() => {
             didTrigger = true;
-            node.dispatchEvent(new CustomEvent('longpress', { detail: event }));
+            if (options.onLongPress) {
+                options.onLongPress(event);
+            } else {
+                node.dispatchEvent(new CustomEvent('longpress', { detail: event }));
+            }
         }, threshold);
     };
 
@@ -16,12 +21,10 @@ export function longpress(node: HTMLElement, threshold = 600) {
             timer = null;
         }
         if (didTrigger) {
-            // Prevent default click actions if the long press triggered
             event.preventDefault();
         }
     };
 
-    // Attach listeners
     node.addEventListener('mousedown', handleDown);
     node.addEventListener('mouseup', handleUp);
     node.addEventListener('mouseleave', handleUp);
@@ -30,8 +33,9 @@ export function longpress(node: HTMLElement, threshold = 600) {
     node.addEventListener('touchcancel', handleUp);
 
     return {
-        update(newThreshold: number) {
-            threshold = newThreshold;
+        update(newOptions: { threshold?: number; onLongPress?: (e: Event) => void }) {
+            options = { ...options, ...newOptions };
+            if (options.threshold) threshold = options.threshold;
         },
         destroy() {
             node.removeEventListener('mousedown', handleDown);

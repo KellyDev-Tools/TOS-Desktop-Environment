@@ -3,10 +3,10 @@
 	import { isTerminalToFront, getCurrentMode } from '$lib/stores/ui.svelte';
 
 
-	const state = $derived(getTosState());
+	const tosState = $derived(getTosState());
 	const toFront = $derived(isTerminalToFront());
 	const mode = $derived(getCurrentMode());
-	const logs = $derived(state.system_log || []);
+	const logs = $derived(tosState.system_log || []);
 
 	// Visible as background layer on Level 1 (Global Overview),
 	// or when explicitly brought to front via the 👁 toggle.
@@ -19,7 +19,7 @@
 		return parts[1]?.split('.')[0] || ts;
 	}
 
-	let container: HTMLDivElement;
+	let container: HTMLDivElement | undefined = $state();
 
 	$effect(() => {
 		// Depend on logs length or just access container and logs

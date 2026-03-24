@@ -1,9 +1,9 @@
 <script lang="ts">
 	import { onMount, onDestroy } from 'svelte';
 	import { fade, fly, scale, slide } from 'svelte/transition';
-	import { getTosState, marketplaceGetHome, marketplaceGetCategory, marketplaceGetDetail, marketplaceInstall, marketplaceGetStatus, sendCommand } from '$lib/stores/ipc.svelte';
+	import { getTosState, marketplaceGetHome, marketplaceGetCategory, marketplaceGetDetail, marketplaceInstall, marketplaceGetStatus, sendCommand, marketplaceSearchAi } from '$lib/stores/ipc.svelte';
 
-	const state = $derived(getTosState());
+	const tosState = $derived(getTosState());
 	
 	let selectedCategory = $state('Featured');
 	let searchQuery = $state('');
@@ -37,6 +37,7 @@
 
     let categories = $state(['Featured']);
     let isConnecting = $state(true);
+    let categoryModules = $state<any[]>([]);
 	
 	const filteredModules = $derived(
 		aiSearchResults.length > 0 ? aiSearchResults : (
@@ -46,8 +47,6 @@
             : []
         )
 	);
-
-    let categoryModules = $state<any[]>([]);
 
     async function handleCategorySelect(categoryName: string) {
         selectedCategory = categoryName;
@@ -147,7 +146,7 @@
 		{#if selectedCategory === 'Featured' && homeData && !isAiSearching}
 			<section class="featured-strip" in:fly={{ y: 20 }}>
                 {#each homeData.featured as module}
-                    <div class="featured-card {module.name.toLowerCase().includes('aurora') ? 'aurora' : 'intelligence'}" onclick={() => openDetail(module.id)}>
+                    <div role="button" tabindex="0" onkeydown={(e) => e.key === 'Enter' && openDetail(module.id)} class="featured-card {module.name.toLowerCase().includes('aurora') ? 'aurora' : 'intelligence'}" onclick={() => openDetail(module.id)}>
                         <div class="card-tag">FEATURED</div>
                         <div class="card-title">{module.name.toUpperCase()}</div>
                         <div class="card-desc">{module.module_type} by {module.author}</div>
@@ -161,6 +160,7 @@
 		<div class="module-grid" class:searching={isAiSearching}>
 			{#each filteredModules as module}
 				<div 
+                    role="button" tabindex="0" onkeydown={(e) => e.key === 'Enter' && openDetail(module.id)}
                     class="module-card glass-panel" 
                     class:ai-result={aiSearchResults.some(a => a.id === module.id)}
                     in:fly={{ y: 20, duration: 300 }} 
@@ -204,7 +204,7 @@
 
     {#if selectedModule}
         <div class="detail-overlay" transition:fade onclick={() => selectedModule = null} role="button" tabindex="0" onkeydown={(e) => e.key === 'Escape' && (selectedModule = null)}>
-            <div class="detail-card glass-panel" onclick={(e) => e.stopPropagation()} in:fly={{ y: 100, duration: 500 }} role="dialog" aria-modal="true" tabindex="-1">
+            <div class="detail-card glass-panel" onclick={(e) => e.stopPropagation()} onkeydown={(e) => e.key === 'Enter' && e.stopPropagation()} in:fly={{ y: 100, duration: 500 }} role="dialog" aria-modal="true" tabindex="-1">
                 <header class="detail-header">
                     <div class="detail-icon">{selectedModule.summary.icon || '⊞'}</div>
                     <div class="detail-meta">

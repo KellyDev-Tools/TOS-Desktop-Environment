@@ -5,9 +5,9 @@
 	import { longpress } from '$lib/actions/longpress';
 	import SectorContextMenu from '../SectorContextMenu.svelte';
 
-	const state = $derived(getTosState());
-	const sectors = $derived(state.sectors || []);
-	const activeIndex = $derived(state.active_sector_index);
+	const tosState = $derived(getTosState());
+	const sectors = $derived(tosState.sectors || []);
+	const activeIndex = $derived(tosState.active_sector_index);
 
 	let dragHoverSector = $state<number | null>(null);
 
@@ -78,24 +78,23 @@
 	<div class="sector-grid">
 		{#each sectors as sector, i}
 			<button
-				use:longpress
-				onlongpress={(e) => openContextMenu(e, i, sector.name)}
-				oncontextmenu={(e) => openContextMenu(e, i, sector.name)}
+				use:longpress={{ onLongPress: (e) => openContextMenu(e as CustomEvent, i, sector.name) }}
+				oncontextmenu={(e: any) => openContextMenu(e, i, sector.name)}
 				class="sector-tile {getBorderClass(sector)}"
 				class:active={i === activeIndex}
 				class:drag-hover={dragHoverSector === i}
 				onclick={() => handleSectorClick(i)}
-				ondragover={(e) => handleDragOver(e, i)}
+				ondragover={(e: any) => handleDragOver(e, i)}
 				ondragleave={handleDragLeave}
-				ondrop={(e) => handleDrop(e, i)}
+				ondrop={(e: any) => handleDrop(e, i)}
 			>
 				<div class="sector-thumbnail">
-					{#if sector.active_apps && sector.active_apps.length > 0}
+					{#if sector.hubs[0]?.activity_listing?.processes?.length}
 						<div class="app-matrix">
-							{#each sector.active_apps.slice(0, 4) as app}
+							{#each sector.hubs[0].activity_listing.processes.slice(0, 4) as app}
 								<div class="matrix-item app-item">
 									<div class="matrix-icon">⊞</div>
-									<div class="matrix-label">{app.title || app.model_id}</div>
+									<div class="matrix-label">{app.name}</div>
 								</div>
 							{/each}
 						</div>

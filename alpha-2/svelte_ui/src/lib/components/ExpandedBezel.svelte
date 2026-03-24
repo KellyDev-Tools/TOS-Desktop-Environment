@@ -2,8 +2,8 @@
 	import { fade, fly } from 'svelte/transition';
 	import { getTosState, bezelCollapse, bezelSwipe, bezelPanePromote } from '$lib/stores/ipc.svelte';
 
-	const state = $derived(getTosState());
-	const activeSector = $derived(state.sectors[state.active_sector_index]);
+	const tosState = $derived(getTosState());
+	const activeSector = $derived(tosState.sectors[tosState.active_sector_index]);
 	const activeHub = $derived(activeSector.hubs[activeSector.active_hub_index]);
 	
 	let swipeDir: 'Left' | 'Right' = 'Right';
@@ -14,7 +14,7 @@
 	}
 </script>
 
-{#if state.bezel_expanded}
+{#if tosState.bezel_expanded}
 	<div 
 		class="expanded-bezel-overlay glass-panel"
 		transition:fly={{ y: 300, duration: 500 }}
@@ -59,17 +59,17 @@
 			</div>
 
 			<div class="bezel-right">
-				{#if activeSector.active_apps.length > 0}
+				{#if (activeHub.activity_listing?.processes || []).length > 0}
 					<div class="app-navigator">
 						<div class="navigator-label">NAVIGATE_LEVEL_3</div>
 						<div class="app-swipe-controls">
 							<button class="swipe-btn" onclick={() => handleSwipe('Left')}>◀</button>
 							<div class="active-app-badge">
-								{activeSector.active_apps[activeSector.active_app_index]?.title || 'NO_APP'}
+								{(activeHub.activity_listing?.processes || [])[0]?.name || 'NO_APP'}
 							</div>
 							<button class="swipe-btn" onclick={() => handleSwipe('Right')}>▶</button>
 						</div>
-						<div class="app-count">{activeSector.active_app_index + 1} / {activeSector.active_apps.length}</div>
+						<div class="app-count">1 / {(activeHub.activity_listing?.processes || []).length}</div>
 					</div>
 				{/if}
 			</div>

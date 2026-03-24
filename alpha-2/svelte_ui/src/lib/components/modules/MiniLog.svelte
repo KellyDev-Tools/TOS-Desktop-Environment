@@ -1,10 +1,10 @@
 <script lang="ts">
 	import { getTosState } from '$lib/stores/ipc.svelte';
 
-	const state = $derived(getTosState());
+	const tosState = $derived(getTosState());
 	const lastLog = $derived(
-		state.system_log && state.system_log.length > 0
-			? state.system_log[state.system_log.length - 1]
+		tosState.system_log && tosState.system_log.length > 0
+			? tosState.system_log[tosState.system_log.length - 1]
 			: { text: 'SYSTEM READY.', priority: 0 }
 	);
 	const text = $derived((lastLog.text || '').toUpperCase());

@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { getTosState, getSyncLatency } from '$lib/stores/ipc.svelte';
 
-	const state = $derived(getTosState());
+	const tosState = $derived(getTosState());
 	const latency = $derived(getSyncLatency());
 
 	// TODO: Pull real telemetry from Brain state when available

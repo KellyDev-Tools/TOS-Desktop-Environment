@@ -8,7 +8,7 @@
 
 	const open = $derived(isSettingsOpen());
 	const activeTab = $derived(getSettingsTab());
-	const state = $derived(getTosState());
+	const tosState = $derived(getTosState());
 
 	const tabs: { id: SettingsTab; label: string; icon: string }[] = [
 		{ id: 'global',      label: 'SYSTEM',      icon: '⬡' },
@@ -28,12 +28,12 @@
 
 	// AI key status
 	const openaiKeySet = $derived(
-		!!state.settings?.global?.['tos.ai.openai_api_key'] ||
-		!!state.settings?.global?.['tos.ai.openai_key_configured']
+		!!tosState.settings?.global?.['tos.ai.openai_api_key'] ||
+		!!tosState.settings?.global?.['tos.ai.openai_key_configured']
 	);
 	const anthropicKeySet = $derived(
-		!!state.settings?.global?.['tos.ai.anthropic_api_key'] ||
-		!!state.settings?.global?.['tos.ai.anthropic_key_configured']
+		!!tosState.settings?.global?.['tos.ai.anthropic_api_key'] ||
+		!!tosState.settings?.global?.['tos.ai.anthropic_key_configured']
 	);
 
 	function handleOverlayClick(e: MouseEvent) {
@@ -73,7 +73,7 @@
 		await sendCommand(`ai_backend_set_default:${id}`);
 	}
 
-	let fileInput: HTMLInputElement;
+	let sessionFileInput: HTMLInputElement | undefined = $state();
 
 	async function handleSessionImport(e: Event) {
 		const target = e.target as HTMLInputElement;
@@ -126,11 +126,11 @@
 							<div class="settings-group-title">SYSTEM IDENTITY</div>
 							<div class="settings-row">
 								<span class="settings-label">System Prefix</span>
-								<span class="settings-value text-mono">{state.sys_prefix || 'ALPHA-2.2'}</span>
+								<span class="settings-value text-mono">{tosState.sys_prefix || 'ALPHA-2.2'}</span>
 							</div>
 							<div class="settings-row">
 								<span class="settings-label">Brain Time</span>
-								<span class="settings-value text-mono">{state.brain_time || '--:--:--'}</span>
+								<span class="settings-value text-mono">{tosState.brain_time || '--:--:--'}</span>
 							</div>
 							<div class="settings-row">
 								<span class="settings-label">Active Theme</span>
@@ -205,7 +205,7 @@
 						</div>
 						<div class="settings-group">
 							<div class="settings-group-title">SECTOR OVERRIDES</div>
-							{#each state.sectors as sector}
+							{#each tosState.sectors as sector}
 								<div class="settings-row">
 									<span class="settings-label">{sector.name}</span>
 									<select class="settings-select small" onchange={(e) => sendCommand(`sector_set_setting:${sector.id};tos.trust.override_tier;${(e.target as HTMLSelectElement).value}`)}>
@@ -258,7 +258,7 @@
 							<div class="settings-row">
 								<span class="settings-label">Active Default</span>
 								<span class="settings-value text-mono ai-backend-id">
-									{state.ai_default_backend || state.active_ai_module || 'none'}
+									{tosState.ai_default_backend || tosState.active_ai_module || 'none'}
 								</span>
 							</div>
 							<div class="settings-row">
@@ -296,8 +296,8 @@
 
 						<div class="settings-group">
 							<div class="settings-group-title">INSTALLED AI MODULES</div>
-							{#if state.available_ai_modules?.length}
-								{#each state.available_ai_modules as mod}
+							{#if tosState.available_ai_modules?.length}
+								{#each tosState.available_ai_modules as mod}
 									<div class="settings-row module-row">
 										<div class="module-info">
 											<span class="settings-label">{mod.name}</span>
@@ -307,10 +307,10 @@
 										</div>
 										<button
 											class="lcars-btn-sm"
-											class:primary={state.active_ai_module === mod.id || state.ai_default_backend === mod.id}
+											class:primary={tosState.active_ai_module === mod.id || tosState.ai_default_backend === mod.id}
 											onclick={() => activateAiModule(mod.id)}
 										>
-											{state.active_ai_module === mod.id || state.ai_default_backend === mod.id ? 'ACTIVE ✓' : 'ACTIVATE'}
+											{tosState.active_ai_module === mod.id || tosState.ai_default_backend === mod.id ? 'ACTIVE ✓' : 'ACTIVATE'}
 										</button>
 									</div>
 								{/each}
@@ -321,8 +321,8 @@
 
 						<div class="settings-group">
 							<div class="settings-group-title">BEHAVIORS</div>
-							{#if state.ai_behaviors?.length}
-								{#each state.ai_behaviors as behavior}
+							{#if tosState.ai_behaviors?.length}
+								{#each tosState.ai_behaviors as behavior}
 									<div class="behavior-card glass-panel">
 										<div class="behavior-header">
 											<span class="behavior-name">{behavior.name}</span>
@@ -349,7 +349,7 @@
 												onchange={(e) => setBehaviorBackend(behavior.id, (e.target as HTMLSelectElement).value)}
 											>
 												<option value="">(use default)</option>
-												{#each (state.available_ai_modules || []) as mod}
+												{#each (tosState.available_ai_modules || []) as mod}
 													<option value={mod.id}>{mod.name}</option>
 												{/each}
 											</select>
@@ -381,8 +381,8 @@
 							<div class="settings-group-title">IMPORT / EXPORT</div>
 							<div class="settings-row">
 								<span class="settings-label">Import Session Package</span>
-								<input type="file" bind:this={fileInput} style="display:none" accept=".tos-session" onchange={handleSessionImport} />
-								<button class="lcars-btn-sm primary" onclick={() => fileInput.click()}>BROWSE...</button>
+								<input type="file" bind:this={sessionFileInput} style="display:none" accept=".tos-session" onchange={handleSessionImport} />
+								<button class="lcars-btn-sm primary" onclick={() => sessionFileInput?.click()}>BROWSE...</button>
 							</div>
 							<div class="settings-desc">
 								Drag and drop <code>.tos-session</code> files onto sector tiles at Level 1 for targeted restoration.
@@ -393,8 +393,8 @@
 					{:else if activeTab === 'marketplace'}
 						<div class="settings-group">
 							<div class="settings-group-title">TERMINAL MODULES</div>
-							{#if state.available_modules?.length}
-								{#each state.available_modules as mod}
+							{#if tosState.available_modules?.length}
+								{#each tosState.available_modules as mod}
 									<div class="settings-row">
 										<span class="settings-label">{mod.name}</span>
 										<span class="settings-value text-dim">{mod.layout}</span>
@@ -407,8 +407,8 @@
 
 						<div class="settings-group">
 							<div class="settings-group-title">AI MODULES</div>
-							{#if state.available_ai_modules?.length}
-								{#each state.available_ai_modules as mod}
+							{#if tosState.available_ai_modules?.length}
+								{#each tosState.available_ai_modules as mod}
 									<div class="settings-row">
 										<div class="module-info">
 											<span class="settings-label">{mod.name}</span>
@@ -438,7 +438,7 @@
 					{:else if activeTab === 'sectors'}
 						<div class="settings-group">
 							<div class="settings-group-title">ACTIVE SECTORS</div>
-							{#each state.sectors as sector, i}
+							{#each tosState.sectors as sector, i}
 								<div class="settings-row">
 									<span class="settings-label">S0{i}: {sector.name.toUpperCase()}</span>
 									<span class="settings-value" class:text-success={!sector.frozen} class:text-warning={sector.frozen}>

@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { getTosState, sendCommand } from '$lib/stores/ipc.svelte';
 
-	const state = $derived(getTosState());
+	const tosState = $derived(getTosState());
 	
 	let killSwitchConfirm = $state(false);
 
@@ -23,13 +23,14 @@
 	</header>
 
 	<div class="wireframe-grid">
-		{#each state.sectors as sector, i}
-			<div class="wireframe-sector" class:frozen={sector.frozen} class:deadlocked={sector.disconnected}>
+		{#each tosState.sectors as sector, i}
+			<div class="wireframe-sector" class:frozen={sector.frozen} class:deadlocked={sector.status === 'Deadlocked'}>
 				<div class="wf-title">S0{i} // {sector.name}</div>
-				<div class="wf-stats">
+				
+				<div class="wf-metrics">
 					<div>HUBS: {sector.hubs.length}</div>
-					<div>APPS: {sector.active_apps.length}</div>
-					<div>STATE: {sector.frozen ? 'FROZEN' : (sector.disconnected ? 'DEADLOCKED' : 'NOMINAL')}</div>
+					<div>APPS: {sector.hubs[0]?.activity_listing?.processes?.length || 0}</div>
+					<div>STATE: {sector.frozen ? 'FROZEN' : (sector.status === 'Deadlocked' ? 'DEADLOCKED' : 'NOMINAL')}</div>
 				</div>
 			</div>
 		{/each}

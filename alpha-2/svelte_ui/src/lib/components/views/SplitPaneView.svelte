@@ -5,14 +5,14 @@
 
 	let { pane, activeHub }: { pane: SplitPane; activeHub: Hub | null } = $props();
 
-	const state = $derived(getTosState());
+	const tosState = $derived(getTosState());
 	const isFocused = $derived(activeHub?.focused_pane_id === pane.id);
 
 	// Terminal output — prefer hub-level, fall back to global
 	const termOutput = $derived(
 		activeHub?.terminal_output?.length
 			? activeHub.terminal_output
-			: (state.terminal_output || [])
+			: (tosState.terminal_output || [])
 	);
 
 	function priorityColor(p: number): string {
@@ -54,12 +54,12 @@
 		{:else if typeof pane.content === 'object' && 'Application' in pane.content}
 			<div class="app-placeholder">
 				<div class="app-icon">⊞</div>
-				<div class="app-name">{pane.content.Application.toUpperCase()}</div>
+				<div class="app-name">{typeof pane.content === 'object' && 'Application' in pane.content ? (pane.content as any).Application : ''.toUpperCase()}</div>
 				<div class="app-status">SESSION RESTORED — PENDING LAUNCH</div>
 				<button 
 					class="lcars-btn-sm primary" 
 					style="margin-top: var(--space-md);"
-					onclick={(e) => { e.stopPropagation(); submitCommand(pane.content.Application); }}
+					onclick={(e) => { e.stopPropagation(); submitCommand(typeof pane.content === 'object' && 'Application' in pane.content ? (pane.content as any).Application : 'focus'); }}
 				>
 					▶ RELAUNCH APP
 				</button>

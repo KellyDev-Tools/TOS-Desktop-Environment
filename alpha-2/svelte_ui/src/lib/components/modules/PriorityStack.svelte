@@ -1,8 +1,8 @@
 <script lang="ts">
 	import { getTosState } from '$lib/stores/ipc.svelte';
 
-	const state = $derived(getTosState());
-	const recentLogs = $derived((state.system_log || []).slice(-3));
+	const tosState = $derived(getTosState());
+	const recentLogs = $derived((tosState.system_log || []).slice(-3));
 </script>
 
 <div class="priority-stack">

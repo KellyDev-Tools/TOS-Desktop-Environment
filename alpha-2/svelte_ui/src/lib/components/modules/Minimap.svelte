@@ -2,12 +2,12 @@
 	import { getTosState } from '$lib/stores/ipc.svelte';
 	import { getCurrentMode, setCurrentMode, type ViewMode } from '$lib/stores/ui.svelte';
 
-	const state = $derived(getTosState());
+	const tosState = $derived(getTosState());
 	const mode = $derived(getCurrentMode());
 
 	// Determine which sectors to show and active marker
-	const sectors = $derived(state.sectors || []);
-	const activeIndex = $derived(state.active_sector_index);
+	const sectors = $derived(tosState.sectors || []);
+	const activeIndex = $derived(tosState.active_sector_index);
 </script>
 
 <div class="minimap">

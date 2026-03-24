@@ -1,6 +1,7 @@
 <script lang="ts">
 	import type { SplitNode, Hub } from '$lib/stores/tos-state.svelte';
 	import SplitPaneView from './SplitPaneView.svelte';
+	import SplitLayout from './SplitLayout.svelte';
 
 	let { node, activeHub }: { node: SplitNode; activeHub: Hub | null } = $props();
 
@@ -21,7 +22,7 @@
 				class="split-item" 
 				style="flex: {(isLeaf(child) ? child.Leaf.weight : 1) || 1};"
 			>
-				<svelte:self node={child} {activeHub} />
+				<SplitLayout node={child} {activeHub} />
 				
 				{#if i < container.children.length - 1}
 					<div class="split-divider {container.orientation.toLowerCase()}"></div>

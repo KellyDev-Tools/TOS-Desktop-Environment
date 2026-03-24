@@ -1,8 +1,8 @@
 <script lang="ts">
 	import { getTosState } from '$lib/stores/ipc.svelte';
 
-	const state = $derived(getTosState());
-	const currentSector = $derived(state.sectors[state.active_sector_index]);
+	const tosState = $derived(getTosState());
+	const currentSector = $derived(tosState.sectors[tosState.active_sector_index]);
 </script>
 
 <div class="app-focus">

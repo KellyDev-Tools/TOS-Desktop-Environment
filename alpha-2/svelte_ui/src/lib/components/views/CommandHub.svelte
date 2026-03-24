@@ -7,8 +7,8 @@
 	import { getPromptMode } from '$lib/stores/ui.svelte';
 	import { longpress } from '$lib/actions/longpress';
 
-	const state = $derived(getTosState());
-	const activeSector = $derived(state.sectors[state.active_sector_index]);
+	const tosState = $derived(getTosState());
+	const activeSector = $derived(tosState.sectors[tosState.active_sector_index]);
 	const activeHub = $derived(
 		activeSector && activeSector.hubs[activeSector.active_hub_index]
 			? activeSector.hubs[activeSector.active_hub_index]
@@ -21,7 +21,7 @@
 	const termOutput = $derived(
 		activeHub?.terminal_output?.length
 			? activeHub.terminal_output
-			: (state.terminal_output || [])
+			: (tosState.terminal_output || [])
 	);
 
 	function priorityColor(p: number): string {
@@ -112,9 +112,8 @@
 							<div 
 								class="activity-item" 
 								class:stopped={proc.status === 'stopped' || proc.status === 'sleeping'} 
-								use:longpress
-								onlongpress={(e) => handleContextMenu(e, proc)}
-								oncontextmenu={(e) => handleContextMenu(e, proc)}
+								use:longpress={{ onLongPress: (e) => handleContextMenu(e as CustomEvent, proc) }}
+								oncontextmenu={(e: any) => handleContextMenu(e, proc)}
 							>
 								{#if proc.snapshot}
 									<img class="proc-thumb snapshot" src="data:image/jpeg;base64,{proc.snapshot}" alt="Process Thumbnail" />

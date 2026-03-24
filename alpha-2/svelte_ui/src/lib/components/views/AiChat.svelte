@@ -2,14 +2,14 @@
 	import { getTosState } from '$lib/stores/ipc.svelte';
 	import { slide } from 'svelte/transition';
 
-	const state = $derived(getTosState());
-	const activeSector = $derived(state.sectors[state.active_sector_index]);
+	const tosState = $derived(getTosState());
+	const activeSector = $derived(tosState.sectors[tosState.active_sector_index]);
 	const activeHub = $derived(
 		activeSector && activeSector.hubs[activeSector.active_hub_index]
 			? activeSector.hubs[activeSector.active_hub_index]
 			: null
 	);
-	const history = $derived(activeHub?.ai_history || []);
+	const history = $derived((activeHub as any)?.ai_history || []);
 </script>
 
 <div class="ai-chat-container glass-panel">

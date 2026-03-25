@@ -21,8 +21,11 @@ pub struct Brain {
 
 impl Brain {
     pub fn new() -> anyhow::Result<Self> {
+        // Load TOS config (tos.toml) from CLI/env/XDG/cwd/defaults.
+        let config = crate::config::TosConfig::load();
+        let sessions_dir = config.sessions_dir();
+
         let mut state_val = TosState::default();
-        let sessions_dir = dirs::data_local_dir().unwrap_or_else(|| std::path::PathBuf::from("/tmp")).join("tos/sessions");
         let live_path = sessions_dir.join("_live.tos-session");
         if let Ok(content) = std::fs::read_to_string(&live_path) {
             if let Ok(live_state) = serde_json::from_str::<TosState>(&content) {
@@ -34,7 +37,7 @@ impl Brain {
         let hid = state_val.sectors[0].hubs[0].id;
         let state = Arc::new(Mutex::new(state_val));
         
-        let services = Arc::new(crate::services::ServiceManager::new());
+        let services = Arc::new(crate::services::ServiceManager::with_config(&config));
         let modules = Arc::new(ModuleManager::new(std::path::PathBuf::from("./modules")));
         services.ai.set_module_manager(modules.clone());
         

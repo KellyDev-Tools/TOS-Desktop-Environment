@@ -1,0 +1,171 @@
+# ═══════════════════════════════════════════════════════════════════════════
+# TOS Brain Configuration — tos.toml
+# ═══════════════════════════════════════════════════════════════════════════
+#
+# Resolution order:
+#   1. --config <path> CLI argument
+#   2. $TOS_CONFIG environment variable
+#   3. ~/.config/tos/tos.toml  (XDG)
+#   4. ./tos.toml              (working directory)
+#   5. Built-in defaults
+#
+# Empty strings ("") mean "use platform default".
+
+# ───────────────────────────────────────────────────────────────────────────
+# [brain] — Identity of THIS Brain instance
+# ───────────────────────────────────────────────────────────────────────────
+# A TOS deployment may run multiple Brains (e.g. a primary workstation Brain
+# and a satellite Brain on a server). This section identifies the current
+# instance and its role in the mesh.
+[brain]
+
+# Human-readable name for this Brain. Shown in Face headers and mDNS.
+# Default: system hostname.
+name = ""
+
+# UUID for this Brain instance. Auto-generated on first boot if empty.
+# Persisted to {data_dir}/brain_id.
+id = ""
+
+# Role in a multi-brain mesh:
+#   "primary"   — authoritative state owner, accepts Face connections.
+#   "satellite" — mirrors state from an upstream primary, local Faces only.
+#   "standalone" — single-brain deployment (default).
+role = "standalone"
+
+# Upstream Brain address for satellite mode (host:port).
+# Only used when role = "satellite".
+upstream = ""
+
+# ───────────────────────────────────────────────────────────────────────────
+# [face] — How Faces discover and connect to this Brain
+# ───────────────────────────────────────────────────────────────────────────
+# Faces are the UI renderers (Web/Svelte, Wayland, Android, OpenXR).
+# This section controls what the Brain advertises and how it handles
+# concurrent Face connections.
+[face]
+
+# Maximum number of concurrent Face connections.
+# 0 = unlimited.
+max_connections = 0
+
+# Preferred Face URL advertised via mDNS and portal invites.
+# Empty = auto-detect from bind_address + ws_port.
+# Example: "ws://192.168.1.100:7001" or "wss://tos.local:7001"
+advertised_url = ""
+
+# Whether to serve the built-in Svelte web Face from the Brain's HTTP server.
+# Disable if you only use native Faces (Wayland, Android, XR).
+serve_web_face = true
+
+# Port for the embedded web Face dev server (Vite/SvelteKit).
+# Only used when serve_web_face = true.
+web_face_port = 5173
+
+# ───────────────────────────────────────────────────────────────────────────
+# [platform] — Where am I running?
+# ───────────────────────────────────────────────────────────────────────────
+# The Brain auto-detects the platform at startup (linux, android, xr).
+# These overrides let you force specific base paths when the runtime
+# detection gives the wrong answer (e.g. running inside a container,
+# cross-compiling, or testing on a different filesystem layout).
+[platform]
+
+# Base directory for user configuration (settings.json, tos.toml copy, etc.)
+# Platform defaults:
+#   linux   → ~/.config/tos/
+#   android → /data/data/com.tos.brain/config/
+#   xr      → ~/.config/tos/
+config_dir = ""
+
+# Base directory for persistent data (sessions, logs, marketplace cache, etc.)
+# Platform defaults:
+#   linux   → ~/.local/share/tos/
+#   android → /data/data/com.tos.brain/files/
+#   xr      → ~/.local/share/tos/
+data_dir = ""
+
+# Base directory for volatile runtime files (PID files, sockets, etc.)
+# Platform defaults:
+#   linux   → $XDG_RUNTIME_DIR/tos/  or /tmp/tos/
+#   android → /data/data/com.tos.brain/cache/
+#   xr      → $XDG_RUNTIME_DIR/tos/
+runtime_dir = ""
+
+# ───────────────────────────────────────────────────────────────────────────
+# [local] — Direct disk I/O settings
+# ───────────────────────────────────────────────────────────────────────────
+# Controls how the Brain reads/writes files when operating in local mode
+# (no daemon delegation). This is the default for single-machine operation.
+[local]
+
+# Whether the Brain should handle persistence directly (settings, sessions)
+# instead of delegating to separate daemon processes.
+# When true:  Brain writes settings.json and _live.tos-session to disk itself.
+# When false: Brain requires tos-settingsd and tos-sessiond daemons.
+# Default: true (local-first; daemons are optional accelerators).
+persistence = true
+
+# Active working directory for the Brain. Used for relative path resolution.
+# Empty = current working directory at startup.
+active_dir = ""
+
+# ───────────────────────────────────────────────────────────────────────────
+# [remote] — Network and daemon delegation settings
+# ───────────────────────────────────────────────────────────────────────────
+# Controls how the Brain interacts with remote Faces and daemon services
+# over the network. Relevant when Faces connect from other machines.
+[remote]
+
+# Anchor port for the TCP command server.
+# Default: 7000
+anchor_port = 7000
+
+# WebSocket port for state sync with Faces.
+# Default: 7001
+ws_port = 7001
+
+# Address to bind the daemon listeners to.
+# Use "127.0.0.1" to restrict to localhost, "0.0.0.0" for all interfaces.
+# Default: "0.0.0.0"
+bind_address = "0.0.0.0"
+
+# Path to the Unix domain socket for local IPC (daemon registration, etc.)
+# Default: /tmp/tos.brain.sock
+uds_path = "/tmp/tos.brain.sock"
+
+# Whether to advertise this Brain via mDNS/DNS-SD for device discovery.
+# Default: true
+mdns_enabled = true
+
+# Whether remote Faces may connect from other machines.
+# When false, only localhost connections are accepted.
+# Default: false
+remote_access = false
+
+# ───────────────────────────────────────────────────────────────────────────
+# [session] — Session persistence specifics
+# ───────────────────────────────────────────────────────────────────────────
+[session]
+
+# Directory for session files (_live.tos-session, named sessions, etc.).
+# Empty = {data_dir}/sessions/
+sessions_dir = ""
+
+# Debounce interval (milliseconds) for live session auto-saves.
+# Prevents excessive disk writes during rapid state changes.
+debounce_ms = 2000
+
+# ───────────────────────────────────────────────────────────────────────────
+# [settings] — Settings persistence specifics
+# ───────────────────────────────────────────────────────────────────────────
+[settings]
+
+# Path to the settings JSON file.
+# Empty = {config_dir}/settings.json
+settings_path = ""
+
+# Port for the optional tos-settingsd daemon.
+# Only used when local.persistence = false.
+# Default: 7002
+daemon_port = 7002

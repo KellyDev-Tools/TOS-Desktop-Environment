@@ -270,7 +270,7 @@ This roadmap defines the transition from Alpha-2.1 (Experimental/Mocked) to Alph
 - [x] **Test Suite Scaffolding:** 7 E2E tests across 3 spec files (`sanity`, `terminal`, `edge_scenarios`) covering hydration, PTY roundtrip, process management, trust confirmation, session persistence, and heuristic AI.
 - [ ] **Stabilize Onboarding Bypass:** Fix race condition where `SKIP TOUR` click is intercepted by `.global-overview` spatial layer animation. (Blocks 5/7 tests.)
 - [ ] **Wire ACT Mode Navigation:** Route process-listing tests through `set_mode:activity` IPC command rather than UI click path.
-- [ ] **Register Session Daemon:** Start or mock `tos-sessiond` in E2E harness for session persistence tests.
+- [x] **Register Session Daemon:** `SessionService` now has local-first persistence via `tos.toml` config — writes directly to disk when `tos-sessiond` is unavailable.
 - [ ] **Refer to Specialized Roadmap:** See `TOS_alpha-2.2.1_E2E-Testing-Roadmap.md` for detailed blockers and known issues.
 
 ---

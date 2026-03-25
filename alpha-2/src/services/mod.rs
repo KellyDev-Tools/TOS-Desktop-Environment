@@ -30,6 +30,7 @@ pub use heuristic::HeuristicService;
 pub use capture::CaptureService;
 
 use std::sync::{Arc, Mutex};
+use crate::config::TosConfig;
 
 pub struct ServiceManager {
     pub logger: Arc<LoggerService>,
@@ -50,14 +51,15 @@ pub struct ServiceManager {
 
 impl ServiceManager {
     pub fn new() -> Self {
-        let logger = Arc::new(LoggerService::new());
-        let settings = Arc::new(SettingsService::new());
+        Self::with_config(&TosConfig::default())
+    }
 
-        // Read anchor port from settings, default 7000.
-        let anchor_port: u16 = settings.default_settings_public()
-            .global.get("tos.network.anchor_port")
-            .and_then(|v| v.parse().ok())
-            .unwrap_or(7000);
+    pub fn with_config(config: &TosConfig) -> Self {
+        let logger = Arc::new(LoggerService::new());
+        let settings = Arc::new(SettingsService::with_config(config));
+
+        // Read anchor port from config, falling back to settings defaults.
+        let anchor_port = config.remote.anchor_port;
         let registry = Arc::new(Mutex::new(ServiceRegistry::new(anchor_port)));
 
         let (audio_svc, audio_warning) = AudioService::new();
@@ -68,7 +70,7 @@ impl ServiceManager {
         let portal = Arc::new(PortalService::new());
         let priority = Arc::new(PriorityService::new());
 
-        let session = Arc::new(SessionService::new(registry.clone()));
+        let session = Arc::new(SessionService::with_config(registry.clone(), config));
         let trust = Arc::new(TrustService::new());
         let heuristic = Arc::new(HeuristicService::new(registry.clone()));
         let marketplace = Arc::new(MarketplaceService::new(registry.clone()));

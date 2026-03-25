@@ -74,10 +74,15 @@ The `SKIP TOUR` button becomes visible but is immediately obscured by the `.glob
 ### 2. ACT Mode Navigation (blocks Phase 3-B, 3-C)
 The Expanded Bezel overlay does not contain an "ACT" button. The correct approach is to use `sendCommand('set_mode:activity')` via IPC, which the Brain already handles at `ipc_handler.rs:271`. The test should evaluate this through the WebSocket rather than trying to click a UI element.
 
-### 3. Service Daemon Registration (blocks Phase 4-B)
-The `tos-sessiond` service is not spawned by the E2E `globalSetup.ts`. Either:
-- Register a mock `tos-sessiond` in the setup script, or
-- Have the Brain auto-register its built-in session service in headless mode.
+### 3. ~~Service Daemon Registration~~ ✅ RESOLVED
+The `SessionService` now has a **local-first persistence fallback**. When `tos-sessiond` is not registered, the Brain writes `_live.tos-session` directly to disk via atomic temp-file rename. Configured by `tos.toml`:
+```toml
+[session]
+sessions_dir = ""          # default: ~/.local/share/tos/sessions/
+local_persistence = true   # write directly without tos-sessiond
+debounce_ms = 2000
+```
+Config resolution order: `--config <path>` → `$TOS_CONFIG` → `~/.config/tos/tos.toml` → `./tos.toml` → built-in defaults.
 
 ---
 

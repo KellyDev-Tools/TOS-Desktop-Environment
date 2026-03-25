@@ -1,32 +1,71 @@
 use std::io::{Write, BufRead, BufReader};
 use std::net::TcpStream;
 use std::collections::HashMap;
+use std::path::PathBuf;
 use crate::common::SettingsStore;
+use crate::config::TosConfig;
 
 pub struct SettingsService {
-    config_path: std::path::PathBuf,
+    /// Resolved absolute path to settings.json.
+    config_path: PathBuf,
+    /// Daemon address (host:port) for tos-settingsd.
     daemon_addr: String,
+    /// Whether to use local disk I/O when daemon is unavailable.
+    local_persistence: bool,
 }
 
 impl SettingsService {
+    /// Construct with default config (platform-detected paths).
     pub fn new() -> Self {
-        let mut home = dirs::home_dir().unwrap_or_else(|| std::path::PathBuf::from("/tmp"));
-        home.push(".config/tos/settings.json");
-        
+        Self::with_config(&TosConfig::default())
+    }
+
+    /// Construct from a full TosConfig, resolving paths through the platform layer.
+    pub fn with_config(config: &TosConfig) -> Self {
+        let config_path = config.settings_path();
+        let daemon_addr = format!("127.0.0.1:{}", config.settings.daemon_port);
+        let local_persistence = config.local.persistence;
+
         Self {
-            config_path: home,
-            daemon_addr: "127.0.0.1:7002".to_string(),
+            config_path,
+            daemon_addr,
+            local_persistence,
         }
     }
 
-    /// Save the current settings collection. Prioritizes the Settings Daemon if active.
-    pub fn save(&self, settings: &SettingsStore) -> anyhow::Result<()> {
-        if let Ok(mut stream) = TcpStream::connect_timeout(&self.daemon_addr.parse().unwrap(), std::time::Duration::from_millis(100)) {
-            let json = serde_json::to_string(settings)?;
-            let _ = stream.write_all(format!("save:{}\n", json).as_bytes());
-            return Ok(());
-        }
+    /// The resolved settings file path.
+    pub fn config_path(&self) -> &PathBuf {
+        &self.config_path
+    }
 
+    // ── Remote persistence (tos-settingsd daemon) ────────────────────
+
+    fn save_daemon(&self, settings: &SettingsStore) -> anyhow::Result<()> {
+        let mut stream = TcpStream::connect_timeout(
+            &self.daemon_addr.parse().unwrap(),
+            std::time::Duration::from_millis(100),
+        )?;
+        let json = serde_json::to_string(settings)?;
+        stream.write_all(format!("save:{}\n", json).as_bytes())?;
+        Ok(())
+    }
+
+    fn load_daemon(&self) -> anyhow::Result<SettingsStore> {
+        let mut stream = TcpStream::connect_timeout(
+            &self.daemon_addr.parse().unwrap(),
+            std::time::Duration::from_millis(100),
+        )?;
+        stream.write_all(b"get_all\n")?;
+        let mut reader = BufReader::new(&stream);
+        let mut response = String::new();
+        reader.read_line(&mut response)?;
+        let settings: SettingsStore = serde_json::from_str(&response)?;
+        Ok(settings)
+    }
+
+    // ── Local persistence (direct disk I/O) ──────────────────────────
+
+    fn save_local(&self, settings: &SettingsStore) -> anyhow::Result<()> {
         if let Some(parent) = self.config_path.parent() {
             std::fs::create_dir_all(parent)?;
         }
@@ -35,19 +74,7 @@ impl SettingsService {
         Ok(())
     }
 
-    /// Load settings. Attempts to fetch from the Settings Daemon first, falling back to disk.
-    pub fn load(&self) -> anyhow::Result<SettingsStore> {
-        if let Ok(mut stream) = TcpStream::connect_timeout(&self.daemon_addr.parse().unwrap(), std::time::Duration::from_millis(100)) {
-            let _ = stream.write_all(b"get_all\n");
-            let mut reader = BufReader::new(&stream);
-            let mut response = String::new();
-            if let Ok(_) = reader.read_line(&mut response) {
-                if let Ok(settings) = serde_json::from_str(&response) {
-                    return Ok(settings);
-                }
-            }
-        }
-
+    fn load_local(&self) -> anyhow::Result<SettingsStore> {
         if !self.config_path.exists() {
             return Ok(self.default_settings());
         }
@@ -56,14 +83,38 @@ impl SettingsService {
         Ok(settings)
     }
 
-    /// Directly load from disk, bypassing daemon check.
-    pub fn load_local(&self) -> anyhow::Result<SettingsStore> {
-        if !self.config_path.exists() {
-            return Ok(self.default_settings());
+    // ── Public API (routes to daemon or local) ───────────────────────
+
+    /// Save the current settings. Tries daemon first, falls back to local.
+    pub fn save(&self, settings: &SettingsStore) -> anyhow::Result<()> {
+        // Try daemon first.
+        if self.save_daemon(settings).is_ok() {
+            return Ok(());
         }
-        let content = std::fs::read_to_string(&self.config_path)?;
-        let settings = serde_json::from_str(&content)?;
-        Ok(settings)
+        // Local fallback.
+        if self.local_persistence {
+            return self.save_local(settings);
+        }
+        Err(anyhow::anyhow!("tos-settingsd unavailable and local.persistence is disabled"))
+    }
+
+    /// Load settings. Tries daemon first, falls back to local disk.
+    pub fn load(&self) -> anyhow::Result<SettingsStore> {
+        // Try daemon first.
+        if let Ok(settings) = self.load_daemon() {
+            return Ok(settings);
+        }
+        // Local fallback.
+        if self.local_persistence {
+            return self.load_local();
+        }
+        // Return defaults as last resort.
+        Ok(self.default_settings())
+    }
+
+    /// Directly load from disk, bypassing daemon check.
+    pub fn load_local_only(&self) -> anyhow::Result<SettingsStore> {
+        self.load_local()
     }
 
     fn default_settings(&self) -> SettingsStore {
@@ -95,7 +146,6 @@ impl SettingsService {
         map.insert("tos.onboarding.commands_run".to_string(), "0".to_string());
 
         // --- Trust (Trust & Confirmation Specification §2, §6) ---
-        // Both command classes default to WARN — the user explicitly promotes.
         map.insert("tos.trust.privilege_escalation".to_string(), "warn".to_string());
         map.insert("tos.trust.recursive_bulk".to_string(), "warn".to_string());
         map.insert("tos.trust.bulk_threshold".to_string(), "10".to_string());
@@ -126,4 +176,3 @@ impl SettingsService {
         }
     }
 }
-

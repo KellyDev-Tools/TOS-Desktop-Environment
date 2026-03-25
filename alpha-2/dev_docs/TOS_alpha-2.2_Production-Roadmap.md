@@ -263,6 +263,18 @@ This roadmap defines the transition from Alpha-2.1 (Experimental/Mocked) to Alph
 
 ---
 
+## Phase 6 — System Stabilization & E2E Validation
+*Ensuring the system components developed in Phases 1–5 function successfully together under automated production workloads.*
+
+- [x] **Full-Stack Orchestration Harness:** Headless Playwright integration (`playwright.e2e.config.ts`) dynamically spawns `tos-brain` daemon; lifecycle managed via `globalSetup.ts`/`globalTeardown.ts`.
+- [x] **Test Suite Scaffolding:** 7 E2E tests across 3 spec files (`sanity`, `terminal`, `edge_scenarios`) covering hydration, PTY roundtrip, process management, trust confirmation, session persistence, and heuristic AI.
+- [ ] **Stabilize Onboarding Bypass:** Fix race condition where `SKIP TOUR` click is intercepted by `.global-overview` spatial layer animation. (Blocks 5/7 tests.)
+- [ ] **Wire ACT Mode Navigation:** Route process-listing tests through `set_mode:activity` IPC command rather than UI click path.
+- [ ] **Register Session Daemon:** Start or mock `tos-sessiond` in E2E harness for session persistence tests.
+- [ ] **Refer to Specialized Roadmap:** See `TOS_alpha-2.2.1_E2E-Testing-Roadmap.md` for detailed blockers and known issues.
+
+---
+
 ## Superseded Items
 *These items from the Alpha-2.1 roadmap have been replaced by Alpha-2.2 specifications and should not be implemented.*
 

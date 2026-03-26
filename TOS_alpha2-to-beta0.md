@@ -2,16 +2,36 @@
 
 **Single authoritative reference for all gates, tasks, and validation required before Beta-0 ships.**
 
+> **Living Document** — This file is the source of truth for the Alpha-2 → Beta-0 transition.
+> It lives at the repository root (`/8TB/tos/TOS_alpha2-to-beta0.md`) and must be kept
+> current as work progresses.
+>
+> ### Maintenance Rules
+>
+> 1. **Update on every change.** When you complete a task, fix a bug, or make any structural
+>    change to the `alpha-2/` or `beta-0/` trees, update the relevant section of this
+>    document in the same commit.
+> 2. **Use status markers.** Prefix task rows with `✅` (done), `🔧` (in progress),
+>    or `❌` (blocked). Leave unmarked rows as not yet started.
+> 3. **Timestamp significant updates.** Add a dated entry to the _Audit Trail_ at the bottom
+>    whenever the Build Status table, Hard Gates, or folder-migration readiness changes.
+> 4. **Never delete history.** When a claim is corrected, strike-through the old value and
+>    add the correction inline so reviewers can see what changed.
+> 5. **Beta-0 is a "Pull" Destination.** We are not moving the `alpha-2/` folder wholesale.
+>    Instead, `beta-0/` starts with the consolidated spec docs. Functionality is
+>    systematically "pulled" from `alpha-2/` into `beta-0/` only after it has been
+>    refactored to meet the Beta-0 specifications.
+
 ---
 
 ## Build Status
 
 | Component | Status |
 |---|---|
-| Rust Build | ✅ `cargo check` & `cargo build --release` pass |
-| Rust Tests | ✅ 57/58 pass — 1 orchestration test requires live services (tier classification pending) |
-| Svelte UI | ⚠️ Node 20+ required — `node_modules` not installed |
-| Playwright Tests | ⚠️ npm 9.2.0 installed — needs 20+ |
+| Rust Build | ❌ `cargo check` **fails** — `src/bin/settingsd.rs` has 2 errors (`E0624` private method `load_local`, `E0282` type inference). 3 warnings (`handle_ai_submit` unused, `ShellApi` fields unused, `MockContent` never constructed). |
+| Rust Tests | ⚠️ 16/~105 pass — only lib unit tests compile. Integration tests blocked by `settingsd.rs` build failure. `tos-protocol` tests also fail (`E0063` missing fields on `CommandHub`). `test_service_orchestration_health` tier classification still pending. |
+| Svelte UI | ⚠️ Node v20.20.1 available — `node_modules` not installed, build not verified |
+| Playwright Tests | ⚠️ npm 10.8.2 available — `node_modules` not installed, tests not run |
 
 ---
 
@@ -33,21 +53,23 @@
 
 ---
 
-## Phase 0 — Repository Structure
+## Phase 0 — Selective Pull & Reconstruction
 
-The Alpha-2 tree has structural problems that must be resolved before Beta-0 ships. This phase cleans dead code, consolidates documentation, and establishes a clear layout for the release.
+The Alpha-2 tree has structural and architectural debt. Rather than a bulk move, Beta-0 is being reconstructed in the `beta-0/` directory. Verified components are "pulled" from `alpha-2/`, refactored for the new spec, and staged in the target tree.
 
 ### 0.1 Problems in Alpha-2
 
 | Problem | Detail |
 |---|---|
 | `dev_docs/` overcrowded | 27 files across four naming schemes — several superseded by canonical Beta-0 spec files |
-| `src/platform/electron/` dead branch | Electron was explored in Alpha-2.2.1 and not chosen — 20 files of dead code |
+| `src/platform/electron/` dead branch | Electron was explored in Alpha-2.2.1 and not chosen — ~25 files across `src/`, `tests/`, `resources/` + 5 config files of dead code |
 | `src/brain/state/` empty directory | `state/mod.rs` was removed but the directory was not cleaned up |
-| Root-level clutter | `demo.log`, `print_ws.js`, `meta.json`, root `package.json`, root `package-lock.json` are artifacts |
+| Root-level clutter | `demo.log`, `print_ws.js`, `meta.json`, root `package.json`, root `package-lock.json`, root `playwright.config.js` are artifacts |
 | `scripts/demo_context_export.py` | Prototype tool misplaced in shell integration scripts directory |
 | `src/common/mod.rs` | As `tos-protocol/` matures, this may be redundant — migration candidate |
 | `modules/` at root | Only two stub `module.toml` files — development fixtures, not production modules |
+| `src/bin/settingsd.rs` broken | Calls private method `load_local` on `SettingsService` — blocks all bin/integration test compilation |
+| `tos-protocol` test stale | `protocol_tests.rs` missing required `is_running` and `last_exit_status` fields on `CommandHub` |
 
 ### 0.2 Target Beta-0 Tree
 
@@ -75,13 +97,13 @@ Changes from Alpha-2 are annotated inline.
 │
 ├── docs/                               # RENAMED from dev_docs/ — cleaner name
 │   │
-│   ├── spec/                           # NEW — canonical Beta-0 specs (from project root)
+│   ├── spec/                           # NEW — canonical Beta-0 specs (from beta-0/dev_docs/)
 │   │   ├── TOS_beta-0_Architecture.md
 │   │   ├── TOS_beta-0_Developer.md
 │   │   ├── TOS_beta-0_Ecosystem.md
 │   │   ├── TOS_beta-0_Features.md
-│   │   ├── TOS_beta-0_User-Manual.md
-│   │   └── TOS_User_Stories.md
+│   │   └── TOS_beta-0_User-Manual.md
+│   │                                   # NOTE: TOS_User_Stories.md stays at repo root — version-agnostic
 │   │
 │   ├── guides/                         # NEW — operational guides
 │   │   ├── Linux-Face-Integration.md
@@ -167,7 +189,6 @@ Changes from Alpha-2 are annotated inline.
 │   │       └── mod.rs
 │   │
 │   ├── platform/
-│   │   ├── android.rs
 │   │   ├── linux/
 │   │   │   ├── mod.rs
 │   │   │   └── wayland.rs
@@ -297,7 +318,16 @@ Changes from Alpha-2 are annotated inline.
 │   └── tests/
 │       └── protocol_tests.rs
 │
-└── android/                            # unchanged — placeholder directory
+├── tos-android/                        # WORKSPACE CRATE — standalone Android Face
+│   ├── Cargo.toml
+│   └── src/
+│       ├── face.rs
+│       ├── input.rs
+│       ├── lib.rs
+│       ├── ndk_stubs.rs
+│       └── services.rs
+│
+└── .gitignore
 ```
 
 ### 0.3 Change Inventory
@@ -306,13 +336,14 @@ Changes from Alpha-2 are annotated inline.
 
 | Path | Reason |
 |---|---|
-| `src/platform/electron/` (entire subtree) | Platform not chosen — 20 files, dead code |
+| `src/platform/electron/` (entire subtree) | Platform not chosen — ~25 files, dead code |
 | `src/brain/state/` (empty directory) | `state/mod.rs` already removed; directory orphaned |
-| `demo.log` | Build artifact, not source |
+| `demo.log` | Build artifact (empty file), not source |
 | `print_ws.js` | Prototype debug script; does not belong at root |
-| `meta.json` | Unclear provenance; likely Electron-era artifact |
+| `meta.json` | Unclear provenance; empty file, likely Electron-era artifact |
 | `package.json` (root) | Electron-era root package; canonical JS lives in `svelte_ui/` |
 | `package-lock.json` (root) | Same as above |
+| `playwright.config.js` (root) | Electron-era Playwright config; Svelte UI has its own `playwright.config.ts` |
 | `install_deps.sh` | Superseded by `Makefile` targets — confirm before removal (see §0.5) |
 
 **Renames / Moves**
@@ -327,7 +358,7 @@ Changes from Alpha-2 are annotated inline.
 
 | Path | Contents |
 |---|---|
-| `docs/spec/` | Canonical Beta-0 spec files (moved from project root) |
+| `docs/spec/` | Canonical Beta-0 spec files (moved from `beta-0/dev_docs/`) |
 | `docs/guides/` | Operational guides (Linux Face, OpenXR, Android, Upgrade) |
 | `docs/archive/` | All Alpha-2 `dev_docs/` files |
 | `dev/fixtures/` | Module stubs for development testing |
@@ -354,16 +385,16 @@ Changes from Alpha-2 are annotated inline.
 
 ### 0.4 Execution Order
 
-Apply in this order to minimize risk:
+Beta-0 is built by pulling and refactoring functional blocks from Alpha-2.
 
-1. Remove dead files and directories first — `electron/`, `demo.log`, `print_ws.js`, `meta.json`, root `package.json`, root `package-lock.json`, empty `brain/state/`.
-2. Create new directory scaffolding — `docs/spec/`, `docs/guides/`, `docs/archive/`, `dev/fixtures/`, `tools/`.
-3. Move and rename — `dev_docs/` → `docs/archive/`, `modules/` contents → `dev/fixtures/`, `scripts/demo_context_export.py` → `tools/`.
-4. Move spec files from project root into `docs/spec/`.
-5. Create stub files — `CHANGELOG.md`, `README.md` files, guide stubs.
-6. Bump version numbers in `Cargo.toml` and `svelte_ui/package.json`.
-7. Run `cargo check` and `cargo test` to confirm nothing is broken.
-8. Run `cd svelte_ui && npm run build` to confirm Svelte build is clean.
+1. **Initialize `beta-0/` project** — Copy `Cargo.toml`, `Makefile`, and `tos.toml` from `alpha-2/` into `beta-0/` and apply Beta-0 version bumps immediately.
+2. **Setup `beta-0/` Docs** — Move the consolidated specs from `beta-0/dev_docs/` into their final `beta-0/docs/spec/` locations as defined in §0.2.
+3. **Refactor & Pull `tos-protocol`** — Pull `tos-protocol/` into `beta-0/`. Fix `CommandHub` missing fields during the pull.
+4. **Refactor & Pull Core Services** — Pull `src/services/` one by one. Fix `settingsd.rs` visibility issues during the pull into `beta-0/`.
+5. **Reconstruct Brain** — Pull `src/brain/` and refactor to match the new `SemanticEvent` and `LogManager` standards (§1.3).
+6. **Migrate Svelte Face** — Pull `svelte_ui/` and perform a clean `npm install` and build.
+7. **Clean up Clutter** — Ensure no dead `electron/` code or root-level artifacts (`demo.log`, etc.) are pulled into the new tree.
+8. **Verify §0.6 Pull Readiness Gate** for each module as it is landed in `beta-0/`.
 
 ### 0.5 Open Decisions
 
@@ -373,7 +404,24 @@ These are not blockers but need a call before execution.
 
 **`src/common/mod.rs`** — As `tos-protocol/` matures as the authoritative IPC schema crate, `src/common/` may become redundant. Worth reviewing whether its contents should migrate into `tos-protocol/src/` before Beta-0 or be explicitly left as a separate internal-only module.
 
-**`android/` directory** — Currently an empty placeholder. Should it gain a `README.md` explaining it is reserved for the Android NDK platform target, or is it premature to include it at all?
+**`tos-android/` crate** — This is now a real workspace member (listed in `Cargo.toml` members), not an empty placeholder. It contains `face.rs`, `input.rs`, `lib.rs`, `ndk_stubs.rs`, and `services.rs`. Decide whether it should remain a workspace member in Beta-0 or be published as a separate crate.
+
+### 0.6 Pull Readiness Gate
+
+**No functionality is considered "landed" in `beta-0/` until it satisfies these criteria.**
+
+| # | Prerequisite | Status | Notes |
+|---|---|---|---|
+| 1 | `cargo check` passes in `beta-0/` | ❌ | Not started |
+| 2 | Component lib unit tests pass | 🔧 | 16/16 verified in Alpha-2 |
+| 3 | `tos-protocol` tests pass in `beta-0/` | ❌ | Blocks IPC verification |
+| 4 | Root-level artifacts (§0.3) excluded from `beta-0/` | ❌ | |
+| 5 | Code meets Standards §2.1 (no stray `println!`) | ❌ | |
+| 6 | `unsafe` blocks carry justification comments | ❌ | |
+| 7 | Version 0.1.0-beta.0 applied | ❌ | |
+| 8 | `svelte_ui/` build is clean in `beta-0/` | ❌ | |
+
+**Pull Procedure:** We are currently at Step 1 of §0.4. Once core files are staged in `beta-0/`, we verify the readiness of each subsystem against this gate.
 
 ---
 
@@ -383,8 +431,10 @@ These are not blockers but need a call before execution.
 
 | Task | Priority | Notes |
 |---|---|---|
+| ❌ Fix `src/bin/settingsd.rs` build errors — make `load_local` public or refactor call site | **Critical** | Blocks all bin and integration test compilation |
+| ❌ Fix `tos-protocol/tests/protocol_tests.rs` — add missing `is_running`, `last_exit_status` fields to `CommandHub` initializers | **Critical** | Blocks `tos-protocol` test suite |
 | Update `cargo.lock` with latest patches | High | — |
-| Run `cargo fix` on all warnings | Medium | Must complete before adding `deny(warnings)` |
+| Run `cargo fix` on all warnings (3 current: `handle_ai_submit`, `ShellApi` fields, `MockContent`) | Medium | Must complete before adding `deny(warnings)` |
 | Fix remaining compiler warnings | Medium | — |
 | Add `deny(warnings)` to CI pipeline | Medium | Only after all warnings cleared |
 | Add `#[must_use]` to critical `Result`-returning functions | Low | — |
@@ -651,3 +701,17 @@ Must exist before native platform tests can run in CI.
 - `zoom_to_jumps_directly` test was fixed in the most recent Alpha-2 commit
 - Empty `state/mod.rs` was removed from the codebase
 - Service orchestration test failure is expected when external services are not running — tier classification must be confirmed before treating as non-blocking
+- `tos-android/` is now a real workspace crate (not the `android/` placeholder directory previously described) with 5 source files and its own `Cargo.toml`
+- No root `README.md` exists in `alpha-2/` — one must be created before migration
+- Beta-0 spec files live in `/8TB/tos/beta-0/dev_docs/`, not at the `alpha-2/` project root
+
+---
+
+## Audit Trail
+
+Dated log of significant validation events and status changes.
+
+| Date | Event |
+|---|---|
+| 2026-03-26 | **Initial validation audit.** Build status corrected from ✅ to ❌ (`settingsd.rs` errors). Test count corrected from 57/58 to 16/~105. npm version corrected (10.8.2, not 9.2.0). `android/` placeholder replaced with `tos-android/` workspace crate. `platform/android.rs` removed from target tree (does not exist). Electron file count corrected to ~25. Root `playwright.config.js` added to removal list. Spec file source corrected to `beta-0/dev_docs/`. Folder Migration Gate (§0.6) added. Living document protocol added. |
+| 2026-03-26 | **Strategy Pivot.** Migration model changed from " wholesale copy" to "Selective Pull." Beta-0 is now the primary integration target. All execution steps and gates updated to reflect refactoring and pulling code from Alpha-2 into the new Beta-0 structure based on consolidated specs. |

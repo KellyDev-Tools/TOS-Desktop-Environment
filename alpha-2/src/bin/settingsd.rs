@@ -1,8 +1,8 @@
 use tokio::net::{TcpListener, TcpStream};
 use tokio::io::{AsyncBufReadExt, BufReader, AsyncWriteExt};
 use std::io::Write;
-use tos_alpha2::common::{SettingsStore};
-use tos_alpha2::services::settings::SettingsService;
+use tos_lib::common::{SettingsStore};
+use tos_lib::services::settings::SettingsService;
 use std::sync::{Arc, Mutex};
 
 #[tokio::main]

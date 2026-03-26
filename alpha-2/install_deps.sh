@@ -162,3 +162,47 @@ echo ""
 echo "To see the UI, log out and select a 'Sway' session, or simply type 'sway' "
 echo "in your terminal to start a nested compositor. Run 'make run' inside it!"
 echo "=========================================================="
+
+# Android NDK & Gradle Setup (Optional - for Android APK builds)
+echo ""
+echo "=========================================================="
+echo "Android Build Tools Detection"
+echo "=========================================================="
+
+if command -v ndk-build &> /dev/null || [ -d "$ANDROID_NDK" ]; then
+    echo "Android NDK already installed at:"
+    echo "  $ANDROID_NDK"
+    echo ""
+else
+    echo "Android NDK not detected. Installing Android NDK r26d..."
+    mkdir -p "$HOME/android-sdk"
+    ANDROID_NDK="$HOME/android-sdk/ndk" ANDROID_HOME="$HOME/android-sdk" \
+        sdkmanager "ndk;26.1.10909125" "cmdline-tools;latest"
+    echo "Android NDK installed at: $ANDROID_NDK"
+fi
+
+if command -v gradle &> /dev/null; then
+    echo "Gradle already installed at:"
+    echo "  $(command -v gradle)"
+    echo ""
+else
+    echo "Gradle not detected. Installing Gradle 8.5..."
+    GRADLE_VERSION="8.5"
+    GRADLE_HOME="$HOME/gradle"
+    GRADLE_DIST_ZIP="$HOME/.tmp/gradle-$GRADLE_VERSION-bin.zip"
+    curl -L "https://services.gradle.org/distributions/gradle-$GRADLE_VERSION-bin.zip" -o "$GRADLE_DIST_ZIP"
+    unzip -q "$GRADLE_DIST_ZIP" -d "$HOME"
+    rm -f "$GRADLE_DIST_ZIP"
+    export PATH="$HOME/gradle/gradle-$GRADLE_VERSION/bin:$PATH"
+    export GRADLE_HOME="$HOME/gradle/gradle-$GRADLE_VERSION"
+    echo "Gradle installed at: $GRADLE_HOME"
+fi
+
+echo ""
+echo "Android Build Environment Ready!"
+echo "  NDK: $ANDROID_NDK"
+echo "  Gradle: $(command -v gradle 2>/dev/null || echo 'not in PATH')"
+echo ""
+echo "To build an APK, see:"
+echo "  make android-setup"
+echo "  make android-build"

@@ -1,7 +1,7 @@
 # TOS Alpha-2 Build System
 # High-Fidelity OS Pipeline
 
-.PHONY: help build check fmt lint docs test test-all test-core test-shell test-ai test-sec test-system test-brain-component test-ui-component test-self test-e2e run run-web run-web-dev build-web dev-web clean electron-setup electron-build electron-dev build-electron-win build-electron-macos build-electron-linux build-electron-all test-electron
+.PHONY: help build check fmt lint docs test test-all test-core test-shell test-ai test-sec test-system test-brain-component test-ui-component test-self test-e2e run run-web run-web-dev build-web dev-web clean electron-setup electron-build electron-dev build-electron-win build-electron-macos build-electron-linux build-electron-all test-electron android-check android-build android-build-release clean-android android-test
 
 # -----------------------------------------------------------------------------
 # 1. HELP & DISCOVERY
@@ -45,8 +45,16 @@ help:
 	@echo "  make build-electron-linux  Package for Linux (AppImage + deb + rpm)"
 	@echo "  make build-electron-all    Package for all platforms"
 	@echo ""
+	@echo "\033[1;33mAndroid Face (separate crate: tos-android/):\033[0m"
+	@echo "  make android-check   Check Android Face compiles (host target)"
+	@echo "  make android-build   Check + instructions for cross-compile"
+	@echo "  make android-release Cross-compile release APK (requires cargo-ndk)"
+	@echo "  make android-test    Run Android Face tests (host target)"
+	@echo "  make clean-android   Purge Android Face build artifacts"
+	@echo ""
 	@echo "\033[1;33mMaintenance:\033[0m"
 	@echo "  make clean           Purge build artifacts and logs"
+	@echo "  make clean-android   Purge Android build artifacts"
 
 # -----------------------------------------------------------------------------
 # 2. CORE DEVELOPMENT
@@ -110,9 +118,6 @@ test-ui-component:
 	@npm install @playwright/test
 	@npx playwright install chromium
 	@npx playwright test tests/ui_component.spec.js
-
-test-self test-e2e:
-	cargo run -- --self-test
 
 test-health:
 	@echo "[TOS] Running Orchestration Health Check..."
@@ -236,3 +241,36 @@ clean:
 test-e2e:
 	@echo "[TOS] Launching Full-Stack E2E Paces (Playwright)..."
 	@$(NVM_INIT) && cd svelte_ui && npx playwright test -c playwright.e2e.config.ts
+
+# -----------------------------------------------------------------------------
+# 7. ANDROID BUILD (separate crate: tos-android/)
+# -----------------------------------------------------------------------------
+
+ANDROID_CRATE := tos-android
+
+android-check:
+	@echo "[TOS] Checking Android Face crate (host target)..."
+	cargo check -p $(ANDROID_CRATE)
+	@echo "[TOS] Android Face: CHECK PASSED"
+
+android-build: android-check
+	@echo "[TOS] Android Face: Host check passed."
+	@echo "[TOS] To cross-compile for a real device, run:"
+	@echo "  cargo ndk -t arm64-v8a build -p $(ANDROID_CRATE) --release"
+	@echo "[TOS] Requires: cargo install cargo-ndk && rustup target add aarch64-linux-android"
+
+android-build-release:
+	@echo "[TOS] Building Android Face (Release, arm64-v8a)..."
+	cargo ndk -t arm64-v8a build -p $(ANDROID_CRATE) --release
+	@echo "[TOS] Android Face: RELEASE BUILD COMPLETE"
+
+android-test:
+	@echo "[TOS] Running Android Face tests (host target)..."
+	cargo test -p $(ANDROID_CRATE)
+	@echo "[TOS] Android Face: TESTS PASSED"
+
+clean-android:
+	@echo "[TOS] Cleaning Android Face build artifacts..."
+	cargo clean -p $(ANDROID_CRATE)
+	@echo "[TOS] Android Face: CLEAN"
+

@@ -1,5 +1,5 @@
-use tos_alpha2::common::{TosState, HierarchyLevel, ApplicationModel, DecorationPolicy, ZoomBehavior};
-use tos_alpha2::brain::sector::SectorManager;
+use tos_lib::common::{TosState, HierarchyLevel, ApplicationModel, DecorationPolicy, ZoomBehavior};
+use tos_lib::brain::sector::SectorManager;
 // unused
 
 #[test]

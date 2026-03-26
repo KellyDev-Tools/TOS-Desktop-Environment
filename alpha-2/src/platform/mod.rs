@@ -1,5 +1,6 @@
 pub mod linux;
-pub mod android;
+// Android Face lives in its own crate: tos-android/
+// Build separately with: make android-build
 pub mod quest;
 pub mod mock;
 pub mod remote;

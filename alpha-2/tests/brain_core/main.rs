@@ -1,6 +1,6 @@
-use tos_alpha2::common::{TosState, HierarchyLevel, CommandHubMode};
-use tos_alpha2::brain::hierarchy::HierarchyManager;
-use tos_alpha2::brain::sector::SectorManager;
+use tos_lib::common::{TosState, HierarchyLevel, CommandHubMode};
+use tos_lib::brain::hierarchy::HierarchyManager;
+use tos_lib::brain::sector::SectorManager;
 
 #[test]
 fn test_hierarchy_transitions() {

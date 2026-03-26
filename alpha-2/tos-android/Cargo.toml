@@ -1,0 +1,33 @@
+[package]
+name = "tos-android"
+version = "0.1.0"
+edition = "2021"
+description = "TOS Android Face - the Android platform layer for TOS Desktop Environment"
+
+[dependencies]
+# Core TOS types (TosState, platform traits, common types)
+# The lib is named "tos_lib" (see root Cargo.toml [lib] section)
+alpha_2 = { path = ".." }
+
+# Shared dependencies
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+tokio = { version = "1.36", features = ["full"] }
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+anyhow = "1.0"
+chrono = { version = "0.4", features = ["serde"] }
+
+# Android-specific dependencies (only compiled when targeting Android)
+[target.'cfg(target_os = "android")'.dependencies]
+android-activity = { version = "0.6", features = ["native-activity"] }
+ndk = "0.9"
+ndk-context = "0.1"
+jni = "0.21"
+log = "0.4"
+android_logger = "0.14"
+
+[lib]
+name = "tos_android"
+path = "src/lib.rs"
+crate-type = ["cdylib"]

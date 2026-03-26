@@ -1,6 +1,6 @@
-use tos_alpha2::brain::Brain;
-use tos_alpha2::face::{Face, MockFace};
-use tos_alpha2::common::CommandHubMode;
+use tos_lib::brain::Brain;
+use tos_lib::face::{Face, MockFace};
+use tos_lib::common::CommandHubMode;
 use std::time::Duration;
 use tokio::time::sleep;
 

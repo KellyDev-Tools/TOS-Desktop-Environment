@@ -1,5 +1,5 @@
 [workspace]
-members = [".", "tos-protocol"]
+members = [".", "tos-protocol", "tos-android"]
 resolver = "2"
 
 [package]
@@ -42,7 +42,7 @@ ab_glyph = "0.2"
 tiny-skia = "0.11"
 
 [lib]
-name = "tos_alpha2"
+name = "tos_lib"
 path = "src/lib.rs"
 
 [[bin]]

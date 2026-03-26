@@ -127,6 +127,6 @@ mod tests {
     // -----------------------------------------------------------------------
 
     fn test_default_settings() -> SettingsStore {
-        tos_alpha2::services::settings::SettingsService::new().default_settings_public()
+        tos_lib::services::settings::SettingsService::new().default_settings_public()
     }
 }

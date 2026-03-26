@@ -1,6 +1,6 @@
-use tos_alpha2::brain::Brain;
-use tos_alpha2::face::{Face, MockFace};
-use tos_alpha2::platform::RemoteServer;
+use tos_lib::brain::Brain;
+use tos_lib::face::{Face, MockFace};
+use tos_lib::platform::RemoteServer;
 use std::time::Duration;
 use tokio::time::sleep;
 use std::env;
@@ -31,7 +31,7 @@ async fn main() -> anyhow::Result<()> {
         let mut face_raw = Face::new(state.clone(), ipc.clone());
         #[cfg(target_os = "linux")]
         {
-            let renderer = tos_alpha2::platform::linux::LinuxRenderer::new();
+            let renderer = tos_lib::platform::linux::LinuxRenderer::new();
             let backend = renderer.get_capture_backend();
             brain.services.capture.set_backend(std::sync::Arc::new(backend));
             face_raw = face_raw.with_renderer(Box::new(renderer));
@@ -76,7 +76,7 @@ async fn main() -> anyhow::Result<()> {
             let mut face_raw = Face::new(state.clone(), ipc.clone());
             #[cfg(target_os = "linux")]
             {
-                let renderer = tos_alpha2::platform::linux::LinuxRenderer::new();
+                let renderer = tos_lib::platform::linux::LinuxRenderer::new();
                 let backend = renderer.get_capture_backend();
                 brain.services.capture.set_backend(std::sync::Arc::new(backend));
                 face_raw = face_raw.with_renderer(Box::new(renderer));

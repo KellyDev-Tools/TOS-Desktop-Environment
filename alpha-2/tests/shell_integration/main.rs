@@ -1,8 +1,8 @@
-use tos_alpha2::brain::shell::ShellApi;
-use tos_alpha2::common::TosState;
+use tos_lib::brain::shell::ShellApi;
+use tos_lib::common::TosState;
 use std::sync::{Arc, Mutex};
 use tokio::time::{sleep, Duration};
-use tos_alpha2::brain::module_manager::ModuleManager;
+use tos_lib::brain::module_manager::ModuleManager;
 
 #[tokio::test]
 async fn test_shell_output_and_osc_priority() {
@@ -12,7 +12,7 @@ async fn test_shell_output_and_osc_priority() {
     let hid = state_val.sectors[0].hubs[0].id;
     let state = Arc::new(Mutex::new(state_val));
     let modules = Arc::new(ModuleManager::new(std::path::PathBuf::from("./modules")));
-    let services = Arc::new(tos_alpha2::services::ServiceManager::new());
+    let services = Arc::new(tos_lib::services::ServiceManager::new());
     let mut shell = ShellApi::new(state.clone(), modules.clone(), services.ai.clone(), services.heuristic.clone(), sid, hid).expect("Failed to spawn shell");
 
     // Send a command that emits the OSC 9012 sequence for priority 2 (Warning)
@@ -47,7 +47,7 @@ async fn test_terminal_buffer_fifo() {
         state_lock.sectors[0].hubs[0].buffer_limit = 3;
     }
     
-    let services = Arc::new(tos_alpha2::services::ServiceManager::new());
+    let services = Arc::new(tos_lib::services::ServiceManager::new());
     let mut shell = ShellApi::new(state.clone(), modules.clone(), services.ai.clone(), services.heuristic.clone(), sid, hid).expect("Failed to spawn shell");
 
     for i in 1..=5 {
@@ -73,7 +73,7 @@ async fn test_shell_cwd_tracking() {
     let hid = state_val.sectors[0].hubs[0].id;
     let state = Arc::new(Mutex::new(state_val));
     let modules = Arc::new(ModuleManager::new(std::path::PathBuf::from("./modules")));
-    let services = Arc::new(tos_alpha2::services::ServiceManager::new());
+    let services = Arc::new(tos_lib::services::ServiceManager::new());
     let mut shell = ShellApi::new(state.clone(), modules.clone(), services.ai.clone(), services.heuristic.clone(), sid, hid).expect("Failed to spawn shell");
 
     let test_path = "/tmp/tos_test_dir";
@@ -100,7 +100,7 @@ async fn test_shell_command_result() {
     let hid = state_val.sectors[0].hubs[0].id;
     let state = Arc::new(Mutex::new(state_val));
     let modules = Arc::new(ModuleManager::new(std::path::PathBuf::from("./modules")));
-    let services = Arc::new(tos_alpha2::services::ServiceManager::new());
+    let services = Arc::new(tos_lib::services::ServiceManager::new());
     let mut shell = ShellApi::new(state.clone(), modules.clone(), services.ai.clone(), services.heuristic.clone(), sid, hid).expect("Failed to spawn shell");
 
     let cmd = "printf '\\033]9002;ls;0;dGVzdCBvdXRwdXQ=\\007\\n'\n";
@@ -125,7 +125,7 @@ async fn test_shell_directory_listing() {
     let hid = state_val.sectors[0].hubs[0].id;
     let state = Arc::new(Mutex::new(state_val));
     let modules = Arc::new(ModuleManager::new(std::path::PathBuf::from("./modules")));
-    let services = Arc::new(tos_alpha2::services::ServiceManager::new());
+    let services = Arc::new(tos_lib::services::ServiceManager::new());
     let mut shell = ShellApi::new(state.clone(), modules.clone(), services.ai.clone(), services.heuristic.clone(), sid, hid).expect("Failed to spawn shell");
 
     let b64_json = "eyJwYXRoIjoiL3Rlc3QiLCJlbnRyaWVzIjpbeyJuYW1lIjoiZmlsZS50eHQiLCJpc19kaXIiOmZhbHNlLCJzaXplIjoxMDB9XX0=";
@@ -157,7 +157,7 @@ async fn test_remote_session_disconnection() {
     let state = Arc::new(Mutex::new(state_val));
     let modules = Arc::new(ModuleManager::new(std::path::PathBuf::from("./modules")));
     
-    let services = Arc::new(tos_alpha2::services::ServiceManager::new());
+    let services = Arc::new(tos_lib::services::ServiceManager::new());
     let mut shell = ShellApi::new(state.clone(), modules.clone(), services.ai.clone(), services.heuristic.clone(), sid, hid).expect("Failed to spawn shell");
     
     // Simulate terminal closure (send exit)
@@ -188,8 +188,8 @@ async fn test_remote_session_disconnection() {
 
 #[tokio::test]
 async fn test_dangerous_command_interception() {
-    use tos_alpha2::brain::ipc_handler::IpcHandler;
-    use tos_alpha2::services::ServiceManager;
+    use tos_lib::brain::ipc_handler::IpcHandler;
+    use tos_lib::services::ServiceManager;
     let state_val = TosState::default();
     let sid = state_val.sectors[0].id;
     let hid = state_val.sectors[0].hubs[0].id;

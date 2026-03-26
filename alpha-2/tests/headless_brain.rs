@@ -5,9 +5,9 @@
 //! handler produce the expected state deltas, validating the Brain's
 //! core logic independent of any display layer.
 
-use tos_alpha2::brain::ipc_handler::IpcHandler;
-use tos_alpha2::common::{TosState, HierarchyLevel, CommandHubMode};
-use tos_alpha2::services::ServiceManager;
+use tos_lib::brain::ipc_handler::IpcHandler;
+use tos_lib::common::{TosState, HierarchyLevel, CommandHubMode};
+use tos_lib::services::ServiceManager;
 use std::sync::{Arc, Mutex};
 
 /// Build a headless IPC handler with a real TosState but the shell uses
@@ -16,14 +16,14 @@ fn headless_ipc() -> (Arc<IpcHandler>, Arc<Mutex<TosState>>) {
     let state = Arc::new(Mutex::new(TosState::default()));
     let services = Arc::new(ServiceManager::new());
 
-    let modules = Arc::new(tos_alpha2::brain::module_manager::ModuleManager::new(
+    let modules = Arc::new(tos_lib::brain::module_manager::ModuleManager::new(
         std::path::PathBuf::from("./modules"),
     ));
 
     let sid = state.lock().unwrap().sectors[0].id;
     let hid = state.lock().unwrap().sectors[0].hubs[0].id;
 
-    let shell = tos_alpha2::brain::shell::ShellApi::new(
+    let shell = tos_lib::brain::shell::ShellApi::new(
         state.clone(), modules.clone(), services.ai.clone(), services.heuristic.clone(), sid, hid,
     ).expect("Headless tests require at least /bin/sh");
 
@@ -480,7 +480,7 @@ async fn ai_behavior_enable_disable_configure() {
 
     // Register a behavior directly
     {
-        use tos_alpha2::common::AiBehavior;
+        use tos_lib::common::AiBehavior;
         let mut st = state.lock().unwrap();
         st.ai_behaviors.push(AiBehavior {
             id: "test_behavior".to_string(),

@@ -1,4 +1,4 @@
-use tos_alpha2::services::marketplace::{MarketplaceService, ModuleManifest};
+use tos_lib::services::marketplace::{MarketplaceService, ModuleManifest};
 use ed25519_dalek::{Signer, SigningKey, VerifyingKey};
 use rand_core::OsRng;
 

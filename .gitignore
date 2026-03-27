@@ -23,12 +23,19 @@ thumbs.db
 *.dll
 *.exe
 
-# Web related
-**/node_modules/
-.svelte-kit/
-.next/
-dist/
 
 # TOS specific
 /traditional/concepts/cpp_nav/build/
 /traditional/concepts/cpp_nav/bin/
+**/logs/
+*.log
+
+# UI & E2E Web related
+**/svelte_ui/build/
+**/svelte_ui/test-results/
+**/svelte_ui/playwright-report/
+**/svelte_ui/dom-e2e-dump.html
+**/node_modules/
+**/.svelte-kit/
+.next/
+dist/

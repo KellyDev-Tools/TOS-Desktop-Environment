@@ -1,0 +1,40 @@
+# ═══════════════════════════════════════════════════════════════════════════
+# TOS Brain Configuration — tos.toml (Beta-0)
+# ═══════════════════════════════════════════════════════════════════════════
+
+[brain]
+name = ""
+id = ""
+role = "standalone"
+upstream = ""
+
+[face]
+max_connections = 0
+advertised_url = ""
+serve_web_face = true
+web_face_port = 5173
+
+[platform]
+config_dir = ""
+data_dir = ""
+runtime_dir = ""
+
+[local]
+persistence = true
+active_dir = ""
+
+[remote]
+anchor_port = 7000
+ws_port = 7001
+bind_address = "0.0.0.0"
+uds_path = "/tmp/tos.brain.sock"
+mdns_enabled = true
+remote_access = false
+
+[session]
+sessions_dir = ""
+debounce_ms = 2000
+
+[settings]
+settings_path = ""
+daemon_port = 7002

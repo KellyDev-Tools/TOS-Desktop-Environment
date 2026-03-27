@@ -226,7 +226,7 @@ The `module.toml` is the source of truth for the marketplace and the Brain.
 id = "com.community.tactical-amber"
 name = "Tactical Amber"
 version = "1.2.0"
-type = "theme" # Options: appmodel, terminal, theme, shell, ai, aibehavior, bezel, audio, sector
+type = "theme" # Options: appmodel, terminal, theme, shell, ai, skill, bezel, audio, sector
 author = "Sovereign Engineering"
 description = "High-contrast tactical theme inspired by deep-space sensors."
 icon = "assets/icon.png"
@@ -418,7 +418,7 @@ Testing in TOS is strictly categorized into four tiers. No feature code should b
 3. **Implement Render Logic:** Update the platform-specific drawing or layout code.
 4. **Verify Success:** Run the test again to prove it correctly simulates the rendering.
 
-> **Rule:** Native faces must provide a testing stub or string-buffer renderer so that visual states, dimensions, and text rendering logic can be validated headlessly in CI without requiring an active Compositor or XR runtime.
+> **Rule:** Native faces must provide a testing stub or string-buffer renderer so that visual states, dimensions, and text rendering logic can be validated headlessly in CI without requiring an active Compositor, Spatial runtime, or Handheld hardware.
 
 ### 4.3 Mocking Strategy
 

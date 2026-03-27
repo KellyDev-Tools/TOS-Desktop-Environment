@@ -136,10 +136,10 @@ Every Face MUST send a `face_register` message immediately after connecting. The
 | Profile | Description | Default Hub Layout | Default AI Skill |
 |:---|:---|:---|:---|
 | `desktop` | Mouse + keyboard, large viewport | Vertical split (terminal + editor) | Chat Companion |
-| `mobile` | Touch-first, small viewport | Tab layout (terminal / editor tabs) | Voice-first Chat Companion |
-| `vr` | OpenXR, spatial input | Single pane with spatial bezel | Passive Observer |
+| `handheld` | Touch-first, Phone/Tablet viewport | Tab layout (terminal / editor tabs) | Voice-first Chat Companion |
+| `spatial` | OpenXR, VR/AR/MR spatial input | Single pane with spatial bezel | Passive Observer |
 
-On a `mobile` profile registration, the Brain automatically:
+On a `handheld` profile registration, the Brain automatically:
 - Sets default hub layout to `tabs` unless the session file specifies otherwise
 - Collapses all Left/Right bezel slots to their minimal state
 - Enables the Expanded Bezel Command Surface as the primary prompt interaction surface

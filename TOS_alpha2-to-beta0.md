@@ -46,10 +46,16 @@
 | All errors routed through `LogManager` with correct `LogType` — no stray `eprintln!`/`println!` | Standards §2.1 |
 | No undocumented `unsafe` blocks in codebase | Standards §2.1 |
 | IPC round-trip latency < 16ms in local testing | Developer Ref §4.5 |
+| All services (`settingsd`, `loggerd`, etc.) register via `brain.sock` (no hardcoded ports) | Ecosystem §3.2, §4.1 |
+| Brain Tool Registry enforces `tool_bundle` permissions at runtime for all skills | Ecosystem §1.4.3 |
 | Manifest Ed25519 signature verification passes end-to-end | Ecosystem §1.0 |
 | No `.tos-aibehavior` references remain — all module types use `.tos-skill` | Ecosystem §1.4 |
 | Vibe Coder proposals never auto-apply — user must tap [Apply] in Diff Mode | Features §6.6.2 |
 | Skill tool bundle enforcement verified — undeclared tool calls rejected by Brain at runtime | Ecosystem §1.4.3 |
+| **Headless Stubs:** Native faces (Spatial/Handheld) must provide string-buffer renderers for CI validation | Developer §4.2 |
+| **Independent Builds:** Brain, Face, and `tos-protocol` can be built standalone without full workspace overhead | Developer §2.2 |
+| **Profile Diversity:** Brain correctly adapts to `handheld` and `spatial` face registration profiles | Architecture §3.3.5 |
+| **Silent Restore:** No notification, animation, or prompt on session launch | Features §2.6.2 |
 
 ---
 
@@ -420,6 +426,10 @@ These are not blockers but need a call before execution.
 | 6 | `unsafe` blocks carry justification comments | ❌ | |
 | 7 | Version 0.1.0-beta.0 applied | ❌ | |
 | 8 | `svelte_ui/` build is clean in `beta-0/` | ❌ | |
+| 9 | Daemons register dynamically (verify `brain.sock` integration) | ❌ | Ecosystem §4.1 |
+| 10 | Version 0.1.0-beta.0 applied | ❌ | |
+| 11 | `CHANGELOG.md` exists with Alpha-2.2 entries | ❌ | |
+| 12 | Root `README.md` exists with Beta-0 announcement | ❌ | |
 
 **Pull Procedure:** We are currently at Step 1 of §0.4. Once core files are staged in `beta-0/`, we verify the readiness of each subsystem against this gate.
 
@@ -433,6 +443,9 @@ These are not blockers but need a call before execution.
 |---|---|---|
 | ❌ Fix `src/bin/settingsd.rs` build errors — make `load_local` public or refactor call site | **Critical** | Blocks all bin and integration test compilation |
 | ❌ Fix `tos-protocol/tests/protocol_tests.rs` — add missing `is_running`, `last_exit_status` fields to `CommandHub` initializers | **Critical** | Blocks `tos-protocol` test suite |
+| Verify `cargo build -p tos-protocol` success in isolation | High | |
+| Verify `cargo build --bin tos-brain` with no face dependencies | High | |
+| Verify `handheld` and `spatial` registration profile logic | High | Architecture §3.3.5 |
 | Update `cargo.lock` with latest patches | High | — |
 | Run `cargo fix` on all warnings (3 current: `handle_ai_submit`, `ShellApi` fields, `MockContent`) | Medium | Must complete before adding `deny(warnings)` |
 | Fix remaining compiler warnings | Medium | — |
@@ -503,6 +516,17 @@ Code review gates — every item is a hard requirement from the development stan
 | Pre-generate sector session templates | Medium | — |
 
 ---
+### 3.4 Orchestration & Health
+
+Verify the constellation of independent processes functions as a unified entity.
+
+| Task | Priority | Spec Ref |
+|---|---|---|
+| Verify `tos-brain` anchor port resolution (default 7000) | High | Ecosystem §4.4 |
+| Verify daemon registration retry with exponential backoff | Medium | Ecosystem §3.3 |
+| Implement `make test-health` (registry reachability check) | High | Ecosystem §4.3 |
+| Verify `tos ports` CLI shows correct statuses and ports | Medium | Ecosystem §4.6 |
+| Test mDNS advertisement (`_tos-brain._tcp`) via Avahi | Medium | Ecosystem §5.2 |
 
 ## Phase 3 — Production Readiness
 
@@ -574,6 +598,8 @@ Must exist before native platform tests can run in CI.
 |---|---|---|
 | Test live state auto-save: sectors, terminal histories, AI chat, hub layout, pinned chips | High | Features §2.3 |
 | Validate named session save / load / export / import via tile drop and Settings panel | High | Features §2.5 |
+| Verify unsaved editor buffer persistence across session switches | High | Features §2.9 |
+| Test cross-device session handoff via one-time tokens | High | Features §2.10 |
 | Verify crash recovery: `_live.tos-session.tmp` atomic rename on success; corrupt temp file discarded on next launch | Medium | Features §2.6 |
 | Confirm restore is silent — no notification, animation, or prompt on launch | Medium | Features §2.6.2 |
 
@@ -632,6 +658,7 @@ Must exist before native platform tests can run in CI.
 | Test automatic split orientation based on display aspect ratio | High | Architecture §11.3 |
 | Verify `Shift+Ctrl+\` orientation override | High | Architecture §11.3.3 |
 | Verify minimum pane size blocking with amber flash and earcon | High | Architecture §11.5 |
+| Test bezel projection: clicking segment expands component inward without shifting bezel | High | Architecture §30.2 |
 | Test Expanded Bezel pane actions: fullscreen, swap, detach to sector, save layout | High | Architecture §11.8 |
 | Verify split state persists to session file and restores correctly on relaunch | High | Architecture §11.9 |
 
@@ -715,3 +742,4 @@ Dated log of significant validation events and status changes.
 |---|---|
 | 2026-03-26 | **Initial validation audit.** Build status corrected from ✅ to ❌ (`settingsd.rs` errors). Test count corrected from 57/58 to 16/~105. npm version corrected (10.8.2, not 9.2.0). `android/` placeholder replaced with `tos-android/` workspace crate. `platform/android.rs` removed from target tree (does not exist). Electron file count corrected to ~25. Root `playwright.config.js` added to removal list. Spec file source corrected to `beta-0/dev_docs/`. Folder Migration Gate (§0.6) added. Living document protocol added. |
 | 2026-03-26 | **Strategy Pivot.** Migration model changed from " wholesale copy" to "Selective Pull." Beta-0 is now the primary integration target. All execution steps and gates updated to reflect refactoring and pulling code from Alpha-2 into the new Beta-0 structure based on consolidated specs. |
+| 2026-03-26 | **Full Spec Audit.** Synchronized plan with all five Beta-0 specification files. Added missing gates for dynamic port registration (`brain.sock`), Brain Tool Registry enforcement, unsaved editor buffer persistence, session handoff tokens, and bezel projection mechanics. Updated test taxonomy to Tier 1-4. |

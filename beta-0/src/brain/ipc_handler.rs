@@ -1043,11 +1043,12 @@ impl IpcHandler {
 
                 if changed {
                     state.version += 1;
-                    return "OK".to_string();
                 }
             }
+            "OK".to_string()
+        } else {
+            "ERROR: Invalid WebRTC payload".to_string()
         }
-        "ERROR: Invalid WebRTC payload".to_string()
     }
     fn handle_terminal_signal(&self, signal: Option<&str>) -> String {
         if let Some(sig) = signal {
@@ -1152,9 +1153,12 @@ impl IpcHandler {
     }
 
     fn handle_session_live_write(&self) -> String {
-        let state = self.state.lock().unwrap();
+        let mut state = self.state.lock().unwrap();
         match self.services.session.save_live(&state) {
-            Ok(_) => "SESSION_LIVE_WRITTEN".to_string(),
+            Ok(_) => {
+                state.version += 1;
+                "SESSION_LIVE_WRITTEN".to_string()
+            },
             Err(e) => format!("ERROR: {}", e),
         }
     }

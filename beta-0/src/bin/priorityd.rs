@@ -74,7 +74,9 @@ async fn handle_client(mut socket: TcpStream, cpu_load: f32, mem_usage: f32) -> 
                 
                 // Trigger tactile feedback if priority is high (§21.1)
                 if rank >= 4 {
-                    if let Ok(mut haptic_stream) = std::net::TcpStream::connect_timeout(&"127.0.0.1:7000".parse().unwrap(), std::time::Duration::from_millis(50)) {
+                    let config = crate::config::TosConfig::load();
+                    let addr = format!("127.0.0.1:{}", config.remote.anchor_port);
+                    if let Ok(mut haptic_stream) = std::net::TcpStream::connect_timeout(&addr.parse().unwrap(), std::time::Duration::from_millis(50)) {
                         let _ = haptic_stream.write_all(b"trigger_haptic:priority_alert\n");
                     }
                 }

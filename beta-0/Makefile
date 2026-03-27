@@ -273,3 +273,15 @@ clean-android:
 	@echo "[TOS] Cleaning Android Face build artifacts..."
 	cargo clean -p $(ANDROID_CRATE)
 	@echo "[TOS] Android Face: CLEAN"
+
+# -----------------------------------------------------------------------------
+# 7. RELEASE ORCHESTRATION (§4.2)
+# -----------------------------------------------------------------------------
+
+release:
+	@echo "[TOS] Orchestrating Canonical Release (Tarball)..."
+	bash scripts/release.sh
+
+release-all:
+	@echo "[TOS] Orchestrating Multi-Platform Release (Tar, Deb, Arch, Android)..."
+	bash scripts/release.sh --all

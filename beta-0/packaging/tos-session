@@ -1,0 +1,22 @@
+#!/bin/bash
+# /usr/bin/tos-session - Canonical Wayland OS entry point
+
+# 1. Environment Configuration
+export XDG_CURRENT_DESKTOP=TOS
+export XDG_SESSION_DESKTOP=TOS
+export XDG_SESSION_TYPE=wayland
+
+# 2. Daemon Constellation (Background Services)
+/usr/bin/tos-settingsd &
+/usr/bin/tos-loggerd &
+/usr/bin/tos-sessiond &
+/usr/bin/tos-marketplaced &
+/usr/bin/tos-priorityd &
+/usr/bin/tos-heuristicd &
+/usr/bin/searchd &
+
+# 3. Brain Core & Display Face Orchestration
+# The native face manages the Wayland compositor connection.
+/usr/bin/tos-brain --headless &
+sleep 2
+/usr/bin/tos-wayland-face

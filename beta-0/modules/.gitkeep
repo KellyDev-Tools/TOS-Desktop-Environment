@@ -1,0 +1,4 @@
+# TOS Beta-0: Machine-local module installation directory.
+# This folder is scanned by the ModuleManager at startup for satellite 
+# daemons and AI backends. It must exist for the discovery gate (§4.1) 
+# to function even if no modules are pre-installed.

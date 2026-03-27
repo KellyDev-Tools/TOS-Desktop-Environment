@@ -1,0 +1,4 @@
+# TOS Beta-0: Host-side ecosystem tools.
+# This directory is reserved for non-native utilities, such as
+# the Android bridge, release cross-compilation helpers, and
+# developer-facing desktop automation scripts.

@@ -16,17 +16,18 @@ Because TOS is fundamentally distributed (with dynamic IPC port assignments via 
 
 For generating raw, pre-compiled portable archives, we use the integrated release automation script.
 
-### Running a Release Compilation
-```bash
 cd beta-0
-./scripts/release.sh
+make release
+# OR for all formats (Debian, Arch, Android):
+make release-all
 ```
 
 **What it does:**
 1. Installs Node dependencies (`npm i`) and compiles the static Svelte Web Framework.
 2. Triggers a `cargo build --release` across all binaries in the workspace.
-3. Groups the core daemons (`tos`, `tos-brain`, `marketplaced`, `settingsd`, `sessiond`, `loggerd`, `searchd`, `heuristicd`, `priorityd`) alongside configuration (`tos.toml` and `.desktop` files) into a monolithic structure.
-4. Generates a compressed tarball: `targets/tos-beta-0-0.1.0-beta.0-linux-x86_64.tar.gz`.
+3. Bundles the core daemons and the **Native Wayland Face** (`tos-wayland-face`).
+4. Includes the **Session Orchestrator** (`tos-session`) and desktop metadata.
+5. Generates a compressed tarball: `targets/tos-beta-0-0.1.0-beta.0-linux-x86_64.tar.gz`.
 
 ---
 
@@ -40,7 +41,7 @@ The Arch package pulls directly from the source code, invoking the `Makefile` na
 cd beta-0/packaging/arch
 makepkg -si
 ```
-* **Artifacts Installed:** `/usr/bin/tos`, `/usr/bin/tos-brain`, `/usr/share/xsessions/tos.desktop`
+* **Artifacts Installed:** `/usr/bin/tos`, `/usr/bin/tos-brain`, `/usr/bin/tos-wayland-face`, `/usr/bin/tos-session`, `/usr/share/wayland-sessions/tos.desktop`
 
 ### Fedora / RHEL (`.rpm`)
 We provide a standard `tos.spec` file inside `packaging/rpm`.
@@ -77,7 +78,7 @@ sudo ./packaging/install.sh
 **Actions Performed:**
 - Invokes `make build-services`.
 - Provisions explicit system directories (`/etc/tos`, `/var/log/tos`).
-- Copies **all 7 background service daemons** directly into your configured `$BINDIR`.
-- Scaffolds the Wayland/X11 `<display-manager>` integration with `tos.desktop`.
+- Copies **all 7 background service daemons** and the **Native Face** directly into your configured `$BINDIR`.
+- Scaffolds the Wayland/GDM integration with `tos-session` and `tos.desktop`.
 
 > **Note on Permissions:** `install.sh` assigns `777` permissions to `/var/log/tos` to allow unprivileged subsystem daemons (like `loggerd`) to stream trace logs without forcing `sudo` execution.

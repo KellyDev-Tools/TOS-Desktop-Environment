@@ -23,7 +23,9 @@ cargo build --release --workspace
 echo "[RELEASE] Bundling Binary Assets..."
 cp target/release/tos "$OUTPUT_DIR/bin/"
 cp target/release/tos-brain "$OUTPUT_DIR/bin/"
-for daemon in tos-settingsd tos-marketplaced tos-sessiond tos-loggerd searchd tos-heuristicd tos-priorityd; do
+cp packaging/tos-session "$OUTPUT_DIR/bin/"
+chmod +x "$OUTPUT_DIR/bin/tos-session"
+for daemon in tos-settingsd tos-marketplaced tos-sessiond tos-loggerd searchd tos-heuristicd tos-priorityd tos-wayland-face; do
     if [ -f "target/release/$daemon" ]; then
         cp "target/release/$daemon" "$OUTPUT_DIR/bin/"
     fi
@@ -39,4 +41,51 @@ tar -czvf "$TAR_NAME" "release_$VERSION"
 cd ..
 
 echo "[RELEASE] SUCCESS. Artifact available at: targets/$TAR_NAME"
-# Note: Code signing handled by CI Pipeline/Generate Signed Release Assets Gate.
+
+# --- Advanced Distribution Formats (§4.2) ---
+# These require local system tools (dpkg-deb, rpmbuild, etc)
+
+if [ "$1" == "--all" ]; then
+    echo "[RELEASE] Initializing Multi-Platform Distribution Pipeline..."
+
+    # 1. Debian (.deb)
+    if command -v dpkg-deb &> /dev/null; then
+        echo "[RELEASE] Building Debian Package..."
+        # Map folders to debian structure
+        mkdir -p "targets/deb_root/usr/bin"
+        cp -r "$OUTPUT_DIR/bin/"* "targets/deb_root/usr/bin/"
+        mkdir -p "targets/deb_root/usr/share/wayland-sessions"
+        cp packaging/tos.desktop "targets/deb_root/usr/share/wayland-sessions/tos.desktop"
+        
+        # Meta manifest (Binary-only control file)
+        mkdir -p "targets/deb_root/DEBIAN"
+        chmod 755 "targets/deb_root/DEBIAN"
+        cat <<EOF > "targets/deb_root/DEBIAN/control"
+Package: tos
+Version: $VERSION
+Section: x11
+Priority: optional
+Architecture: amd64
+Maintainer: TOS Development Team <dev@tos-project.org>
+Depends: libwayland-client0, libxkbcommon0
+Description: Tactical Operating System
+ TOS is a reimagining of the Linux desktop with a recursive zoom hierarchy
+ and command-first philosophy.
+EOF
+        chmod 644 "targets/deb_root/DEBIAN/control"
+        
+        dpkg-deb --build "targets/deb_root" "targets/tos-$VERSION.deb"
+    fi
+
+    # 2. Arch Linux (PKGBUILD)
+    echo "[RELEASE] Staging Arch Linux PKGBUILD..."
+    cp packaging/arch/PKGBUILD "targets/"
+
+    # 3. Android Face APK (Handheld Profile)
+    if command -v cargo-ndk &> /dev/null; then
+        echo "[RELEASE] Compiling Android Face (arm64-v8a)..."
+        cargo ndk -t arm64-v8a build -p tos-android --release
+        # Note: APK wrapping requires Android Studio / Gradle, 
+        # but we preserve the .so for local side-loading.
+    fi
+fi

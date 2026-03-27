@@ -29,6 +29,14 @@ thumbs.db
 /traditional/concepts/cpp_nav/bin/
 **/logs/
 *.log
+/_live.tos-session
+/_live.tos-session.tmp
+
+# Release & Build Targets
+**/targets/
+/beta-0/targets/
+/beta-0/dev/
+/beta-0/*.tar.gz
 
 # UI & E2E Web related
 **/svelte_ui/build/
@@ -39,3 +47,6 @@ thumbs.db
 **/.svelte-kit/
 .next/
 dist/
+/pkg/
+/build/
+/out/

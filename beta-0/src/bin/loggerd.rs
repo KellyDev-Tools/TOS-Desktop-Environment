@@ -96,7 +96,7 @@ async fn handle_client(mut socket: TcpStream, log_path: std::path::PathBuf) -> a
                     let _ = writeln!(file, "{}", json_entry);
                 }
 
-                let config = crate::config::TosConfig::load();
+                let config = tos_lib::config::TosConfig::load();
                 let addr = format!("127.0.0.1:{}", config.remote.anchor_port);
                 if let Ok(mut brain_stream) = std::net::TcpStream::connect_timeout(&addr.parse().unwrap(), std::time::Duration::from_millis(50)) {
                     let _ = brain_stream.write_all(format!("system_log_append:{};{}\n", level, message).as_bytes());

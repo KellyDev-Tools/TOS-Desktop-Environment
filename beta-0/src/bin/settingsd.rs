@@ -93,7 +93,7 @@ async fn handle_client(mut socket: TcpStream, service: Arc<SettingsService>, set
                     let _ = service.save(&*lock);
                     
                     // §2.7: Notify Brain of external setting change
-                    let config = crate::config::TosConfig::load();
+                    let config = tos_lib::config::TosConfig::load();
                     let addr = format!("127.0.0.1:{}", config.remote.anchor_port);
                     if let Ok(mut brain_stream) = std::net::TcpStream::connect_timeout(&addr.parse().unwrap(), std::time::Duration::from_millis(50)) {
                         let _ = brain_stream.write_all(format!("set_setting:{};{}\n", key, val).as_bytes());

@@ -23,7 +23,7 @@ cargo build --release --workspace
 echo "[RELEASE] Bundling Binary Assets..."
 cp target/release/tos "$OUTPUT_DIR/bin/"
 cp target/release/tos-brain "$OUTPUT_DIR/bin/"
-for daemon in settingsd marketplaced sessiond loggerd searchd heuristicd priorityd; do
+for daemon in tos-settingsd tos-marketplaced tos-sessiond tos-loggerd searchd tos-heuristicd tos-priorityd; do
     if [ -f "target/release/$daemon" ]; then
         cp "target/release/$daemon" "$OUTPUT_DIR/bin/"
     fi

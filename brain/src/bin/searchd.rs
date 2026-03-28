@@ -4,12 +4,12 @@
 //! by utilizing vector embeddings and cosine similarity via `fastembed`. It registers with
 //! the Brain via Unix socket.
 
-use tokio::net::TcpListener;
-use tokio::io::{AsyncBufReadExt, AsyncWriteExt, BufReader};
-use std::sync::{Arc, Mutex};
+use fastembed::{EmbeddingModel, InitOptions, TextEmbedding};
 use std::path::PathBuf;
+use std::sync::{Arc, Mutex};
+use tokio::io::{AsyncBufReadExt, AsyncWriteExt, BufReader};
+use tokio::net::TcpListener;
 use walkdir::WalkDir;
-use fastembed::{TextEmbedding, InitOptions, EmbeddingModel};
 
 #[derive(Clone, serde::Serialize, serde::Deserialize)]
 struct VectorHit {
@@ -37,7 +37,7 @@ impl SearchState {
         let model = TextEmbedding::try_new(InitOptions::new(EmbeddingModel::AllMiniLML6V2))
             .expect("Failed to initialize fastembed model");
 
-        Self { 
+        Self {
             index: Vec::new(),
             model,
         }
@@ -57,44 +57,56 @@ impl SearchState {
         let mut to_embed_texts = Vec::new();
 
         for root in roots {
-            for entry in WalkDir::new(root.clone()).max_depth(3).into_iter().filter_map(|e| e.ok()) {
+            for entry in WalkDir::new(root.clone())
+                .max_depth(3)
+                .into_iter()
+                .filter_map(|e| e.ok())
+            {
                 let path = entry.path().to_string_lossy().to_string();
                 let metadata = entry.metadata().ok();
-                let mtime = metadata.and_then(|m| m.modified().ok())
+                let mtime = metadata
+                    .and_then(|m| m.modified().ok())
                     .and_then(|t| t.duration_since(std::time::UNIX_EPOCH).ok())
                     .map(|d| d.as_secs())
                     .unwrap_or(0);
-                    
+
                 let is_dir = entry.file_type().is_dir();
-                
+
                 if let Some(old) = old_map.remove(&path) {
                     if old.mtime == mtime {
                         new_index.push(old);
                         continue;
                     }
                 }
-                
+
                 to_embed_paths.push((path.clone(), mtime, is_dir));
                 let file_name = entry.file_name().to_string_lossy().to_string();
                 to_embed_texts.push(format!("{} {}", file_name, path));
             }
         }
-        
+
         if !to_embed_texts.is_empty() {
             // Batch embed
             if let Ok(embeddings) = self.model.embed(to_embed_texts, None) {
-                for ((path, mtime, is_dir), embedding) in to_embed_paths.into_iter().zip(embeddings) {
-                    new_index.push(DocumentEntry { path, mtime, embedding, is_dir });
+                for ((path, mtime, is_dir), embedding) in to_embed_paths.into_iter().zip(embeddings)
+                {
+                    new_index.push(DocumentEntry {
+                        path,
+                        mtime,
+                        embedding,
+                        is_dir,
+                    });
                 }
             }
         }
-        
+
         self.index = new_index;
     }
 
     fn query(&self, pattern: &str) -> Vec<VectorHit> {
         let pat = pattern.to_lowercase();
-        self.index.iter()
+        self.index
+            .iter()
             .filter(|p| p.path.to_lowercase().contains(&pat))
             .take(20)
             .map(|p| VectorHit {
@@ -111,7 +123,8 @@ impl SearchState {
                 let mut results = Vec::new();
                 for entry in &self.index {
                     let score = cosine_similarity(&query_emb, &entry.embedding);
-                    if score > 0.1 { // Minimal threshold
+                    if score > 0.1 {
+                        // Minimal threshold
                         results.push(VectorHit {
                             path: entry.path.clone(),
                             score,
@@ -146,17 +159,15 @@ async fn main() -> anyhow::Result<()> {
     tracing::info!("TOS-SEARCHD: Operational on port {}", port);
 
     let state = Arc::new(Mutex::new(SearchState::new()));
-    
+
     // Background indexer
     let indexer_state = state.clone();
-    tokio::task::spawn_blocking(move || {
-        loop {
-            {
-                let mut s = indexer_state.lock().unwrap();
-                s.rebuild_index();
-            }
-            std::thread::sleep(std::time::Duration::from_secs(10));
+    tokio::task::spawn_blocking(move || loop {
+        {
+            let mut s = indexer_state.lock().unwrap();
+            s.rebuild_index();
         }
+        std::thread::sleep(std::time::Duration::from_secs(10));
     });
 
     // Register with Brain (§4.1)
@@ -173,10 +184,14 @@ async fn main() -> anyhow::Result<()> {
 
             loop {
                 line.clear();
-                if reader.read_line(&mut line).await.unwrap_or(0) == 0 { break; }
+                if reader.read_line(&mut line).await.unwrap_or(0) == 0 {
+                    break;
+                }
                 let req = line.trim();
                 let parts: Vec<&str> = req.splitn(2, ':').collect();
-                if parts.is_empty() { continue; }
+                if parts.is_empty() {
+                    continue;
+                }
 
                 let response = match parts[0] {
                     "search" => {

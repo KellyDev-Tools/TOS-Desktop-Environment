@@ -3,9 +3,9 @@
 //! This service communicates with the `tos-heuristicd` daemon to provide
 //! real-time suggestions, typo corrections, and other smart features.
 
+use crate::services::registry::ServiceRegistry;
 use std::sync::{Arc, Mutex};
 use tokio::io::{AsyncBufReadExt, AsyncWriteExt, BufReader};
-use crate::services::registry::ServiceRegistry;
 
 pub struct HeuristicService {
     registry: Arc<Mutex<ServiceRegistry>>,
@@ -21,11 +21,12 @@ impl HeuristicService {
         let port = {
             let reg = self.registry.lock().unwrap();
             reg.port_of("tos-heuristicd")
-        }.ok_or_else(|| anyhow::anyhow!("Heuristic service not registered"))?;
+        }
+        .ok_or_else(|| anyhow::anyhow!("Heuristic service not registered"))?;
 
         let addr = format!("127.0.0.1:{}", port);
         let mut stream = tokio::net::TcpStream::connect(addr).await?;
-        
+
         let request = format!("heuristic_query:{};{}\n", keyword, cwd);
         stream.write_all(request.as_bytes()).await?;
 

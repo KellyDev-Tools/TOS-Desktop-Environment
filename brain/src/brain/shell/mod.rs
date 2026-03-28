@@ -16,15 +16,30 @@ pub struct ShellApi {
 
 #[cfg(target_os = "android")]
 impl ShellApi {
-    pub fn new(state: Arc<Mutex<TosState>>, _modules: Arc<crate::brain::module_manager::ModuleManager>, _ai: Arc<crate::services::AiService>, _heuristic: Arc<crate::services::HeuristicService>, sector_id: uuid::Uuid, hub_id: uuid::Uuid) -> anyhow::Result<Self> {
+    pub fn new(
+        state: Arc<Mutex<TosState>>,
+        _modules: Arc<crate::brain::module_manager::ModuleManager>,
+        _ai: Arc<crate::services::AiService>,
+        _heuristic: Arc<crate::services::HeuristicService>,
+        sector_id: uuid::Uuid,
+        hub_id: uuid::Uuid,
+    ) -> anyhow::Result<Self> {
         Ok(Self {
             _state: state,
             _sector_id: sector_id,
             _hub_id: hub_id,
         })
     }
-    pub fn write(&mut self, _data: &str) -> anyhow::Result<()> { Ok(()) }
-    pub fn resize(&self, _rows: u16, _cols: u16) -> anyhow::Result<()> { Ok(()) }
-    pub fn send_signal(&mut self, _signal: &str) -> anyhow::Result<()> { Ok(()) }
-    pub fn force_kill(&mut self) -> anyhow::Result<()> { Ok(()) }
+    pub fn write(&mut self, _data: &str) -> anyhow::Result<()> {
+        Ok(())
+    }
+    pub fn resize(&self, _rows: u16, _cols: u16) -> anyhow::Result<()> {
+        Ok(())
+    }
+    pub fn send_signal(&mut self, _signal: &str) -> anyhow::Result<()> {
+        Ok(())
+    }
+    pub fn force_kill(&mut self) -> anyhow::Result<()> {
+        Ok(())
+    }
 }

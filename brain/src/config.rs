@@ -156,11 +156,21 @@ impl Default for RemoteConfig {
     }
 }
 
-fn default_anchor_port() -> u16 { 7000 }
-fn default_ws_port() -> u16 { 7001 }
-fn default_bind_address() -> String { "0.0.0.0".to_string() }
-fn default_uds_path() -> String { "/tmp/brain.sock".to_string() }
-fn default_true() -> bool { true }
+fn default_anchor_port() -> u16 {
+    7000
+}
+fn default_ws_port() -> u16 {
+    7001
+}
+fn default_bind_address() -> String {
+    "0.0.0.0".to_string()
+}
+fn default_uds_path() -> String {
+    "/tmp/brain.sock".to_string()
+}
+fn default_true() -> bool {
+    true
+}
 
 // ──────────────────────────────────────────────────────────────────────────
 // Session — session persistence specifics
@@ -178,7 +188,9 @@ pub struct SessionConfig {
     pub debounce_ms: u64,
 }
 
-fn default_debounce_ms() -> u64 { 2000 }
+fn default_debounce_ms() -> u64 {
+    2000
+}
 
 impl Default for SessionConfig {
     fn default() -> Self {
@@ -215,7 +227,9 @@ pub struct SettingsConfig {
     pub daemon_port: u16,
 }
 
-fn default_settings_daemon_port() -> u16 { 7002 }
+fn default_settings_daemon_port() -> u16 {
+    7002
+}
 
 impl Default for SettingsConfig {
     fn default() -> Self {
@@ -258,7 +272,9 @@ pub struct BrainConfig {
     pub upstream: String,
 }
 
-fn default_brain_role() -> String { "standalone".to_string() }
+fn default_brain_role() -> String {
+    "standalone".to_string()
+}
 
 impl Default for BrainConfig {
     fn default() -> Self {
@@ -305,7 +321,9 @@ pub struct FaceConfig {
     pub web_face_port: u16,
 }
 
-fn default_web_face_port() -> u16 { 5173 }
+fn default_web_face_port() -> u16 {
+    5173
+}
 
 impl Default for FaceConfig {
     fn default() -> Self {
@@ -518,9 +536,15 @@ debounce_ms = 1000
             data_dir: "/custom/data".to_string(),
             runtime_dir: "/custom/runtime".to_string(),
         };
-        assert_eq!(platform.resolved_config_dir(), PathBuf::from("/custom/config"));
+        assert_eq!(
+            platform.resolved_config_dir(),
+            PathBuf::from("/custom/config")
+        );
         assert_eq!(platform.resolved_data_dir(), PathBuf::from("/custom/data"));
-        assert_eq!(platform.resolved_runtime_dir(), PathBuf::from("/custom/runtime"));
+        assert_eq!(
+            platform.resolved_runtime_dir(),
+            PathBuf::from("/custom/runtime")
+        );
     }
 
     #[test]

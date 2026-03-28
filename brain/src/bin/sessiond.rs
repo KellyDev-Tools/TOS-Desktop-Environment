@@ -5,10 +5,10 @@
 //! temp-file writes. It registers with the Brain's service registry on
 //! startup using an ephemeral TCP port.
 
-use tokio::net::{TcpListener, TcpStream};
-use tokio::io::{AsyncBufReadExt, AsyncWriteExt, BufReader};
 use std::path::PathBuf;
 use std::sync::{Arc, Mutex};
+use tokio::io::{AsyncBufReadExt, AsyncWriteExt, BufReader};
+use tokio::net::{TcpListener, TcpStream};
 
 /// In-memory state tracking for the session service.
 struct SessionState {
@@ -21,8 +21,7 @@ struct SessionState {
 
 impl SessionState {
     fn new() -> Self {
-        let mut dir = dirs::data_local_dir()
-            .unwrap_or_else(|| PathBuf::from("/tmp"));
+        let mut dir = dirs::data_local_dir().unwrap_or_else(|| PathBuf::from("/tmp"));
         dir.push("tos/sessions");
 
         Self {
@@ -113,9 +112,13 @@ async fn handle_client(
                                     if let Some(stem) = path.file_stem().and_then(|s| s.to_str()) {
                                         if stem != "_live" {
                                             // Format is sector_id_name
-                                            if target_sector.is_empty() || target_sector == "global" || stem.starts_with(&format!("{}_", target_sector)) {
+                                            if target_sector.is_empty()
+                                                || target_sector == "global"
+                                                || stem.starts_with(&format!("{}_", target_sector))
+                                            {
                                                 // Extract just the name portion
-                                                let parts: Vec<&str> = stem.splitn(2, '_').collect();
+                                                let parts: Vec<&str> =
+                                                    stem.splitn(2, '_').collect();
                                                 if parts.len() == 2 {
                                                     return Some(parts[1].to_string());
                                                 }
@@ -157,7 +160,9 @@ async fn handle_client(
                     let name = args[1];
                     let data = args[2];
                     let lock = session_state.lock().unwrap();
-                    let path = lock.sessions_dir.join(format!("{}_{}.tos-session", sector_id, name));
+                    let path = lock
+                        .sessions_dir
+                        .join(format!("{}_{}.tos-session", sector_id, name));
                     drop(lock);
                     match std::fs::write(&path, data) {
                         Ok(_) => "OK".to_string(),
@@ -174,7 +179,9 @@ async fn handle_client(
                     let sector_id = args[0];
                     let name = args[1];
                     let lock = session_state.lock().unwrap();
-                    let path = lock.sessions_dir.join(format!("{}_{}.tos-session", sector_id, name));
+                    let path = lock
+                        .sessions_dir
+                        .join(format!("{}_{}.tos-session", sector_id, name));
                     drop(lock);
                     match std::fs::read_to_string(&path) {
                         Ok(content) => content,
@@ -191,7 +198,9 @@ async fn handle_client(
                     let sector_id = args[0];
                     let name = args[1];
                     let lock = session_state.lock().unwrap();
-                    let path = lock.sessions_dir.join(format!("{}_{}.tos-session", sector_id, name));
+                    let path = lock
+                        .sessions_dir
+                        .join(format!("{}_{}.tos-session", sector_id, name));
                     drop(lock);
                     match std::fs::remove_file(&path) {
                         Ok(_) => "OK".to_string(),
@@ -202,7 +211,9 @@ async fn handle_client(
             _ => "ERROR: Unknown command".to_string(),
         };
 
-        writer.write_all(format!("{}\n", response).as_bytes()).await?;
+        writer
+            .write_all(format!("{}\n", response).as_bytes())
+            .await?;
         writer.flush().await?;
     }
 

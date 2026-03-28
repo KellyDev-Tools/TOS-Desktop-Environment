@@ -1,10 +1,10 @@
-use std::io::{Write, BufRead, BufReader};
-use std::net::TcpStream;
-use std::sync::{Arc, Mutex};
-use std::collections::HashMap;
-use std::path::PathBuf;
 use crate::common::SettingsStore;
 use crate::config::TosConfig;
+use std::collections::HashMap;
+use std::io::{BufRead, BufReader, Write};
+use std::net::TcpStream;
+use std::path::PathBuf;
+use std::sync::{Arc, Mutex};
 
 pub struct SettingsService {
     /// Resolved absolute path to settings.json.
@@ -30,7 +30,10 @@ impl SettingsService {
         }
     }
 
-    pub fn with_registry_and_config(registry: Arc<Mutex<crate::services::registry::ServiceRegistry>>, config: &TosConfig) -> Self {
+    pub fn with_registry_and_config(
+        registry: Arc<Mutex<crate::services::registry::ServiceRegistry>>,
+        config: &TosConfig,
+    ) -> Self {
         Self {
             config_path: config.settings_path(),
             registry: Some(registry),
@@ -46,10 +49,16 @@ impl SettingsService {
     // ── Remote persistence (tos-settingsd daemon) ────────────────────
 
     fn save_daemon(&self, settings: &SettingsStore) -> anyhow::Result<()> {
-        let port = self.registry.as_ref()
-            .and_then(|r: &Arc<Mutex<crate::services::registry::ServiceRegistry>>| r.lock().unwrap().port_of("tos-settingsd"))
+        let port = self
+            .registry
+            .as_ref()
+            .and_then(
+                |r: &Arc<Mutex<crate::services::registry::ServiceRegistry>>| {
+                    r.lock().unwrap().port_of("tos-settingsd")
+                },
+            )
             .unwrap_or(7002);
-            
+
         let addr = format!("127.0.0.1:{}", port);
         let mut stream = TcpStream::connect_timeout(
             &addr.parse().unwrap(),
@@ -61,10 +70,16 @@ impl SettingsService {
     }
 
     fn load_daemon(&self) -> anyhow::Result<SettingsStore> {
-        let port = self.registry.as_ref()
-            .and_then(|r: &Arc<Mutex<crate::services::registry::ServiceRegistry>>| r.lock().unwrap().port_of("tos-settingsd"))
+        let port = self
+            .registry
+            .as_ref()
+            .and_then(
+                |r: &Arc<Mutex<crate::services::registry::ServiceRegistry>>| {
+                    r.lock().unwrap().port_of("tos-settingsd")
+                },
+            )
             .unwrap_or(7002);
-            
+
         let addr = format!("127.0.0.1:{}", port);
         let mut stream = TcpStream::connect_timeout(
             &addr.parse().unwrap(),
@@ -110,7 +125,9 @@ impl SettingsService {
         if self.local_persistence {
             return self.save_local(settings);
         }
-        Err(anyhow::anyhow!("tos-settingsd unavailable and local.persistence is disabled"))
+        Err(anyhow::anyhow!(
+            "tos-settingsd unavailable and local.persistence is disabled"
+        ))
     }
 
     /// Load settings. Tries daemon first, falls back to local disk.
@@ -148,36 +165,63 @@ impl SettingsService {
         // --- Core Settings (Alpha-2.1 legacy) ---
         map.insert("theme".to_string(), "lcars-light".to_string());
         map.insert("default_shell".to_string(), "fish".to_string());
-        map.insert("terminal_output_module".to_string(), "rectangular".to_string());
+        map.insert(
+            "terminal_output_module".to_string(),
+            "rectangular".to_string(),
+        );
         map.insert("master_volume".to_string(), "80".to_string());
         map.insert("logging_enabled".to_string(), "true".to_string());
         map.insert("terminal_buffer_limit".to_string(), "500".to_string());
 
         // --- Onboarding (Onboarding Specification §2) ---
-        map.insert("tos.onboarding.first_run_complete".to_string(), "false".to_string());
-        map.insert("tos.onboarding.wizard_complete".to_string(), "false".to_string());
-        map.insert("tos.onboarding.hint_suppressed".to_string(), "false".to_string());
+        map.insert(
+            "tos.onboarding.first_run_complete".to_string(),
+            "false".to_string(),
+        );
+        map.insert(
+            "tos.onboarding.wizard_complete".to_string(),
+            "false".to_string(),
+        );
+        map.insert(
+            "tos.onboarding.hint_suppressed".to_string(),
+            "false".to_string(),
+        );
         map.insert("tos.onboarding.sessions_count".to_string(), "0".to_string());
         map.insert("tos.onboarding.commands_run".to_string(), "0".to_string());
 
         // --- Trust (Trust & Confirmation Specification §2, §6) ---
-        map.insert("tos.trust.privilege_escalation".to_string(), "warn".to_string());
+        map.insert(
+            "tos.trust.privilege_escalation".to_string(),
+            "warn".to_string(),
+        );
         map.insert("tos.trust.recursive_bulk".to_string(), "warn".to_string());
         map.insert("tos.trust.bulk_threshold".to_string(), "10".to_string());
 
         // --- AI (AI Co-Pilot Specification §9) ---
-        map.insert("tos.ai.default_backend".to_string(), "tos-ai-standard".to_string());
+        map.insert(
+            "tos.ai.default_backend".to_string(),
+            "tos-ai-standard".to_string(),
+        );
         map.insert("tos.ai.chip_color".to_string(), "secondary".to_string());
         map.insert("tos.ai.ghost_text_opacity".to_string(), "40".to_string());
         map.insert("tos.ai.disabled".to_string(), "false".to_string());
         map.insert("tos.ai.context_level".to_string(), "standard".to_string());
 
         // --- Expanded Bezel (Expanded Bezel Specification §7) ---
-        map.insert("tos.interface.bezel.dismiss_behavior".to_string(), "stay_open".to_string());
-        map.insert("tos.interface.bezel.auto_collapse_timeout".to_string(), "5".to_string());
+        map.insert(
+            "tos.interface.bezel.dismiss_behavior".to_string(),
+            "stay_open".to_string(),
+        );
+        map.insert(
+            "tos.interface.bezel.auto_collapse_timeout".to_string(),
+            "5".to_string(),
+        );
 
         // --- Split Viewport (Split Viewport Specification §6) ---
-        map.insert("tos.interface.splits.divider_snap".to_string(), "true".to_string());
+        map.insert(
+            "tos.interface.splits.divider_snap".to_string(),
+            "true".to_string(),
+        );
 
         // --- Network (Ecosystem Orchestration / Anchor Port) ---
         map.insert("tos.network.anchor_port".to_string(), "7000".to_string());

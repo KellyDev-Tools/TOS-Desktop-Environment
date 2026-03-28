@@ -1,29 +1,36 @@
-use crate::platform::{Renderer, SurfaceConfig, SurfaceHandle, SurfaceContent, InputSource, RawInputEvent, SemanticEvent, SystemServices, SystemMetrics, ProcessHandle};
-use crate::common::{DirectoryEntry};
+use crate::common::DirectoryEntry;
+use crate::platform::{
+    InputSource, ProcessHandle, RawInputEvent, Renderer, SemanticEvent, SurfaceConfig,
+    SurfaceContent, SurfaceHandle, SystemMetrics, SystemServices,
+};
 use std::path::Path;
 
 pub struct QuestRenderer;
 
 impl Renderer for QuestRenderer {
     fn create_surface(&mut self, config: SurfaceConfig) -> SurfaceHandle {
-        tracing::info!("Allocating OpenXR Swapchain Surface: {}x{}", config.width, config.height);
+        tracing::info!(
+            "Allocating OpenXR Swapchain Surface: {}x{}",
+            config.width,
+            config.height
+        );
         SurfaceHandle(77) // Placeholder for actual xrCreateSwapchain
     }
-    
+
     fn update_surface(&mut self, handle: SurfaceHandle, content: &dyn SurfaceContent) {
         tracing::debug!("xrAcquireSwapchainImage for handle {}", handle.0);
         tracing::debug!("xrWaitSwapchainImage for handle {}", handle.0);
-        
+
         let data = content.pixel_data();
         if !data.is_empty() {
-             tracing::debug!("Copied {} bytes to OpenXR Swapchain image", data.len());
+            tracing::debug!("Copied {} bytes to OpenXR Swapchain image", data.len());
         }
-        
+
         tracing::debug!("xrReleaseSwapchainImage for handle {}", handle.0);
     }
 
     fn register_pid(&mut self, _pid: u32, _handle: SurfaceHandle) {}
-    
+
     fn composite(&mut self) {
         tracing::debug!("xrEndFrame: Compositing OpenXR projection layers");
     }
@@ -55,9 +62,11 @@ impl SystemServices for QuestServices {
     }
 
     fn get_system_metrics(&self) -> SystemMetrics {
-        SystemMetrics { cpu_usage: 0.3, mem_usage: 4096 * 1024 }
+        SystemMetrics {
+            cpu_usage: 0.3,
+            mem_usage: 4096 * 1024,
+        }
     }
 
     fn open_url(&self, _url: &str) {}
 }
-

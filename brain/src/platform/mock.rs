@@ -1,5 +1,8 @@
-use crate::platform::{Renderer, SurfaceConfig, SurfaceHandle, SurfaceContent, InputSource, RawInputEvent, SemanticEvent, SystemServices, SystemMetrics, ProcessHandle};
-use crate::common::{DirectoryEntry};
+use crate::common::DirectoryEntry;
+use crate::platform::{
+    InputSource, ProcessHandle, RawInputEvent, Renderer, SemanticEvent, SurfaceConfig,
+    SurfaceContent, SurfaceHandle, SystemMetrics, SystemServices,
+};
 use std::path::Path;
 
 pub struct MockRenderer;
@@ -36,15 +39,25 @@ impl SystemServices for MockServices {
 
     fn read_dir(&self, _path: &Path) -> anyhow::Result<Vec<DirectoryEntry>> {
         Ok(vec![
-            DirectoryEntry { name: "test_file.txt".to_string(), is_dir: false, size: 1024 },
-            DirectoryEntry { name: "test_dir".to_string(), is_dir: true, size: 0 },
+            DirectoryEntry {
+                name: "test_file.txt".to_string(),
+                is_dir: false,
+                size: 1024,
+            },
+            DirectoryEntry {
+                name: "test_dir".to_string(),
+                is_dir: true,
+                size: 0,
+            },
         ])
     }
 
     fn get_system_metrics(&self) -> SystemMetrics {
-        SystemMetrics { cpu_usage: 0.1, mem_usage: 1024 * 1024 }
+        SystemMetrics {
+            cpu_usage: 0.1,
+            mem_usage: 1024 * 1024,
+        }
     }
 
     fn open_url(&self, _url: &str) {}
 }
-

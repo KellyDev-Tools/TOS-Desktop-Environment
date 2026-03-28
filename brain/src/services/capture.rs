@@ -4,8 +4,8 @@
 //! captures for use in the Global Overview (Level 1) and Activity Hub (Level 2).
 //! It utilizes platform-native shared memory (DMABUF/memfd) where available.
 
-use std::sync::{Arc, Mutex};
 use std::collections::HashMap;
+use std::sync::{Arc, Mutex};
 pub use tos_common::platform::{CaptureBackend, FrameCapture, MockCaptureBackend};
 
 pub struct CaptureService {
@@ -30,19 +30,19 @@ impl CaptureService {
     /// Returns a cached version if it's within the TTL (100ms for 10Hz).
     pub fn get_snapshot(&self, pid: u32) -> Option<String> {
         let mut cache = self.cache.lock().unwrap();
-        
+
         // Simple 10Hz throttle (100ms TTL)
-        // In a more robust system, we would store timestamps in the cache. 
+        // In a more robust system, we would store timestamps in the cache.
         // For Alpha 2.2, we return the cached entry if it exists to avoid redundant captures per-frame-update-cycle.
         if let Some(capture) = cache.get(&pid) {
-             return Some(capture.data.clone());
+            return Some(capture.data.clone());
         }
 
         let backend = {
             let lock = self.backend.lock().unwrap();
             lock.clone()
         };
-        
+
         if let Some(ref backend) = backend {
             if let Some(capture) = backend.capture_window(pid) {
                 cache.insert(pid, capture.clone());

@@ -1,5 +1,8 @@
-use crate::platform::{Renderer, SurfaceConfig, SurfaceHandle, SurfaceContent, InputSource, RawInputEvent, SemanticEvent, SystemServices, SystemMetrics, ProcessHandle};
-use crate::common::{DirectoryEntry};
+use crate::common::DirectoryEntry;
+use crate::platform::{
+    InputSource, ProcessHandle, RawInputEvent, Renderer, SemanticEvent, SurfaceConfig,
+    SurfaceContent, SurfaceHandle, SystemMetrics, SystemServices,
+};
 use std::path::Path;
 
 pub struct RemoteRenderer;
@@ -39,11 +42,13 @@ impl SystemServices for RemoteServices {
     }
 
     fn get_system_metrics(&self) -> SystemMetrics {
-        SystemMetrics { cpu_usage: 0.0, mem_usage: 0 }
+        SystemMetrics {
+            cpu_usage: 0.0,
+            mem_usage: 0,
+        }
     }
 
     fn open_url(&self, _url: &str) {
         // Option to open on local viewer or remote host
     }
 }
-

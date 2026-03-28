@@ -1,6 +1,6 @@
-use crate::common::{Sector, CommandHub, CommandHubMode, TosState};
-use uuid::Uuid;
+use crate::common::{CommandHub, CommandHubMode, Sector, TosState};
 use std::path::PathBuf;
+use uuid::Uuid;
 
 pub struct SectorManager;
 
@@ -9,10 +9,12 @@ impl SectorManager {
     pub fn create_sector(state: &mut TosState, name: String) -> Uuid {
         let sector_id = Uuid::new_v4();
         let hub_id = Uuid::new_v4();
-        
+
         // Use current directory of active hub as starting point if possible
         let cwd = if let Some(active_sector) = state.sectors.get(state.active_sector_index) {
-            active_sector.hubs[active_sector.active_hub_index].current_directory.clone()
+            active_sector.hubs[active_sector.active_hub_index]
+                .current_directory
+                .clone()
         } else {
             std::env::current_dir().unwrap_or_else(|_| PathBuf::from("/"))
         };
@@ -58,14 +60,21 @@ impl SectorManager {
     }
 
     /// Create a sector from a predefined blueprint.
-    pub fn create_from_template(state: &mut TosState, template: crate::common::SectorTemplate) -> Uuid {
+    pub fn create_from_template(
+        state: &mut TosState,
+        template: crate::common::SectorTemplate,
+    ) -> Uuid {
         let sector_id = Uuid::new_v4();
         let mut hubs = Vec::new();
 
         for hub_tmpl in template.hubs {
             let hub_id = Uuid::new_v4();
-            let cwd = PathBuf::from(hub_tmpl.cwd.replace("~", &dirs::home_dir().unwrap_or_default().to_string_lossy()));
-            
+            let cwd = PathBuf::from(
+                hub_tmpl
+                    .cwd
+                    .replace("~", &dirs::home_dir().unwrap_or_default().to_string_lossy()),
+            );
+
             hubs.push(CommandHub {
                 id: hub_id,
                 mode: hub_tmpl.mode,
@@ -91,8 +100,8 @@ impl SectorManager {
 
         // Ensure at least one hub exists
         if hubs.is_empty() {
-             Self::create_sector(state, template.name);
-             return sector_id;
+            Self::create_sector(state, template.name);
+            return sector_id;
         }
 
         let sector = Sector {
@@ -116,7 +125,11 @@ impl SectorManager {
     }
 
     /// Launch a new application instance within a sector (§8.2).
-    pub fn launch_app(state: &mut TosState, sector_id: Uuid, model: crate::common::ApplicationModel) -> Uuid {
+    pub fn launch_app(
+        state: &mut TosState,
+        sector_id: Uuid,
+        model: crate::common::ApplicationModel,
+    ) -> Uuid {
         let app_id = Uuid::new_v4();
         if let Some(sector) = state.sectors.iter_mut().find(|s| s.id == sector_id) {
             sector.active_apps.push(crate::common::AppInstance {
@@ -126,10 +139,14 @@ impl SectorManager {
                 state_summary: "INITIALIZING".to_string(),
             });
             sector.active_app_index = sector.active_apps.len() - 1;
-            
+
             // Automatic Zoom In to Level 3 (§1.1)
             state.current_level = crate::common::HierarchyLevel::ApplicationFocus;
-            tracing::info!("Application {} launched in sector {}", model.name, sector_id);
+            tracing::info!(
+                "Application {} launched in sector {}",
+                model.name,
+                sector_id
+            );
         }
         app_id
     }
@@ -154,12 +171,12 @@ impl SectorManager {
     pub fn clone_sector(state: &mut TosState, source_id: Uuid) -> Option<Uuid> {
         let source_index = state.sectors.iter().position(|s| s.id == source_id)?;
         let source_sector = &state.sectors[source_index];
-        
+
         let new_id = Uuid::new_v4();
         let mut new_sector = source_sector.clone();
         new_sector.id = new_id;
         new_sector.name = format!("{} (Clone)", source_sector.name);
-        
+
         // Give hubs new IDs too
         for hub in &mut new_sector.hubs {
             hub.id = Uuid::new_v4();
@@ -173,12 +190,12 @@ impl SectorManager {
     pub fn close_sector(state: &mut TosState, id: Uuid) -> bool {
         let initial_len = state.sectors.len();
         state.sectors.retain(|s| s.id != id);
-        
+
         // Ensure active_sector_index stays valid
         if state.active_sector_index >= state.sectors.len() && !state.sectors.is_empty() {
             state.active_sector_index = state.sectors.len() - 1;
         }
-        
+
         state.sectors.len() < initial_len
     }
 
@@ -208,12 +225,8 @@ impl SectorManager {
                     let metadata = entry.metadata();
                     let is_dir = metadata.as_ref().map(|m| m.is_dir()).unwrap_or(false);
                     let size = metadata.as_ref().map(|m| m.len()).unwrap_or(0);
-                    
-                    entries.push(crate::common::DirectoryEntry {
-                        name,
-                        is_dir,
-                        size,
-                    });
+
+                    entries.push(crate::common::DirectoryEntry { name, is_dir, size });
                 }
             }
 
@@ -225,7 +238,10 @@ impl SectorManager {
     }
 
     /// Refresh activity listing for process monitoring hub modes.
-    pub fn refresh_activity_listing(state: &mut TosState, capture_svc: Option<&crate::services::CaptureService>) {
+    pub fn refresh_activity_listing(
+        state: &mut TosState,
+        capture_svc: Option<&crate::services::CaptureService>,
+    ) {
         use sysinfo::System;
         let idx = state.active_sector_index;
         if let Some(sector) = state.sectors.get_mut(idx) {
@@ -236,7 +252,7 @@ impl SectorManager {
 
             let mut sys = System::new_all();
             sys.refresh_all();
-            
+
             let mut processes = Vec::new();
             for (pid_type, process) in sys.processes() {
                 let pid = pid_type.as_u32();
@@ -253,11 +269,13 @@ impl SectorManager {
             }
 
             // Sort by CPU usage descending
-            processes.sort_by(|a, b| b.cpu_usage.partial_cmp(&a.cpu_usage).unwrap_or(std::cmp::Ordering::Equal));
-
-            hub.activity_listing = Some(crate::common::ActivityListing {
-                processes,
+            processes.sort_by(|a, b| {
+                b.cpu_usage
+                    .partial_cmp(&a.cpu_usage)
+                    .unwrap_or(std::cmp::Ordering::Equal)
             });
+
+            hub.activity_listing = Some(crate::common::ActivityListing { processes });
         }
     }
 
@@ -307,7 +325,11 @@ impl SectorManager {
         let hub_idx = state.sectors[idx].active_hub_index;
         let hub = &mut state.sectors[idx].hubs[hub_idx];
 
-        let existing_count = hub.split_layout.as_ref().map(|l| l.pane_count()).unwrap_or(1);
+        let existing_count = hub
+            .split_layout
+            .as_ref()
+            .map(|l| l.pane_count())
+            .unwrap_or(1);
 
         if !crate::common::SplitNode::can_split(existing_count, display_width, display_height) {
             return Err("SPLIT_BLOCKED: minimum pane size limit reached".to_string());
@@ -321,7 +343,8 @@ impl SectorManager {
             content: crate::common::PaneContent::Terminal,
         };
 
-        let orientation = crate::common::SplitNode::ideal_orientation(display_width, display_height);
+        let orientation =
+            crate::common::SplitNode::ideal_orientation(display_width, display_height);
 
         hub.split_layout = Some(match hub.split_layout.take() {
             None => {
@@ -356,13 +379,24 @@ impl SectorManager {
         let hub_idx = state.sectors[idx].active_hub_index;
         let hub = &mut state.sectors[idx].hubs[hub_idx];
 
-        fn remove_pane(node: crate::common::SplitNode, id: Uuid) -> Option<crate::common::SplitNode> {
+        fn remove_pane(
+            node: crate::common::SplitNode,
+            id: Uuid,
+        ) -> Option<crate::common::SplitNode> {
             match node {
                 crate::common::SplitNode::Leaf(p) => {
-                    if p.id == id { None } else { Some(crate::common::SplitNode::Leaf(p)) }
+                    if p.id == id {
+                        None
+                    } else {
+                        Some(crate::common::SplitNode::Leaf(p))
+                    }
                 }
-                crate::common::SplitNode::Container { orientation, children } => {
-                    let filtered: Vec<_> = children.into_iter()
+                crate::common::SplitNode::Container {
+                    orientation,
+                    children,
+                } => {
+                    let filtered: Vec<_> = children
+                        .into_iter()
                         .filter_map(|c| remove_pane(c, id))
                         .collect();
                     if filtered.is_empty() {
@@ -370,7 +404,10 @@ impl SectorManager {
                     } else if filtered.len() == 1 {
                         Some(filtered.into_iter().next().unwrap())
                     } else {
-                        Some(crate::common::SplitNode::Container { orientation, children: filtered })
+                        Some(crate::common::SplitNode::Container {
+                            orientation,
+                            children: filtered,
+                        })
                     }
                 }
             }
@@ -379,7 +416,10 @@ impl SectorManager {
         if let Some(layout) = hub.split_layout.take() {
             hub.split_layout = remove_pane(layout, pane_id);
             if hub.focused_pane_id == Some(pane_id) {
-                hub.focused_pane_id = hub.split_layout.as_ref().and_then(|l| l.all_pane_ids().into_iter().next());
+                hub.focused_pane_id = hub
+                    .split_layout
+                    .as_ref()
+                    .and_then(|l| l.all_pane_ids().into_iter().next());
             }
             return true;
         }
@@ -391,7 +431,11 @@ impl SectorManager {
         let idx = state.active_sector_index;
         let hub_idx = state.sectors[idx].active_hub_index;
         let hub = &mut state.sectors[idx].hubs[hub_idx];
-        let known_ids = hub.split_layout.as_ref().map(|l| l.all_pane_ids()).unwrap_or_default();
+        let known_ids = hub
+            .split_layout
+            .as_ref()
+            .map(|l| l.all_pane_ids())
+            .unwrap_or_default();
         if known_ids.contains(&pane_id) {
             hub.focused_pane_id = Some(pane_id);
             return true;
@@ -405,14 +449,27 @@ impl SectorManager {
         let idx = state.active_sector_index;
         let hub_idx = state.sectors[idx].active_hub_index;
         let hub = &mut state.sectors[idx].hubs[hub_idx];
-        let ids = hub.split_layout.as_ref().map(|l| l.all_pane_ids()).unwrap_or_default();
-        if ids.is_empty() { return None; }
-        let current_pos = hub.focused_pane_id
+        let ids = hub
+            .split_layout
+            .as_ref()
+            .map(|l| l.all_pane_ids())
+            .unwrap_or_default();
+        if ids.is_empty() {
+            return None;
+        }
+        let current_pos = hub
+            .focused_pane_id
             .and_then(|id| ids.iter().position(|&x| x == id))
             .unwrap_or(0);
         let next_pos = match direction {
             "right" | "down" => (current_pos + 1) % ids.len(),
-            "left" | "up" => if current_pos == 0 { ids.len() - 1 } else { current_pos - 1 },
+            "left" | "up" => {
+                if current_pos == 0 {
+                    ids.len() - 1
+                } else {
+                    current_pos - 1
+                }
+            }
             _ => current_pos,
         };
         hub.focused_pane_id = Some(ids[next_pos]);
@@ -447,9 +504,18 @@ impl SectorManager {
         let idx = state.active_sector_index;
         let hub_idx = state.sectors[idx].active_hub_index;
         let hub = &mut state.sectors[idx].hubs[hub_idx];
-        fn find_pane(node: &crate::common::SplitNode, id: Uuid) -> Option<crate::common::SplitPane> {
+        fn find_pane(
+            node: &crate::common::SplitNode,
+            id: Uuid,
+        ) -> Option<crate::common::SplitPane> {
             match node {
-                crate::common::SplitNode::Leaf(p) => if p.id == id { Some(p.clone()) } else { None },
+                crate::common::SplitNode::Leaf(p) => {
+                    if p.id == id {
+                        Some(p.clone())
+                    } else {
+                        None
+                    }
+                }
                 crate::common::SplitNode::Container { children, .. } => {
                     children.iter().find_map(|c| find_pane(c, id))
                 }
@@ -472,12 +538,20 @@ impl SectorManager {
         let pane_id = state.sectors[idx].hubs[hub_idx].focused_pane_id?;
         let cwd = {
             let hub_idx = state.sectors[idx].active_hub_index;
-        let hub = &state.sectors[idx].hubs[hub_idx];
+            let hub = &state.sectors[idx].hubs[hub_idx];
             let layout = hub.split_layout.as_ref()?;
             fn find_cwd(node: &crate::common::SplitNode, id: Uuid) -> Option<std::path::PathBuf> {
                 match node {
-                    crate::common::SplitNode::Leaf(p) => if p.id == id { Some(p.cwd.clone()) } else { None },
-                    crate::common::SplitNode::Container { children, .. } => children.iter().find_map(|c| find_cwd(c, id)),
+                    crate::common::SplitNode::Leaf(p) => {
+                        if p.id == id {
+                            Some(p.cwd.clone())
+                        } else {
+                            None
+                        }
+                    }
+                    crate::common::SplitNode::Container { children, .. } => {
+                        children.iter().find_map(|c| find_cwd(c, id))
+                    }
                 }
             }
             find_cwd(layout, pane_id)?
@@ -488,12 +562,20 @@ impl SectorManager {
 
         // Create a new sector with the same cwd
         let new_sector_id = Self::create_sector_at_cwd(state, "Detached".to_string(), cwd);
-        state.active_sector_index = state.sectors.iter().position(|s| s.id == new_sector_id).unwrap_or(0);
+        state.active_sector_index = state
+            .sectors
+            .iter()
+            .position(|s| s.id == new_sector_id)
+            .unwrap_or(0);
         Some(new_sector_id)
     }
 
     /// Create a sector with a specific cwd (used by split detach).
-    pub fn create_sector_at_cwd(state: &mut TosState, name: String, cwd: std::path::PathBuf) -> Uuid {
+    pub fn create_sector_at_cwd(
+        state: &mut TosState,
+        name: String,
+        cwd: std::path::PathBuf,
+    ) -> Uuid {
         let sector_id = Uuid::new_v4();
         let hub_id = Uuid::new_v4();
         let sector = crate::common::Sector {
@@ -535,4 +617,3 @@ impl SectorManager {
         sector_id
     }
 }
-

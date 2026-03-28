@@ -4,9 +4,9 @@
 //! implement. The Brain loads modules dynamically and calls them through
 //! these trait objects.
 
+use crate::state::{TerminalContext, TerminalLine};
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
-use crate::state::{TerminalContext, TerminalLine};
 
 // ---------------------------------------------------------------------------
 // AI Module Contract

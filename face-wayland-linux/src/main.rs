@@ -1,7 +1,7 @@
-use std::sync::{Arc, Mutex};
 use face_wayland_linux::LinuxRenderer;
-use tos_common::state::TosState;
+use std::sync::{Arc, Mutex};
 use tos_common::platform::Renderer;
+use tos_common::state::TosState;
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {

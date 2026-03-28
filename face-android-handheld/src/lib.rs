@@ -35,10 +35,10 @@
 //! cargo ndk -t arm64-v8a build -p face-android-handheld
 //! ```
 
+pub mod api;
 pub mod face;
 pub mod input;
 pub mod services;
-pub mod api;
 
 pub use face::AndroidFace;
 pub use input::{AndroidInput, GestureState, GestureType};

@@ -1,7 +1,7 @@
+use rodio::source::{SineWave, Source};
+use rodio::{OutputStream, Sink};
 use std::thread;
 use std::time::Duration;
-use rodio::{OutputStream, Sink};
-use rodio::source::{SineWave, Source};
 
 pub struct AudioService {
     sender: std::sync::mpsc::Sender<String>,
@@ -11,7 +11,7 @@ impl AudioService {
     pub fn new() -> (Self, Option<String>) {
         let (tx, rx) = std::sync::mpsc::channel::<String>();
         let (warn_tx, warn_rx) = std::sync::mpsc::channel::<String>();
-        
+
         thread::spawn(move || {
             // Attempt to initialize the default audio output
             let (_stream, stream_handle) = match OutputStream::try_default() {
@@ -23,7 +23,7 @@ impl AudioService {
                     return;
                 }
             };
-            
+
             while let Ok(name) = rx.recv() {
                 // For Alpha-2, we generate a synthetic earcon based on the name
                 // To keep the pipeline alive while sounds play
@@ -39,11 +39,11 @@ impl AudioService {
                         "nav_switch" => (700.0, 80),
                         _ => (300.0, 200),
                     };
-                    
+
                     let source = SineWave::new(freq)
                         .take_duration(Duration::from_millis(dur))
                         .amplify(0.15);
-                        
+
                     sink.append(source);
                     sink.detach(); // Let it play out asynchronously
                 }

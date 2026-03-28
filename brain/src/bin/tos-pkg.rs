@@ -15,7 +15,9 @@ fn main() -> anyhow::Result<()> {
     let cmd = &args[1];
     match cmd.as_str() {
         "discover" => {
-            if args.len() < 3 { return Err(anyhow::anyhow!("Missing path")); }
+            if args.len() < 3 {
+                return Err(anyhow::anyhow!("Missing path"));
+            }
             let path = PathBuf::from(&args[2]);
             let manifest = MarketplaceService::discover_module_local(path)?;
             println!("MATCH FOUND:");
@@ -24,18 +26,20 @@ fn main() -> anyhow::Result<()> {
             println!("  VERSION: {}", manifest.version);
             println!("  TYPE:    {}", manifest.module_type);
             println!("  AUTHOR:  {}", manifest.author);
-        },
+        }
         "verify" => {
-             if args.len() < 3 { return Err(anyhow::anyhow!("Missing path")); }
-             let path = PathBuf::from(&args[2]);
-             let manifest = MarketplaceService::discover_module_local(path)?;
-             let pk = MarketplaceService::get_trusted_public_key()?;
-             if MarketplaceService::verify_manifest_local(&manifest, &pk) {
-                 println!("VERIFICATION: SUCCESS ✅ (Signed by TOS Core)");
-             } else {
-                 println!("VERIFICATION: FAILED ❌ (Invalid Signature)");
-             }
-        },
+            if args.len() < 3 {
+                return Err(anyhow::anyhow!("Missing path"));
+            }
+            let path = PathBuf::from(&args[2]);
+            let manifest = MarketplaceService::discover_module_local(path)?;
+            let pk = MarketplaceService::get_trusted_public_key()?;
+            if MarketplaceService::verify_manifest_local(&manifest, &pk) {
+                println!("VERIFICATION: SUCCESS ✅ (Signed by TOS Core)");
+            } else {
+                println!("VERIFICATION: FAILED ❌ (Invalid Signature)");
+            }
+        }
         _ => println!("ERROR: Unknown command '{}'", cmd),
     }
 

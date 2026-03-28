@@ -1,10 +1,10 @@
 //! Headless renderer for environments without GPU or compositor.
-//! 
+//!
 //! Buffers are stored in CPU RAM. Per Architecture §15.3, this supports
 //! testing, SSH environments, and remote streaming scenarios.
 
+use crate::platform::{Renderer, SurfaceConfig, SurfaceContent, SurfaceHandle};
 use std::collections::HashMap;
-use crate::platform::{Renderer, SurfaceHandle, SurfaceConfig, SurfaceContent};
 
 pub struct HeadlessRenderer {
     pub surfaces: HashMap<u32, HeadlessSurface>,
@@ -29,17 +29,17 @@ impl Renderer for HeadlessRenderer {
     fn create_surface(&mut self, config: SurfaceConfig) -> SurfaceHandle {
         let handle_id = self.next_handle;
         self.next_handle += 1;
-        
+
         let buffer_size = (config.width * config.height * 4) as usize; // RGBA
         let surface = HeadlessSurface {
             config,
             buffer: vec![0u8; buffer_size],
         };
-        
+
         self.surfaces.insert(handle_id, surface);
         SurfaceHandle(handle_id)
     }
-    
+
     fn update_surface(&mut self, handle: SurfaceHandle, content: &dyn SurfaceContent) {
         if let Some(surface) = self.surfaces.get_mut(&handle.0) {
             // In a real implementation, we would copy pixel data here.
@@ -54,7 +54,7 @@ impl Renderer for HeadlessRenderer {
     fn register_pid(&mut self, _pid: u32, _handle: SurfaceHandle) {
         // No-op in headless
     }
-    
+
     fn composite(&mut self) {
         // No GPU composite needed — surfaces are already in RAM
     }

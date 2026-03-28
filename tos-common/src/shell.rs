@@ -19,7 +19,9 @@ pub struct OscParser {
 
 impl OscParser {
     pub fn new() -> Self {
-        Self { current_priority: 0 }
+        Self {
+            current_priority: 0,
+        }
     }
 
     pub fn process(&mut self, line: &str) -> (String, Vec<OscEvent>) {
@@ -31,11 +33,11 @@ impl OscParser {
                 let payload = &line[5..end];
                 if let Ok(p) = payload.parse::<u8>() {
                     events.push(OscEvent::Priority(p));
-                    clean_text = line[end+1..].to_string();
+                    clean_text = line[end + 1..].to_string();
                 }
             }
         } else if line.contains("\x1b]7;") {
-             // Handle CWD etc.
+            // Handle CWD etc.
         }
 
         (clean_text, events)

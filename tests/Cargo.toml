@@ -1,0 +1,43 @@
+[package]
+name = "tos-e2e-tests"
+version = "0.1.0-beta.0"
+edition = "2021"
+publish = false
+
+[dependencies]
+tos-common = { path = "../tos-common" }
+tos_lib = { package = "tos-brain", path = "../brain" }
+tokio = { version = "1.36", features = ["full"] }
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+anyhow = "1.0"
+tracing = "0.1"
+uuid = { version = "1.7", features = ["v4"] }
+
+[[test]]
+name = "service_orchestration"
+path = "service_orchestration.rs"
+
+[[test]]
+name = "face_visual_states"
+path = "face_visual_states.rs"
+
+[[test]]
+name = "ai_staging_flow"
+path = "ai_staging_flow.rs"
+
+[[test]]
+name = "collaboration_sync"
+path = "collaboration_sync.rs"
+
+[[test]]
+name = "dynamic_registration"
+path = "dynamic_registration.rs"
+
+[[test]]
+name = "osc_stress"
+path = "osc_stress.rs"
+
+[[test]]
+name = "session_persistence"
+path = "session_persistence.rs"

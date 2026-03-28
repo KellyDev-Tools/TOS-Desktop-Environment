@@ -12,20 +12,20 @@
 //! - [`modules`] — Module trait contracts (AI, Shell, Terminal Output).
 //! - [`collaboration`] — Multi-user collaboration payloads (WebRTC).
 
-pub mod state;
 pub mod ipc;
+pub mod state;
 pub use ipc as ipc_dispatcher;
-pub mod modules;
 pub mod collaboration;
 pub mod marketplace;
+pub mod modules;
 pub mod platform;
 pub mod shell;
 
 // Re-export core types at the crate root for ergonomic access.
-pub use state::*;
-pub use ipc::IpcDispatcher;
-pub use modules::{AiModule, AiQuery, AiResponse, ShellModule, ShellIntegration};
 pub use collaboration::{Participant, ParticipantRole, PresenceStatus, WebRtcPayload};
+pub use ipc::IpcDispatcher;
 pub use marketplace::*;
+pub use modules::{AiModule, AiQuery, AiResponse, ShellIntegration, ShellModule};
 pub use platform::*;
 pub use shell::*;
+pub use state::*;

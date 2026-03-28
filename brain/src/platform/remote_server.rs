@@ -1,9 +1,9 @@
-use tokio::net::{TcpListener, TcpStream};
-use tokio::io::{AsyncBufReadExt, BufReader, AsyncWriteExt};
-use tokio_tungstenite::accept_async;
-use futures_util::{StreamExt, SinkExt};
 use crate::brain::ipc_handler::IpcHandler;
+use futures_util::{SinkExt, StreamExt};
 use std::sync::Arc;
+use tokio::io::{AsyncBufReadExt, AsyncWriteExt, BufReader};
+use tokio::net::{TcpListener, TcpStream};
+use tokio_tungstenite::accept_async;
 
 pub struct RemoteServer {
     ipc: Arc<IpcHandler>,
@@ -23,22 +23,22 @@ impl RemoteServer {
         // Bind with retry — previous Brain instance may have just been killed
         let tcp_listener = Self::bind_with_retry(&tcp_addr).await?;
         let ws_listener = Self::bind_with_retry(&ws_addr).await?;
-        
+
         // §5.2: Advertise TOS Brain via mDNS (_tos-brain._tcp)
         let _mdns_handle = self.register_mdns(port);
-        
+
         // Remove existing UDS if present (exists(), not is_file() — sockets aren't regular files)
         if std::path::Path::new(uds_path).exists() {
             let _ = std::fs::remove_file(uds_path);
         }
         let uds_listener = tokio::net::UnixListener::bind(uds_path)?;
-        
+
         tracing::info!("[REMOTE_SERVER] TCP Listening on {}", tcp_addr);
         tracing::info!("[REMOTE_SERVER] WS  Listening on {}", ws_addr);
         tracing::info!("[REMOTE_SERVER] UDS (Discovery Gate) on {}", uds_path);
 
         let ipc_clone = self.ipc.clone();
-        
+
         // Spawn TCP daemon
         let tcp_ipc = ipc_clone.clone();
         tokio::spawn(async move {
@@ -99,7 +99,9 @@ impl RemoteServer {
                 Err(e) if e.kind() == std::io::ErrorKind::AddrInUse && attempt < max_retries => {
                     tracing::warn!(
                         "[REMOTE_SERVER] Port {} in use, retrying in 1s ({}/{})",
-                        addr, attempt, max_retries
+                        addr,
+                        attempt,
+                        max_retries
                     );
                     tokio::time::sleep(std::time::Duration::from_secs(1)).await;
                 }
@@ -109,7 +111,10 @@ impl RemoteServer {
         unreachable!()
     }
 
-    async fn handle_uds_client(mut socket: tokio::net::UnixStream, ipc: Arc<IpcHandler>) -> anyhow::Result<()> {
+    async fn handle_uds_client(
+        mut socket: tokio::net::UnixStream,
+        ipc: Arc<IpcHandler>,
+    ) -> anyhow::Result<()> {
         let (reader, mut writer) = socket.split();
         let mut reader = BufReader::new(reader);
         let mut line = String::new();
@@ -117,12 +122,16 @@ impl RemoteServer {
         loop {
             line.clear();
             let n = reader.read_line(&mut line).await?;
-            if n == 0 { break; } 
+            if n == 0 {
+                break;
+            }
 
             let command = line.trim();
             if !command.is_empty() {
                 let response = ipc.handle_request(command);
-                writer.write_all(format!("{}\n", response).as_bytes()).await?;
+                writer
+                    .write_all(format!("{}\n", response).as_bytes())
+                    .await?;
                 writer.flush().await?;
             }
         }
@@ -137,12 +146,16 @@ impl RemoteServer {
         loop {
             line.clear();
             let n = reader.read_line(&mut line).await?;
-            if n == 0 { break; } 
+            if n == 0 {
+                break;
+            }
 
             let command = line.trim();
             if !command.is_empty() {
                 let response = ipc.handle_request(command);
-                writer.write_all(format!("{}\n", response).as_bytes()).await?;
+                writer
+                    .write_all(format!("{}\n", response).as_bytes())
+                    .await?;
                 writer.flush().await?;
             }
         }
@@ -151,13 +164,15 @@ impl RemoteServer {
 
     async fn handle_ws_client(socket: TcpStream, ipc: Arc<IpcHandler>) -> anyhow::Result<()> {
         let mut ws_stream = accept_async(socket).await?;
-        
+
         while let Some(msg) = ws_stream.next().await {
             let msg = msg?;
             if msg.is_text() {
                 let command = msg.to_text()?;
                 let response = ipc.handle_request(command);
-                ws_stream.send(tokio_tungstenite::tungstenite::Message::Text(response)).await?;
+                ws_stream
+                    .send(tokio_tungstenite::tungstenite::Message::Text(response))
+                    .await?;
             }
         }
         Ok(())
@@ -190,11 +205,16 @@ impl RemoteServer {
             "", // IP is resolved automatically by mdns-sd
             port,
             Some(properties),
-        ).expect("Failed to create mDNS service info");
+        )
+        .expect("Failed to create mDNS service info");
 
         match mdns.register(my_service) {
             Ok(_) => {
-                tracing::info!("[MDNS] Registered service: {} at port {}", service_type, port);
+                tracing::info!(
+                    "[MDNS] Registered service: {} at port {}",
+                    service_type,
+                    port
+                );
                 Some(mdns)
             }
             Err(e) => {

@@ -1,6 +1,6 @@
+use serde::{Deserialize, Serialize};
 use std::path::Path;
 use std::sync::Arc;
-use serde::{Deserialize, Serialize};
 
 /// §15.1: Core Platform Traits
 
@@ -27,7 +27,9 @@ pub trait CaptureBackend: Send + Sync {
 
 pub struct MockCaptureBackend;
 impl CaptureBackend for MockCaptureBackend {
-    fn capture_window(&self, _pid: u32) -> Option<FrameCapture> { None }
+    fn capture_window(&self, _pid: u32) -> Option<FrameCapture> {
+        None
+    }
 }
 
 pub trait SurfaceContent {

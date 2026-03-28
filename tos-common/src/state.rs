@@ -4,9 +4,9 @@
 //! channel and must remain stable across Face and Brain versions.
 
 use serde::{Deserialize, Serialize};
-use uuid::Uuid;
 use std::collections::HashMap;
 use std::path::PathBuf;
+use uuid::Uuid;
 
 /// The system hierarchy levels defining the visual depth of the interface.
 ///
@@ -349,7 +349,6 @@ impl SplitNode {
     }
 }
 
-
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct DirectoryListing {
     pub path: String,
@@ -423,7 +422,12 @@ impl SettingsStore {
     ///
     /// Returns the most specific value for a given key, falling through
     /// from application scope to sector scope to global scope.
-    pub fn resolve(&self, key: &str, sector_id: Option<&str>, app_id: Option<&str>) -> Option<String> {
+    pub fn resolve(
+        &self,
+        key: &str,
+        sector_id: Option<&str>,
+        app_id: Option<&str>,
+    ) -> Option<String> {
         if let Some(app) = app_id {
             if let Some(app_settings) = self.applications.get(app) {
                 if let Some(val) = app_settings.get(key) {
@@ -539,18 +543,16 @@ impl Default for TosState {
                     layout: TerminalLayoutType::Cinematic,
                     supports_high_contrast: false,
                     supports_reduced_motion: false,
-                }
+                },
             ],
             active_ai_module: "tos-ai-standard".to_string(),
-            available_ai_modules: vec![
-                AiModuleMetadata {
-                    id: "tos-ai-standard".to_string(),
-                    name: "Standard AI Core".to_string(),
-                    version: "1.0.0".to_string(),
-                    author: "TOS Core".to_string(),
-                    capabilities: vec!["chat".to_string(), "streaming".to_string()],
-                }
-            ],
+            available_ai_modules: vec![AiModuleMetadata {
+                id: "tos-ai-standard".to_string(),
+                name: "Standard AI Core".to_string(),
+                version: "1.0.0".to_string(),
+                author: "TOS Core".to_string(),
+                capabilities: vec!["chat".to_string(), "streaming".to_string()],
+            }],
             ai_behaviors: vec![],
             bezel_expanded: false,
             ai_default_backend: "tos-ai-standard".to_string(),
@@ -591,7 +593,7 @@ impl Default for TosState {
                         fonts: vec!["Outfit-Bold.ttf".to_string()],
                         icons: "assets/icons/red/".to_string(),
                     },
-                }
+                },
             ],
             device_profile: crate::ipc::FaceProfile::Desktop,
             version: 0,

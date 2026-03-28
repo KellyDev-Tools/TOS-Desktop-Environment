@@ -1,12 +1,12 @@
 use smithay_client_toolkit::{
     compositor::{CompositorHandler, CompositorState},
-    delegate_compositor, delegate_layer, delegate_registry, delegate_shm, delegate_output,
-    registry::{ProvidesRegistryState, RegistryState, RegistryHandler},
-    shm::{ShmHandler, Shm},
+    delegate_compositor, delegate_layer, delegate_output, delegate_registry, delegate_shm,
     output::{OutputHandler, OutputState},
-    shell::wlr_layer::{LayerShell, LayerSurface, LayerSurfaceConfigure, LayerShellHandler, Layer},
+    registry::{ProvidesRegistryState, RegistryHandler, RegistryState},
+    shell::wlr_layer::{Layer, LayerShell, LayerShellHandler, LayerSurface, LayerSurfaceConfigure},
+    shm::{Shm, ShmHandler},
 };
-use wayland_client::{Connection, QueueHandle, protocol::wl_surface};
+use wayland_client::{protocol::wl_surface, Connection, QueueHandle};
 
 pub struct WaylandShell {
     pub connection: Connection,
@@ -76,7 +76,10 @@ impl WaylandShell {
         let layer_shell = match LayerShell::bind(&globals, &qh) {
             Ok(s) => s,
             Err(e) => {
-                tracing::debug!("LayerShell not supported on this compositor, entering headless mode: {:?}", e);
+                tracing::debug!(
+                    "LayerShell not supported on this compositor, entering headless mode: {:?}",
+                    e
+                );
                 return None;
             }
         };
@@ -99,18 +102,21 @@ impl WaylandShell {
     }
 
     pub fn create_layer_surface(&mut self, _title: &str, width: u32, height: u32) {
-         let surface = self.state.compositor_state.create_surface(&self.queue_handle);
-         let layer_surface = self.state.layer_shell.create_layer_surface(
+        let surface = self
+            .state
+            .compositor_state
+            .create_surface(&self.queue_handle);
+        let layer_surface = self.state.layer_shell.create_layer_surface(
             &self.queue_handle,
             surface.clone(),
             Layer::Top,
             Some("tos-native"),
-            None
-         );
+            None,
+        );
 
-         layer_surface.set_size(width, height);
-         surface.commit();
-         tracing::info!("Wayland: Real Layer Surface created ({}x{})", width, height);
+        layer_surface.set_size(width, height);
+        surface.commit();
+        tracing::info!("Wayland: Real Layer Surface created ({}x{})", width, height);
     }
 
     pub fn dispatch(&mut self) {
@@ -123,19 +129,70 @@ impl ProvidesRegistryState for WaylandState {
     fn registry(&mut self) -> &mut RegistryState {
         &mut self.registry_state
     }
-    fn runtime_add_global(&mut self, _conn: &Connection, _qh: &QueueHandle<Self>, _name: u32, _interface: &str, _version: u32) {}
-    fn runtime_remove_global(&mut self, _conn: &Connection, _qh: &QueueHandle<Self>, _name: u32, _interface: &str) {}
+    fn runtime_add_global(
+        &mut self,
+        _conn: &Connection,
+        _qh: &QueueHandle<Self>,
+        _name: u32,
+        _interface: &str,
+        _version: u32,
+    ) {
+    }
+    fn runtime_remove_global(
+        &mut self,
+        _conn: &Connection,
+        _qh: &QueueHandle<Self>,
+        _name: u32,
+        _interface: &str,
+    ) {
+    }
 }
 
 impl RegistryHandler<WaylandState> for WaylandState {
-    fn new_global(_state: &mut WaylandState, _conn: &Connection, _qh: &QueueHandle<Self>, _name: u32, _interface: &str, _version: u32) {}
-    fn remove_global(_state: &mut WaylandState, _conn: &Connection, _qh: &QueueHandle<Self>, _name: u32, _interface: &str) {}
+    fn new_global(
+        _state: &mut WaylandState,
+        _conn: &Connection,
+        _qh: &QueueHandle<Self>,
+        _name: u32,
+        _interface: &str,
+        _version: u32,
+    ) {
+    }
+    fn remove_global(
+        _state: &mut WaylandState,
+        _conn: &Connection,
+        _qh: &QueueHandle<Self>,
+        _name: u32,
+        _interface: &str,
+    ) {
+    }
 }
 
 impl CompositorHandler for WaylandState {
-    fn scale_factor_changed(&mut self, _conn: &Connection, _qh: &QueueHandle<Self>, _surface: &wl_surface::WlSurface, _new_factor: i32) {}
-    fn transform_changed(&mut self, _conn: &Connection, _qh: &QueueHandle<Self>, _surface: &wl_surface::WlSurface, _new_transform: wayland_client::protocol::wl_output::Transform) {}
-    fn frame(&mut self, _conn: &Connection, _qh: &QueueHandle<Self>, _surface: &wl_surface::WlSurface, _time: u32) {}
+    fn scale_factor_changed(
+        &mut self,
+        _conn: &Connection,
+        _qh: &QueueHandle<Self>,
+        _surface: &wl_surface::WlSurface,
+        _new_factor: i32,
+    ) {
+    }
+    fn transform_changed(
+        &mut self,
+        _conn: &Connection,
+        _qh: &QueueHandle<Self>,
+        _surface: &wl_surface::WlSurface,
+        _new_transform: wayland_client::protocol::wl_output::Transform,
+    ) {
+    }
+    fn frame(
+        &mut self,
+        _conn: &Connection,
+        _qh: &QueueHandle<Self>,
+        _surface: &wl_surface::WlSurface,
+        _time: u32,
+    ) {
+    }
 }
 
 impl ShmHandler for WaylandState {
@@ -148,9 +205,27 @@ impl OutputHandler for WaylandState {
     fn output_state(&mut self) -> &mut OutputState {
         &mut self.output_state
     }
-    fn new_output(&mut self, _conn: &Connection, _qh: &QueueHandle<Self>, _output: wayland_client::protocol::wl_output::WlOutput) {}
-    fn update_output(&mut self, _conn: &Connection, _qh: &QueueHandle<Self>, _output: wayland_client::protocol::wl_output::WlOutput) {}
-    fn output_destroyed(&mut self, _conn: &Connection, _qh: &QueueHandle<Self>, _output: wayland_client::protocol::wl_output::WlOutput) {}
+    fn new_output(
+        &mut self,
+        _conn: &Connection,
+        _qh: &QueueHandle<Self>,
+        _output: wayland_client::protocol::wl_output::WlOutput,
+    ) {
+    }
+    fn update_output(
+        &mut self,
+        _conn: &Connection,
+        _qh: &QueueHandle<Self>,
+        _output: wayland_client::protocol::wl_output::WlOutput,
+    ) {
+    }
+    fn output_destroyed(
+        &mut self,
+        _conn: &Connection,
+        _qh: &QueueHandle<Self>,
+        _output: wayland_client::protocol::wl_output::WlOutput,
+    ) {
+    }
 }
 
 impl LayerShellHandler for WaylandState {
@@ -164,7 +239,13 @@ impl LayerShellHandler for WaylandState {
     ) {
     }
 
-    fn closed(&mut self, _conn: &Connection, _qh: &QueueHandle<Self>, _layer_surface: &LayerSurface) {}
+    fn closed(
+        &mut self,
+        _conn: &Connection,
+        _qh: &QueueHandle<Self>,
+        _layer_surface: &LayerSurface,
+    ) {
+    }
 }
 
 delegate_registry!(WaylandState);

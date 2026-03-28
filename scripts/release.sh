@@ -32,7 +32,7 @@ echo "[RELEASE] Bundling Binary Assets..."
 cp brain/target/release/tos-brain "$OUTPUT_DIR/bin/"
 cp packaging/tos-session "$OUTPUT_DIR/bin/"
 chmod +x "$OUTPUT_DIR/bin/tos-session"
-for daemon in tos-settingsd tos-marketplaced tos-sessiond tos-loggerd searchd tos-heuristicd tos-priorityd face-wayland-linux; do
+for daemon in tos-settingsd tos-marketplaced tos-sessiond tos-loggerd tos-searchd tos-heuristicd tos-priorityd face-wayland-linux; do
     if [ -f "brain/target/release/$daemon" ]; then
         cp "brain/target/release/$daemon" "$OUTPUT_DIR/bin/"
     elif [ -f "face-wayland-linux/target/release/$daemon" ]; then
@@ -93,7 +93,8 @@ EOF
     # 3. Android Face APK (Handheld Profile)
     if command -v cargo-ndk &> /dev/null; then
         echo "[RELEASE] Compiling Android Face (arm64-v8a)..."
-        cargo ndk -t arm64-v8a build -p face-android-handheld --release
+        cd face-android-handheld && cargo ndk -t arm64-v8a build --release
+        cd ..
         # Note: APK wrapping requires Android Studio / Gradle, 
         # but we preserve the .so for local side-loading.
     fi

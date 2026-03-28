@@ -1,8 +1,8 @@
-use tos_lib::brain::Brain;
-use tos_lib::face::{Face, MockFace};
-use tos_lib::common::CommandHubMode;
 use std::time::Duration;
 use tokio::time::sleep;
+use tos_lib::brain::Brain;
+use tos_lib::common::CommandHubMode;
+use tos_lib::face::{Face, MockFace};
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
@@ -35,7 +35,7 @@ async fn main() -> anyhow::Result<()> {
     face.simulate_prompt_submit("cd /tmp");
     println!("-> Action: ls");
     face.simulate_prompt_submit("ls");
-    sleep(Duration::from_millis(2000)).await; 
+    sleep(Duration::from_millis(2000)).await;
     face.0.render();
     sleep(Duration::from_millis(1500)).await;
 
@@ -67,10 +67,15 @@ async fn main() -> anyhow::Result<()> {
     // SERVICES
     println!("\n\x1B[1;33m[AUXILIARY SERVICES]\x1B[0m");
     println!("-> Action: log priority 3 event");
-    brain.services.logger.log("SYSTEM_TEST: PRIORITY 3 ALERT", 3);
-    
+    brain
+        .services
+        .logger
+        .log("SYSTEM_TEST: PRIORITY 3 ALERT", 3);
+
     println!("-> Action: save setting 'ui.theme'");
-    brain.ipc.handle_request("set_setting:ui.theme;dark_obsidian");
+    brain
+        .ipc
+        .handle_request("set_setting:ui.theme;dark_obsidian");
     {
         let state = brain.state.lock().unwrap();
         brain.services.settings.save(&state.settings)?;
@@ -82,8 +87,8 @@ async fn main() -> anyhow::Result<()> {
     println!("\n\x1B[1;33m[FINAL REDUCED STATE]\x1B[0m");
     brain.ipc.handle_request("zoom_to:GlobalOverview");
     face.0.render();
-    
+
     println!("\n\x1B[1;32m=== COMPREHENSIVE TEST SUCCESSFUL ===\x1B[0m");
-    
+
     Ok(())
 }

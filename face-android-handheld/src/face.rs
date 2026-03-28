@@ -3,11 +3,11 @@
 //! Handles input capture (touch, gestures) and visual rendering.
 //! Integrates with the Brain via IPC channel for state synchronization.
 
-use std::sync::{Arc, Mutex};
-pub use tos_common as common; // Re-export for convenience or use directly
-use tos_common::state::{TosState, HierarchyLevel};
 use crate::input::AndroidInput;
 use crate::services::AndroidServices;
+use std::sync::{Arc, Mutex};
+pub use tos_common as common; // Re-export for convenience or use directly
+use tos_common::state::{HierarchyLevel, TosState};
 
 use crate::api;
 
@@ -142,29 +142,27 @@ impl AndroidFace {
 
     fn handle_input_event(&mut self, event: api::InputEvent) {
         match event {
-            api::InputEvent::Touch(motion) => {
-                match motion.action {
-                    api::TouchAction::Down => {
-                        self.last_event = Some(Event::TouchDown {
-                            x: motion.x,
-                            y: motion.y,
-                            pointer_id: motion.pointer_id,
-                        });
-                    }
-                    api::TouchAction::Up => {
-                        self.last_event = Some(Event::TouchUp {
-                            pointer_id: motion.pointer_id,
-                        });
-                    }
-                    api::TouchAction::Move => {
-                        self.last_event = Some(Event::TouchMove {
-                            x: motion.x,
-                            y: motion.y,
-                            pointer_id: motion.pointer_id,
-                        });
-                    }
+            api::InputEvent::Touch(motion) => match motion.action {
+                api::TouchAction::Down => {
+                    self.last_event = Some(Event::TouchDown {
+                        x: motion.x,
+                        y: motion.y,
+                        pointer_id: motion.pointer_id,
+                    });
                 }
-            }
+                api::TouchAction::Up => {
+                    self.last_event = Some(Event::TouchUp {
+                        pointer_id: motion.pointer_id,
+                    });
+                }
+                api::TouchAction::Move => {
+                    self.last_event = Some(Event::TouchMove {
+                        x: motion.x,
+                        y: motion.y,
+                        pointer_id: motion.pointer_id,
+                    });
+                }
+            },
             api::InputEvent::Key { key_code, action } => {
                 self.last_event = Some(Event::Key { key_code, action });
             }
@@ -221,7 +219,9 @@ impl AndroidFace {
         self.render_minimap_to(&state, &mut out);
 
         // System footer
-        let sector_name = state.sectors.get(state.active_sector_index)
+        let sector_name = state
+            .sectors
+            .get(state.active_sector_index)
             .map(|s| s.name.as_str())
             .unwrap_or("NONE");
         writeln!(
@@ -230,7 +230,8 @@ impl AndroidFace {
             chrono::Local::now().format("%H:%M:%S"),
             sector_name,
             state.current_level
-        ).unwrap();
+        )
+        .unwrap();
 
         // Android-specific footer
         writeln!(
@@ -238,7 +239,8 @@ impl AndroidFace {
             "\n[ ANDROID ] Device: {} | SDK: {}",
             self.get_device_info(),
             self.get_sdk_version()
-        ).unwrap();
+        )
+        .unwrap();
 
         out
     }
@@ -246,31 +248,77 @@ impl AndroidFace {
     fn render_level1_to(&self, state: &TosState, out: &mut String) {
         use std::fmt::Write;
         writeln!(out, "[LEVEL 1: GLOBAL OVERVIEW]\n").unwrap();
-        writeln!(out, "+----------------------------------------------------------------------------------+").unwrap();
-        writeln!(out, "| SECTOR TILES                                                                     |").unwrap();
-        writeln!(out, "+--------------------------------------------------------------+-------------------+").unwrap();
+        writeln!(
+            out,
+            "+----------------------------------------------------------------------------------+"
+        )
+        .unwrap();
+        writeln!(
+            out,
+            "| SECTOR TILES                                                                     |"
+        )
+        .unwrap();
+        writeln!(
+            out,
+            "+--------------------------------------------------------------+-------------------+"
+        )
+        .unwrap();
         for (i, sector) in state.sectors.iter().enumerate() {
-            let active_mark = if i == state.active_sector_index { ">>" } else { "  " };
-            writeln!(out, "| {:<2} [ {:<2} ] {:<52} | HUBS: {:<7} |",
-                active_mark, i, sector.name, sector.hubs.len()).unwrap();
+            let active_mark = if i == state.active_sector_index {
+                ">>"
+            } else {
+                "  "
+            };
+            writeln!(
+                out,
+                "| {:<2} [ {:<2} ] {:<52} | HUBS: {:<7} |",
+                active_mark,
+                i,
+                sector.name,
+                sector.hubs.len()
+            )
+            .unwrap();
         }
-        writeln!(out, "+--------------------------------------------------------------+-------------------+").unwrap();
+        writeln!(
+            out,
+            "+--------------------------------------------------------------+-------------------+"
+        )
+        .unwrap();
 
         writeln!(out, "\n[SYSTEM OUTPUT AREA (BRAIN LOG)]").unwrap();
-        writeln!(out, "+----------------------------------------------------------------------------------+").unwrap();
+        writeln!(
+            out,
+            "+----------------------------------------------------------------------------------+"
+        )
+        .unwrap();
         let start = state.system_log.len().saturating_sub(5);
         for line in &state.system_log[start..] {
-            writeln!(out, "| {} [P{}] {:<69}  |",
-                line.timestamp.format("%H:%M"), line.priority, line.text).unwrap();
+            writeln!(
+                out,
+                "| {} [P{}] {:<69}  |",
+                line.timestamp.format("%H:%M"),
+                line.priority,
+                line.text
+            )
+            .unwrap();
         }
-        writeln!(out, "+----------------------------------------------------------------------------------+").unwrap();
+        writeln!(
+            out,
+            "+----------------------------------------------------------------------------------+"
+        )
+        .unwrap();
     }
 
     fn render_level2_to(&self, state: &TosState, out: &mut String) {
         use std::fmt::Write;
         if let Some(sector) = state.sectors.get(state.active_sector_index) {
             let hub = &sector.hubs[sector.active_hub_index];
-            writeln!(out, "[LEVEL 2: COMMAND HUB - {}]\n", sector.name.to_uppercase()).unwrap();
+            writeln!(
+                out,
+                "[LEVEL 2: COMMAND HUB - {}]\n",
+                sector.name.to_uppercase()
+            )
+            .unwrap();
             writeln!(out, "MODE:  {:?}", hub.mode).unwrap();
             writeln!(out, "DIR:   {}", hub.current_directory.display()).unwrap();
             writeln!(out, "\nOUTPUT:").unwrap();

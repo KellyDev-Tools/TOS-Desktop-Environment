@@ -46,7 +46,7 @@ pub struct MarketplaceReview {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct InstallProgress {
     pub module_id: String,
-    pub progress: f32, // 0.0 to 1.0
+    pub progress: f32,  // 0.0 to 1.0
     pub status: String, // "Downloading", "Verifying", "Installing", "Complete", "Error"
     pub error: Option<String>,
 }

@@ -9,7 +9,7 @@
 /// over TCP or WebSocket. The Brain deserializes, dispatches via this
 /// trait, and returns a string response.
 pub trait IpcDispatcher: Send + Sync {
-/// Route a raw IPC request string and return the response.
+    /// Route a raw IPC request string and return the response.
     fn dispatch(&self, request: &str) -> String;
 }
 
@@ -74,29 +74,32 @@ pub enum SemanticEvent {
     Home,
     CommandHub,
     SwitchSector(usize),
-    
+
     // Selection
     Select(String),
     SecondarySelect(String),
-    
+
     // Mode Control
     SetMode(crate::state::CommandHubMode),
     ToggleHiddenFiles,
-    
+
     // Bezel & View
     ToggleBezel,
-    SplitView { orientation: String, override_auto: bool },
+    SplitView {
+        orientation: String,
+        override_auto: bool,
+    },
     CloseViewport(uuid::Uuid),
     Inspect(String),
     ToggleMinimap,
-    
+
     // Text & AI
     PromptSubmit(String),
     PromptStage(String),
     AiSubmit(String),
     AiStop,
     AiSuggestionAccept,
-    
+
     // System
     SectorCreate(String),
     TacticalResetSector(uuid::Uuid),

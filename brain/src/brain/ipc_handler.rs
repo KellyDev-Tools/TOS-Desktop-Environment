@@ -1,9 +1,9 @@
-use crate::common::{TosState, CommandHubMode, HierarchyLevel};
+use crate::common::{CommandHubMode, HierarchyLevel, TosState};
 use crate::services::MarketplaceService;
 // use tos_common::*;
 use std::sync::{Arc, Mutex};
-use uuid::Uuid;
 use std::time::Instant;
+use uuid::Uuid;
 
 pub struct IpcHandler {
     state: Arc<Mutex<TosState>>,
@@ -12,8 +12,16 @@ pub struct IpcHandler {
 }
 
 impl IpcHandler {
-    pub fn new(state: Arc<Mutex<TosState>>, shell: Arc<Mutex<crate::brain::shell::ShellApi>>, services: Arc<crate::services::ServiceManager>) -> Self {
-        Self { state, shell, services }
+    pub fn new(
+        state: Arc<Mutex<TosState>>,
+        shell: Arc<Mutex<crate::brain::shell::ShellApi>>,
+        services: Arc<crate::services::ServiceManager>,
+    ) -> Self {
+        Self {
+            state,
+            shell,
+            services,
+        }
     }
 
     /// Standardized Message Format: prefix:payload;payload...
@@ -28,10 +36,22 @@ impl IpcHandler {
             "zoom_in" => self.handle_zoom_in(),
             "zoom_out" => self.handle_zoom_out(),
             "zoom_to" => self.handle_zoom_to(args.get(0).copied()),
-            "set_setting" => self.handle_set_setting(args.get(0).copied(), args.get(1).copied(), args.get(2).copied()),
-            "sector_set_setting" => self.handle_set_sector_setting(args.get(0).copied(), args.get(1).copied(), args.get(2).copied()),
+            "set_setting" => self.handle_set_setting(
+                args.get(0).copied(),
+                args.get(1).copied(),
+                args.get(2).copied(),
+            ),
+            "sector_set_setting" => self.handle_set_sector_setting(
+                args.get(0).copied(),
+                args.get(1).copied(),
+                args.get(2).copied(),
+            ),
             "get_settings" => self.handle_get_settings(),
-            "set_sector_setting" => self.handle_set_sector_setting(args.get(0).copied(), args.get(1).copied(), args.get(2).copied()),
+            "set_sector_setting" => self.handle_set_sector_setting(
+                args.get(0).copied(),
+                args.get(1).copied(),
+                args.get(2).copied(),
+            ),
             "sector_create" => self.handle_sector_create(args.get(0).copied()),
             "sector_create_from_template" => self.handle_sector_create_from_template(payload),
             "sector_clone" => self.handle_sector_clone(args.get(0).copied()),
@@ -48,7 +68,9 @@ impl IpcHandler {
             "force_prompt_submit" => self.handle_prompt_submit(payload, true),
             "ai_suggestion_accept" => self.handle_ai_suggestion_accept(),
             "ai_stage_command" => self.handle_ai_stage_command(payload),
-            "system_log_append" => self.handle_system_log_append(args.get(0).copied(), args.get(1).copied()),
+            "system_log_append" => {
+                self.handle_system_log_append(args.get(0).copied(), args.get(1).copied())
+            }
             "log_query" => self.handle_log_query(payload),
             "play_earcon" => self.handle_play_earcon(args.get(0).copied()),
             "trigger_haptic" => self.handle_trigger_haptic(args.get(0).copied()),
@@ -62,39 +84,61 @@ impl IpcHandler {
             "face_register" => self.handle_face_register(payload),
             "service_register" => self.handle_service_register(payload),
             "market" => self.handle_market_command(payload),
-            "terminal_resize" => self.handle_terminal_resize(args.get(0).copied(), args.get(1).copied()),
+            "terminal_resize" => {
+                self.handle_terminal_resize(args.get(0).copied(), args.get(1).copied())
+            }
             "terminal_signal" => self.handle_terminal_signal(args.get(0).copied()),
             "tos_ports" => self.handle_tos_ports(),
             "service_deregister" => self.handle_service_deregister(args.get(0).copied()),
             "session_list" => self.handle_session_list(args.get(0).copied()),
             "session_save" => self.handle_session_save(args.get(0).copied(), args.get(1).copied()),
             "session_load" => self.handle_session_load(args.get(0).copied(), args.get(1).copied()),
-            "session_delete" => self.handle_session_delete(args.get(0).copied(), args.get(1).copied()),
+            "session_delete" => {
+                self.handle_session_delete(args.get(0).copied(), args.get(1).copied())
+            }
             "session_live_write" => self.handle_session_live_write(),
-            "session_export" => self.handle_session_export(args.get(0).copied(), args.get(1).copied()),
-            "session_import" => self.handle_session_import(args.get(0).copied(), args.get(1).copied()),
+            "session_export" => {
+                self.handle_session_export(args.get(0).copied(), args.get(1).copied())
+            }
+            "session_import" => {
+                self.handle_session_import(args.get(0).copied(), args.get(1).copied())
+            }
             "trust_promote" => self.handle_trust_promote(args.get(0).copied()),
             "trust_demote" => self.handle_trust_demote(args.get(0).copied()),
             "ai_behavior_enable" => self.handle_ai_behavior_enable(args.get(0).copied()),
             "ai_behavior_disable" => self.handle_ai_behavior_disable(args.get(0).copied()),
-            "ai_behavior_configure" => self.handle_ai_behavior_configure(args.get(0).copied(), args.get(1).copied(), args.get(2).copied()),
+            "ai_behavior_configure" => self.handle_ai_behavior_configure(
+                args.get(0).copied(),
+                args.get(1).copied(),
+                args.get(2).copied(),
+            ),
             "ai_chip_stage" => self.handle_ai_chip_stage(payload),
             "ai_chip_dismiss" => self.handle_ai_chip_dismiss(args.get(0).copied()),
             "ai_thought_expand" => self.handle_ai_thought_expand(args.get(0).copied()),
             "ai_thought_dismiss" => self.handle_ai_thought_dismiss(args.get(0).copied()),
-            "ai_thought_dismiss_permanent" => self.handle_ai_thought_dismiss_permanent(args.get(0).copied()),
+            "ai_thought_dismiss_permanent" => {
+                self.handle_ai_thought_dismiss_permanent(args.get(0).copied())
+            }
             "ai_context_request" => self.handle_ai_context_request(args.get(0).copied()),
             "ai_backend_set_default" => self.handle_ai_backend_set_default(args.get(0).copied()),
-            "ai_backend_set_behavior" => self.handle_ai_backend_set_behavior(args.get(0).copied(), args.get(1).copied()),
-            "ai_backend_clear_behavior" => self.handle_ai_backend_clear_behavior(args.get(0).copied()),
+            "ai_backend_set_behavior" => {
+                self.handle_ai_backend_set_behavior(args.get(0).copied(), args.get(1).copied())
+            }
+            "ai_backend_clear_behavior" => {
+                self.handle_ai_backend_clear_behavior(args.get(0).copied())
+            }
             "ai_history_clear" => self.handle_ai_history_clear(),
             "ai_history_append" => self.handle_ai_history_append(payload, "assistant"),
             "ai_submit" => self.handle_ai_submit(payload),
             "tactical_kill_switch" => self.handle_tactical_kill_switch(),
             "process_inspect" => self.handle_process_inspect(args.get(0).copied()),
-            "process_renice" => self.handle_process_renice(args.get(0).copied(), args.get(1).copied()),
-            "process_signal" => self.handle_process_signal(args.get(0).copied(), args.get(1).copied()),
-            
+            "process_renice" => {
+                self.handle_process_renice(args.get(0).copied(), args.get(1).copied())
+            }
+            "process_signal" => {
+                self.handle_process_signal(args.get(0).copied(), args.get(1).copied())
+            }
+
             // Bezel
             "bezel_expand" => self.handle_bezel_expand(),
             "bezel_collapse" => self.handle_bezel_collapse(),
@@ -112,27 +156,44 @@ impl IpcHandler {
             "split_detach:context" => self.handle_split_detach_context(),
             "split_detach:fresh" => self.handle_split_detach_fresh(),
             "split_save_template" => self.handle_split_save_template(args.get(0).copied()),
-            "trust_promote_sector" => self.handle_trust_promote_sector(args.get(0).copied(), args.get(1).copied()),
-            "trust_demote_sector" => self.handle_trust_demote_sector(args.get(0).copied(), args.get(1).copied()),
+            "trust_promote_sector" => {
+                self.handle_trust_promote_sector(args.get(0).copied(), args.get(1).copied())
+            }
+            "trust_demote_sector" => {
+                self.handle_trust_demote_sector(args.get(0).copied(), args.get(1).copied())
+            }
             "trust_clear_sector" => self.handle_trust_clear_sector(args.get(0).copied()),
             "trust_get_config" => self.handle_trust_get_config(),
             "heuristic_query" => self.handle_heuristic_query(args.get(0).copied()),
             "confirmation_accept" => self.handle_confirmation_accept(args.get(0).copied()),
             "confirmation_reject" => self.handle_confirmation_reject(args.get(0).copied()),
-            "update_confirmation_progress" => self.handle_update_confirmation_progress(args.get(0).copied(), args.get(1).copied()),
+            "update_confirmation_progress" => {
+                self.handle_update_confirmation_progress(args.get(0).copied(), args.get(1).copied())
+            }
             "marketplace_home" => self.handle_marketplace_home(),
             "marketplace_category" => self.handle_marketplace_category(args.get(0).copied()),
             "marketplace_detail" => self.handle_marketplace_detail(args.get(0).copied()),
             "marketplace_install" => self.handle_marketplace_install(args.get(0).copied()),
             "marketplace_status" => self.handle_marketplace_status(args.get(0).copied()),
             "marketplace_search_ai" => self.handle_marketplace_search_ai(payload),
-            "marketplace_install_cancel" => self.handle_marketplace_install_cancel(args.get(0).copied()),
+            "marketplace_install_cancel" => {
+                self.handle_marketplace_install_cancel(args.get(0).copied())
+            }
             _ => "ERROR: Unknown prefix".to_string(),
         };
 
         // Debounced session save on state-mutating events
-        if !prefix.starts_with("session_") && !prefix.starts_with("get_") && prefix != "tos_ports" && !prefix.starts_with("service_") && !prefix.starts_with("trigger_") && !prefix.starts_with("play_") && !prefix.starts_with("trust_") {
-            self.services.session.debounced_save_live(self.state.clone());
+        if !prefix.starts_with("session_")
+            && !prefix.starts_with("get_")
+            && prefix != "tos_ports"
+            && !prefix.starts_with("service_")
+            && !prefix.starts_with("trigger_")
+            && !prefix.starts_with("play_")
+            && !prefix.starts_with("trust_")
+        {
+            self.services
+                .session
+                .debounced_save_live(self.state.clone());
         }
 
         let duration = start.elapsed();
@@ -147,11 +208,9 @@ impl IpcHandler {
                 timestamp: chrono::Local::now(),
             });
         }
-        
+
         result
     }
-
-
 
     fn handle_prompt_submit(&self, command: &str, force: bool) -> String {
         let cmd = command.trim();
@@ -166,31 +225,43 @@ impl IpcHandler {
             let mut state = self.state.lock().unwrap();
             let idx = state.active_sector_index;
             let sector_id_str = state.sectors.get(idx).map(|s| s.id.to_string());
-            let cwd = state.sectors.get(idx)
+            let cwd = state
+                .sectors
+                .get(idx)
                 .and_then(|s| s.hubs.get(s.active_hub_index))
                 .map(|h| h.current_directory.clone())
                 .unwrap_or_else(|| std::path::PathBuf::from("/"));
 
-            let bulk_threshold = state.settings.global
+            let bulk_threshold = state
+                .settings
+                .global
                 .get("tos.trust.bulk_threshold")
                 .and_then(|v| v.parse::<usize>().ok())
                 .unwrap_or(10);
 
-            let class = self.services.trust.classify_command(cmd, &cwd, bulk_threshold);
-            let policy = self.services.trust.get_trust_policy(
-                &state,
-                sector_id_str.as_deref(),
-                &class,
-            );
+            let class = self
+                .services
+                .trust
+                .classify_command(cmd, &cwd, bulk_threshold);
+            let policy =
+                self.services
+                    .trust
+                    .get_trust_policy(&state, sector_id_str.as_deref(), &class);
 
             if class != crate::services::trust::CommandClass::Standard {
                 let chip_msg = match &class {
-                    crate::services::trust::CommandClass::PrivilegeEscalation =>
-                        format!("[TRUST] ⚠ PRIVILEGE ESCALATION: '{}' — policy: {}", cmd, policy),
-                    crate::services::trust::CommandClass::RecursiveBulk =>
-                        format!("[TRUST] ⚠ RECURSIVE BULK OP: '{}' — policy: {}", cmd, policy),
-                    crate::services::trust::CommandClass::ImplicitBulk =>
-                        format!("[TRUST] ⚠ IMPLICIT BULK (glob): '{}' — policy: {}", cmd, policy),
+                    crate::services::trust::CommandClass::PrivilegeEscalation => format!(
+                        "[TRUST] ⚠ PRIVILEGE ESCALATION: '{}' — policy: {}",
+                        cmd, policy
+                    ),
+                    crate::services::trust::CommandClass::RecursiveBulk => format!(
+                        "[TRUST] ⚠ RECURSIVE BULK OP: '{}' — policy: {}",
+                        cmd, policy
+                    ),
+                    crate::services::trust::CommandClass::ImplicitBulk => format!(
+                        "[TRUST] ⚠ IMPLICIT BULK (glob): '{}' — policy: {}",
+                        cmd, policy
+                    ),
                     _ => String::new(),
                 };
                 if !chip_msg.is_empty() {
@@ -199,7 +270,12 @@ impl IpcHandler {
                         priority: 2,
                         timestamp: chrono::Local::now(),
                     });
-                    tracing::warn!("[TRUST] Classified '{}' as {:?} (policy={})", cmd, class, policy);
+                    tracing::warn!(
+                        "[TRUST] Classified '{}' as {:?} (policy={})",
+                        cmd,
+                        class,
+                        policy
+                    );
                 }
 
                 if policy == "block" {
@@ -253,7 +329,7 @@ impl IpcHandler {
 
     fn handle_set_mode(&self, mode_str: Option<&str>) -> String {
         let mode_raw = mode_str.unwrap_or("");
-        
+
         // 1. Try Hierarchy Levels / ViewModes
         let target_level = match mode_raw {
             "global" | "GlobalOverview" => Some(HierarchyLevel::GlobalOverview),
@@ -291,7 +367,10 @@ impl IpcHandler {
                     if mode == CommandHubMode::Directory {
                         crate::brain::sector::SectorManager::refresh_directory_listing(&mut state);
                     } else if mode == CommandHubMode::Activity {
-                        crate::brain::sector::SectorManager::refresh_activity_listing(&mut state, Some(&self.services.capture));
+                        crate::brain::sector::SectorManager::refresh_activity_listing(
+                            &mut state,
+                            Some(&self.services.capture),
+                        );
                     }
                     return format!("MODE_SET: {:?}", mode);
                 }
@@ -336,11 +415,18 @@ impl IpcHandler {
         "ZOOMED_OUT".to_string()
     }
 
-    fn handle_set_setting(&self, key: Option<&str>, val: Option<&str>, sector_id: Option<&str>) -> String {
+    fn handle_set_setting(
+        &self,
+        key: Option<&str>,
+        val: Option<&str>,
+        sector_id: Option<&str>,
+    ) -> String {
         if let (Some(k), Some(v)) = (key, val) {
             let mut state = self.state.lock().unwrap();
             if let Some(sid) = sector_id {
-                state.settings.sectors
+                state
+                    .settings
+                    .sectors
                     .entry(sid.to_string())
                     .or_default()
                     .insert(k.to_string(), v.to_string());
@@ -353,10 +439,19 @@ impl IpcHandler {
         "ERROR: Key and value required".to_string()
     }
 
-    fn handle_set_sector_setting(&self, sector_id: Option<&str>, key: Option<&str>, val: Option<&str>) -> String {
+    fn handle_set_sector_setting(
+        &self,
+        sector_id: Option<&str>,
+        key: Option<&str>,
+        val: Option<&str>,
+    ) -> String {
         if let (Some(sec), Some(k), Some(v)) = (sector_id, key, val) {
             let mut state = self.state.lock().unwrap();
-            let entry = state.settings.sectors.entry(sec.to_string()).or_insert_with(std::collections::HashMap::new);
+            let entry = state
+                .settings
+                .sectors
+                .entry(sec.to_string())
+                .or_insert_with(std::collections::HashMap::new);
             entry.insert(k.to_string(), v.to_string());
             let _ = self.services.settings.save(&state.settings);
             return format!("SECTOR_SETTING_UPDATE: [{}] {}={}", sec, k, v);
@@ -368,10 +463,7 @@ impl IpcHandler {
         // Dynamic Sector Allocation
         let mut state = self.state.lock().unwrap();
         let name = name.unwrap_or("New Sector");
-        crate::brain::sector::SectorManager::create_sector(
-            &mut state, 
-            name.to_string()
-        );
+        crate::brain::sector::SectorManager::create_sector(&mut state, name.to_string());
         format!("SECTOR_CREATED: {}", name)
     }
 
@@ -390,7 +482,7 @@ impl IpcHandler {
     fn handle_get_sector_templates(&self) -> String {
         // Built-in templates for Alpha-2.1
         let mut templates = Vec::new();
-        
+
         // 1. Rust Development
         let mut env = std::collections::HashMap::new();
         env.insert("RUST_LOG".to_string(), "info".to_string());
@@ -399,8 +491,16 @@ impl IpcHandler {
             description: "Pre-configured for Rust development with Dual-Hub layout.".to_string(),
             environment: env,
             hubs: vec![
-                crate::common::HubTemplate { mode: crate::common::CommandHubMode::Command, cwd: "~/".to_string(), shell: "fish".to_string() },
-                crate::common::HubTemplate { mode: crate::common::CommandHubMode::Directory, cwd: "~/".to_string(), shell: "fish".to_string() },
+                crate::common::HubTemplate {
+                    mode: crate::common::CommandHubMode::Command,
+                    cwd: "~/".to_string(),
+                    shell: "fish".to_string(),
+                },
+                crate::common::HubTemplate {
+                    mode: crate::common::CommandHubMode::Directory,
+                    cwd: "~/".to_string(),
+                    shell: "fish".to_string(),
+                },
             ],
         });
 
@@ -409,12 +509,15 @@ impl IpcHandler {
             name: "Tactical Monitoring".to_string(),
             description: "System telemetry and log aggregation.".to_string(),
             environment: std::collections::HashMap::new(),
-            hubs: vec![
-                crate::common::HubTemplate { mode: crate::common::CommandHubMode::Activity, cwd: "/".to_string(), shell: "bash".to_string() },
-            ],
+            hubs: vec![crate::common::HubTemplate {
+                mode: crate::common::CommandHubMode::Activity,
+                cwd: "/".to_string(),
+                shell: "bash".to_string(),
+            }],
         });
 
-        serde_json::to_string(&templates).unwrap_or_else(|_| "ERROR: Serialization failed".to_string())
+        serde_json::to_string(&templates)
+            .unwrap_or_else(|_| "ERROR: Serialization failed".to_string())
     }
 
     fn handle_sector_clone(&self, id_str: Option<&str>) -> String {
@@ -511,7 +614,9 @@ impl IpcHandler {
                         let mut state = state_clone.lock().unwrap();
                         if let Some(sector) = state.sectors.iter().find(|s| s.id == id_clone) {
                             if sector.disconnected {
-                                crate::brain::sector::SectorManager::close_sector(&mut state, id_clone);
+                                crate::brain::sector::SectorManager::close_sector(
+                                    &mut state, id_clone,
+                                );
                             }
                         }
                     });
@@ -525,7 +630,7 @@ impl IpcHandler {
     fn handle_set_terminal_module(&self, module_id: Option<&str>) -> String {
         if let Some(id) = module_id {
             let mut state = self.state.lock().unwrap();
-            
+
             // Refresh available modules from disk
             let mut modules = MarketplaceService::list_terminal_modules();
             // Ensure built-ins are also there
@@ -562,7 +667,7 @@ impl IpcHandler {
     fn handle_set_theme(&self, theme_id: Option<&str>) -> String {
         if let Some(id) = theme_id {
             let mut state = self.state.lock().unwrap();
-            
+
             // Refresh themes from disk
             let mut themes = MarketplaceService::list_theme_modules();
             // Ensure built-ins are also there
@@ -620,15 +725,19 @@ impl IpcHandler {
 
     fn handle_market_command(&self, payload: &str) -> String {
         let args: Vec<&str> = payload.split(';').collect();
-        if args.is_empty() { return "ERROR: Empty market command".to_string(); }
-        
+        if args.is_empty() {
+            return "ERROR: Empty market command".to_string();
+        }
+
         match args[0] {
             "install" => {
-                if args.len() < 2 { return "ERROR: Missing module ID".to_string(); }
+                if args.len() < 2 {
+                    return "ERROR: Missing module ID".to_string();
+                }
                 let module_id = args[1];
                 // Mock installation logic for Alpha-2.1
                 format!("INSTALLED: {}", module_id)
-            },
+            }
             _ => format!("ERROR: Unknown market command: {}", args[0]),
         }
     }
@@ -636,23 +745,27 @@ impl IpcHandler {
     fn handle_search(&self, query: &str) -> String {
         let mut state = self.state.lock().unwrap();
         crate::brain::sector::SectorManager::perform_search(&mut state, query);
-        
+
         // Add globally indexed file matches
         let indexed_hits = self.services.search.query(query);
         if !indexed_hits.is_empty() {
             let idx = state.active_sector_index;
             if let Some(sector) = state.sectors.get_mut(idx) {
                 let hub = &mut sector.hubs[sector.active_hub_index];
-                
-                let matches: Vec<String> = indexed_hits.iter()
+
+                let matches: Vec<String> = indexed_hits
+                    .iter()
                     .map(|h| format!("{} [{}]", h.path, if h.is_dir { "DIR" } else { "FILE" }))
                     .collect();
-                    
+
                 if let Some(ref mut results) = hub.search_results {
-                    results.insert(0, crate::common::SearchResult {
-                        source_sector: "Global FS Index".to_string(),
-                        matches,
-                    });
+                    results.insert(
+                        0,
+                        crate::common::SearchResult {
+                            source_sector: "Global FS Index".to_string(),
+                            matches,
+                        },
+                    );
                 } else {
                     hub.search_results = Some(vec![crate::common::SearchResult {
                         source_sector: "Global FS Index".to_string(),
@@ -661,25 +774,26 @@ impl IpcHandler {
                 }
             }
         }
-        
+
         format!("SEARCH_PERFORMED: {}", query)
     }
 
     fn handle_semantic_search(&self, prompt: &str) -> String {
         let mut state = self.state.lock().unwrap();
         crate::brain::sector::SectorManager::perform_search(&mut state, prompt);
-        
+
         // Add mocked LLM semantic embeddings search matches
         let indexed_hits = self.services.search.semantic_query(prompt);
         if !indexed_hits.is_empty() {
             let idx = state.active_sector_index;
             if let Some(sector) = state.sectors.get_mut(idx) {
                 let hub = &mut sector.hubs[sector.active_hub_index];
-                
-                let matches: Vec<String> = indexed_hits.iter()
+
+                let matches: Vec<String> = indexed_hits
+                    .iter()
                     .map(|h| format!("{} [{}]", h.path, if h.is_dir { "DIR" } else { "FILE" }))
                     .collect();
-                    
+
                 let semantic_result = crate::common::SearchResult {
                     source_sector: "AI Semantic Engine".to_string(),
                     matches,
@@ -692,7 +806,7 @@ impl IpcHandler {
                 }
             }
         }
-        
+
         format!("SEMANTIC_SEARCH_COMPLETED")
     }
 
@@ -729,14 +843,17 @@ impl IpcHandler {
 
         let mut state = self.state.lock().unwrap();
         state.device_profile = reg.profile;
-        
+
         match reg.profile {
             tos_common::ipc::FaceProfile::Handheld => {
                 // §3.3.5: Handheld profile automations
-                state.bezel_expanded = false; 
+                state.bezel_expanded = false;
                 // Set default hub layout to tabs (if supported by settings)
-                state.settings.global.insert("tos.layout.default".to_string(), "tabs".to_string());
-                
+                state
+                    .settings
+                    .global
+                    .insert("tos.layout.default".to_string(), "tabs".to_string());
+
                 tracing::info!("FACE_REGISTER: Handheld profile active. Adapting layout and AI.");
             }
             tos_common::ipc::FaceProfile::Spatial => {
@@ -744,7 +861,7 @@ impl IpcHandler {
             }
             _ => {}
         }
-        
+
         state.version += 1;
         format!("FACE_REGISTERED: {:?}", reg.profile)
     }
@@ -760,18 +877,20 @@ impl IpcHandler {
             return serde_json::to_string(&tos_common::ipc::ServiceRegisterResponse {
                 status: "DENIED".to_string(),
                 message: "Cryptographic signature verification failed".to_string(),
-            }).unwrap();
+            })
+            .unwrap();
         }
 
         let mut registry = self.services.registry.lock().unwrap();
         registry.register(&req.name, req.port, "127.0.0.1");
-        
+
         tracing::info!("SERVICE_REGISTER: {} on port {}", req.name, req.port);
 
         serde_json::to_string(&tos_common::ipc::ServiceRegisterResponse {
             status: "OK".to_string(),
             message: format!("Service {} registered successfully", req.name),
-        }).unwrap()
+        })
+        .unwrap()
     }
 
     fn handle_ai_stage_command(&self, payload: &str) -> String {
@@ -794,20 +913,27 @@ impl IpcHandler {
         "ERROR: Invalid JSON for ai_stage_command".to_string()
     }
 
-    fn handle_system_log_append(&self, priority_str: Option<&str>, text_str: Option<&str>) -> String {
+    fn handle_system_log_append(
+        &self,
+        priority_str: Option<&str>,
+        text_str: Option<&str>,
+    ) -> String {
         if let (Some(priority), Some(text)) = (priority_str, text_str) {
             let mut state = self.state.lock().unwrap();
             let priority = priority.parse::<u8>().unwrap_or(1);
-            let limit: usize = state.settings.global.get("terminal_buffer_limit")
+            let limit: usize = state
+                .settings
+                .global
+                .get("terminal_buffer_limit")
                 .and_then(|s| s.parse().ok())
                 .unwrap_or(1000);
-            
+
             state.system_log.push(crate::common::TerminalLine {
                 text: text.to_string(),
                 priority,
                 timestamp: chrono::Local::now(),
             });
-            
+
             if state.system_log.len() > limit {
                 let to_drain = state.system_log.len() - limit;
                 state.system_log.drain(0..to_drain);
@@ -819,7 +945,7 @@ impl IpcHandler {
 
     fn handle_tactical_kill_switch(&self) -> String {
         tracing::warn!("TACTICAL KILL SWITCH ACTIVATED!");
-        
+
         // 1. Force-kill the active shell (§22)
         if let Ok(mut shell) = self.shell.lock() {
             if let Err(e) = shell.force_kill() {
@@ -835,7 +961,8 @@ impl IpcHandler {
         }
         state.version += 1;
         state.system_log.push(crate::common::TerminalLine {
-            text: "[CRITICAL] LEVEL 4 TACTICAL RESET EXECUTED - ALL PROCESSES TERMINATED".to_string(),
+            text: "[CRITICAL] LEVEL 4 TACTICAL RESET EXECUTED - ALL PROCESSES TERMINATED"
+                .to_string(),
             priority: 3,
             timestamp: chrono::Local::now(),
         });
@@ -892,7 +1019,8 @@ impl IpcHandler {
 
     fn handle_get_settings(&self) -> String {
         let state = self.state.lock().unwrap();
-        serde_json::to_string(&state.settings).unwrap_or_else(|_| "ERROR: Serialization failed".to_string())
+        serde_json::to_string(&state.settings)
+            .unwrap_or_else(|_| "ERROR: Serialization failed".to_string())
     }
 
     fn handle_heuristic_query(&self, keyword: Option<&str>) -> String {
@@ -900,14 +1028,16 @@ impl IpcHandler {
         let cwd = {
             let state = self.state.lock().unwrap();
             let idx = state.active_sector_index;
-            state.sectors.get(idx)
+            state
+                .sectors
+                .get(idx)
                 .and_then(|s| s.hubs.get(s.active_hub_index))
                 .map(|h| h.current_directory.display().to_string())
                 .unwrap_or_else(|| "/".to_string())
         };
-        
+
         let svc = self.services.heuristic.clone();
-        
+
         // Use block_in_place to prevent "Cannot start a runtime from within a runtime" panic
         tokio::task::block_in_place(move || {
             tokio::runtime::Handle::current().block_on(async move {
@@ -942,7 +1072,7 @@ impl IpcHandler {
         } else {
             return "ERROR: No active sector".to_string();
         };
-        
+
         // Drop lock before service call if possible (though PortalService has its own internal sync)
         let token = self.services.portal.create_token(sector_id);
         format!("PORTAL_CREATED: {}", token)
@@ -962,32 +1092,43 @@ impl IpcHandler {
             surface: Option<String>,
             limit: Option<usize>,
         }
-        
+
         let params: QueryParams = match serde_json::from_str(json_payload) {
             Ok(p) => p,
-            Err(_) => QueryParams { surface: None, limit: None }, // Fallback to defaults
+            Err(_) => QueryParams {
+                surface: None,
+                limit: None,
+            }, // Fallback to defaults
         };
 
-        match self.services.logger.query(params.surface.as_deref(), params.limit) {
+        match self
+            .services
+            .logger
+            .query(params.surface.as_deref(), params.limit)
+        {
             Ok(response) => response,
             Err(e) => format!("ERROR: Log query failed: {}", e),
         }
     }
 
     fn handle_get_state_delta(&self, last_version_str: Option<&str>) -> String {
-        let last_version = last_version_str.and_then(|s| s.parse::<u64>().ok()).unwrap_or(0);
+        let last_version = last_version_str
+            .and_then(|s| s.parse::<u64>().ok())
+            .unwrap_or(0);
         let state = self.state.lock().unwrap();
-        
+
         if state.version == last_version {
             return "NO_CHANGE".to_string();
         }
-        
+
         serde_json::to_string(&*state).unwrap_or_else(|_| "ERROR: Serialization failed".to_string())
     }
 
     fn handle_webrtc_presence(&self, payload: &str) -> String {
         // Parse the incoming generic WebRTC payload structure
-        if let Ok(presence_event) = serde_json::from_str::<crate::common::collaboration::WebRtcPayload>(payload) {
+        if let Ok(presence_event) =
+            serde_json::from_str::<crate::common::collaboration::WebRtcPayload>(payload)
+        {
             let mut state = self.state.lock().unwrap();
             let mut changed = false;
 
@@ -997,16 +1138,32 @@ impl IpcHandler {
                 let sector = &mut state.sectors[active_idx];
 
                 match presence_event {
-                    crate::common::collaboration::WebRtcPayload::CursorSync { user, x, y, target } => {
-                        if let Some(participant) = sector.participants.iter_mut().find(|p| p.id == user) {
+                    crate::common::collaboration::WebRtcPayload::CursorSync {
+                        user,
+                        x,
+                        y,
+                        target,
+                    } => {
+                        if let Some(participant) =
+                            sector.participants.iter_mut().find(|p| p.id == user)
+                        {
                             participant.cursor_x = Some(x);
                             participant.cursor_y = Some(y);
                             participant.cursor_target = target;
                             changed = true;
                         }
-                    },
-                    crate::common::collaboration::WebRtcPayload::Presence { user, status, level, active_viewport_title, left_chip_state, right_chip_state } => {
-                        if let Some(participant) = sector.participants.iter_mut().find(|p| p.id == user) {
+                    }
+                    crate::common::collaboration::WebRtcPayload::Presence {
+                        user,
+                        status,
+                        level,
+                        active_viewport_title,
+                        left_chip_state,
+                        right_chip_state,
+                    } => {
+                        if let Some(participant) =
+                            sector.participants.iter_mut().find(|p| p.id == user)
+                        {
                             // Update existing tracked remote guest
                             participant.status = status;
                             participant.current_level = level;
@@ -1015,29 +1172,37 @@ impl IpcHandler {
                             participant.right_chip_state = right_chip_state;
                         } else {
                             // Register new remote guest observation to the active sector
-                            sector.participants.push(crate::common::collaboration::Participant {
-                                id: user,
-                                alias: format!("Guest {}", user.to_string()[..4].to_string()),
-                                status,
-                                role: crate::common::collaboration::ParticipantRole::Observer,
-                                current_level: level,
-                                viewport_title: active_viewport_title,
-                                left_chip_state,
-                                right_chip_state,
-                                cursor_x: None,
-                                cursor_y: None,
-                                cursor_target: None,
-                                following: None,
-                            });
+                            sector
+                                .participants
+                                .push(crate::common::collaboration::Participant {
+                                    id: user,
+                                    alias: format!("Guest {}", user.to_string()[..4].to_string()),
+                                    status,
+                                    role: crate::common::collaboration::ParticipantRole::Observer,
+                                    current_level: level,
+                                    viewport_title: active_viewport_title,
+                                    left_chip_state,
+                                    right_chip_state,
+                                    cursor_x: None,
+                                    cursor_y: None,
+                                    cursor_target: None,
+                                    following: None,
+                                });
                         }
                         changed = true;
-                    },
-                    crate::common::collaboration::WebRtcPayload::Following { follower, leader, sync } => {
-                        if let Some(participant) = sector.participants.iter_mut().find(|p| p.id == follower) {
+                    }
+                    crate::common::collaboration::WebRtcPayload::Following {
+                        follower,
+                        leader,
+                        sync,
+                    } => {
+                        if let Some(participant) =
+                            sector.participants.iter_mut().find(|p| p.id == follower)
+                        {
                             participant.following = if sync { Some(leader) } else { None };
                             changed = true;
                         }
-                    },
+                    }
                     _ => {} // Other presence events unhandled in this exact route
                 }
 
@@ -1095,7 +1260,6 @@ impl IpcHandler {
         }
         serde_json::to_string(&entries).unwrap_or_else(|_| "[]".to_string())
     }
-
 
     fn handle_service_deregister(&self, name: Option<&str>) -> String {
         if let Some(n) = name {
@@ -1158,7 +1322,7 @@ impl IpcHandler {
             Ok(_) => {
                 state.version += 1;
                 "SESSION_LIVE_WRITTEN".to_string()
-            },
+            }
             Err(e) => format!("ERROR: {}", e),
         }
     }
@@ -1209,7 +1373,11 @@ impl IpcHandler {
         }
     }
 
-    fn handle_trust_promote_sector(&self, sector_id: Option<&str>, class_key: Option<&str>) -> String {
+    fn handle_trust_promote_sector(
+        &self,
+        sector_id: Option<&str>,
+        class_key: Option<&str>,
+    ) -> String {
         if let (Some(sid), Some(key)) = (sector_id, class_key) {
             let mut state = self.state.lock().unwrap();
             self.services.trust.promote_sector(&mut state, sid, key);
@@ -1219,7 +1387,11 @@ impl IpcHandler {
         }
     }
 
-    fn handle_trust_demote_sector(&self, sector_id: Option<&str>, class_key: Option<&str>) -> String {
+    fn handle_trust_demote_sector(
+        &self,
+        sector_id: Option<&str>,
+        class_key: Option<&str>,
+    ) -> String {
         if let (Some(sid), Some(key)) = (sector_id, class_key) {
             let mut state = self.state.lock().unwrap();
             self.services.trust.demote_sector(&mut state, sid, key);
@@ -1241,7 +1413,10 @@ impl IpcHandler {
 
     fn handle_trust_get_config(&self) -> String {
         let state = self.state.lock().unwrap();
-        format!("TRUST_CONFIG: {}", self.services.trust.get_config_json(&state))
+        format!(
+            "TRUST_CONFIG: {}",
+            self.services.trust.get_config_json(&state)
+        )
     }
 
     // ----- AIService Refactor IPC Handlers -----
@@ -1268,7 +1443,12 @@ impl IpcHandler {
         "ERROR: Missing behavior_id".to_string()
     }
 
-    fn handle_ai_behavior_configure(&self, id: Option<&str>, key: Option<&str>, value: Option<&str>) -> String {
+    fn handle_ai_behavior_configure(
+        &self,
+        id: Option<&str>,
+        key: Option<&str>,
+        value: Option<&str>,
+    ) -> String {
         if let (Some(id), Some(k), Some(v)) = (id, key, value) {
             let mut state = self.state.lock().unwrap();
             if self.services.ai.configure_behavior(&mut state, id, k, v) {
@@ -1326,7 +1506,9 @@ impl IpcHandler {
         let key = format!("tos.ai.thought.dismissed.{}", id);
         let mut state = self.state.lock().unwrap();
         state.settings.global.insert(key, "true".to_string());
-        state.system_log.retain(|l| !l.text.contains(&format!("id={}", id)));
+        state
+            .system_log
+            .retain(|l| !l.text.contains(&format!("id={}", id)));
         format!("AI_THOUGHT_DISMISSED_PERMANENT: {}", id)
     }
 
@@ -1334,15 +1516,23 @@ impl IpcHandler {
         let state = self.state.lock().unwrap();
         let ctx = crate::services::ai::build_context(&state);
         let behavior_id = behavior_id.unwrap_or("*");
-        
+
         // Look up declared fields for the behavior; default to all if not found
-        let fields = state.ai_behaviors.iter()
+        let fields = state
+            .ai_behaviors
+            .iter()
             .find(|b| b.id == behavior_id)
             .map(|b| b.context_fields.clone())
-            .unwrap_or_else(|| vec![
-                "cwd".to_string(), "sector_name".to_string(), "shell".to_string(),
-                "terminal_tail".to_string(), "last_command".to_string(), "mode".to_string(),
-            ]);
+            .unwrap_or_else(|| {
+                vec![
+                    "cwd".to_string(),
+                    "sector_name".to_string(),
+                    "shell".to_string(),
+                    "terminal_tail".to_string(),
+                    "last_command".to_string(),
+                    "mode".to_string(),
+                ]
+            });
 
         let context_entries = ctx.filter_to_fields(&fields);
         let json = serde_json::to_string(&context_entries).unwrap_or_else(|_| "[]".to_string());
@@ -1372,7 +1562,8 @@ impl IpcHandler {
         if let Some(sector) = state.sectors.get_mut(idx) {
             if !sector.active_apps.is_empty() {
                 if dir == "Right" {
-                    sector.active_app_index = (sector.active_app_index + 1) % sector.active_apps.len();
+                    sector.active_app_index =
+                        (sector.active_app_index + 1) % sector.active_apps.len();
                 } else {
                     if sector.active_app_index == 0 {
                         sector.active_app_index = sector.active_apps.len() - 1;
@@ -1396,10 +1587,18 @@ impl IpcHandler {
         "ERROR: Missing backend_id".to_string()
     }
 
-    fn handle_ai_backend_set_behavior(&self, behavior_id: Option<&str>, backend_id: Option<&str>) -> String {
+    fn handle_ai_backend_set_behavior(
+        &self,
+        behavior_id: Option<&str>,
+        backend_id: Option<&str>,
+    ) -> String {
         if let (Some(bid), Some(backend)) = (behavior_id, backend_id) {
             let mut state = self.state.lock().unwrap();
-            if self.services.ai.set_behavior_backend(&mut state, bid, backend) {
+            if self
+                .services
+                .ai
+                .set_behavior_backend(&mut state, bid, backend)
+            {
                 return format!("AI_BEHAVIOR_BACKEND_SET: {}→{}", bid, backend);
             }
             return format!("ERROR: Behavior '{}' not registered", bid);
@@ -1481,11 +1680,16 @@ impl IpcHandler {
                 let mut state = self.state.lock().unwrap();
                 let idx = state.active_sector_index;
                 let hub_idx = state.sectors[idx].active_hub_index;
-        let hub = &mut state.sectors[idx].hubs[hub_idx];
+                let hub = &mut state.sectors[idx].hubs[hub_idx];
                 fn set_weight(node: &mut crate::common::SplitNode, id: Uuid, weight: f32) -> bool {
                     match node {
                         crate::common::SplitNode::Leaf(p) => {
-                            if p.id == id { p.weight = weight; true } else { false }
+                            if p.id == id {
+                                p.weight = weight;
+                                true
+                            } else {
+                                false
+                            }
                         }
                         crate::common::SplitNode::Container { children, .. } => {
                             children.iter_mut().any(|c| set_weight(c, id, weight))
@@ -1542,13 +1746,17 @@ impl IpcHandler {
                 let mut state = self.state.lock().unwrap();
                 let idx = state.active_sector_index;
                 let hub_idx = state.sectors[idx].active_hub_index;
-        let hub = &mut state.sectors[idx].hubs[hub_idx];
-                
+                let hub = &mut state.sectors[idx].hubs[hub_idx];
+
                 fn swap_leaves(node: &mut crate::common::SplitNode, a: Uuid, b: Uuid) {
                     if let crate::common::SplitNode::Container { children, .. } = node {
                         // Find positions of a and b within immediate children
-                        let pos_a = children.iter().position(|c| matches!(c, crate::common::SplitNode::Leaf(p) if p.id == a));
-                        let pos_b = children.iter().position(|c| matches!(c, crate::common::SplitNode::Leaf(p) if p.id == b));
+                        let pos_a = children.iter().position(
+                            |c| matches!(c, crate::common::SplitNode::Leaf(p) if p.id == a),
+                        );
+                        let pos_b = children.iter().position(
+                            |c| matches!(c, crate::common::SplitNode::Leaf(p) if p.id == b),
+                        );
                         if let (Some(ia), Some(ib)) = (pos_a, pos_b) {
                             children.swap(ia, ib);
                         } else {
@@ -1558,7 +1766,7 @@ impl IpcHandler {
                         }
                     }
                 }
-                
+
                 if let Some(layout) = &mut hub.split_layout {
                     swap_leaves(layout, a, b);
                     return format!("SPLIT_SWAPPED: {}↔{}", a, b);
@@ -1594,10 +1802,10 @@ impl IpcHandler {
                     // Persist to settings for later restore
                     drop(state);
                     let mut state = self.state.lock().unwrap();
-                    state.settings.global.insert(
-                        format!("tos.split_template.{}", name),
-                        json,
-                    );
+                    state
+                        .settings
+                        .global
+                        .insert(format!("tos.split_template.{}", name), json);
                     format!("SPLIT_TEMPLATE_SAVED: {}", name)
                 }
                 Err(e) => format!("ERROR: {}", e),
@@ -1672,7 +1880,11 @@ impl IpcHandler {
         "ERROR: Invalid confirmation ID".to_string()
     }
 
-    fn handle_update_confirmation_progress(&self, id_str: Option<&str>, progress_str: Option<&str>) -> String {
+    fn handle_update_confirmation_progress(
+        &self,
+        id_str: Option<&str>,
+        progress_str: Option<&str>,
+    ) -> String {
         if let (Some(id_str), Some(p_str)) = (id_str, progress_str) {
             if let (Ok(id), Ok(p)) = (Uuid::parse_str(id_str), p_str.parse::<f32>()) {
                 let mut state = self.state.lock().unwrap();
@@ -1699,7 +1911,12 @@ impl IpcHandler {
                 }
 
                 // If we updated progress but didn't execute
-                if state.pending_confirmation.as_ref().map(|c| c.id == id).unwrap_or(false) {
+                if state
+                    .pending_confirmation
+                    .as_ref()
+                    .map(|c| c.id == id)
+                    .unwrap_or(false)
+                {
                     state.version += 1;
                     return format!("CONFIRMATION_PROGRESS: {}", p);
                 }

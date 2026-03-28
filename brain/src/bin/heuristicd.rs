@@ -1,13 +1,13 @@
 //! TOS Heuristic Service (`tos-heuristicd`) — predictive intelligence and smart completion.
 //!
-//! This daemon provides real-time predictive fillers, autocomplete-to-chip 
+//! This daemon provides real-time predictive fillers, autocomplete-to-chip
 //! suggestions, typo corrections, and heuristic sector labeling. It registers
 //! with the Brain via Unix domain socket.
 
-use tokio::net::{TcpListener, TcpStream};
-use tokio::io::{AsyncBufReadExt, AsyncWriteExt, BufReader};
-use std::sync::{Arc, Mutex};
 use std::path::PathBuf;
+use std::sync::{Arc, Mutex};
+use tokio::io::{AsyncBufReadExt, AsyncWriteExt, BufReader};
+use tokio::net::{TcpListener, TcpStream};
 
 /// In-memory state for the heuristic service.
 struct HeuristicState {
@@ -19,10 +19,22 @@ impl HeuristicState {
     fn new() -> Self {
         Self {
             command_history: vec![
-                "ls".to_string(), "cd".to_string(), "cp".to_string(), "mv".to_string(),
-                "rm".to_string(), "mkdir".to_string(), "cat".to_string(), "grep".to_string(),
-                "find".to_string(), "git".to_string(), "make".to_string(), "cargo".to_string(),
-                "sudo".to_string(), "apt".to_string(), "systemctl".to_string(), "docker".to_string(),
+                "ls".to_string(),
+                "cd".to_string(),
+                "cp".to_string(),
+                "mv".to_string(),
+                "rm".to_string(),
+                "mkdir".to_string(),
+                "cat".to_string(),
+                "grep".to_string(),
+                "find".to_string(),
+                "git".to_string(),
+                "make".to_string(),
+                "cargo".to_string(),
+                "sudo".to_string(),
+                "apt".to_string(),
+                "systemctl".to_string(),
+                "docker".to_string(),
             ],
         }
     }
@@ -62,10 +74,14 @@ async fn handle_client(socket: TcpStream, state: Arc<Mutex<HeuristicState>>) -> 
     loop {
         line.clear();
         let n = reader.read_line(&mut line).await?;
-        if n == 0 { break; }
+        if n == 0 {
+            break;
+        }
 
         let request = line.trim();
-        if request.is_empty() { continue; }
+        if request.is_empty() {
+            continue;
+        }
 
         let parts: Vec<&str> = request.splitn(2, ':').collect();
         let prefix = parts[0];
@@ -89,7 +105,9 @@ async fn handle_client(socket: TcpStream, state: Arc<Mutex<HeuristicState>>) -> 
             _ => "ERROR: Unknown command".to_string(),
         };
 
-        writer.write_all(format!("{}\n", response).as_bytes()).await?;
+        writer
+            .write_all(format!("{}\n", response).as_bytes())
+            .await?;
         writer.flush().await?;
     }
     Ok(())
@@ -102,7 +120,11 @@ struct Suggestion {
     source: String,
 }
 
-fn generate_suggestions(keyword: &str, cwd_str: &str, state: &Arc<Mutex<HeuristicState>>) -> Vec<Suggestion> {
+fn generate_suggestions(
+    keyword: &str,
+    cwd_str: &str,
+    state: &Arc<Mutex<HeuristicState>>,
+) -> Vec<Suggestion> {
     let mut suggestions = Vec::new();
 
     // 1. Path Completion
@@ -148,15 +170,19 @@ fn levenshtein_distance(s1: &str, s2: &str) -> usize {
 
     let mut dp = vec![vec![0; m + 1]; n + 1];
 
-    for i in 0..=n { dp[i][0] = i; }
-    for j in 0..=m { dp[0][j] = j; }
+    for i in 0..=n {
+        dp[i][0] = i;
+    }
+    for j in 0..=m {
+        dp[0][j] = j;
+    }
 
     for i in 1..=n {
         for j in 1..=m {
             let cost = if v1[i - 1] == v2[j - 1] { 0 } else { 1 };
             dp[i][j] = std::cmp::min(
                 dp[i - 1][j] + 1,
-                std::cmp::min(dp[i][j - 1] + 1, dp[i - 1][j - 1] + cost)
+                std::cmp::min(dp[i][j - 1] + 1, dp[i - 1][j - 1] + cost),
             );
         }
     }

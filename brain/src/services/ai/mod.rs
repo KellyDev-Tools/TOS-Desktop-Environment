@@ -7,10 +7,10 @@
 //!  - Per-behavior backend resolution cascade (behavior override → system default)
 //!  - Preserve existing ai_query / ai_tool_call internal messages as backend protocol
 
-use std::sync::{Arc, Mutex};
-use crate::common::{TosState, AiBehavior};
 use crate::common::ipc_dispatcher::IpcDispatcher;
+use crate::common::{AiBehavior, TosState};
 use serde_json::json;
+use std::sync::{Arc, Mutex};
 
 // ---------------------------------------------------------------------------
 // Rolling Context Object
@@ -67,7 +67,8 @@ pub fn build_context(state: &TosState) -> AiContext {
     let sector = &state.sectors[idx];
     let hub = &sector.hubs[sector.active_hub_index];
 
-    let terminal_tail = hub.terminal_output
+    let terminal_tail = hub
+        .terminal_output
         .iter()
         .rev()
         .take(10)
@@ -80,13 +81,18 @@ pub fn build_context(state: &TosState) -> AiContext {
     AiContext {
         cwd: hub.current_directory.display().to_string(),
         sector_name: sector.name.clone(),
-        shell_module: hub.shell_module.clone().unwrap_or_else(|| "unknown".to_string()),
+        shell_module: hub
+            .shell_module
+            .clone()
+            .unwrap_or_else(|| "unknown".to_string()),
         terminal_tail,
         last_command,
         active_mode: format!("{:?}", hub.mode),
         session_version: state.version,
         env_hint,
-        chat_history: hub.ai_history.iter()
+        chat_history: hub
+            .ai_history
+            .iter()
             .map(|m| format!("{}: {}", m.role, m.content))
             .collect(),
     }
@@ -120,24 +126,44 @@ impl AiService {
     /// Register the built-in behaviors (tos-chat, tos-observer) into the system state.
     pub fn register_defaults(&self, state: &mut TosState) {
         // 1. Chat Companion
-        self.register_behavior(state, AiBehavior {
-            id: "tos-chat".to_string(),
-            name: "Chat Companion".to_string(),
-            enabled: true,
-            backend_override: None,
-            context_fields: vec!["cwd".to_string(), "sector_name".to_string(), "shell".to_string(), "terminal_tail".to_string(), "last_command".to_string(), "mode".to_string()],
-            config: std::collections::HashMap::new(),
-        });
+        self.register_behavior(
+            state,
+            AiBehavior {
+                id: "tos-chat".to_string(),
+                name: "Chat Companion".to_string(),
+                enabled: true,
+                backend_override: None,
+                context_fields: vec![
+                    "cwd".to_string(),
+                    "sector_name".to_string(),
+                    "shell".to_string(),
+                    "terminal_tail".to_string(),
+                    "last_command".to_string(),
+                    "mode".to_string(),
+                ],
+                config: std::collections::HashMap::new(),
+            },
+        );
 
         // 2. Passive Observer
-        self.register_behavior(state, AiBehavior {
-            id: "tos-observer".to_string(),
-            name: "Passive Observer".to_string(),
-            enabled: true,
-            backend_override: None,
-            context_fields: vec!["cwd".to_string(), "terminal_tail".to_string(), "last_command".to_string()],
-            config: [("sensitivity".to_string(), "Medium".to_string())].iter().cloned().collect(),
-        });
+        self.register_behavior(
+            state,
+            AiBehavior {
+                id: "tos-observer".to_string(),
+                name: "Passive Observer".to_string(),
+                enabled: true,
+                backend_override: None,
+                context_fields: vec![
+                    "cwd".to_string(),
+                    "terminal_tail".to_string(),
+                    "last_command".to_string(),
+                ],
+                config: [("sensitivity".to_string(), "Medium".to_string())]
+                    .iter()
+                    .cloned()
+                    .collect(),
+            },
+        );
     }
 
     // --- Behavior Registry Ops ---
@@ -163,7 +189,13 @@ impl AiService {
         false
     }
 
-    pub fn configure_behavior(&self, state: &mut TosState, id: &str, key: &str, value: &str) -> bool {
+    pub fn configure_behavior(
+        &self,
+        state: &mut TosState,
+        id: &str,
+        key: &str,
+        value: &str,
+    ) -> bool {
         if let Some(b) = state.ai_behaviors.iter_mut().find(|b| b.id == id) {
             b.config.insert(key.to_string(), value.to_string());
             return true;
@@ -176,7 +208,12 @@ impl AiService {
         state.active_ai_module = backend_id.to_string();
     }
 
-    pub fn set_behavior_backend(&self, state: &mut TosState, behavior_id: &str, backend_id: &str) -> bool {
+    pub fn set_behavior_backend(
+        &self,
+        state: &mut TosState,
+        behavior_id: &str,
+        backend_id: &str,
+    ) -> bool {
         if let Some(b) = state.ai_behaviors.iter_mut().find(|b| b.id == behavior_id) {
             b.backend_override = Some(backend_id.to_string());
             return true;
@@ -194,7 +231,8 @@ impl AiService {
 
     /// Resolve the backend to use for a given behavior (cascade: behavior override → system default).
     pub fn resolve_backend<'a>(&self, state: &'a TosState, behavior_id: &str) -> &'a str {
-        state.ai_behaviors
+        state
+            .ai_behaviors
             .iter()
             .find(|b| b.id == behavior_id)
             .and_then(|b| b.backend_override.as_deref())
@@ -206,7 +244,11 @@ impl AiService {
     /// Process natural language query and stage a command for user review.
     /// Dispatches through the module's configured endpoint/provider.
     pub async fn query(&self, prompt: &str) -> anyhow::Result<()> {
-        let ipc = self.ipc.lock().unwrap().clone()
+        let ipc = self
+            .ipc
+            .lock()
+            .unwrap()
+            .clone()
             .ok_or_else(|| anyhow::anyhow!("IPC dispatcher not set for AiService"))?;
 
         let state_json = ipc.dispatch("get_state:");
@@ -226,47 +268,62 @@ impl AiService {
 
         // Build rolling context
         let ctx = build_context(&state);
-        
+
         // Resolve backend — use "chat" behavior or fallback to active module
         let backend_id = self.resolve_backend(&state, "chat").to_string();
-        
+
         let (command, explanation) = {
             let maybe_modules = self.modules.lock().unwrap().clone(); // <-- drop guard immediately
             if let Some(modules) = maybe_modules {
-            if let Ok(ai_mod) = modules.load_ai(&backend_id) {
-                // Use all context fields by default for the primary chat behavior
-                let ctx_fields = vec![
-                    "cwd".to_string(), "sector_name".to_string(), "shell".to_string(),
-                    "terminal_tail".to_string(), "last_command".to_string(), "mode".to_string(),
-                    "chat_history".to_string(),
-                ];
-                let context = ctx.filter_to_fields(&ctx_fields);
-                let req = crate::common::modules::AiQuery {
-                    prompt: prompt.to_string(),
-                    context,
-                    stream: false,
-                };
-                match ai_mod.query(req) {
-                    Ok(resp) => {
-                        if let Ok(parsed) = serde_json::from_str::<serde_json::Value>(&resp.choice.content) {
-                            let cmd = parsed["command"].as_str().unwrap_or("echo 'Error'").to_string();
-                            let expl = parsed["explanation"].as_str().unwrap_or("No explanation").to_string();
-                            (cmd, expl)
-                        } else {
-                            (format!("echo '{}'", resp.choice.content), "Raw response from AI module".to_string())
+                if let Ok(ai_mod) = modules.load_ai(&backend_id) {
+                    // Use all context fields by default for the primary chat behavior
+                    let ctx_fields = vec![
+                        "cwd".to_string(),
+                        "sector_name".to_string(),
+                        "shell".to_string(),
+                        "terminal_tail".to_string(),
+                        "last_command".to_string(),
+                        "mode".to_string(),
+                        "chat_history".to_string(),
+                    ];
+                    let context = ctx.filter_to_fields(&ctx_fields);
+                    let req = crate::common::modules::AiQuery {
+                        prompt: prompt.to_string(),
+                        context,
+                        stream: false,
+                    };
+                    match ai_mod.query(req) {
+                        Ok(resp) => {
+                            if let Ok(parsed) =
+                                serde_json::from_str::<serde_json::Value>(&resp.choice.content)
+                            {
+                                let cmd = parsed["command"]
+                                    .as_str()
+                                    .unwrap_or("echo 'Error'")
+                                    .to_string();
+                                let expl = parsed["explanation"]
+                                    .as_str()
+                                    .unwrap_or("No explanation")
+                                    .to_string();
+                                (cmd, expl)
+                            } else {
+                                (
+                                    format!("echo '{}'", resp.choice.content),
+                                    "Raw response from AI module".to_string(),
+                                )
+                            }
+                        }
+                        Err(e) => {
+                            eprintln!("[AiService] Module query failed: {}. Using fallback.", e);
+                            self.fallback_query(prompt, &ctx).await
                         }
                     }
-                    Err(e) => {
-                        eprintln!("[AiService] Module query failed: {}. Using fallback.", e);
-                        self.fallback_query(prompt, &ctx).await
-                    }
+                } else {
+                    self.fallback_query(prompt, &ctx).await
                 }
             } else {
                 self.fallback_query(prompt, &ctx).await
             }
-        } else {
-            self.fallback_query(prompt, &ctx).await
-        }
         }; // close let (command, explanation) = { ... }
 
         let payload = json!({ "command": command, "explanation": explanation });
@@ -280,8 +337,17 @@ impl AiService {
     }
 
     /// Observe a command result and trigger the passive observer if conditions match.
-    pub async fn passive_observe(&self, command: &str, status: i32, stderr: Option<&str>) -> anyhow::Result<()> {
-        let ipc = self.ipc.lock().unwrap().clone()
+    pub async fn passive_observe(
+        &self,
+        command: &str,
+        status: i32,
+        stderr: Option<&str>,
+    ) -> anyhow::Result<()> {
+        let ipc = self
+            .ipc
+            .lock()
+            .unwrap()
+            .clone()
             .ok_or_else(|| anyhow::anyhow!("IPC dispatcher not set"))?;
 
         let state_json = ipc.dispatch("get_state:");
@@ -298,7 +364,7 @@ impl AiService {
         if status == 127 || (status != 0 && stderr.is_some()) {
             let ctx = build_context(&state);
             let backend_id = self.resolve_backend(&state, "tos-observer").to_string();
-            
+
             let maybe_modules = self.modules.lock().unwrap().clone();
             if let Some(modules) = maybe_modules {
                 if let Ok(ai_mod) = modules.load_ai(&backend_id) {
@@ -308,22 +374,29 @@ impl AiService {
                          {{\"command\": \"<staged_fix>\", \"explanation\": \"<short_description>\"}}.",
                         command, status, stderr.unwrap_or("none")
                     );
-                    
+
                     let req = crate::common::modules::AiQuery {
                         prompt,
-                        context: ctx.filter_to_fields(&["cwd", "terminal_tail", "last_command"].iter().map(|s| s.to_string()).collect::<Vec<_>>()),
+                        context: ctx.filter_to_fields(
+                            &["cwd", "terminal_tail", "last_command"]
+                                .iter()
+                                .map(|s| s.to_string())
+                                .collect::<Vec<_>>(),
+                        ),
                         stream: false,
                     };
 
                     if let Ok(resp) = ai_mod.query(req) {
-                        if let Ok(parsed) = serde_json::from_str::<serde_json::Value>(&resp.choice.content) {
+                        if let Ok(parsed) =
+                            serde_json::from_str::<serde_json::Value>(&resp.choice.content)
+                        {
                             let cmd = parsed["command"].as_str().unwrap_or("").to_string();
                             let expl = parsed["explanation"].as_str().unwrap_or("").to_string();
                             if !cmd.is_empty() {
-                                let payload = json!({ 
-                                    "behavior": "tos-observer", 
-                                    "command": cmd, 
-                                    "explanation": format!("✦ OBSERVER: {}", expl) 
+                                let payload = json!({
+                                    "behavior": "tos-observer",
+                                    "command": cmd,
+                                    "explanation": format!("✦ OBSERVER: {}", expl)
                                 });
                                 let _ = ipc.dispatch(&format!("ai_stage_command:{}", payload));
                             }
@@ -360,7 +433,8 @@ impl AiService {
                 "response_format": { "type": "json_object" }
             });
 
-            match client.post(format!("{}/chat/completions", api_base))
+            match client
+                .post(format!("{}/chat/completions", api_base))
                 .header("Authorization", format!("Bearer {}", key))
                 .json(&req_body)
                 .send()
@@ -368,10 +442,16 @@ impl AiService {
             {
                 Ok(resp) => {
                     if let Ok(resp_json) = resp.json::<serde_json::Value>().await {
-                        let content = resp_json["choices"][0]["message"]["content"].as_str().unwrap_or("{}");
-                        let parsed = serde_json::from_str::<serde_json::Value>(content)
-                            .unwrap_or(json!({"command": "echo 'AI Parse Error'", "explanation": ""}));
-                        let cmd = parsed["command"].as_str().unwrap_or("echo 'Error'").to_string();
+                        let content = resp_json["choices"][0]["message"]["content"]
+                            .as_str()
+                            .unwrap_or("{}");
+                        let parsed = serde_json::from_str::<serde_json::Value>(content).unwrap_or(
+                            json!({"command": "echo 'AI Parse Error'", "explanation": ""}),
+                        );
+                        let cmd = parsed["command"]
+                            .as_str()
+                            .unwrap_or("echo 'Error'")
+                            .to_string();
                         let expl = parsed["explanation"].as_str().unwrap_or("").to_string();
 
                         if cmd.starts_with("semantic_search:") {
@@ -379,31 +459,52 @@ impl AiService {
                             if let Some(i) = ipc {
                                 let _ = i.dispatch(&format!("semantic_search:{}", term));
                             }
-                            ("zoom_to:CommandHub".to_string(), format!("Found matches for '{}'. Zooming to Command Hub.", term))
+                            (
+                                "zoom_to:CommandHub".to_string(),
+                                format!("Found matches for '{}'. Zooming to Command Hub.", term),
+                            )
                         } else {
                             (cmd, expl)
                         }
                     } else {
-                        ("echo 'LLM JSON Error'".to_string(), "AI returned invalid JSON.".to_string())
+                        (
+                            "echo 'LLM JSON Error'".to_string(),
+                            "AI returned invalid JSON.".to_string(),
+                        )
                     }
                 }
-                Err(e) => (format!("echo 'LLM Error: {}'", e), "Network request failed.".to_string()),
+                Err(e) => (
+                    format!("echo 'LLM Error: {}'", e),
+                    "Network request failed.".to_string(),
+                ),
             }
         } else {
             // Offline keyword heuristics
             let p = prompt.to_lowercase();
             if p.contains("where") && p.contains("am") && p.contains("i") {
-                ("pwd".to_string(), format!("You are in sector '{}' at {}.", ctx.sector_name, ctx.cwd))
+                (
+                    "pwd".to_string(),
+                    format!("You are in sector '{}' at {}.", ctx.sector_name, ctx.cwd),
+                )
             } else if (p.contains("list") || p.contains("show")) && p.contains("files") {
-                ("ls -la".to_string(), "List all files in long format.".to_string())
+                (
+                    "ls -la".to_string(),
+                    "List all files in long format.".to_string(),
+                )
             } else if p.contains("search") || p.contains("find") {
                 let term = prompt.split_whitespace().last().unwrap_or("everything");
                 if let Some(i) = ipc {
                     let _ = i.dispatch(&format!("semantic_search:{}", term));
                 }
-                ("zoom_to:CommandHub".to_string(), format!("Searching for '{}'.", term))
+                (
+                    "zoom_to:CommandHub".to_string(),
+                    format!("Searching for '{}'.", term),
+                )
             } else {
-                (format!("echo 'AI suggest: {}'", prompt), "Staged echo command for review.".to_string())
+                (
+                    format!("echo 'AI suggest: {}'", prompt),
+                    "Staged echo command for review.".to_string(),
+                )
             }
         }
     }

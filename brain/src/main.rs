@@ -1,9 +1,9 @@
 use tos_lib::brain::Brain;
 // use tos_lib::face::{Face, MockFace};
-use tos_lib::platform::RemoteServer;
+use std::env;
 use std::time::{Duration, Instant};
 use tokio::time::sleep;
-use std::env;
+use tos_lib::platform::RemoteServer;
 // use tos_lib::brain::renderer_manager::RendererMode;
 
 #[tokio::main]
@@ -18,7 +18,7 @@ async fn main() -> anyhow::Result<()> {
         .with_writer(std::io::stderr)
         .with_env_filter(env_filter)
         .init();
-    
+
     let args: Vec<String> = env::args().collect();
     let _is_self_test = args.iter().any(|arg| arg == "--self-test");
     let _is_headless = args.iter().any(|arg| arg == "--headless");
@@ -50,6 +50,6 @@ async fn main() -> anyhow::Result<()> {
     loop {
         sleep(Duration::from_secs(60)).await;
     }
-    
+
     Ok(())
 }

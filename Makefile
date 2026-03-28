@@ -78,10 +78,10 @@ build-face-web:
 	@echo "[TOS] Svelte Face UI: BUILD COMPLETE"
 
 build-common:
-	cargo build -p tos-common
+	cd tos-common && cargo build
 
 build-services:
-	cd brain && cargo build --bins
+	cd brain && { cargo build --bins || { echo "Warning: Some services failed to build (likely searchd on GLIBC 2.35)"; cargo build --bin tos-settingsd --bin tos-loggerd --bin tos-marketplaced --bin tos-priorityd --bin tos-sessiond --bin tos-heuristicd; }; }
 
 check:
 	cd tos-common && cargo check
@@ -105,7 +105,10 @@ lint:
 	cd face-android-handheld && cargo clippy -- -D warnings
 
 docs:
-	cargo doc --no-deps --open
+	cd tos-common && cargo doc --no-deps
+	cd brain && cargo doc --no-deps
+	cd face-wayland-linux && cargo doc --no-deps
+	cd face-android-handheld && cargo doc --no-deps
 
 # -----------------------------------------------------------------------------
 # 3. TEST SUITE
@@ -116,31 +119,31 @@ test: test-all
 test-all: test-core test-shell test-ai test-sec test-health
 
 test-core:
-	cargo test --test brain_core
+	cd brain && cargo test --test brain_core
 
 test-shell:
-	cargo test --test shell_integration
+	cd brain && cargo test --test shell_integration
 
 test-ai:
-	cargo test --test ai_integration
+	cd brain && cargo test --test ai_integration
 
 test-sec:
-	cargo test --test sandbox
-	cargo test --test security_manifest
+	cd brain && cargo test --test sandbox
+	cd brain && cargo test --test security_manifest
 
 test-system:
 	@mkdir -p logs
-	cargo run --bin system_test | tee logs/system_test.log
+	cd brain && cargo run --bin system_test | tee ../logs/system_test.log
 
 test-brain-component:
 	@echo "[TOS] Orchestrating Component Test..."
 	@mkdir -p logs
 	@rm -f logs/brain_node.log
-	cargo run --bin brain_node > logs/brain_node.log 2>&1 & BR_PID=$$!; \
+	cd brain && cargo run --bin brain_node > ../logs/brain_node.log 2>&1 & BR_PID=$$!; \
 	echo "[TOS] Waiting for Brain Node boot..."; \
 	sleep 5; \
 	echo "[TOS] Triggering Stimulator..."; \
-	cargo test --test stimulator_brain_node -- --nocapture; \
+	cd brain && cargo test --test stimulator_brain_node -- --nocapture; \
 	echo "[TOS] Terminating simulation..."; \
 	kill $$BR_PID; \
 	echo "Component Test Complete. Analysis: 'logs/brain_node.log'"
@@ -149,7 +152,7 @@ test-ui-component:
 	@echo "[TOS] Launching UI Component Paces (Playwright)..."
 	@npm install @playwright/test
 	@npx playwright install chromium
-	@npx playwright test tests/ui_component.spec.js
+	@npx playwright test tests/ui_component.spec.ts
 
 test-health:
 	@echo "[TOS] Running Orchestration Health Check..."
@@ -170,11 +173,11 @@ test-health:
 	@brain/target/debug/tos-priorityd > logs/priorityd.log 2>&1 &
 	@brain/target/debug/tos-sessiond > logs/sessiond.log 2>&1 &
 	@brain/target/debug/tos-heuristicd > logs/heuristicd.log 2>&1 &
-	@brain/target/debug/tos-searchd > logs/searchd.log 2>&1 &
+	@brain/target/debug/tos-searchd > logs/searchd.log 2>&1 || true &
 	@brain/target/debug/tos-brain --headless > logs/tos-brain.log 2>&1 & BR_PID=$$!; \
 	echo "[TOS] Waiting for daemons and Discovery Gate to bind (3s)..."; \
 	sleep 3; \
-	cd brain && cargo test --test service_orchestration -- --nocapture; TEST_RES=$$?; \
+	cd tests && cargo test --test service_orchestration -- --nocapture; TEST_RES=$$?; \
 	echo "[TOS] Cleaning up Orchestration Environment..."; \
 	kill $$BR_PID 2>/dev/null || true; \
 	pkill -x tos-settingsd || true; \
@@ -200,7 +203,7 @@ run: run-services
 
 dev-web:
 	@echo "[TOS] Starting Svelte Face Dev Server (HMR)..."
-	@$(NVM_INIT) && cd svelte_ui && npm run dev -- --port 8080 --host 0.0.0.0
+	@$(NVM_INIT) && cd face-svelte-ui && npm run dev -- --port 8080 --host 0.0.0.0
 
 run-web: run-services build-face-web
 	@mkdir -p logs
@@ -231,14 +234,14 @@ run-services:
 	@pkill -x tos-sessiond || true
 	@pkill -x tos-heuristicd || true
 	@pkill -x tos-searchd || true
-	@cd brain && cargo build --bins
+	cd brain && { cargo build --bins || { echo "Warning: Some services failed to build (likely searchd on GLIBC 2.35)"; cargo build --bin tos-settingsd --bin tos-loggerd --bin tos-marketplaced --bin tos-priorityd --bin tos-sessiond --bin tos-heuristicd; }; }
 	@brain/target/debug/tos-settingsd > logs/settingsd.log 2>&1 &
 	@brain/target/debug/tos-loggerd > logs/loggerd.log 2>&1 &
 	@brain/target/debug/tos-marketplaced > logs/marketplaced.log 2>&1 &
 	@brain/target/debug/tos-priorityd > logs/priorityd.log 2>&1 &
 	@brain/target/debug/tos-sessiond > logs/sessiond.log 2>&1 &
 	@brain/target/debug/tos-heuristicd > logs/heuristicd.log 2>&1 &
-	@brain/target/debug/tos-searchd > logs/searchd.log 2>&1 &
+	@brain/target/debug/tos-searchd > logs/searchd.log 2>&1 || true &
 	@echo "[TOS] Auxiliary Constellation: ONLINE"
 
 # -----------------------------------------------------------------------------
@@ -246,13 +249,17 @@ run-services:
 # -----------------------------------------------------------------------------
 
 clean:
-	cargo clean
+	cd tos-common && cargo clean
+	cd brain && cargo clean
+	cd face-wayland-linux && cargo clean
+	cd face-android-handheld && cargo clean
+	cd tests && cargo clean
 	rm -rf logs/
 	rm -rf face-svelte-ui/build/ face-svelte-ui/.svelte-kit/
 
 test-e2e:
 	@echo "[TOS] Launching Full-Stack E2E Paces (Playwright)..."
-	@$(NVM_INIT) && cd svelte_ui && npx playwright test -c playwright.e2e.config.ts
+	@$(NVM_INIT) && cd face-svelte-ui && npx playwright test -c playwright.e2e.config.ts
 
 # -----------------------------------------------------------------------------
 # 6. ANDROID BUILD (separate crate: android-handheld/)
@@ -262,28 +269,28 @@ ANDROID_CRATE := face-android-handheld
 
 android-check:
 	@echo "[TOS] Checking Android Face crate (host target)..."
-	cargo check -p $(ANDROID_CRATE)
+	cd face-android-handheld && cargo check
 	@echo "[TOS] Android Face: CHECK PASSED"
 
 android-build: android-check
 	@echo "[TOS] Android Face: Host check passed."
 	@echo "[TOS] To cross-compile for a real device, run:"
-	@echo "  cargo ndk -t arm64-v8a build -p $(ANDROID_CRATE) --release"
+	@echo "  cd face-android-handheld && cargo ndk -t arm64-v8a build --release"
 	@echo "[TOS] Requires: cargo install cargo-ndk && rustup target add aarch64-linux-android"
 
 android-release:
 	@echo "[TOS] Building Android Face (Release, arm64-v8a)..."
-	cargo ndk -t arm64-v8a build -p $(ANDROID_CRATE) --release
+	cd face-android-handheld && cargo ndk -t arm64-v8a build --release
 	@echo "[TOS] Android Face: RELEASE BUILD COMPLETE"
 
 android-test:
 	@echo "[TOS] Running Android Face tests (host target)..."
-	cargo test -p $(ANDROID_CRATE)
+	cd face-android-handheld && cargo test
 	@echo "[TOS] Android Face: TESTS PASSED"
 
 clean-android:
 	@echo "[TOS] Cleaning Android Face build artifacts..."
-	cargo clean -p $(ANDROID_CRATE)
+	cd face-android-handheld && cargo clean
 	@echo "[TOS] Android Face: CLEAN"
 
 # -----------------------------------------------------------------------------

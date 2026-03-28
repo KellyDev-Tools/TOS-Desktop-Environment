@@ -1,5 +1,5 @@
+use crate::platform::{HeadlessRenderer, RemoteRenderer, Renderer};
 use std::env;
-use crate::platform::{Renderer, HeadlessRenderer, RemoteRenderer};
 
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub enum RendererMode {
@@ -22,12 +22,8 @@ impl RendererManager {
     /// Initialize renderer for the detected mode.
     pub fn init(mode: RendererMode) -> anyhow::Result<Box<dyn Renderer + Send>> {
         match mode {
-            RendererMode::Headless => {
-                Ok(Box::new(HeadlessRenderer::new()))
-            }
-            RendererMode::Remote => {
-                Ok(Box::new(RemoteRenderer))
-            }
+            RendererMode::Headless => Ok(Box::new(HeadlessRenderer::new())),
+            RendererMode::Remote => Ok(Box::new(RemoteRenderer)),
         }
     }
 }

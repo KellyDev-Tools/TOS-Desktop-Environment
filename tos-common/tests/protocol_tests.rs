@@ -6,11 +6,11 @@
 
 #[cfg(test)]
 mod tests {
-    use tos_common::state::*;
-    use tos_common::collaboration::*;
-    use tos_common::modules::*;
-    use tos_common::ipc::IpcDispatcher;
     use std::collections::HashMap;
+    use tos_common::collaboration::*;
+    use tos_common::ipc::IpcDispatcher;
+    use tos_common::modules::*;
+    use tos_common::state::*;
 
     // -----------------------------------------------------------------------
     // State Defaults
@@ -19,7 +19,11 @@ mod tests {
     #[test]
     fn default_state_has_one_sector() {
         let state = TosState::default();
-        assert_eq!(state.sectors.len(), 1, "Default state must have exactly one sector");
+        assert_eq!(
+            state.sectors.len(),
+            1,
+            "Default state must have exactly one sector"
+        );
         assert_eq!(state.sectors[0].name, "Primary");
     }
 
@@ -40,9 +44,18 @@ mod tests {
     #[test]
     fn default_state_has_available_modules() {
         let state = TosState::default();
-        assert!(state.available_modules.len() >= 2, "Should ship with at least rectangular + cinematic modules");
-        assert!(state.available_themes.len() >= 3, "Should ship with at least 3 themes");
-        assert!(!state.available_ai_modules.is_empty(), "Should have at least one AI module");
+        assert!(
+            state.available_modules.len() >= 2,
+            "Should ship with at least rectangular + cinematic modules"
+        );
+        assert!(
+            state.available_themes.len() >= 3,
+            "Should ship with at least 3 themes"
+        );
+        assert!(
+            !state.available_ai_modules.is_empty(),
+            "Should have at least one AI module"
+        );
     }
 
     // -----------------------------------------------------------------------
@@ -52,19 +65,28 @@ mod tests {
     #[test]
     fn settings_resolve_global() {
         let mut store = SettingsStore::default();
-        store.global.insert("theme".to_string(), "amber".to_string());
+        store
+            .global
+            .insert("theme".to_string(), "amber".to_string());
 
-        assert_eq!(store.resolve("theme", None, None), Some("amber".to_string()));
+        assert_eq!(
+            store.resolve("theme", None, None),
+            Some("amber".to_string())
+        );
     }
 
     #[test]
     fn settings_resolve_sector_overrides_global() {
         let mut store = SettingsStore::default();
-        store.global.insert("theme".to_string(), "amber".to_string());
+        store
+            .global
+            .insert("theme".to_string(), "amber".to_string());
 
         let mut sector_settings = HashMap::new();
         sector_settings.insert("theme".to_string(), "red-alert".to_string());
-        store.sectors.insert("sector_1".to_string(), sector_settings);
+        store
+            .sectors
+            .insert("sector_1".to_string(), sector_settings);
 
         // With sector context, sector value wins.
         assert_eq!(
@@ -81,7 +103,9 @@ mod tests {
     #[test]
     fn settings_resolve_app_overrides_sector_and_global() {
         let mut store = SettingsStore::default();
-        store.global.insert("font_size".to_string(), "12".to_string());
+        store
+            .global
+            .insert("font_size".to_string(), "12".to_string());
 
         let mut sector_settings = HashMap::new();
         sector_settings.insert("font_size".to_string(), "14".to_string());
@@ -89,7 +113,9 @@ mod tests {
 
         let mut app_settings = HashMap::new();
         app_settings.insert("font_size".to_string(), "16".to_string());
-        store.applications.insert("editor".to_string(), app_settings);
+        store
+            .applications
+            .insert("editor".to_string(), app_settings);
 
         assert_eq!(
             store.resolve("font_size", Some("s1"), Some("editor")),
@@ -111,11 +137,15 @@ mod tests {
     fn tos_state_serialization_roundtrip() {
         let state = TosState::default();
         let json = serde_json::to_string(&state).expect("TosState must serialize");
-        let deserialized: TosState = serde_json::from_str(&json).expect("TosState must deserialize");
+        let deserialized: TosState =
+            serde_json::from_str(&json).expect("TosState must deserialize");
 
         assert_eq!(deserialized.sectors.len(), state.sectors.len());
         assert_eq!(deserialized.current_level, state.current_level);
-        assert_eq!(deserialized.active_terminal_module, state.active_terminal_module);
+        assert_eq!(
+            deserialized.active_terminal_module,
+            state.active_terminal_module
+        );
     }
 
     #[test]
@@ -130,7 +160,8 @@ mod tests {
         };
 
         let json = serde_json::to_string(&payload).expect("WebRtcPayload must serialize");
-        let deserialized: WebRtcPayload = serde_json::from_str(&json).expect("WebRtcPayload must deserialize");
+        let deserialized: WebRtcPayload =
+            serde_json::from_str(&json).expect("WebRtcPayload must deserialize");
 
         match deserialized {
             WebRtcPayload::Presence { status, level, .. } => {
@@ -261,6 +292,9 @@ mod tests {
         };
 
         assert_eq!(sector.hubs.len(), 2);
-        assert_eq!(sector.hubs[sector.active_hub_index].mode, CommandHubMode::Ai);
+        assert_eq!(
+            sector.hubs[sector.active_hub_index].mode,
+            CommandHubMode::Ai
+        );
     }
 }

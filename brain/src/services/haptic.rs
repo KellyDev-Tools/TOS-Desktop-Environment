@@ -8,13 +8,13 @@ pub struct HapticService {
 impl HapticService {
     pub fn new() -> Self {
         let (tx, rx) = std::sync::mpsc::channel::<String>();
-        
+
         thread::spawn(move || {
             while let Ok(cue) = rx.recv() {
                 // In production, this would communicate with /sys/class/timed_output/vibrator/enable
                 // or a specialized VR haptic controller via OpenXR.
                 // For Alpha-2, we log the tactical trigger.
-                
+
                 let (intensity, duration) = match cue.as_str() {
                     "click" => (50, 20),
                     "success" => (100, 100),
@@ -23,8 +23,11 @@ impl HapticService {
                     _ => (50, 50),
                 };
 
-                println!("[HAPTIC TRIGGER] Intensity: {}, Duration: {}ms", intensity, duration);
-                
+                println!(
+                    "[HAPTIC TRIGGER] Intensity: {}, Duration: {}ms",
+                    intensity, duration
+                );
+
                 // Simulate physical processing delay
                 thread::sleep(Duration::from_millis(duration as u64));
             }

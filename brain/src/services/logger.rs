@@ -1,8 +1,8 @@
 // use crate::common::TerminalLine; // Replaced by IPC state append
 use std::sync::{Arc, Mutex};
 // use chrono::Local; // Replaced by IPC state append
-use crate::services::audio::AudioService;
 use crate::common::ipc_dispatcher::IpcDispatcher;
+use crate::services::audio::AudioService;
 
 pub struct LoggerService {
     ipc: Arc<Mutex<Option<Arc<dyn IpcDispatcher>>>>,
@@ -12,7 +12,7 @@ pub struct LoggerService {
 
 impl LoggerService {
     pub fn new() -> Self {
-        Self { 
+        Self {
             ipc: Arc::new(Mutex::new(None)),
             audio: Arc::new(Mutex::new(None)),
             registry: None,
@@ -45,12 +45,21 @@ impl LoggerService {
     /// Log a structured event with a specific source.
     pub fn log_event(&self, text: &str, priority: u8, source: &str) {
         // §19.1: Remote Log Submission (tos-loggerd)
-        let port = self.registry.as_ref()
-            .and_then(|r: &Arc<Mutex<crate::services::registry::ServiceRegistry>>| r.lock().unwrap().port_of("tos-loggerd"))
+        let port = self
+            .registry
+            .as_ref()
+            .and_then(
+                |r: &Arc<Mutex<crate::services::registry::ServiceRegistry>>| {
+                    r.lock().unwrap().port_of("tos-loggerd")
+                },
+            )
             .unwrap_or(7003); // Fallback to hardcoded for Alpha-2.1/Beta-0 transition
-        
+
         let addr = format!("127.0.0.1:{}", port);
-        if let Ok(mut stream) = std::net::TcpStream::connect_timeout(&addr.parse().unwrap(), std::time::Duration::from_millis(50)) {
+        if let Ok(mut stream) = std::net::TcpStream::connect_timeout(
+            &addr.parse().unwrap(),
+            std::time::Duration::from_millis(50),
+        ) {
             use std::io::Write;
             let _ = stream.write_all(format!("log:{};{};{}\n", text, priority, source).as_bytes());
         } else {
@@ -74,19 +83,28 @@ impl LoggerService {
 
     /// Query system logs via the Log Service (§3.3.4).
     pub fn query(&self, surface: Option<&str>, limit: Option<usize>) -> anyhow::Result<String> {
-        let port = self.registry.as_ref()
-            .and_then(|r: &Arc<Mutex<crate::services::registry::ServiceRegistry>>| r.lock().unwrap().port_of("tos-loggerd"))
+        let port = self
+            .registry
+            .as_ref()
+            .and_then(
+                |r: &Arc<Mutex<crate::services::registry::ServiceRegistry>>| {
+                    r.lock().unwrap().port_of("tos-loggerd")
+                },
+            )
             .unwrap_or(7003);
-            
+
         let addr = format!("127.0.0.1:{}", port);
-        let mut stream = std::net::TcpStream::connect_timeout(&addr.parse().unwrap(), std::time::Duration::from_millis(100))?;
-        use std::io::{Write, BufRead, BufReader};
-        
+        let mut stream = std::net::TcpStream::connect_timeout(
+            &addr.parse().unwrap(),
+            std::time::Duration::from_millis(100),
+        )?;
+        use std::io::{BufRead, BufReader, Write};
+
         let query = serde_json::json!({
             "surface": surface,
             "limit": limit
         });
-        
+
         let _ = stream.write_all(format!("query:{}\n", query).as_bytes());
         let mut reader = BufReader::new(stream);
         let mut response = String::new();
@@ -98,7 +116,7 @@ impl LoggerService {
     pub fn audit_log(&self, actor: &str, action: &str, result: &str) {
         let msg = format!("AUDIT [{}]: {} -> {}", actor, action, result);
         self.log_event(&msg, 3, "security"); // Forced high priority
-        
+
         // Final implementation would sign this entry cryptographically
         tracing::warn!("SECURITY AUDIT ENTRY: {}", msg);
     }

@@ -54,13 +54,16 @@ impl ServiceRegistry {
     /// If a daemon with the same name is already registered, its entry
     /// is updated (supporting daemon restarts).
     pub fn register(&mut self, name: &str, port: u16, host: &str) {
-        self.services.insert(name.to_string(), ServiceEntry {
-            name: name.to_string(),
-            port,
-            host: host.to_string(),
-            last_heartbeat: Instant::now(),
-            alive: true,
-        });
+        self.services.insert(
+            name.to_string(),
+            ServiceEntry {
+                name: name.to_string(),
+                port,
+                host: host.to_string(),
+                last_heartbeat: Instant::now(),
+                alive: true,
+            },
+        );
     }
 
     /// Remove a daemon from the registry (clean shutdown).
@@ -106,9 +109,15 @@ impl ServiceRegistry {
     /// Return a human-readable port table (for `tos ports` IPC command).
     pub fn port_table(&self) -> String {
         let mut lines = vec![
-            format!("{:<22} {:<8} {:<16} {}", "SERVICE", "PORT", "HOST", "STATUS"),
+            format!(
+                "{:<22} {:<8} {:<16} {}",
+                "SERVICE", "PORT", "HOST", "STATUS"
+            ),
             format!("{}", "-".repeat(56)),
-            format!("{:<22} {:<8} {:<16} {}", "tos-brain (anchor)", self.anchor_port, "0.0.0.0", "ACTIVE"),
+            format!(
+                "{:<22} {:<8} {:<16} {}",
+                "tos-brain (anchor)", self.anchor_port, "0.0.0.0", "ACTIVE"
+            ),
         ];
 
         let mut entries: Vec<&ServiceEntry> = self.services.values().collect();
@@ -116,7 +125,10 @@ impl ServiceRegistry {
 
         for entry in entries {
             let status = if entry.alive { "ACTIVE" } else { "DEAD" };
-            lines.push(format!("{:<22} {:<8} {:<16} {}", entry.name, entry.port, entry.host, status));
+            lines.push(format!(
+                "{:<22} {:<8} {:<16} {}",
+                entry.name, entry.port, entry.host, status
+            ));
         }
 
         lines.join("\n")

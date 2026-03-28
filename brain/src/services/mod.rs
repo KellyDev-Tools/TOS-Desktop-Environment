@@ -1,36 +1,35 @@
-
-pub mod logger;
-pub mod settings;
-pub mod audio;
-pub mod marketplace;
 pub mod ai;
-pub mod search;
+pub mod audio;
+pub mod capture;
 pub mod haptic;
+pub mod heuristic;
+pub mod logger;
+pub mod marketplace;
 pub mod portal;
 pub mod priority;
 pub mod registry;
+pub mod search;
 pub mod session;
+pub mod settings;
 pub mod trust;
-pub mod heuristic;
-pub mod capture;
 
-pub use logger::LoggerService;
-pub use settings::SettingsService;
-pub use audio::AudioService;
-pub use marketplace::MarketplaceService;
 pub use ai::AiService;
-pub use search::SearchService;
+pub use audio::AudioService;
+pub use capture::CaptureService;
 pub use haptic::HapticService;
+pub use heuristic::HeuristicService;
+pub use logger::LoggerService;
+pub use marketplace::MarketplaceService;
 pub use portal::PortalService;
 pub use priority::PriorityService;
 pub use registry::ServiceRegistry;
+pub use search::SearchService;
 pub use session::SessionService;
+pub use settings::SettingsService;
 pub use trust::TrustService;
-pub use heuristic::HeuristicService;
-pub use capture::CaptureService;
 
-use std::sync::{Arc, Mutex};
 use crate::config::TosConfig;
+use std::sync::{Arc, Mutex};
 
 pub struct ServiceManager {
     pub logger: Arc<LoggerService>,
@@ -60,7 +59,10 @@ impl ServiceManager {
         let registry = Arc::new(Mutex::new(ServiceRegistry::new(anchor_port)));
 
         // 2. Initialize Services with Registry awareness
-        let settings = Arc::new(SettingsService::with_registry_and_config(registry.clone(), config));
+        let settings = Arc::new(SettingsService::with_registry_and_config(
+            registry.clone(),
+            config,
+        ));
         let logger = Arc::new(LoggerService::with_registry(registry.clone()));
 
         let (audio_svc, audio_warning) = AudioService::new();
@@ -75,11 +77,11 @@ impl ServiceManager {
         let trust = Arc::new(TrustService::new());
         let heuristic = Arc::new(HeuristicService::new(registry.clone()));
         let marketplace = Arc::new(MarketplaceService::new(registry.clone()));
-        
+
         let capture_svc = CaptureService::new();
         capture_svc.set_backend(Arc::new(capture::MockCaptureBackend));
         let capture = Arc::new(capture_svc);
-        
+
         // Establish cross-service dependencies (e.g., logging triggers audio cues)
         logger.set_audio_service(audio.clone());
 
@@ -87,7 +89,7 @@ impl ServiceManager {
         if let Some(warning) = audio_warning {
             logger.log(&warning, 2);
         }
-        
+
         Self {
             logger,
             settings,

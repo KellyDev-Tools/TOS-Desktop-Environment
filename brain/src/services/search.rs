@@ -3,9 +3,9 @@
 //! This service communicates with the `tos-searchd` daemon to provide
 //! indexed file searching and semantic "vector" retrieval.
 
+use crate::services::registry::ServiceRegistry;
 use std::sync::{Arc, Mutex};
 use tokio::io::{AsyncBufReadExt, AsyncWriteExt, BufReader};
-use crate::services::registry::ServiceRegistry;
 
 #[derive(Clone, serde::Deserialize)]
 pub struct SearchHit {
@@ -27,7 +27,9 @@ impl SearchService {
     pub fn query(&self, pattern: &str) -> Vec<SearchHit> {
         let rt = tokio::runtime::Handle::current();
         rt.block_on(async move {
-            self.remote_call("search", pattern).await.unwrap_or_default()
+            self.remote_call("search", pattern)
+                .await
+                .unwrap_or_default()
         })
     }
 
@@ -35,7 +37,9 @@ impl SearchService {
     pub fn semantic_query(&self, prompt: &str) -> Vec<SearchHit> {
         let rt = tokio::runtime::Handle::current();
         rt.block_on(async move {
-            self.remote_call("semantic_search", prompt).await.unwrap_or_default()
+            self.remote_call("semantic_search", prompt)
+                .await
+                .unwrap_or_default()
         })
     }
 
@@ -43,10 +47,13 @@ impl SearchService {
         let port = {
             let reg = self.registry.lock().unwrap();
             reg.port_of("tos-searchd")
-        }.ok_or_else(|| anyhow::anyhow!("Search daemon not found"))?;
+        }
+        .ok_or_else(|| anyhow::anyhow!("Search daemon not found"))?;
 
         let mut stream = tokio::net::TcpStream::connect(format!("127.0.0.1:{}", port)).await?;
-        stream.write_all(format!("{}:{}\n", cmd, payload).as_bytes()).await?;
+        stream
+            .write_all(format!("{}:{}\n", cmd, payload).as_bytes())
+            .await?;
 
         let mut reader = BufReader::new(stream);
         let mut response = String::new();

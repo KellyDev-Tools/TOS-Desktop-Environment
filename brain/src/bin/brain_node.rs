@@ -1,18 +1,18 @@
+use std::time::Duration;
+use tokio::time::sleep;
 use tos_lib::brain::Brain;
 use tos_lib::face::Face;
 use tos_lib::platform::RemoteServer;
-use std::time::Duration;
-use tokio::time::sleep;
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
     tracing::info!("\x1B[1;36m[TOS BRAIN NODE: Component Under Test]\x1B[0m");
-    
+
     // 1. Initialize Brain
     let brain = Brain::new()?;
     let ipc = brain.ipc.clone();
     let state = brain.state.clone();
-    
+
     // 2. Initialize Face (for visualization)
     let mut face = Face::new(state.clone(), ipc.clone());
 
@@ -31,7 +31,7 @@ async fn main() -> anyhow::Result<()> {
         // Clearing is disabled for demo visibility, but we re-render on a tick
         face.render();
         sleep(Duration::from_millis(500)).await;
-        
+
         // Check if we should exit (e.g. via a specific IPC command we could add)
         // For now, keep it alive for the Stimulator
     }

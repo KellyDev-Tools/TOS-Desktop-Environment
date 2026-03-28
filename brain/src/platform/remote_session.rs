@@ -14,7 +14,9 @@ pub struct RemoteSession {
 
 impl RemoteSessionManager {
     pub fn new() -> Self {
-        Self { _active_sessions: HashMap::new() }
+        Self {
+            _active_sessions: HashMap::new(),
+        }
     }
 
     /// §502: Generate unique Web Portal URL
@@ -29,4 +31,3 @@ impl RemoteSessionManager {
         Ok(id)
     }
 }
-

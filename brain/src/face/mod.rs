@@ -1,5 +1,5 @@
 use crate::brain::ipc_handler::IpcHandler;
-use crate::common::{TosState, HierarchyLevel};
+use crate::common::{HierarchyLevel, TosState};
 use crate::platform::Renderer;
 use std::sync::{Arc, Mutex};
 
@@ -42,7 +42,10 @@ impl Face {
             let handle = match self.surface_handle {
                 Some(h) => h,
                 None => {
-                    let config = crate::platform::SurfaceConfig { width: 1920, height: 1080 };
+                    let config = crate::platform::SurfaceConfig {
+                        width: 1920,
+                        height: 1080,
+                    };
                     let h = renderer.create_surface(config);
                     self.surface_handle = Some(h);
                     h
@@ -57,7 +60,7 @@ impl Face {
                     Some(self.text)
                 }
             }
-            
+
             renderer.update_surface(handle, &NativeFrame { text: &frame });
             renderer.composite();
             tracing::debug!("Native Linux Face: Syncing frame buffer to Wayland SHM");
@@ -85,7 +88,10 @@ impl Face {
             }
             _ => {
                 out.push_str(&format!("+{:->82}+\n", ""));
-                out.push_str(&format!("| {:^80} |\n", format!("{:?} VIEW", state.current_level)));
+                out.push_str(&format!(
+                    "| {:^80} |\n",
+                    format!("{:?} VIEW", state.current_level)
+                ));
                 out.push_str("| [PLACEHOLDER - ALPHA 2 PROTOTYPE]                                                |\n");
                 out.push_str(&format!("+{:->82}+\n", ""));
             }
@@ -96,8 +102,11 @@ impl Face {
 
         // System Footer
         let time = chrono::Local::now().format("%H:%M:%S");
-        let sector_name = state.sectors.get(state.active_sector_index)
-            .map(|s| s.name.as_str()).unwrap_or("NONE");
+        let sector_name = state
+            .sectors
+            .get(state.active_sector_index)
+            .map(|s| s.name.as_str())
+            .unwrap_or("NONE");
         out.push_str(&format!(
             "\n[ {} ] SECTOR: {} | LEVEL: {:?} | BRAIN: ACTIVE\n",
             time, sector_name, state.current_level
@@ -111,29 +120,77 @@ impl Face {
     fn render_level1_to(&self, state: &TosState, out: &mut String) {
         use std::fmt::Write;
         writeln!(out, "[LEVEL 1: GLOBAL OVERVIEW]\n").unwrap();
-        writeln!(out, "+----------------------------------------------------------------------------------+").unwrap();
-        writeln!(out, "| SECTOR TILES                                                                     |").unwrap();
-        writeln!(out, "+--------------------------------------------------------------+-------------------+").unwrap();
+        writeln!(
+            out,
+            "+----------------------------------------------------------------------------------+"
+        )
+        .unwrap();
+        writeln!(
+            out,
+            "| SECTOR TILES                                                                     |"
+        )
+        .unwrap();
+        writeln!(
+            out,
+            "+--------------------------------------------------------------+-------------------+"
+        )
+        .unwrap();
         for (i, sector) in state.sectors.iter().enumerate() {
-            let active_mark = if i == state.active_sector_index { ">>" } else { "  " };
-            writeln!(out, "| {:<2} [ {:<2} ] {:<52} | HUBS: {:<7} |", active_mark, i, sector.name, sector.hubs.len()).unwrap();
+            let active_mark = if i == state.active_sector_index {
+                ">>"
+            } else {
+                "  "
+            };
+            writeln!(
+                out,
+                "| {:<2} [ {:<2} ] {:<52} | HUBS: {:<7} |",
+                active_mark,
+                i,
+                sector.name,
+                sector.hubs.len()
+            )
+            .unwrap();
         }
-        writeln!(out, "+--------------------------------------------------------------+-------------------+").unwrap();
+        writeln!(
+            out,
+            "+--------------------------------------------------------------+-------------------+"
+        )
+        .unwrap();
 
         writeln!(out, "\n[SYSTEM OUTPUT AREA (BRAIN LOG)]").unwrap();
-        writeln!(out, "+----------------------------------------------------------------------------------+").unwrap();
+        writeln!(
+            out,
+            "+----------------------------------------------------------------------------------+"
+        )
+        .unwrap();
         let start = state.system_log.len().saturating_sub(5);
         for line in &state.system_log[start..] {
-            writeln!(out, "| {} [P{}] {:<69}  |", line.timestamp.format("%H:%M"), line.priority, line.text).unwrap();
+            writeln!(
+                out,
+                "| {} [P{}] {:<69}  |",
+                line.timestamp.format("%H:%M"),
+                line.priority,
+                line.text
+            )
+            .unwrap();
         }
-        writeln!(out, "+----------------------------------------------------------------------------------+").unwrap();
+        writeln!(
+            out,
+            "+----------------------------------------------------------------------------------+"
+        )
+        .unwrap();
     }
 
     fn render_level2_to(&self, state: &TosState, out: &mut String) {
         use std::fmt::Write;
         if let Some(sector) = state.sectors.get(state.active_sector_index) {
             let hub = &sector.hubs[sector.active_hub_index];
-            writeln!(out, "[LEVEL 2: COMMAND HUB - {}]\n", sector.name.to_uppercase()).unwrap();
+            writeln!(
+                out,
+                "[LEVEL 2: COMMAND HUB - {}]\n",
+                sector.name.to_uppercase()
+            )
+            .unwrap();
             writeln!(out, "MODE:  {:?}", hub.mode).unwrap();
             writeln!(out, "DIR:   {}", hub.current_directory.display()).unwrap();
             writeln!(out, "\nOUTPUT:").unwrap();

@@ -1,10 +1,10 @@
-use std::io::{Write, BufRead, BufReader};
+use crate::common::TosState;
+use crate::config::TosConfig;
+use crate::services::registry::ServiceRegistry;
+use std::io::{BufRead, BufReader, Write};
 use std::net::TcpStream;
 use std::path::PathBuf;
 use std::sync::{Arc, Mutex};
-use crate::services::registry::ServiceRegistry;
-use crate::common::TosState;
-use crate::config::TosConfig;
 
 #[derive(Clone)]
 pub struct SessionService {
@@ -32,7 +32,11 @@ impl SessionService {
 
         // Ensure directory exists on construction.
         if let Err(e) = std::fs::create_dir_all(&sessions_dir) {
-            tracing::warn!("SessionService: could not create sessions dir {:?}: {}", sessions_dir, e);
+            tracing::warn!(
+                "SessionService: could not create sessions dir {:?}: {}",
+                sessions_dir,
+                e
+            );
         }
 
         Self {
@@ -51,7 +55,8 @@ impl SessionService {
 
     fn get_daemon_address(&self) -> Option<String> {
         let reg = self.registry.lock().unwrap();
-        reg.port_of("tos-sessiond").map(|port| format!("127.0.0.1:{}", port))
+        reg.port_of("tos-sessiond")
+            .map(|port| format!("127.0.0.1:{}", port))
     }
 
     // ── Local persistence (direct disk I/O) ──────────────────────────
@@ -66,21 +71,32 @@ impl SessionService {
         Ok(())
     }
 
-    fn save_named_local(&self, sector_id: &str, name: &str, state: &TosState) -> anyhow::Result<()> {
+    fn save_named_local(
+        &self,
+        sector_id: &str,
+        name: &str,
+        state: &TosState,
+    ) -> anyhow::Result<()> {
         std::fs::create_dir_all(&self.sessions_dir)?;
-        let path = self.sessions_dir.join(format!("{}_{}.tos-session", sector_id, name));
+        let path = self
+            .sessions_dir
+            .join(format!("{}_{}.tos-session", sector_id, name));
         let json = serde_json::to_string_pretty(state)?;
         std::fs::write(&path, json)?;
         Ok(())
     }
 
     fn load_named_local(&self, sector_id: &str, name: &str) -> anyhow::Result<String> {
-        let path = self.sessions_dir.join(format!("{}_{}.tos-session", sector_id, name));
+        let path = self
+            .sessions_dir
+            .join(format!("{}_{}.tos-session", sector_id, name));
         Ok(std::fs::read_to_string(&path)?)
     }
 
     fn delete_named_local(&self, sector_id: &str, name: &str) -> anyhow::Result<()> {
-        let path = self.sessions_dir.join(format!("{}_{}.tos-session", sector_id, name));
+        let path = self
+            .sessions_dir
+            .join(format!("{}_{}.tos-session", sector_id, name));
         std::fs::remove_file(&path)?;
         Ok(())
     }
@@ -100,7 +116,8 @@ impl SessionService {
                 if path.extension().unwrap_or_default() == "tos-session" {
                     if let Some(stem) = path.file_stem().and_then(|s| s.to_str()) {
                         if stem != "_live" {
-                            if sector_id.is_empty() || sector_id == "global"
+                            if sector_id.is_empty()
+                                || sector_id == "global"
                                 || stem.starts_with(&format!("{}_", sector_id))
                             {
                                 let parts: Vec<&str> = stem.splitn(2, '_').collect();
@@ -120,39 +137,42 @@ impl SessionService {
     // ── Remote persistence (tos-sessiond daemon) ─────────────────────
 
     fn save_live_daemon(&self, state: &TosState, addr: &str) -> anyhow::Result<()> {
-        if let Ok(mut stream) = TcpStream::connect_timeout(
-            &addr.parse().unwrap(),
-            std::time::Duration::from_millis(50),
-        ) {
+        if let Ok(mut stream) =
+            TcpStream::connect_timeout(&addr.parse().unwrap(), std::time::Duration::from_millis(50))
+        {
             let json = serde_json::to_string(state)?;
             let _ = stream.write_all(format!("session_live_write:{}\n", json).as_bytes());
             return Ok(());
         }
-        Err(anyhow::anyhow!("connection failed to tos-sessiond at {}", addr))
+        Err(anyhow::anyhow!(
+            "connection failed to tos-sessiond at {}",
+            addr
+        ))
     }
 
-    fn save_named_daemon(&self, sector_id: &str, name: &str, state: &TosState, addr: &str) -> anyhow::Result<()> {
-        if let Ok(mut stream) = TcpStream::connect_timeout(
-            &addr.parse().unwrap(),
-            std::time::Duration::from_millis(50),
-        ) {
+    fn save_named_daemon(
+        &self,
+        sector_id: &str,
+        name: &str,
+        state: &TosState,
+        addr: &str,
+    ) -> anyhow::Result<()> {
+        if let Ok(mut stream) =
+            TcpStream::connect_timeout(&addr.parse().unwrap(), std::time::Duration::from_millis(50))
+        {
             let json = serde_json::to_string(state)?;
-            let _ = stream.write_all(
-                format!("session_save:{};{};{}\n", sector_id, name, json).as_bytes(),
-            );
+            let _ = stream
+                .write_all(format!("session_save:{};{};{}\n", sector_id, name, json).as_bytes());
             return Ok(());
         }
         Err(anyhow::anyhow!("connection failed to tos-sessiond"))
     }
 
     fn load_named_daemon(&self, sector_id: &str, name: &str, addr: &str) -> anyhow::Result<String> {
-        if let Ok(mut stream) = TcpStream::connect_timeout(
-            &addr.parse().unwrap(),
-            std::time::Duration::from_millis(50),
-        ) {
-            let _ = stream.write_all(
-                format!("session_load:{};{}\n", sector_id, name).as_bytes(),
-            );
+        if let Ok(mut stream) =
+            TcpStream::connect_timeout(&addr.parse().unwrap(), std::time::Duration::from_millis(50))
+        {
+            let _ = stream.write_all(format!("session_load:{};{}\n", sector_id, name).as_bytes());
             let mut reader = BufReader::new(&stream);
             let mut response = String::new();
             if reader.read_line(&mut response).is_ok() {
@@ -167,23 +187,19 @@ impl SessionService {
     }
 
     fn delete_named_daemon(&self, sector_id: &str, name: &str, addr: &str) -> anyhow::Result<()> {
-        if let Ok(mut stream) = TcpStream::connect_timeout(
-            &addr.parse().unwrap(),
-            std::time::Duration::from_millis(50),
-        ) {
-            let _ = stream.write_all(
-                format!("session_delete:{};{}\n", sector_id, name).as_bytes(),
-            );
+        if let Ok(mut stream) =
+            TcpStream::connect_timeout(&addr.parse().unwrap(), std::time::Duration::from_millis(50))
+        {
+            let _ = stream.write_all(format!("session_delete:{};{}\n", sector_id, name).as_bytes());
             return Ok(());
         }
         Err(anyhow::anyhow!("connection failed to tos-sessiond"))
     }
 
     fn list_daemon(&self, addr: &str) -> anyhow::Result<String> {
-        if let Ok(mut stream) = TcpStream::connect_timeout(
-            &addr.parse().unwrap(),
-            std::time::Duration::from_millis(50),
-        ) {
+        if let Ok(mut stream) =
+            TcpStream::connect_timeout(&addr.parse().unwrap(), std::time::Duration::from_millis(50))
+        {
             let _ = stream.write_all(b"session_list:\n");
             let mut reader = BufReader::new(&stream);
             let mut response = String::new();
@@ -243,7 +259,10 @@ impl SessionService {
     /// Save a named session.
     pub fn save(&self, sector_id: &str, name: &str, state: &TosState) -> anyhow::Result<()> {
         if let Some(addr) = self.get_daemon_address() {
-            if self.save_named_daemon(sector_id, name, state, &addr).is_ok() {
+            if self
+                .save_named_daemon(sector_id, name, state, &addr)
+                .is_ok()
+            {
                 return Ok(());
             }
         }

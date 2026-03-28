@@ -1,7 +1,5 @@
 //! Android Input — touch and gesture tracking for the Android Face.
 
-
-
 /// Android Input Source — handles touch and gesture recognition.
 #[derive(Default)]
 pub struct AndroidInput {

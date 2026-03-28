@@ -280,8 +280,9 @@ android-build: android-check
 
 android-release:
 	@echo "[TOS] Building Android Face (Release, arm64-v8a)..."
-	cd face-android-handheld && cargo ndk -t arm64-v8a build --release
+	cd face-android-handheld && /home/tim/gradle/gradle-8.5/bin/gradle assembleRelease
 	@echo "[TOS] Android Face: RELEASE BUILD COMPLETE"
+	@echo "[TOS] APK located at: face-android-handheld/build/outputs/apk/release/face-android-handheld-release-unsigned.apk"
 
 android-test:
 	@echo "[TOS] Running Android Face tests (host target)..."

@@ -50,3 +50,8 @@ dist/
 /pkg/
 /build/
 /out/
+# Android / Gradle
+.gradle/
+local.properties
+**/libs/arm64-v8a/
+**/build/

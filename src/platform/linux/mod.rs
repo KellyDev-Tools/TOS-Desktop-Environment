@@ -132,9 +132,6 @@ impl LinuxRenderer {
         }
     }
 
-    pub fn get_capture_backend(&self) -> LinuxCaptureBackend {
-        LinuxCaptureBackend::new(self)
-    }
 
     fn render_text_to_buffer(&self, buf: &mut WaylandBuffer, text: &str) {
         // SAFETY: Mapping exactly the size allocated in allocate_dmabuf_shm.
@@ -245,8 +242,10 @@ impl Renderer for LinuxRenderer {
             tracing::debug!("   [PASS 2] VertexShader: applying zoom_transform, border_scale");
             tracing::debug!("   [PASS 3] FragmentShader: alpha_blend, depth_blur(FD: {})", buf.fd);
         }
-        
-        tracing::debug!("Native Context: SwapBuffers/vkQueuePresentKHR");
+    }
+
+    fn get_capture_backend(&self) -> std::sync::Arc<dyn crate::services::capture::CaptureBackend> {
+        std::sync::Arc::new(LinuxCaptureBackend::new(self))
     }
 }
 

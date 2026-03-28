@@ -117,7 +117,34 @@ export NVM_DIR="$HOME/.nvm" && . "$NVM_DIR/nvm.sh" && nvm use 20
 cd svelte_ui && npm run dev -- --port 8080
 ```
 
-### 2.2 Building & Checking
+### 2.2 SSH Remote Scenario
+
+When starting TOS over SSH (no local Wayland compositor), the Brain automatically detects the environment and falls back to `Headless` or `Remote` rendering mode.
+
+To explicitly force headless mode:
+
+```bash
+# On remote Linux box
+ssh user@linux-box
+cd ~/path/to/tos
+
+# Start Brain in headless mode
+TOS_HEADLESS=1 cargo run --bin tos-brain
+
+# In another window on Windows/local machine:
+# (Coming soon: tos-face CLI)
+# For now, use the Web Face:
+# http://linux-box:8080
+```
+
+**What happens:**
+1. Brain detects `TOS_HEADLESS=1` (or missing `WAYLAND_DISPLAY`) and initializes `HeadlessRenderer`.
+2. Brain binds to anchor port 7000 and advertises via mDNS.
+3. Face (Web or Remote) connects and receives state updates and buffer streams.
+
+See [Architecture §15.6](../spec/TOS_beta-0_Architecture.md#156-renderer-mode-detection--fallback) for technical details.
+
+### 2.3 Building & Checking
 
 ```bash
 make build          # Build all
@@ -203,7 +230,21 @@ The TOS Ecosystem is built on a "Local First" philosophy. Every extension — fr
 - **Sector Types (`.tos-sector`):** Workspace presets and specialized sector logic.
 - **Audio Themes (`.tos-audio`):** Earcon sets and ambient audio layers.
 
-### 3.2 Package Anatomy
+### 3.2 HeadlessRenderer API
+
+For modules that need to render in headless contexts (testing, CI, SSH):
+
+- Buffers are stored in CPU RAM (`Vec<u8>`).
+- No GPU calls — all operations succeed even without hardware.
+- Useful for unit testing without a running compositor.
+
+```rust
+let renderer = HeadlessRenderer::new();
+let handle = renderer.create_surface(config);
+// Buffer is now allocated in memory; ready for updates
+```
+
+### 3.3 Package Anatomy
 
 Every TOS module must adhere to the following directory structure:
 

@@ -7,10 +7,14 @@ pub mod remote;
 pub mod remote_server;
 pub mod remote_session;
 pub mod ssh_fallback;
+pub mod headless;
 
+pub use headless::HeadlessRenderer;
+pub use remote::RemoteRenderer;
 pub use remote_server::RemoteServer;
 
 use std::path::Path;
+use std::sync::Arc;
 
 
 /// §15.1: Core Platform Traits
@@ -37,6 +41,9 @@ pub trait Renderer: Send {
     fn update_surface(&mut self, handle: SurfaceHandle, content: &dyn SurfaceContent);
     fn register_pid(&mut self, pid: u32, handle: SurfaceHandle);
     fn composite(&mut self);
+    fn get_capture_backend(&self) -> Arc<dyn crate::services::capture::CaptureBackend> {
+        Arc::new(crate::services::capture::MockCaptureBackend)
+    }
 }
 
 pub enum RawInputEvent {

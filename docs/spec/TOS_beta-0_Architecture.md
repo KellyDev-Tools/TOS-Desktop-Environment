@@ -944,6 +944,7 @@ pub trait SystemServices {
 - **Surface Embedding:** Native Wayland windows are rendered into Level 3 viewports using `dmabuf` sharing. The Face acts as a sub-compositor, projecting application buffers onto the LCARS-themed surface.
 - **Input Forwarding:** The Face intercepts all pointer/touch events. If an event occurs within a native application's bounds, the Face translates coordinates and forwards the raw event to the application's `wl_surface`.
 - **Communication:** Uses standard `wl_shm` or `dmabuf` for zero-copy texture transfer.
+- **Connection Fallback:** If the Wayland compositor is unavailable (e.g., SSH session), the RendererManager falls back to HeadlessRenderer (§15.7) automatically.
 
 ### 15.3 Android XR (OpenXR) Implementation
 
@@ -963,7 +964,23 @@ To embed native apps into Level 3 focus:
 3. **Bezel Overlay:** The Tactical Bezel is rendered on top of the native app, providing system-level "Close" and "Inspect" triggers via `xdg_toplevel` signals.
 4. **Event Routing:** Input is captured by the Face, translated, and routed via the Brain to the native PID.
 
-### 15.6 Native Horizon OS Client (Meta Quest)
+### 15.6 Renderer Mode Detection & Fallback
+
+The Brain implements automatic detection of the rendering environment and selects an appropriate Renderer implementation at runtime. This ensures TOS can operate in any context: local Wayland, headless (SSH), or remote streaming.
+
+**Mode Selection (Priority Order):**
+1. **Explicit Flag:** `TOS_HEADLESS=1` environment variable or `--headless` CLI flag.
+2. **Wayland Detection:** Check `WAYLAND_DISPLAY` and verify compositor connectivity.
+3. **Remote Fallback:** Default to streaming buffers to a remote Face via WebRTC.
+
+**Renderer Implementations:**
+- `WaylandRenderer`: Local Wayland compositor (Architecture §15.2).
+- `HeadlessRenderer`: CPU-based buffers, no GPU (for SSH/headless/testing).
+- `RemoteRenderer`: Stream buffers to remote Face (Architecture §12).
+
+**Key Principle:** Brain initialization must never block or panic due to missing hardware.
+
+### 15.7 Native Horizon OS Client (Meta Quest)
 
 A dedicated Android application connecting to a remote TOS instance via the TOS Remote Server protocol:
 - **Connection Manager:** WebSocket/TLS control channel.

@@ -3,6 +3,7 @@ pub mod hierarchy;
 pub mod sector;
 pub mod shell;
 pub mod module_manager;
+pub mod renderer_manager;
 
 use std::sync::{Arc, Mutex};
 use std::thread;

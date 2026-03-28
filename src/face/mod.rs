@@ -64,7 +64,7 @@ impl Face {
         }
 
         // Terminal Mirror (for development/headless visibility)
-        // println!("\x1B[2J\x1B[1;1H{}", frame);
+        println!("\x1B[2J\x1B[1;1H{}", frame);
     }
 
     /// Render the current frame to a String (testable — no ANSI clear/cursor control).

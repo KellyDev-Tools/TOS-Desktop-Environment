@@ -24,6 +24,23 @@ pub struct WaylandState {
 }
 
 impl WaylandShell {
+    /// Check if Wayland compositor is reachable without blocking.
+    /// Returns true only if connection can be established immediately.
+    pub fn can_connect() -> bool {
+        match std::env::var("WAYLAND_DISPLAY") {
+            Ok(_) => {
+                // Attempt connection with short timeout/non-blocking if possible.
+                // Sctk doesn't have a direct "timeout" but we can try to connect_to_env
+                // which fails quickly if not found.
+                match Connection::connect_to_env() {
+                    Ok(_) => true,
+                    Err(_) => false,
+                }
+            }
+            Err(_) => false,
+        }
+    }
+
     pub fn new() -> Option<Self> {
         let conn = match Connection::connect_to_env() {
             Ok(c) => c,

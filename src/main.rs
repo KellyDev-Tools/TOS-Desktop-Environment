@@ -4,6 +4,7 @@ use tos_lib::platform::RemoteServer;
 use std::time::{Duration, Instant};
 use tokio::time::sleep;
 use std::env;
+use tos_lib::brain::renderer_manager::RendererMode;
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
@@ -27,19 +28,21 @@ async fn main() -> anyhow::Result<()> {
     let ipc = brain.ipc.clone();
     let state = brain.state.clone();
 
+    // 2. Initialize Renderer for Face/Capture
+    let render_mode = tos_lib::brain::renderer_manager::RendererManager::detect();
+    tracing::info!("[BRAIN] Detected renderer mode: {:?}", render_mode);
+    let renderer = tos_lib::brain::renderer_manager::RendererManager::init(render_mode)?;
+    tracing::info!("[BRAIN] Renderer initialized successfully.");
+    let capture_backend = renderer.get_capture_backend();
+    brain.services.capture.set_backend(capture_backend);
+
     if is_self_test {
         // --- Self-Test Demo Mode ---
         let mut face_raw = Face::new(state.clone(), ipc.clone());
-        #[cfg(target_os = "linux")]
-        {
-            let renderer = tos_lib::platform::linux::LinuxRenderer::new();
-            let backend = renderer.get_capture_backend();
-            brain.services.capture.set_backend(std::sync::Arc::new(backend));
-            face_raw = face_raw.with_renderer(Box::new(renderer));
-        }
+        face_raw = face_raw.with_renderer(renderer);
         let mut mock_face = MockFace(face_raw);
 
-        tracing::info!("\n--- SYSTEM SELF-TEST SEQUENCE ---");
+        tracing::info!("\n--- SYSTEM SELF-TEST SEQUENCE --- [MODE: {:?}]", render_mode);
         sleep(Duration::from_secs(1)).await;
 
         mock_face.0.render();
@@ -77,19 +80,13 @@ async fn main() -> anyhow::Result<()> {
         } else {
             // --- Terminal Dashboard Mode (standalone) ---
             let mut face_raw = Face::new(state.clone(), ipc.clone());
-            #[cfg(target_os = "linux")]
-            {
-                let renderer = tos_lib::platform::linux::LinuxRenderer::new();
-                let backend = renderer.get_capture_backend();
-                brain.services.capture.set_backend(std::sync::Arc::new(backend));
-                face_raw = face_raw.with_renderer(Box::new(renderer));
-            }
+            face_raw = face_raw.with_renderer(renderer);
 
             let elapsed = start_time.elapsed();
             tracing::info!("[BRAIN] System initialized in {:.2?}. Terminal dashboard active. IPC on 7000/7001.", elapsed);
 
             loop {
-                tracing::info!("[BRAIN] Life Signal: OS composition cycle active...");
+                tracing::info!("[BRAIN] Life Signal: OS composition cycle active... [MODE: {:?}]", render_mode);
                 face_raw.render();
                 sleep(Duration::from_millis(1000)).await;
             }

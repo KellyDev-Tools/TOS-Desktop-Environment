@@ -62,10 +62,13 @@ help:
 # -----------------------------------------------------------------------------
 
 build-all:
-	cargo build
+	cd tos-common && cargo build
+	cd brain && cargo build
+	cd face-wayland-linux && cargo build
+	cd face-android-handheld && cargo build
 
 build-brain:
-	cargo build --bin tos-brain
+	cd brain && cargo build --bin tos-brain
 
 build-faces: build-face-web android-check
 
@@ -78,19 +81,28 @@ build-common:
 	cargo build -p tos-common
 
 build-services:
-	cargo build --bins
+	cd brain && cargo build --bins
 
 check:
-	cargo check
+	cd tos-common && cargo check
+	cd brain && cargo check
+	cd face-wayland-linux && cargo check
+	cd face-android-handheld && cargo check
 
 check-brain:
-	cargo check --bin tos-brain
+	cd brain && cargo check --bin tos-brain
 
 fmt:
-	cargo fmt
+	cd tos-common && cargo fmt
+	cd brain && cargo fmt
+	cd face-wayland-linux && cargo fmt
+	cd face-android-handheld && cargo fmt
 
 lint:
-	cargo clippy -- -D warnings
+	cd tos-common && cargo clippy -- -D warnings
+	cd brain && cargo clippy -- -D warnings
+	cd face-wayland-linux && cargo clippy -- -D warnings
+	cd face-android-handheld && cargo clippy -- -D warnings
 
 docs:
 	cargo doc --no-deps --open
@@ -152,17 +164,17 @@ test-health:
 	@pkill -x tos-heuristicd || true
 	@pkill -x tos-searchd || true
 	@mkdir -p logs
-	@target/debug/tos-settingsd > logs/settingsd.log 2>&1 &
-	@target/debug/tos-loggerd > logs/loggerd.log 2>&1 &
-	@target/debug/tos-marketplaced > logs/marketplaced.log 2>&1 &
-	@target/debug/tos-priorityd > logs/priorityd.log 2>&1 &
-	@target/debug/tos-sessiond > logs/sessiond.log 2>&1 &
-	@target/debug/tos-heuristicd > logs/heuristicd.log 2>&1 &
-	@target/debug/tos-searchd > logs/searchd.log 2>&1 &
-	@target/debug/tos-brain --headless > logs/tos-brain.log 2>&1 & BR_PID=$$!; \
+	@brain/target/debug/tos-settingsd > logs/settingsd.log 2>&1 &
+	@brain/target/debug/tos-loggerd > logs/loggerd.log 2>&1 &
+	@brain/target/debug/tos-marketplaced > logs/marketplaced.log 2>&1 &
+	@brain/target/debug/tos-priorityd > logs/priorityd.log 2>&1 &
+	@brain/target/debug/tos-sessiond > logs/sessiond.log 2>&1 &
+	@brain/target/debug/tos-heuristicd > logs/heuristicd.log 2>&1 &
+	@brain/target/debug/tos-searchd > logs/searchd.log 2>&1 &
+	@brain/target/debug/tos-brain --headless > logs/tos-brain.log 2>&1 & BR_PID=$$!; \
 	echo "[TOS] Waiting for daemons and Discovery Gate to bind (3s)..."; \
 	sleep 3; \
-	cargo test --test service_orchestration -- --nocapture; TEST_RES=$$?; \
+	cd brain && cargo test --test service_orchestration -- --nocapture; TEST_RES=$$?; \
 	echo "[TOS] Cleaning up Orchestration Environment..."; \
 	kill $$BR_PID 2>/dev/null || true; \
 	pkill -x tos-settingsd || true; \
@@ -184,7 +196,7 @@ NVM_INIT = export NVM_DIR="$$HOME/.nvm" && [ -s "$$NVM_DIR/nvm.sh" ] && . "$$NVM
 run: run-services
 	@mkdir -p logs
 	@pkill -x tos-brain || true
-	cargo run --bin tos-brain | tee logs/tos-brain.log
+	cd brain && cargo run --bin tos-brain | tee ../logs/tos-brain.log
 
 dev-web:
 	@echo "[TOS] Starting Svelte Face Dev Server (HMR)..."
@@ -198,7 +210,7 @@ run-web: run-services build-face-web
 	@python3 -m http.server 8080 -d face-svelte-ui/build > logs/web_ui.log 2>&1 & WEB_PID=$$!; \
 	echo "[TOS] Synchronizing Brain Core (7000/7001)..."; \
 	trap "kill $$WEB_PID; pkill -x tos-brain; exit" EXIT INT TERM; \
-	cargo run --bin tos-brain -- --headless 2>&1 | tee logs/tos-brain.log
+	cd brain && cargo run --bin tos-brain -- --headless 2>&1 | tee ../logs/tos-brain.log
 
 run-web-dev: run-services
 	@mkdir -p logs
@@ -207,7 +219,7 @@ run-web-dev: run-services
 	@($(NVM_INIT) && cd face-svelte-ui && npm run dev -- --port 8080 --host 0.0.0.0) > logs/svelte_dev.log 2>&1 & SVELTE_PID=$$!; \
 	echo "[TOS] Synchronizing Brain Core (7000/7001)..."; \
 	trap "kill $$SVELTE_PID; pkill -x tos-brain; exit" EXIT INT TERM; \
-	cargo run --bin tos-brain -- --headless 2>&1 | tee logs/tos-brain.log
+	cd brain && cargo run --bin tos-brain -- --headless 2>&1 | tee ../logs/tos-brain.log
 
 run-services:
 	@echo "[TOS] Initializing Auxiliary Daemons..."
@@ -219,14 +231,14 @@ run-services:
 	@pkill -x tos-sessiond || true
 	@pkill -x tos-heuristicd || true
 	@pkill -x tos-searchd || true
-	@cargo build --bins
-	@target/debug/tos-settingsd > logs/settingsd.log 2>&1 &
-	@target/debug/tos-loggerd > logs/loggerd.log 2>&1 &
-	@target/debug/tos-marketplaced > logs/marketplaced.log 2>&1 &
-	@target/debug/tos-priorityd > logs/priorityd.log 2>&1 &
-	@target/debug/tos-sessiond > logs/sessiond.log 2>&1 &
-	@target/debug/tos-heuristicd > logs/heuristicd.log 2>&1 &
-	@target/debug/tos-searchd > logs/searchd.log 2>&1 &
+	@cd brain && cargo build --bins
+	@brain/target/debug/tos-settingsd > logs/settingsd.log 2>&1 &
+	@brain/target/debug/tos-loggerd > logs/loggerd.log 2>&1 &
+	@brain/target/debug/tos-marketplaced > logs/marketplaced.log 2>&1 &
+	@brain/target/debug/tos-priorityd > logs/priorityd.log 2>&1 &
+	@brain/target/debug/tos-sessiond > logs/sessiond.log 2>&1 &
+	@brain/target/debug/tos-heuristicd > logs/heuristicd.log 2>&1 &
+	@brain/target/debug/tos-searchd > logs/searchd.log 2>&1 &
 	@echo "[TOS] Auxiliary Constellation: ONLINE"
 
 # -----------------------------------------------------------------------------

@@ -18,15 +18,25 @@ npm i && npm run build
 cd ..
 
 echo "[RELEASE] Compiling Native Daemons (Release Mode)..."
-cargo build --release --workspace
+echo "  -> Building tos-common..."
+cd tos-common && cargo build --release
+cd ..
+echo "  -> Building tos-brain..."
+cd brain && cargo build --release
+cd ..
+echo "  -> Building face-wayland-linux..."
+cd face-wayland-linux && cargo build --release
+cd ..
 
 echo "[RELEASE] Bundling Binary Assets..."
-cp target/release/tos-brain "$OUTPUT_DIR/bin/"
+cp brain/target/release/tos-brain "$OUTPUT_DIR/bin/"
 cp packaging/tos-session "$OUTPUT_DIR/bin/"
 chmod +x "$OUTPUT_DIR/bin/tos-session"
 for daemon in tos-settingsd tos-marketplaced tos-sessiond tos-loggerd searchd tos-heuristicd tos-priorityd face-wayland-linux; do
-    if [ -f "target/release/$daemon" ]; then
-        cp "target/release/$daemon" "$OUTPUT_DIR/bin/"
+    if [ -f "brain/target/release/$daemon" ]; then
+        cp "brain/target/release/$daemon" "$OUTPUT_DIR/bin/"
+    elif [ -f "face-wayland-linux/target/release/$daemon" ]; then
+        cp "face-wayland-linux/target/release/$daemon" "$OUTPUT_DIR/bin/"
     fi
 done
 

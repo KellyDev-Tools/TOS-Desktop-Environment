@@ -1,6 +1,6 @@
 use std::sync::Arc;
-use tos_protocol::state::*;
-use tos_protocol::ipc::*;
+use tos_common::state::*;
+use tos_common::ipc::*;
 use uuid::Uuid;
 use tos_lib::brain::shell::ShellApi;
 use tos_lib::brain::module_manager::ModuleManager;

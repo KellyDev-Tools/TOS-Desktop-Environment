@@ -19,8 +19,8 @@ help:
 	@echo "  make build-brain     Compile the core Brain process only"
 	@echo "  make build-faces     Compile all active face implementations"
 	@echo "  make build-face-web  Compile the Svelte web-based Face"
-	@echo "  make build-protocol  Compile the shared protocol crate"
-	@echo "  make build-services   Compile all auxiliary daemons"
+	@echo "  make build-common    Compile the shared common crate"
+	@echo "  make build-services  Compile all auxiliary daemons"
 	@echo ""
 	@echo "\033[1;33mDevelopment Targets:\033[0m"
 	@echo "  make check           Fast workspace verification (cargo check)"
@@ -71,11 +71,11 @@ build-faces: build-face-web android-check
 
 build-face-web:
 	@echo "[TOS] Building Svelte Face UI..."
-	@$(NVM_INIT) && cd svelte_ui && npm run build
+	@$(NVM_INIT) && cd face-svelte-ui && npm run build
 	@echo "[TOS] Svelte Face UI: BUILD COMPLETE"
 
-build-protocol:
-	cargo build -p tos-protocol
+build-common:
+	cargo build -p tos-common
 
 build-services:
 	cargo build --bins
@@ -195,7 +195,7 @@ run-web: run-services build-face-web
 	@pkill -x tos-brain || true
 	@pkill -f "[h]ttp.server 8080" || true
 	@echo "[TOS] Initializing Svelte Face Server (8080)..."
-	@python3 -m http.server 8080 -d svelte_ui/build > logs/web_ui.log 2>&1 & WEB_PID=$$!; \
+	@python3 -m http.server 8080 -d face-svelte-ui/build > logs/web_ui.log 2>&1 & WEB_PID=$$!; \
 	echo "[TOS] Synchronizing Brain Core (7000/7001)..."; \
 	trap "kill $$WEB_PID; pkill -x tos-brain; exit" EXIT INT TERM; \
 	cargo run --bin tos-brain -- --headless 2>&1 | tee logs/tos-brain.log
@@ -204,7 +204,7 @@ run-web-dev: run-services
 	@mkdir -p logs
 	@pkill -x tos-brain || true
 	@echo "[TOS] Starting Svelte Dev Server + Brain Core..."
-	@($(NVM_INIT) && cd svelte_ui && npm run dev -- --port 8080 --host 0.0.0.0) > logs/svelte_dev.log 2>&1 & SVELTE_PID=$$!; \
+	@($(NVM_INIT) && cd face-svelte-ui && npm run dev -- --port 8080 --host 0.0.0.0) > logs/svelte_dev.log 2>&1 & SVELTE_PID=$$!; \
 	echo "[TOS] Synchronizing Brain Core (7000/7001)..."; \
 	trap "kill $$SVELTE_PID; pkill -x tos-brain; exit" EXIT INT TERM; \
 	cargo run --bin tos-brain -- --headless 2>&1 | tee logs/tos-brain.log
@@ -236,7 +236,7 @@ run-services:
 clean:
 	cargo clean
 	rm -rf logs/
-	rm -rf svelte_ui/build/ svelte_ui/.svelte-kit/
+	rm -rf face-svelte-ui/build/ face-svelte-ui/.svelte-kit/
 
 test-e2e:
 	@echo "[TOS] Launching Full-Stack E2E Paces (Playwright)..."
@@ -246,7 +246,7 @@ test-e2e:
 # 6. ANDROID BUILD (separate crate: android-handheld/)
 # -----------------------------------------------------------------------------
 
-ANDROID_CRATE := android-handheld
+ANDROID_CRATE := face-android-handheld
 
 android-check:
 	@echo "[TOS] Checking Android Face crate (host target)..."

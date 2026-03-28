@@ -5,14 +5,14 @@
 //! state for 'handheld' and 'spatial' profiles without requiring hardware.
 
 use std::sync::Arc;
-use tos_protocol::state::*;
-use tos_protocol::ipc::*;
+use tos_common::state::*;
+use tos_common::ipc::*;
 use uuid::Uuid;
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use tos_protocol::ipc::IpcDispatcher;
+    use tos_common::ipc::IpcDispatcher;
 
     #[tokio::test]
     async fn test_handheld_profile_layout_defaults() {

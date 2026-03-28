@@ -1,10 +1,10 @@
 use tos_lib::brain::Brain;
-use tos_lib::face::{Face, MockFace};
+// use tos_lib::face::{Face, MockFace};
 use tos_lib::platform::RemoteServer;
 use std::time::{Duration, Instant};
 use tokio::time::sleep;
 use std::env;
-use tos_lib::brain::renderer_manager::RendererMode;
+// use tos_lib::brain::renderer_manager::RendererMode;
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
@@ -20,77 +20,35 @@ async fn main() -> anyhow::Result<()> {
         .init();
     
     let args: Vec<String> = env::args().collect();
-    let is_self_test = args.iter().any(|arg| arg == "--self-test");
-    let is_headless = args.iter().any(|arg| arg == "--headless");
+    let _is_self_test = args.iter().any(|arg| arg == "--self-test");
+    let _is_headless = args.iter().any(|arg| arg == "--headless");
 
     // 1. Initialize Brain Core
     let brain = Brain::new()?;
     let ipc = brain.ipc.clone();
-    let state = brain.state.clone();
+    let _state = brain.state.clone();
 
-    // 2. Initialize Renderer for Face/Capture
+    // 2. Initialize Renderer for Capture/Thumbnails
     let render_mode = tos_lib::brain::renderer_manager::RendererManager::detect();
-    tracing::info!("[BRAIN] Detected renderer mode: {:?}", render_mode);
     let renderer = tos_lib::brain::renderer_manager::RendererManager::init(render_mode)?;
-    tracing::info!("[BRAIN] Renderer initialized successfully.");
     let capture_backend = renderer.get_capture_backend();
     brain.services.capture.set_backend(capture_backend);
 
-    if is_self_test {
-        // --- Self-Test Demo Mode ---
-        let mut face_raw = Face::new(state.clone(), ipc.clone());
-        face_raw = face_raw.with_renderer(renderer);
-        let mut mock_face = MockFace(face_raw);
-
-        tracing::info!("\n--- SYSTEM SELF-TEST SEQUENCE --- [MODE: {:?}]", render_mode);
-        sleep(Duration::from_secs(1)).await;
-
-        mock_face.0.render();
-        sleep(Duration::from_secs(2)).await;
-        mock_face.simulate_bezel_zoom_in();
-        mock_face.0.render();
-        sleep(Duration::from_secs(2)).await;
-        mock_face.simulate_prompt_submit("ls -la");
-        sleep(Duration::from_secs(1)).await;
-        mock_face.0.render();
-        sleep(Duration::from_secs(2)).await;
-
-        tracing::info!("\nSELF-TEST SEQUENCE COMPLETE.");
-    } else {
-        // Start IPC Server (TCP 7000, WS 7001, UDS)
-        let server = RemoteServer::new(ipc.clone());
-        tokio::spawn(async move {
-            if let Err(e) = server.run(7000).await {
-                tracing::error!("[BRAIN] IPC Server failure: {}", e);
-            }
-        });
-
-        if is_headless {
-            let elapsed = start_time.elapsed();
-            // --- Headless Server Mode (for `make run-web`) ---
-            // No terminal dashboard — just serve IPC to the Web Face.
-            tracing::info!("[BRAIN] System initialized in {:.2?}", elapsed);
-            tracing::info!("[BRAIN] Headless mode — serving IPC on 7000/7001. No terminal dashboard.");
-            tracing::info!("[BRAIN] Press Ctrl+C to stop.");
-
-            // Park the main task; the Tokio runtime keeps IPC tasks alive.
-            loop {
-                sleep(Duration::from_secs(60)).await;
-            }
-        } else {
-            // --- Terminal Dashboard Mode (standalone) ---
-            let mut face_raw = Face::new(state.clone(), ipc.clone());
-            face_raw = face_raw.with_renderer(renderer);
-
-            let elapsed = start_time.elapsed();
-            tracing::info!("[BRAIN] System initialized in {:.2?}. Terminal dashboard active. IPC on 7000/7001.", elapsed);
-
-            loop {
-                tracing::info!("[BRAIN] Life Signal: OS composition cycle active... [MODE: {:?}]", render_mode);
-                face_raw.render();
-                sleep(Duration::from_millis(1000)).await;
-            }
+    // 3. Start IPC Server (TCP 7000, WS 7001)
+    let server = RemoteServer::new(ipc.clone());
+    tokio::spawn(async move {
+        if let Err(e) = server.run(7000).await {
+            tracing::error!("[BRAIN] IPC Server failure: {}", e);
         }
+    });
+
+    let elapsed = start_time.elapsed();
+    tracing::info!("[BRAIN] TOS Daemon initialized in {:.2?}", elapsed);
+    tracing::info!("[BRAIN] Serving IPC on 7000/7001. Press Ctrl+C to stop.");
+
+    // Park the main loop
+    loop {
+        sleep(Duration::from_secs(60)).await;
     }
     
     Ok(())

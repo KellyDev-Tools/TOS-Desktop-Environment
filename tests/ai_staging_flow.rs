@@ -1,6 +1,6 @@
 use std::sync::Arc;
-use tos_protocol::state::*;
-use tos_protocol::ipc::*;
+use tos_common::state::*;
+use tos_common::ipc::*;
 
 #[tokio::test]
 async fn test_ai_manual_submit_gate() {

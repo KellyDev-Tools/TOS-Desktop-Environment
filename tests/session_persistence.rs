@@ -1,5 +1,5 @@
 use std::sync::Arc;
-use tos_protocol::state::*;
+use tos_common::state::*;
 use tos_lib::brain::ipc_handler::IpcHandler;
 use std::fs;
 use std::path::PathBuf;

@@ -6,21 +6,7 @@
 
 use std::sync::{Arc, Mutex};
 use std::collections::HashMap;
-
-/// Result of a frame capture operation.
-#[derive(Clone)]
-pub struct FrameCapture {
-    /// Base64 encoded low-resolution thumbnail.
-    /// In production, this can also be a handle to a DMABUF for zero-copy.
-    pub data: String,
-    pub width: u32,
-    pub height: u32,
-}
-
-/// Platform-agnostic interface for capturing window frames.
-pub trait CaptureBackend: Send + Sync {
-    fn capture_window(&self, pid: u32) -> Option<FrameCapture>;
-}
+pub use tos_common::platform::{CaptureBackend, FrameCapture, MockCaptureBackend};
 
 pub struct CaptureService {
     backend: Mutex<Option<Arc<dyn CaptureBackend>>>,
@@ -64,29 +50,5 @@ impl CaptureService {
             }
         }
         None
-    }
-}
-
-/// Mock backend that generates dynamic "wireframe" placeholders.
-pub struct MockCaptureBackend;
-
-impl CaptureBackend for MockCaptureBackend {
-    fn capture_window(&self, pid: u32) -> Option<FrameCapture> {
-        // Simulate a "real" snapshot by generating a varying base64 image 
-        // based on PID and time to show it's "live".
-        let time = std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).unwrap().as_secs();
-        let color = if (pid + time as u32) % 2 == 0 { "A" } else { "B" };
-        
-        let mock_data = if color == "A" {
-            "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8/5+hHgAHggJ/PchI7wAAAABJRU5ErkJggg=="
-        } else {
-            "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+P+fHgAHggJ/PchI7wAAAABJRU5ErkJggg=="
-        };
-
-        Some(FrameCapture {
-            data: mock_data.to_string(),
-            width: 320,
-            height: 180,
-        })
     }
 }

@@ -39,7 +39,7 @@ Beta-0 strictly enforces the use of the `tracing` framework for all system outpu
 The core state structures (`TosState`, `CommandHub`) and IPC handlers have been moved from the Brain into the `tos-protocol` crate. 
 
 - **Action**: Update dependencies to point to the workspace member `tos-protocol`.
-- **Action**: Use `tos_protocol::state::TosState` instead of local copies.
+- **Action**: Use `tos_common::state::TosState` instead of local copies.
 
 ## 4. Semantic Event Abstraction (§14.1)
 

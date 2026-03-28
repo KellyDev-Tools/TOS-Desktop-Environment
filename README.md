@@ -5,8 +5,9 @@
 Beta-0 marks the transition to a dynamic, registry-driven architecture for the TOS Brain and its ecosystem of satellite daemons.
 
 ## Architecture Highlights
-- **Dynamic Port Registry**: All services register on ephemeral ports with the Brain via `brain.sock`.
-- **Shared Protocol Hub**: The `tos-protocol` crate defines the single contract for both the Face and Brain.
+- **Modular Face Architecture**: Platform-specific layers are decoupled into independent `face-*` crates (Wayland, Android, Svelte, Electron).
+- **Consolidated Common Core**: The `tos-common` crate defines the unified contract for both the Face and Brain.
+- **Headless Brain Daemon**: The core `tos-brain` functions as a headless service hub, with optional native output via `face-wayland-linux`.
 - **Recursive Zoom Hierarchy**: Navigate between system-wide contexts using vertical spatial zooming.
 - **AI-Managed Workflow**: Native integration for AI skills, including Chat Companion and Passive Observer.
 

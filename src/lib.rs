@@ -1,4 +1,4 @@
-pub mod common;
+pub use tos_common as common;
 pub mod brain;
 pub mod config;
 pub mod face;

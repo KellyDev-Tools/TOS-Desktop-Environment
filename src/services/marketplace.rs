@@ -4,7 +4,7 @@ use std::path::PathBuf;
 use ed25519_dalek::{Signature, VerifyingKey};
 use ed25519_dalek::Verifier;
 use std::sync::{Arc, Mutex};
-use tos_protocol::*;
+use tos_common::*;
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub struct ModuleManifest {

@@ -1,6 +1,6 @@
 use crate::common::{TosState, CommandHubMode, HierarchyLevel};
 use crate::services::MarketplaceService;
-// use tos_protocol::*;
+// use tos_common::*;
 use std::sync::{Arc, Mutex};
 use uuid::Uuid;
 use std::time::Instant;
@@ -722,7 +722,7 @@ impl IpcHandler {
     }
 
     fn handle_face_register(&self, payload: &str) -> String {
-        let reg: tos_protocol::ipc::FaceRegister = match serde_json::from_str(payload) {
+        let reg: tos_common::ipc::FaceRegister = match serde_json::from_str(payload) {
             Ok(r) => r,
             Err(e) => return format!("ERROR: Invalid face_register JSON: {}", e),
         };
@@ -731,7 +731,7 @@ impl IpcHandler {
         state.device_profile = reg.profile;
         
         match reg.profile {
-            tos_protocol::ipc::FaceProfile::Handheld => {
+            tos_common::ipc::FaceProfile::Handheld => {
                 // §3.3.5: Handheld profile automations
                 state.bezel_expanded = false; 
                 // Set default hub layout to tabs (if supported by settings)
@@ -739,7 +739,7 @@ impl IpcHandler {
                 
                 tracing::info!("FACE_REGISTER: Handheld profile active. Adapting layout and AI.");
             }
-            tos_protocol::ipc::FaceProfile::Spatial => {
+            tos_common::ipc::FaceProfile::Spatial => {
                 tracing::info!("FACE_REGISTER: Spatial profile active. Enabling spatial bezel.");
             }
             _ => {}
@@ -750,14 +750,14 @@ impl IpcHandler {
     }
 
     fn handle_service_register(&self, payload: &str) -> String {
-        let req: tos_protocol::ipc::ServiceRegister = match serde_json::from_str(payload) {
+        let req: tos_common::ipc::ServiceRegister = match serde_json::from_str(payload) {
             Ok(r) => r,
             Err(e) => return format!("ERROR: Invalid registration JSON: {}", e),
         };
 
         // §4.1: Cryptographic signature verification
         if !self.services.trust.verify_service_signature(&req) {
-            return serde_json::to_string(&tos_protocol::ipc::ServiceRegisterResponse {
+            return serde_json::to_string(&tos_common::ipc::ServiceRegisterResponse {
                 status: "DENIED".to_string(),
                 message: "Cryptographic signature verification failed".to_string(),
             }).unwrap();
@@ -768,7 +768,7 @@ impl IpcHandler {
         
         tracing::info!("SERVICE_REGISTER: {} on port {}", req.name, req.port);
 
-        serde_json::to_string(&tos_protocol::ipc::ServiceRegisterResponse {
+        serde_json::to_string(&tos_common::ipc::ServiceRegisterResponse {
             status: "OK".to_string(),
             message: format!("Service {} registered successfully", req.name),
         }).unwrap()

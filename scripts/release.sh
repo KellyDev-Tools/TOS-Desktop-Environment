@@ -13,7 +13,7 @@ mkdir -p "$OUTPUT_DIR/share/xsessions"
 mkdir -p "$OUTPUT_DIR/var/log/tos"
 
 echo "[RELEASE] Compiling Svelte UI Framework..."
-cd svelte_ui
+cd face-svelte-ui
 npm i && npm run build
 cd ..
 
@@ -21,11 +21,10 @@ echo "[RELEASE] Compiling Native Daemons (Release Mode)..."
 cargo build --release --workspace
 
 echo "[RELEASE] Bundling Binary Assets..."
-cp target/release/tos "$OUTPUT_DIR/bin/"
 cp target/release/tos-brain "$OUTPUT_DIR/bin/"
 cp packaging/tos-session "$OUTPUT_DIR/bin/"
 chmod +x "$OUTPUT_DIR/bin/tos-session"
-for daemon in tos-settingsd tos-marketplaced tos-sessiond tos-loggerd searchd tos-heuristicd tos-priorityd tos-wayland-face; do
+for daemon in tos-settingsd tos-marketplaced tos-sessiond tos-loggerd searchd tos-heuristicd tos-priorityd face-wayland-linux; do
     if [ -f "target/release/$daemon" ]; then
         cp "target/release/$daemon" "$OUTPUT_DIR/bin/"
     fi
@@ -84,7 +83,7 @@ EOF
     # 3. Android Face APK (Handheld Profile)
     if command -v cargo-ndk &> /dev/null; then
         echo "[RELEASE] Compiling Android Face (arm64-v8a)..."
-        cargo ndk -t arm64-v8a build -p android-handheld --release
+        cargo ndk -t arm64-v8a build -p face-android-handheld --release
         # Note: APK wrapping requires Android Studio / Gradle, 
         # but we preserve the .so for local side-loading.
     fi

@@ -1,5 +1,5 @@
 use tokio::io::{AsyncBufReadExt, BufReader, AsyncWriteExt};
-use tos_protocol::ipc::{ServiceRegister, ServiceRegisterResponse};
+use tos_common::ipc::{ServiceRegister, ServiceRegisterResponse};
 use ed25519_dalek::{SigningKey, Signer};
 use rand_core::OsRng;
 

@@ -2,7 +2,7 @@ use tokio::net::{TcpListener, TcpStream};
 use tokio::io::{AsyncBufReadExt, BufReader, AsyncWriteExt};
 
 use tos_lib::services::marketplace::MarketplaceService;
-use tos_protocol::marketplace::*;
+use tos_common::marketplace::*;
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {

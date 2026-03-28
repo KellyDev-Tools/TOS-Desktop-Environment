@@ -1,5 +1,5 @@
 [package]
-name = "tos-handheld"
+name = "android-handheld"
 version = "0.1.0-beta.0"
 edition = "2021"
 description = "TOS Android Face - the Android platform layer for TOS Desktop Environment"

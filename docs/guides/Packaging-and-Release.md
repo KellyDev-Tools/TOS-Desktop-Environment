@@ -16,7 +16,6 @@ Because TOS is fundamentally distributed (with dynamic IPC port assignments via 
 
 For generating raw, pre-compiled portable archives, we use the integrated release automation script.
 
-cd beta-0
 make release
 # OR for all formats (Debian, Arch, Android):
 make release-all
@@ -33,12 +32,12 @@ make release-all
 
 ## 2. Package Managers Implementation Guide
 
-Pre-configured package definitions exist within `beta-0/packaging/`.
+Pre-configured package definitions exist within `packaging/`.
 
 ### Arch Linux / AUR (`PKGBUILD`)
 The Arch package pulls directly from the source code, invoking the `Makefile` natively.
 ```bash
-cd beta-0/packaging/arch
+cd packaging/arch
 makepkg -si
 ```
 * **Artifacts Installed:** `/usr/bin/tos`, `/usr/bin/tos-brain`, `/usr/bin/tos-wayland-face`, `/usr/bin/tos-session`, `/usr/share/wayland-sessions/tos.desktop`
@@ -46,22 +45,21 @@ makepkg -si
 ### Fedora / RHEL (`.rpm`)
 We provide a standard `tos.spec` file inside `packaging/rpm`.
 ```bash
-rpmbuild -ba beta-0/packaging/rpm/tos.spec
+rpmbuild -ba packaging/rpm/tos.spec
 ```
 * Note: Ensure `rpm-build` and `rust`/`cargo` are installed locally to trigger the compile chain.
 
 ### Debian / Ubuntu (`.deb`)
 The `.deb` file utilizes the standard Debhelper configurations.
 ```bash
-cd beta-0
 dpkg-buildpackage -us -uc
 ```
-* Rules inside `packaging/deb/rules` will automatically hijack the `dh_auto_build` pipeline to invoke `make build-services` within Beta-0.
+* Rules inside `packaging/deb/rules` will automatically hijack the `dh_auto_build` pipeline to invoke `make build-services`.
 
 ### macOS / Homebrew (`tos.rb`)
 Homebrew handles both `npm` and `cargo` installations seamlessly via nested CD blocks in the formula.
 ```bash
-brew install --build-from-source beta-0/packaging/homebrew/tos.rb
+brew install --build-from-source packaging/homebrew/tos.rb
 ```
 
 ---
@@ -71,7 +69,6 @@ brew install --build-from-source beta-0/packaging/homebrew/tos.rb
 If you are developing or compiling Beta-0 manually and wish to register it system-wide without a package manager, use the provided install script.
 
 ```bash
-cd beta-0
 sudo ./packaging/install.sh
 ```
 

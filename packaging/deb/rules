@@ -3,12 +3,12 @@
 	dh $@
 
 override_dh_auto_build:
-	cd beta-0 && make build-services
+	make build-services
 
 override_dh_auto_install:
 	mkdir -p debian/tos/usr/bin
-	cp beta-0/target/release/tos debian/tos/usr/bin/tos
-	cp beta-0/target/release/tos-brain debian/tos/usr/bin/tos-brain
+	cp target/release/tos debian/tos/usr/bin/tos
+	cp target/release/tos-brain debian/tos/usr/bin/tos-brain
 	# Install desktop files
 	mkdir -p debian/tos/usr/share/xsessions
-	cp beta-0/packaging/tos.desktop debian/tos/usr/share/xsessions/
+	cp packaging/tos.desktop debian/tos/usr/share/xsessions/

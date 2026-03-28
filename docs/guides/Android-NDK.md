@@ -1,6 +1,6 @@
 # Android NDK Support
 
-TOS Beta-0 supports handheld (phone/tablet) targets through the `tos-android` crate.
+TOS Beta-0 supports handheld (phone/tablet) targets through the `android-handheld` crate.
 
 ## 1. Prerequisites
 - Android NDK (r25c+)
@@ -9,9 +9,9 @@ TOS Beta-0 supports handheld (phone/tablet) targets through the `tos-android` cr
 
 ## 2. Cross-Compilation
 
-To build the `tos-android` Face:
+To build the `android-handheld` Face:
 ```bash
-cargo ndk -t arm64-v8a build -p tos-android --release
+cargo ndk -t arm64-v8a build -p android-handheld --release
 ```
 
 ## 3. Handheld Profile (§3.3.5)

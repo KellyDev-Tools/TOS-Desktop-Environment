@@ -1,5 +1,5 @@
 pub mod linux;
-// Android Face lives in its own crate: tos-android/
+// Android Face lives in its own crate: android-handheld/
 // Build separately with: make android-build
 pub mod quest;
 pub mod mock;

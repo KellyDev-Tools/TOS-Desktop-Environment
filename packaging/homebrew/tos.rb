@@ -10,20 +10,18 @@ class Tos < Formula
 
   def install
     # Build Svelte Web UI
-    cd "beta-0/svelte_ui" do
+    cd "svelte_ui" do
       system "npm", "install"
       system "npm", "run", "build"
     end
 
     # Build Cargo Daemons and Brain
-    cd "beta-0" do
-      system "make", "build-services"
+    system "make", "build-services"
 
-      # Install main binaries
-      bin.install "target/release/tos-brain"
-      bin.install "target/release/tos"
-      bin.install "target/release/logs"
-    end
+    # Install main binaries
+    bin.install "target/release/tos-brain"
+    bin.install "target/release/tos"
+    bin.install "target/release/logs"
   end
 
   test do

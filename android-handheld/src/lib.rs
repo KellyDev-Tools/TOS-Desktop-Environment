@@ -15,7 +15,7 @@
 //! └──────────────────┬─────────────────────────┘
 //!                    │ depends on
 //! ┌──────────────────▼─────────────────────────┐
-//! │  tos-android (this crate)                  │
+//! │  android-handheld (this crate)             │
 //! │  ├── AndroidFace  (state + rendering)      │
 //! │  ├── AndroidInput (touch + gestures)       │
 //! │  ├── AndroidServices (system integration)  │
@@ -27,12 +27,12 @@
 //!
 //! **Host check (Linux/macOS):**
 //! ```sh
-//! cargo check -p tos-android
+//! cargo check -p android-handheld
 //! ```
 //!
 //! **Android target:**
 //! ```sh
-//! cargo ndk -t arm64-v8a build -p tos-android
+//! cargo ndk -t arm64-v8a build -p android-handheld
 //! ```
 
 pub mod face;

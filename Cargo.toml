@@ -1,5 +1,5 @@
 [workspace]
-members = [".", "tos-protocol", "tos-android"]
+members = [".", "tos-protocol", "android-handheld"]
 resolver = "2"
 
 [package]

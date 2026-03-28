@@ -243,10 +243,10 @@ test-e2e:
 	@$(NVM_INIT) && cd svelte_ui && npx playwright test -c playwright.e2e.config.ts
 
 # -----------------------------------------------------------------------------
-# 6. ANDROID BUILD (separate crate: tos-android/)
+# 6. ANDROID BUILD (separate crate: android-handheld/)
 # -----------------------------------------------------------------------------
 
-ANDROID_CRATE := tos-android
+ANDROID_CRATE := android-handheld
 
 android-check:
 	@echo "[TOS] Checking Android Face crate (host target)..."
@@ -259,7 +259,7 @@ android-build: android-check
 	@echo "  cargo ndk -t arm64-v8a build -p $(ANDROID_CRATE) --release"
 	@echo "[TOS] Requires: cargo install cargo-ndk && rustup target add aarch64-linux-android"
 
-android-build-release:
+android-release:
 	@echo "[TOS] Building Android Face (Release, arm64-v8a)..."
 	cargo ndk -t arm64-v8a build -p $(ANDROID_CRATE) --release
 	@echo "[TOS] Android Face: RELEASE BUILD COMPLETE"

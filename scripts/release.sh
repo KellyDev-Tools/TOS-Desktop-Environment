@@ -84,7 +84,7 @@ EOF
     # 3. Android Face APK (Handheld Profile)
     if command -v cargo-ndk &> /dev/null; then
         echo "[RELEASE] Compiling Android Face (arm64-v8a)..."
-        cargo ndk -t arm64-v8a build -p tos-android --release
+        cargo ndk -t arm64-v8a build -p android-handheld --release
         # Note: APK wrapping requires Android Studio / Gradle, 
         # but we preserve the .so for local side-loading.
     fi

@@ -1,5 +1,5 @@
 #!/bin/bash
-# install.sh - Install TOS Beta-0 after compilation
+# install.sh - Install TOS after compilation
 
 set -e
 
@@ -9,18 +9,16 @@ DATADIR="${PREFIX}/share"
 XSESSIONSDIR="${DATADIR}/xsessions"
 
 # Detect beta version
-if [ -d "beta-0" ] && [ -f "beta-0/Cargo.toml" ]; then
-    VERSION_DIR="beta-0"
-    echo "Detected TOS Beta-0"
+if [ -f "Cargo.toml" ]; then
+    VERSION_DIR="."
+    echo "Detected TOS directory"
 else
-    echo "Error: No Beta-0 directory found"
+    echo "Error: Must be run from the TOS source directory"
     exit 1
 fi
 
 echo "Building TOS Services..."
-cd "$VERSION_DIR"
 make build-services
-cd ..
 
 # Create directories
 echo "Creating system directories..."

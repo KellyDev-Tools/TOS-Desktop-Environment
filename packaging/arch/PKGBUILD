@@ -11,13 +11,13 @@ source=("$pkgname-$pkgver.tar.gz")
 sha256sums=('SKIP')
 
 build() {
-    cd "$srcdir/$pkgname-$pkgver/beta-0"
+    cd "$srcdir/$pkgname-$pkgver"
     make build-services
 }
 
 package() {
     cd "$srcdir/$pkgname-$pkgver"
-    install -Dm755 beta-0/target/release/tos-brain "$pkgdir/usr/bin/tos-brain"
-    install -Dm755 beta-0/target/release/tos "$pkgdir/usr/bin/tos"
-    install -Dm644 beta-0/packaging/tos.desktop "$pkgdir/usr/share/xsessions/tos.desktop"
+    install -Dm755 target/release/tos-brain "$pkgdir/usr/bin/tos-brain"
+    install -Dm755 target/release/tos "$pkgdir/usr/bin/tos"
+    install -Dm644 packaging/tos.desktop "$pkgdir/usr/share/xsessions/tos.desktop"
 }

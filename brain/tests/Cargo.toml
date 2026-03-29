@@ -1,0 +1,66 @@
+[package]
+name = "tos-brain-tests"
+version = "0.1.0-beta.0"
+edition = "2021"
+publish = false
+
+[dependencies]
+tos-brain = { path = "../" }
+tos-common = { path = "../../tos-common" }
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+tokio = { version = "1.36", features = ["full"] }
+uuid = { version = "1.7", features = ["v4", "serde"] }
+anyhow = "1.0"
+
+[[bin]]
+name = "brain_core"
+path = "brain_core.rs"
+
+[[bin]]
+name = "shell_integration"
+path = "shell_integration.rs"
+
+[[bin]]
+name = "ai_integration"
+path = "ai_integration.rs"
+
+[[bin]]
+name = "sandbox"
+path = "sandbox.rs"
+
+[[bin]]
+name = "collaboration"
+path = "collaboration.rs"
+
+[[bin]]
+name = "communication"
+path = "communication.rs"
+
+[[bin]]
+name = "messaging"
+path = "messaging.rs"
+
+[[bin]]
+name = "navigation"
+path = "navigation.rs"
+
+[[bin]]
+name = "user"
+path = "user.rs"
+
+[[bin]]
+name = "user_app"
+path = "user_app.rs"
+
+[[bin]]
+name = "user_hub"
+path = "user_hub.rs"
+
+[[bin]]
+name = "user_terminal"
+path = "user_terminal.rs"
+
+[[bin]]
+name = "test_main"
+path = "test_main.rs"

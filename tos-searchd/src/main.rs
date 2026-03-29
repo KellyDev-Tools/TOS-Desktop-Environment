@@ -10,6 +10,7 @@ use std::sync::{Arc, Mutex};
 use tokio::io::{AsyncBufReadExt, AsyncWriteExt, BufReader};
 use tokio::net::TcpListener;
 use walkdir::WalkDir;
+use tos_common::daemon;
 
 #[derive(Clone, serde::Serialize, serde::Deserialize)]
 struct VectorHit {
@@ -171,7 +172,7 @@ async fn main() -> anyhow::Result<()> {
     });
 
     // Register with Brain (§4.1)
-    tos_lib::daemon::register_with_brain("tos-searchd", port).await?;
+    daemon::register_with_brain("tos-searchd", port).await?;
 
     loop {
         let (socket, _) = listener.accept().await?;

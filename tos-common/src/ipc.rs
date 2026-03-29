@@ -106,3 +106,23 @@ pub enum SemanticEvent {
     TacticalResetSystem,
     StopOperation,
 }
+
+pub mod commands {
+    pub const GET_STATE: &str = "get_state";
+    pub const SET_MODE: &str = "set_mode";
+    pub const ZOOM_IN: &str = "zoom_in";
+    pub const ZOOM_OUT: &str = "zoom_out";
+    pub const ZOOM_TO: &str = "zoom_to";
+    pub const SET_SETTING: &str = "set_setting";
+    pub const GET_SETTINGS: &str = "get_settings";
+    pub const SECTOR_CREATE: &str = "sector_create";
+    pub const SECTOR_CLOSE: &str = "sector_close";
+    pub const SECTOR_FREEZE: &str = "sector_freeze";
+    pub const PROMPT_SUBMIT: &str = "prompt_submit";
+    pub const SYSTEM_LOG_APPEND: &str = "system_log_append";
+    pub const SERVICE_REGISTER: &str = "service_register";
+    pub const SERVICE_DEREGISTER: &str = "service_deregister";
+    pub const TOS_PORTS: &str = "tos_ports";
+    pub const BEZEL_EXPAND: &str = "bezel_expand";
+    pub const BEZEL_COLLAPSE: &str = "bezel_collapse";
+}

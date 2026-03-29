@@ -29,8 +29,6 @@ futures-util = "0.3"
 rodio = "0.18.1"
 walkdir = "2.5.0"
 reqwest = { version = "0.12", features = ["json", "charset", "http2"] }
-fastembed = { version = "5.13" }
-hf-hub = { version = "0.4.3", features = ["tokio"] }
 mdns-sd = "0.18.2"
 
 [target.'cfg(not(target_os = "android"))'.dependencies]
@@ -67,10 +65,6 @@ path = "src/bin/sessiond.rs"
 [[bin]]
 name = "tos-heuristicd"
 path = "src/bin/heuristicd.rs"
-
-[[bin]]
-name = "tos-searchd"
-path = "src/bin/searchd.rs"
 
 [[bin]]
 name = "system_test"

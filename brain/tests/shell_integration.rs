@@ -5,12 +5,12 @@
 
 use std::time::Duration;
 use tokio::time::sleep;
-use tos_brain::Brain;
-use tos_brain::common::CommandHubMode;
-use tos_brain::face::{Face, MockFace};
+use tos_lib::brain::Brain;
+use tos_lib::common::CommandHubMode;
+use tos_lib::face::{Face, MockFace};
 
-#[tokio::main]
-async fn main() -> anyhow::Result<()> {
+#[tokio::test]
+async fn test_shell_integration() -> anyhow::Result<()> {
     println!("\x1B[1;33m[TOS SHELL INTEGRATION TESTS]\x1B[0m");
     println!("Testing shell commands and directory operations...\n");
 

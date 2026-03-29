@@ -68,7 +68,7 @@ build-all:
 	cd face-android-handheld && cargo build
 
 build-brain:
-	cd brain && cargo build --bin tos-brain
+	cargo build -p tos-brain --bin tos-brain
 
 build-faces: build-face-web android-check
 
@@ -78,10 +78,11 @@ build-face-web:
 	@echo "[TOS] Svelte Face UI: BUILD COMPLETE"
 
 build-common:
-	cd tos-common && cargo build
+	cargo build -p tos-common
 
 build-services:
-	cd brain && { cargo build --bins || { echo "Warning: Some services failed to build (likely searchd on GLIBC 2.35)"; cargo build --bin tos-settingsd --bin tos-loggerd --bin tos-marketplaced --bin tos-priorityd --bin tos-sessiond --bin tos-heuristicd; }; }
+	@cargo build -p tos-searchd || echo "Warning: tos-searchd failed to build (likely GLIBC 2.35)"
+	@cargo build -p tos-brain --bins
 
 check:
 	cd tos-common && cargo check
@@ -119,21 +120,21 @@ test: test-all
 test-all: test-core test-shell test-ai test-sec test-health
 
 test-core:
-	cd brain && cargo test --test brain_core
+	cargo test -p tos-brain --test brain_core
 
 test-shell:
-	cd brain && cargo test --test shell_integration
+	cargo test -p tos-brain --test shell_integration
 
 test-ai:
-	cd brain && cargo test --test ai_integration
+	cargo test -p tos-brain --test ai_integration
 
 test-sec:
-	cd brain && cargo test --test sandbox
-	cd brain && cargo test --test security_manifest
+	cargo test -p tos-brain --test sandbox
+	cargo test -p tos-brain --test security_manifest
 
 test-system:
 	@mkdir -p logs
-	cd brain && cargo run --bin system_test | tee ../logs/system_test.log
+	cargo run -p tos-brain --bin system_test | tee logs/system_test.log
 
 test-brain-component:
 	@echo "[TOS] Orchestrating Component Test..."
@@ -167,14 +168,14 @@ test-health:
 	@pkill -x tos-heuristicd || true
 	@pkill -x tos-searchd || true
 	@mkdir -p logs
-	@brain/target/debug/tos-settingsd > logs/settingsd.log 2>&1 &
-	@brain/target/debug/tos-loggerd > logs/loggerd.log 2>&1 &
-	@brain/target/debug/tos-marketplaced > logs/marketplaced.log 2>&1 &
-	@brain/target/debug/tos-priorityd > logs/priorityd.log 2>&1 &
-	@brain/target/debug/tos-sessiond > logs/sessiond.log 2>&1 &
-	@brain/target/debug/tos-heuristicd > logs/heuristicd.log 2>&1 &
-	@brain/target/debug/tos-searchd > logs/searchd.log 2>&1 || true &
-	@brain/target/debug/tos-brain --headless > logs/tos-brain.log 2>&1 & BR_PID=$$!; \
+	@target/debug/tos-settingsd > logs/settingsd.log 2>&1 &
+	@target/debug/tos-loggerd > logs/loggerd.log 2>&1 &
+	@target/debug/tos-marketplaced > logs/marketplaced.log 2>&1 &
+	@target/debug/tos-priorityd > logs/priorityd.log 2>&1 &
+	@target/debug/tos-sessiond > logs/sessiond.log 2>&1 &
+	@target/debug/tos-heuristicd > logs/heuristicd.log 2>&1 &
+	@target/debug/tos-searchd > logs/searchd.log 2>&1 || true &
+	@target/debug/tos-brain --headless > logs/tos-brain.log 2>&1 & BR_PID=$$!; \
 	echo "[TOS] Waiting for daemons and Discovery Gate to bind (3s)..."; \
 	sleep 3; \
 	cd tests && cargo test --test service_orchestration -- --nocapture; TEST_RES=$$?; \
@@ -199,7 +200,7 @@ NVM_INIT = export NVM_DIR="$$HOME/.nvm" && [ -s "$$NVM_DIR/nvm.sh" ] && . "$$NVM
 run: run-services
 	@mkdir -p logs
 	@pkill -x tos-brain || true
-	cd brain && cargo run --bin tos-brain | tee ../logs/tos-brain.log
+	cargo run -p tos-brain --bin tos-brain | tee logs/tos-brain.log
 
 dev-web:
 	@echo "[TOS] Starting Svelte Face Dev Server (HMR)..."
@@ -213,7 +214,7 @@ run-web: run-services build-face-web
 	@python3 -m http.server 8080 -d face-svelte-ui/build > logs/web_ui.log 2>&1 & WEB_PID=$$!; \
 	echo "[TOS] Synchronizing Brain Core (7000/7001)..."; \
 	trap "kill $$WEB_PID; pkill -x tos-brain; exit" EXIT INT TERM; \
-	cd brain && cargo run --bin tos-brain -- --headless 2>&1 | tee ../logs/tos-brain.log
+	cargo run -p tos-brain --bin tos-brain -- --headless 2>&1 | tee logs/tos-brain.log
 
 run-web-dev: run-services
 	@mkdir -p logs
@@ -222,7 +223,7 @@ run-web-dev: run-services
 	@($(NVM_INIT) && cd face-svelte-ui && npm run dev -- --port 8080 --host 0.0.0.0) > logs/svelte_dev.log 2>&1 & SVELTE_PID=$$!; \
 	echo "[TOS] Synchronizing Brain Core (7000/7001)..."; \
 	trap "kill $$SVELTE_PID; pkill -x tos-brain; exit" EXIT INT TERM; \
-	cd brain && cargo run --bin tos-brain -- --headless 2>&1 | tee ../logs/tos-brain.log
+	cargo run -p tos-brain --bin tos-brain -- --headless 2>&1 | tee logs/tos-brain.log
 
 run-services:
 	@echo "[TOS] Initializing Auxiliary Daemons..."
@@ -234,14 +235,14 @@ run-services:
 	@pkill -x tos-sessiond || true
 	@pkill -x tos-heuristicd || true
 	@pkill -x tos-searchd || true
-	cd brain && { cargo build --bins || { echo "Warning: Some services failed to build (likely searchd on GLIBC 2.35)"; cargo build --bin tos-settingsd --bin tos-loggerd --bin tos-marketplaced --bin tos-priorityd --bin tos-sessiond --bin tos-heuristicd; }; }
-	@brain/target/debug/tos-settingsd > logs/settingsd.log 2>&1 &
-	@brain/target/debug/tos-loggerd > logs/loggerd.log 2>&1 &
-	@brain/target/debug/tos-marketplaced > logs/marketplaced.log 2>&1 &
-	@brain/target/debug/tos-priorityd > logs/priorityd.log 2>&1 &
-	@brain/target/debug/tos-sessiond > logs/sessiond.log 2>&1 &
-	@brain/target/debug/tos-heuristicd > logs/heuristicd.log 2>&1 &
-	@brain/target/debug/tos-searchd > logs/searchd.log 2>&1 || true &
+	@$(MAKE) build-services
+	@target/debug/tos-settingsd > logs/settingsd.log 2>&1 &
+	@target/debug/tos-loggerd > logs/loggerd.log 2>&1 &
+	@target/debug/tos-marketplaced > logs/marketplaced.log 2>&1 &
+	@target/debug/tos-priorityd > logs/priorityd.log 2>&1 &
+	@target/debug/tos-sessiond > logs/sessiond.log 2>&1 &
+	@target/debug/tos-heuristicd > logs/heuristicd.log 2>&1 &
+	@target/debug/tos-searchd > logs/searchd.log 2>&1 || true &
 	@echo "[TOS] Auxiliary Constellation: ONLINE"
 
 # -----------------------------------------------------------------------------

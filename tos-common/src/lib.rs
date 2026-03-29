@@ -14,8 +14,11 @@
 
 pub mod ipc;
 pub mod state;
+pub mod daemon;
 pub use ipc as ipc_dispatcher;
+pub mod config;
 pub mod collaboration;
+pub mod services;
 pub mod marketplace;
 pub mod modules;
 pub mod platform;
@@ -25,6 +28,7 @@ pub mod shell;
 pub use collaboration::{Participant, ParticipantRole, PresenceStatus, WebRtcPayload};
 pub use ipc::IpcDispatcher;
 pub use marketplace::*;
+pub use config::*;
 pub use modules::{AiModule, AiQuery, AiResponse, ShellIntegration, ShellModule};
 pub use platform::*;
 pub use shell::*;

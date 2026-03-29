@@ -2,9 +2,9 @@
 
 use std::collections::HashMap;
 use tokio::time::sleep;
-use tos_brain::Brain;
-use tos_brain::common::CommandHubMode;
-use tos_brain::face::{Face, MockFace};
+use tos_lib::brain::Brain;
+use tos_lib::common::CommandHubMode;
+use tos_lib::face::{Face, MockFace};
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {

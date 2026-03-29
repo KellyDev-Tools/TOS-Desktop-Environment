@@ -1,6 +1,5 @@
 use crate::common::SettingsStore;
 use crate::config::TosConfig;
-use std::collections::HashMap;
 use std::io::{BufRead, BufReader, Write};
 use std::net::TcpStream;
 use std::path::PathBuf;
@@ -150,88 +149,11 @@ impl SettingsService {
     }
 
     fn default_settings(&self) -> SettingsStore {
-        Self::build_default_settings()
+        SettingsStore::default_alpha22()
     }
 
     /// Public accessor for tests to validate the default settings schema.
     pub fn default_settings_public(&self) -> SettingsStore {
-        Self::build_default_settings()
-    }
-
-    /// Constructs the canonical default settings with all Alpha-2.2 namespaces.
-    fn build_default_settings() -> SettingsStore {
-        let mut map = HashMap::new();
-
-        // --- Core Settings (Alpha-2.1 legacy) ---
-        map.insert("theme".to_string(), "lcars-light".to_string());
-        map.insert("default_shell".to_string(), "fish".to_string());
-        map.insert(
-            "terminal_output_module".to_string(),
-            "rectangular".to_string(),
-        );
-        map.insert("master_volume".to_string(), "80".to_string());
-        map.insert("logging_enabled".to_string(), "true".to_string());
-        map.insert("terminal_buffer_limit".to_string(), "500".to_string());
-
-        // --- Onboarding (Onboarding Specification §2) ---
-        map.insert(
-            "tos.onboarding.first_run_complete".to_string(),
-            "false".to_string(),
-        );
-        map.insert(
-            "tos.onboarding.wizard_complete".to_string(),
-            "false".to_string(),
-        );
-        map.insert(
-            "tos.onboarding.hint_suppressed".to_string(),
-            "false".to_string(),
-        );
-        map.insert("tos.onboarding.sessions_count".to_string(), "0".to_string());
-        map.insert("tos.onboarding.commands_run".to_string(), "0".to_string());
-
-        // --- Trust (Trust & Confirmation Specification §2, §6) ---
-        map.insert(
-            "tos.trust.privilege_escalation".to_string(),
-            "warn".to_string(),
-        );
-        map.insert("tos.trust.recursive_bulk".to_string(), "warn".to_string());
-        map.insert("tos.trust.bulk_threshold".to_string(), "10".to_string());
-
-        // --- AI (AI Co-Pilot Specification §9) ---
-        map.insert(
-            "tos.ai.default_backend".to_string(),
-            "tos-ai-standard".to_string(),
-        );
-        map.insert("tos.ai.chip_color".to_string(), "secondary".to_string());
-        map.insert("tos.ai.ghost_text_opacity".to_string(), "40".to_string());
-        map.insert("tos.ai.disabled".to_string(), "false".to_string());
-        map.insert("tos.ai.context_level".to_string(), "standard".to_string());
-
-        // --- Expanded Bezel (Expanded Bezel Specification §7) ---
-        map.insert(
-            "tos.interface.bezel.dismiss_behavior".to_string(),
-            "stay_open".to_string(),
-        );
-        map.insert(
-            "tos.interface.bezel.auto_collapse_timeout".to_string(),
-            "5".to_string(),
-        );
-
-        // --- Split Viewport (Split Viewport Specification §6) ---
-        map.insert(
-            "tos.interface.splits.divider_snap".to_string(),
-            "true".to_string(),
-        );
-
-        // --- Network (Ecosystem Orchestration / Anchor Port) ---
-        map.insert("tos.network.anchor_port".to_string(), "7000".to_string());
-        map.insert("tos.network.mdns_enabled".to_string(), "true".to_string());
-        map.insert("tos.network.remote_access".to_string(), "false".to_string());
-
-        SettingsStore {
-            global: map,
-            sectors: HashMap::new(),
-            applications: HashMap::new(),
-        }
+        SettingsStore::default_alpha22()
     }
 }

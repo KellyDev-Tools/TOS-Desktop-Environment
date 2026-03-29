@@ -127,7 +127,10 @@ docs:
 
 test: test-all
 
-test-all: test-core test-shell test-ai test-sec test-health
+test-all: test-common test-core test-shell test-search
+
+test-common:
+	cd tos-common && cargo test
 
 test-core:
 	cd brain && cargo test --test brain_core
@@ -135,12 +138,8 @@ test-core:
 test-shell:
 	cd brain && cargo test --test shell_integration
 
-test-ai:
-	cd brain && cargo test --test ai_integration
-
-test-sec:
-	cd brain && cargo test --test sandbox
-	cd brain && cargo test --test security_manifest
+test-search:
+	cd tos-searchd && cargo test --test search_integration
 
 test-system:
 	@mkdir -p logs

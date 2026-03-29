@@ -4,6 +4,7 @@ pub mod pty;
 #[cfg(not(target_os = "android"))]
 pub use pty::PtyShell as ShellApi;
 
+#[cfg(target_os = "android")]
 use std::sync::{Arc, Mutex};
 // use crate::TosState;
 

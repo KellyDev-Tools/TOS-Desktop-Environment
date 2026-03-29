@@ -15,8 +15,8 @@ pub mod daemon;
 pub mod face;
 pub mod services;
 
-#[cfg(test)]
-mod brain_tests;
+pub use face::{Face, MockFace};
+// mod brain_tests;
 
 pub use config::TosConfig;
 pub use state::{

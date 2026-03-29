@@ -1,5 +1,5 @@
-use crate::brain::Brain;
-use crate::common::{HierarchyLevel, CommandHubMode};
+use tos_common::brain::Brain;
+use tos_common::{HierarchyLevel, CommandHubMode};
 use tokio::time::sleep;
 use std::time::Duration;
 
@@ -85,6 +85,6 @@ async fn test_get_state_json() {
     let res = brain.ipc.handle_request("get_state");
     assert!(res.starts_with("{")); // Should be JSON
     
-    let state_parsed: crate::common::TosState = serde_json::from_str(&res).expect("IPC state must be valid JSON");
+    let state_parsed: tos_common::TosState = serde_json::from_str(&res).expect("IPC state must be valid JSON");
     assert_eq!(state_parsed.sectors.len(), 1);
 }

@@ -2,8 +2,8 @@ use tos_common::brain::Brain;
 use tos_common::{HierarchyLevel, CommandHubMode};
 use std::sync::Arc;
 
-#[test]
-fn test_brain_initialization() {
+#[tokio::test]
+async fn test_brain_initialization() {
     let brain = Brain::new().expect("Failed to initialize Brain");
     let state = brain.state.lock().unwrap();
     
@@ -13,8 +13,8 @@ fn test_brain_initialization() {
     assert_eq!(state.current_level, HierarchyLevel::GlobalOverview);
 }
 
-#[test]
-fn test_ipc_zoom_flow() {
+#[tokio::test]
+async fn test_ipc_zoom_flow() {
     let brain = Brain::new().expect("Failed to initialize Brain");
     
     // Level 1: GlobalOverview
@@ -48,8 +48,8 @@ fn test_ipc_zoom_flow() {
     }
 }
 
-#[test]
-fn test_sector_management() {
+#[tokio::test]
+async fn test_sector_management() {
     let brain = Brain::new().expect("Failed to initialize Brain");
     
     // Initial state
@@ -83,8 +83,8 @@ fn test_sector_management() {
     }
 }
 
-#[test]
-fn test_mode_switching() {
+#[tokio::test]
+async fn test_mode_switching() {
     let brain = Brain::new().expect("Failed to initialize Brain");
     
     // Default mode is Command

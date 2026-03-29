@@ -46,10 +46,9 @@ async fn main() -> anyhow::Result<()> {
     tracing::info!("[BRAIN] TOS Daemon initialized in {:.2?}", elapsed);
     tracing::info!("[BRAIN] Serving IPC on 7000/7001. Press Ctrl+C to stop.");
 
-    // Park the main loop
-    loop {
-        sleep(Duration::from_secs(60)).await;
-    }
+    // Park the main loop until Ctrl+C
+    tokio::signal::ctrl_c().await?;
+    tracing::info!("[BRAIN] Shutting down.");
 
     Ok(())
 }

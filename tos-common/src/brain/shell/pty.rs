@@ -102,7 +102,6 @@ impl PtyShell {
         let heuristic_clone = heuristic.clone();
         let sid_clone = sector_id;
         let hid_clone = hub_id;
-        let handle = tokio::runtime::Handle::current();
         thread::spawn(move || {
             read_loop(
                 reader,
@@ -111,7 +110,6 @@ impl PtyShell {
                 heuristic_clone,
                 sid_clone,
                 hid_clone,
-                handle,
             );
         });
 
@@ -163,7 +161,6 @@ fn read_loop(
     _heuristic: Arc<crate::services::HeuristicService>,
     sector_id: uuid::Uuid,
     hub_id: uuid::Uuid,
-    _handle: tokio::runtime::Handle,
 ) {
     let mut osc_parser = OscParser::new();
     let mut line_buffer = String::new();
@@ -182,6 +179,7 @@ fn read_loop(
                     line = line.trim_end_matches(['\r', '\n']).to_string();
 
                     let (clean_text, events) = osc_parser.process(&line);
+                    tracing::debug!("[PTY READ] Line: {:?}, Events: {}, Clean: {:?}", line, events.len(), clean_text);
 
                     let mut state_lock = state.lock().unwrap();
                     for event in events {

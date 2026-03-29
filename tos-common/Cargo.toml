@@ -38,3 +38,6 @@ portable-pty = "0.8"
 
 [features]
 test-utils = []
+
+[dev-dependencies]
+tempfile = "3.10"

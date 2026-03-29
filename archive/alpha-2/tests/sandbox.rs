@@ -1,4 +1,4 @@
-use tos_lib::modules::sandbox::SandboxManager;
+use tos_common::modules::sandbox::SandboxManager;
 
 #[test]
 fn test_sandbox_process_creation() {

@@ -4,11 +4,11 @@ use tokio::time::{sleep, Duration};
 async fn test_dynamic_service_registration() {
     // 1. Initialize Brain environment
     // Use a unique name for each test if possible
-    let brain = tos_lib::brain::Brain::new().unwrap();
+    let brain = tos_common::brain::Brain::new().unwrap();
     let ipc = brain.ipc.clone();
     
     // 2. Start UDS Server (Discovery Gate)
-    let server = tos_lib::platform::RemoteServer::new(ipc.clone());
+    let server = tos_common::platform::RemoteServer::new(ipc.clone());
     tokio::spawn(async move {
         // Use a test-specific port to avoid collisions
         let _ = server.run(27000).await;
@@ -21,7 +21,7 @@ async fn test_dynamic_service_registration() {
     let daemon_name = "test-daemon";
     let daemon_port = 12345;
     
-    let result = tos_lib::daemon::register_with_brain(daemon_name, daemon_port).await;
+    let result = tos_common::daemon::register_with_brain(daemon_name, daemon_port).await;
     if let Err(e) = &result {
         eprintln!("DEBUG: Registration error: {:?}", e);
     }

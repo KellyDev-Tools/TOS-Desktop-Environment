@@ -19,6 +19,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 - Standardized logging across all daemons using `tracing` macros (§2.1).
-- Unified `tos_lib` registration helper for satellite daemons.
+- Unified `tos_common` registration helper for satellite daemons.
 - Removed legacy string-based socket paths; all internal discovery now uses the `ServiceRegistry`.
 - Decoupled Android platform layer (`tos-android`) for independent build pipelines.

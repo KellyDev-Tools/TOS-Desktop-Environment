@@ -1,7 +1,7 @@
 use tokio::net::{TcpListener, TcpStream};
 use tokio::io::{AsyncBufReadExt, BufReader, AsyncWriteExt};
 
-use tos_lib::services::marketplace::MarketplaceService;
+use tos_common::services::marketplace::MarketplaceService;
 use tos_protocol::marketplace::*;
 
 #[tokio::main]
@@ -112,7 +112,7 @@ async fn handle_client(socket: TcpStream) -> anyhow::Result<()> {
                 }
             },
             "verify" => {
-                match serde_json::from_str::<tos_lib::services::marketplace::ModuleManifest>(payload) {
+                match serde_json::from_str::<tos_common::services::marketplace::ModuleManifest>(payload) {
                     Ok(m) => {
                          match MarketplaceService::get_trusted_public_key() {
                              Ok(pk) => {

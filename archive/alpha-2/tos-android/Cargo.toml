@@ -6,7 +6,7 @@ description = "TOS Android Face - the Android platform layer for TOS Desktop Env
 
 [dependencies]
 # Core TOS types (TosState, platform traits, common types)
-# The lib is named "tos_lib" (see root Cargo.toml [lib] section)
+# The lib is named "tos_common" (see root Cargo.toml [lib] section)
 alpha_2 = { path = ".." }
 
 # Shared dependencies

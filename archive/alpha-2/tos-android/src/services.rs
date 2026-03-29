@@ -1,8 +1,8 @@
 //! Android Services — system-level operations for the Android Face.
 
 use std::path::Path;
-use tos_lib::common::DirectoryEntry;
-use tos_lib::platform::{
+use tos_common::common::DirectoryEntry;
+use tos_common::platform::{
     Renderer, SurfaceConfig, SurfaceHandle, SurfaceContent,
     SystemServices, SystemMetrics, ProcessHandle,
 };

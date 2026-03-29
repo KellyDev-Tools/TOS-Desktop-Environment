@@ -28,13 +28,13 @@ mod tests {
         
         // Setup Brain environment
         let state = Arc::new(std::sync::Mutex::new(TosState::default()));
-        let config = tos_lib::config::TosConfig::load();
-        let services = Arc::new(tos_lib::services::ServiceManager::with_config(&config));
-        let modules = Arc::new(tos_lib::brain::module_manager::ModuleManager::new(std::path::PathBuf::from("./modules")));
+        let config = tos_common::config::TosConfig::load();
+        let services = Arc::new(tos_common::services::ServiceManager::with_config(&config));
+        let modules = Arc::new(tos_common::brain::module_manager::ModuleManager::new(std::path::PathBuf::from("./modules")));
         let sid = state.lock().unwrap().sectors[0].id;
         let hid = state.lock().unwrap().sectors[0].hubs[0].id;
-        let shell_api = Arc::new(std::sync::Mutex::new(tos_lib::brain::shell::ShellApi::new(state.clone(), modules.clone(), services.ai.clone(), services.heuristic.clone(), sid, hid).unwrap()));
-        let handler = tos_lib::brain::ipc_handler::IpcHandler::new(state.clone(), shell_api, services);
+        let shell_api = Arc::new(std::sync::Mutex::new(tos_common::brain::shell::ShellApi::new(state.clone(), modules.clone(), services.ai.clone(), services.heuristic.clone(), sid, hid).unwrap()));
+        let handler = tos_common::brain::ipc_handler::IpcHandler::new(state.clone(), shell_api, services);
 
         // WHEN: We process the registration via IPC Dispatcher
         let response = handler.dispatch(&request);

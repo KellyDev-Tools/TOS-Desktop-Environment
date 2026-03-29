@@ -4,7 +4,7 @@
 //! Integrates with the Brain via IPC channel for state synchronization.
 
 use std::sync::{Arc, Mutex};
-use tos_lib::common::{TosState, HierarchyLevel};
+use tos_common::common::{TosState, HierarchyLevel};
 use crate::input::AndroidInput;
 use crate::services::AndroidServices;
 

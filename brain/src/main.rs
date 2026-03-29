@@ -1,10 +1,10 @@
-use tos_lib::brain::Brain;
-// use tos_lib::face::{Face, MockFace};
+use tos_common::brain::Brain;
+// use tos_common::face::{Face, MockFace};
 use std::env;
 use std::time::{Duration, Instant};
 use tokio::time::sleep;
-use tos_lib::platform::RemoteServer;
-// use tos_lib::brain::renderer_manager::RendererMode;
+use tos_common::platform::RemoteServer;
+// use tos_common::brain::renderer_manager::RendererMode;
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
@@ -29,8 +29,8 @@ async fn main() -> anyhow::Result<()> {
     let _state = brain.state.clone();
 
     // 2. Initialize Renderer for Capture/Thumbnails
-    let render_mode = tos_lib::brain::renderer_manager::RendererManager::detect();
-    let renderer = tos_lib::brain::renderer_manager::RendererManager::init(render_mode)?;
+    let render_mode = tos_common::brain::renderer_manager::RendererManager::detect();
+    let renderer = tos_common::brain::renderer_manager::RendererManager::init(render_mode)?;
     let capture_backend = renderer.get_capture_backend();
     brain.services.capture.set_backend(capture_backend);
 

@@ -1,5 +1,5 @@
 use std::path::PathBuf;
-use tos_lib::services::marketplace::MarketplaceService;
+use tos_common::services::marketplace::MarketplaceService;
 
 fn main() -> anyhow::Result<()> {
     let args: Vec<String> = std::env::args().collect();

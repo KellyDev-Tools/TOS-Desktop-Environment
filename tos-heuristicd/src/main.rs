@@ -52,7 +52,7 @@ async fn main() -> anyhow::Result<()> {
     let state = Arc::new(Mutex::new(HeuristicState::new()));
 
     // §4.1: Dynamic Port Registration Gate
-    tos_lib::daemon::register_with_brain("tos-heuristicd", port).await?;
+    tos_common::daemon::register_with_brain("tos-heuristicd", port).await?;
 
     loop {
         let (socket, _) = listener.accept().await?;

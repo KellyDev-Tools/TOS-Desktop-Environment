@@ -771,7 +771,7 @@ Dated log of significant validation events and status changes.
 | 2026-03-27 | **Beta-0 RELEASE READY.** Completed Phase 5 (Handoff). Implemented mDNS zero-config discovery. Finalized hierarchical transition logic. System is fully compliant with Beta-0 specifications across all tiers. |
 | 2026-03-27 | Finalized Phase 2: Registry & Daemon Refactor. All system services successfully migrated to dynamic discovery. |
 | 2026-03-27 | Purged stray logging from daemons and implemented `SemanticEvent` in `tos-protocol`. |
-| 2026-03-27 | Fixed `searchd` registration logic and unified `tos_lib` daemon helpers. |
+| 2026-03-27 | Fixed `searchd` registration logic and unified `tos_common` daemon helpers. |
 | 2026-03-27 | **Validation corrected.** Updated Build Status and Pull Readiness Gate to accurately reflect `service_orchestration.rs` test failure and compiler warnings. |
 | 2026-03-27 | **Warnings Fixed & Test Health Resolved.** Eliminated unused imports inside `tests/dynamic_registration.rs` and `src/platform/linux/mod.rs` to reach 0 warnings on test targets. Modified `Makefile`'s `test-health` logic to properly spin up Background Daemons & Discovery Gate before querying the test, bringing the System Tier 5 health checks to ✅ Status! |
 ```

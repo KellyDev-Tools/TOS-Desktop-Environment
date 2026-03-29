@@ -61,9 +61,7 @@ help:
 # 2. CORE DEVELOPMENT
 # -----------------------------------------------------------------------------
 
-build-all:
-	cd tos-common && cargo build
-	cd brain && cargo build
+build-all: build-common build-brain build-services
 	cd face-wayland-linux && cargo build
 	cd face-android-handheld && cargo build
 
@@ -81,11 +79,24 @@ build-common:
 	cd tos-common && cargo build
 
 build-services:
-	cd brain && { cargo build --bins || { echo "Warning: Some services failed to build (likely searchd on GLIBC 2.35)"; cargo build --bin tos-settingsd --bin tos-loggerd --bin tos-marketplaced --bin tos-priorityd --bin tos-sessiond --bin tos-heuristicd; }; }
+	cd tos-settingsd && cargo build
+	cd tos-loggerd && cargo build
+	cd tos-marketplaced && cargo build
+	cd tos-priorityd && cargo build
+	cd tos-sessiond && cargo build
+	cd tos-heuristicd && cargo build
+	cd tos-searchd && cargo build
 
 check:
 	cd tos-common && cargo check
 	cd brain && cargo check
+	cd tos-settingsd && cargo check
+	cd tos-loggerd && cargo check
+	cd tos-marketplaced && cargo check
+	cd tos-priorityd && cargo check
+	cd tos-sessiond && cargo check
+	cd tos-heuristicd && cargo check
+	cd tos-searchd && cargo check
 	cd face-wayland-linux && cargo check
 	cd face-android-handheld && cargo check
 
@@ -167,13 +178,13 @@ test-health:
 	@pkill -x tos-heuristicd || true
 	@pkill -x tos-searchd || true
 	@mkdir -p logs
-	@brain/target/debug/tos-settingsd > logs/settingsd.log 2>&1 &
-	@brain/target/debug/tos-loggerd > logs/loggerd.log 2>&1 &
-	@brain/target/debug/tos-marketplaced > logs/marketplaced.log 2>&1 &
-	@brain/target/debug/tos-priorityd > logs/priorityd.log 2>&1 &
-	@brain/target/debug/tos-sessiond > logs/sessiond.log 2>&1 &
-	@brain/target/debug/tos-heuristicd > logs/heuristicd.log 2>&1 &
-	@brain/target/debug/tos-searchd > logs/searchd.log 2>&1 || true &
+	@tos-settingsd/target/debug/tos-settingsd > logs/settingsd.log 2>&1 &
+	@tos-loggerd/target/debug/tos-loggerd > logs/loggerd.log 2>&1 &
+	@tos-marketplaced/target/debug/tos-marketplaced > logs/marketplaced.log 2>&1 &
+	@tos-priorityd/target/debug/tos-priorityd > logs/priorityd.log 2>&1 &
+	@tos-sessiond/target/debug/tos-sessiond > logs/sessiond.log 2>&1 &
+	@tos-heuristicd/target/debug/tos-heuristicd > logs/heuristicd.log 2>&1 &
+	@tos-searchd/target/debug/tos-searchd > logs/searchd.log 2>&1 || true &
 	@brain/target/debug/tos-brain --headless > logs/tos-brain.log 2>&1 & BR_PID=$$!; \
 	echo "[TOS] Waiting for daemons and Discovery Gate to bind (3s)..."; \
 	sleep 3; \
@@ -234,14 +245,20 @@ run-services:
 	@pkill -x tos-sessiond || true
 	@pkill -x tos-heuristicd || true
 	@pkill -x tos-searchd || true
-	cd brain && { cargo build --bins || { echo "Warning: Some services failed to build (likely searchd on GLIBC 2.35)"; cargo build --bin tos-settingsd --bin tos-loggerd --bin tos-marketplaced --bin tos-priorityd --bin tos-sessiond --bin tos-heuristicd; }; }
-	@brain/target/debug/tos-settingsd > logs/settingsd.log 2>&1 &
-	@brain/target/debug/tos-loggerd > logs/loggerd.log 2>&1 &
-	@brain/target/debug/tos-marketplaced > logs/marketplaced.log 2>&1 &
-	@brain/target/debug/tos-priorityd > logs/priorityd.log 2>&1 &
-	@brain/target/debug/tos-sessiond > logs/sessiond.log 2>&1 &
-	@brain/target/debug/tos-heuristicd > logs/heuristicd.log 2>&1 &
-	@brain/target/debug/tos-searchd > logs/searchd.log 2>&1 || true &
+	cd tos-settingsd && cargo build
+	cd tos-loggerd && cargo build
+	cd tos-marketplaced && cargo build
+	cd tos-priorityd && cargo build
+	cd tos-sessiond && cargo build
+	cd tos-heuristicd && cargo build
+	cd tos-searchd && cargo build
+	@tos-settingsd/target/debug/tos-settingsd > logs/settingsd.log 2>&1 &
+	@tos-loggerd/target/debug/tos-loggerd > logs/loggerd.log 2>&1 &
+	@tos-marketplaced/target/debug/tos-marketplaced > logs/marketplaced.log 2>&1 &
+	@tos-priorityd/target/debug/tos-priorityd > logs/priorityd.log 2>&1 &
+	@tos-sessiond/target/debug/tos-sessiond > logs/sessiond.log 2>&1 &
+	@tos-heuristicd/target/debug/tos-heuristicd > logs/heuristicd.log 2>&1 &
+	@tos-searchd/target/debug/tos-searchd > logs/searchd.log 2>&1 || true &
 	@echo "[TOS] Auxiliary Constellation: ONLINE"
 
 # -----------------------------------------------------------------------------
@@ -251,6 +268,13 @@ run-services:
 clean:
 	cd tos-common && cargo clean
 	cd brain && cargo clean
+	cd tos-settingsd && cargo clean
+	cd tos-loggerd && cargo clean
+	cd tos-marketplaced && cargo clean
+	cd tos-priorityd && cargo clean
+	cd tos-sessiond && cargo clean
+	cd tos-heuristicd && cargo clean
+	cd tos-searchd && cargo clean
 	cd face-wayland-linux && cargo clean
 	cd face-android-handheld && cargo clean
 	cd tests && cargo clean

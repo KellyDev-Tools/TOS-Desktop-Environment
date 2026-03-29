@@ -1,5 +1,5 @@
-use tos_lib::common::{TosState, HierarchyLevel, ApplicationModel, DecorationPolicy, ZoomBehavior};
-use tos_lib::brain::sector::SectorManager;
+use tos_common::common::{TosState, HierarchyLevel, ApplicationModel, DecorationPolicy, ZoomBehavior};
+use tos_common::brain::sector::SectorManager;
 // unused
 
 #[test]

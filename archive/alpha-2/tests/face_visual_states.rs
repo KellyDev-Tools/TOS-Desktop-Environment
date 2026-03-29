@@ -14,24 +14,24 @@
 //!   6. Multi-sector — minimap shows multiple sectors
 //!   7. Frozen sector — frozen state reflected in render
 
-use tos_lib::brain::ipc_handler::IpcHandler;
-use tos_lib::common::TosState;
-use tos_lib::face::Face;
-use tos_lib::services::ServiceManager;
+use tos_common::brain::ipc_handler::IpcHandler;
+use tos_common::common::TosState;
+use tos_common::face::Face;
+use tos_common::services::ServiceManager;
 use std::sync::{Arc, Mutex};
 
 /// Boot a headless Brain + Face (no renderer, no display).
 fn boot_face() -> (Face, Arc<IpcHandler>, Arc<Mutex<TosState>>) {
     let state = Arc::new(Mutex::new(TosState::default()));
     let services = Arc::new(ServiceManager::new());
-    let modules = Arc::new(tos_lib::brain::module_manager::ModuleManager::new(
+    let modules = Arc::new(tos_common::brain::module_manager::ModuleManager::new(
         std::path::PathBuf::from("./modules"),
     ));
 
     let sid = state.lock().unwrap().sectors[0].id;
     let hid = state.lock().unwrap().sectors[0].hubs[0].id;
 
-    let shell = tos_lib::brain::shell::ShellApi::new(
+    let shell = tos_common::brain::shell::ShellApi::new(
         state.clone(), modules.clone(), services.ai.clone(), services.heuristic.clone(), sid, hid,
     ).expect("Face stimulator requires at least /bin/sh");
 

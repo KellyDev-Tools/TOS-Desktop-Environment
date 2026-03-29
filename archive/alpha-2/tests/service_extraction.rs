@@ -1,10 +1,10 @@
 use std::time::Duration;
 use tokio::time::sleep;
-use tos_lib::services::settings::SettingsService;
-use tos_lib::services::logger::LoggerService;
-use tos_lib::services::marketplace::{MarketplaceService, ModuleManifest};
-use tos_lib::services::priority::PriorityService;
-use tos_lib::common::SettingsStore;
+use tos_common::services::settings::SettingsService;
+use tos_common::services::logger::LoggerService;
+use tos_common::services::marketplace::{MarketplaceService, ModuleManifest};
+use tos_common::services::priority::PriorityService;
+use tos_common::common::SettingsStore;
 use tokio::process::Command;
 
 #[tokio::test]

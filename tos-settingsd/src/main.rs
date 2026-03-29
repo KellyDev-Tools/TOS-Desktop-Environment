@@ -2,8 +2,8 @@ use std::io::Write;
 use std::sync::{Arc, Mutex};
 use tokio::io::{AsyncBufReadExt, AsyncWriteExt, BufReader};
 use tokio::net::{TcpListener, TcpStream};
-use tos_lib::common::SettingsStore;
-use tos_lib::services::settings::SettingsService;
+use tos_common::common::SettingsStore;
+use tos_common::services::settings::SettingsService;
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
@@ -24,7 +24,7 @@ async fn main() -> anyhow::Result<()> {
     tracing::info!("TOS-SETTINGSD: Listening on port {}", port);
 
     // §4.1: Dynamic Port Registration Gate
-    tos_lib::daemon::register_with_brain("tos-settingsd", port).await?;
+    tos_common::daemon::register_with_brain("tos-settingsd", port).await?;
 
     // The actual SettingsService logic (I/O, persistence)
     let service = Arc::new(SettingsService::new());
@@ -105,7 +105,7 @@ async fn handle_client(
                     let _ = service.save(&*lock);
 
                     // §2.7: Notify Brain of external setting change
-                    let config = tos_lib::config::TosConfig::load();
+                    let config = tos_common::config::TosConfig::load();
                     let addr = format!("127.0.0.1:{}", config.remote.anchor_port);
                     if let Ok(mut brain_stream) = std::net::TcpStream::connect_timeout(
                         &addr.parse().unwrap(),

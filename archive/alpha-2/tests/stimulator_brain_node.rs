@@ -8,11 +8,11 @@ async fn test_stimulate_brain_node() -> anyhow::Result<()> {
     println!("\x1B[1;35m[TOS STIMULATOR: stimulator_brain_node]\x1B[0m");
 
     // Initialize Brain Core
-    let brain = tos_lib::brain::Brain::new()?;
+    let brain = tos_common::brain::Brain::new()?;
     let ipc = brain.ipc.clone();
 
     // Start IPC Server for testing
-    let server = tos_lib::platform::RemoteServer::new(ipc);
+    let server = tos_common::platform::RemoteServer::new(ipc);
     tokio::spawn(async move {
         let _ = server.run(7000).await;
     });

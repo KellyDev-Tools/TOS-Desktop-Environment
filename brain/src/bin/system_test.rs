@@ -1,8 +1,8 @@
 use std::time::Duration;
 use tokio::time::sleep;
-use tos_lib::brain::Brain;
-use tos_lib::common::CommandHubMode;
-use tos_lib::face::{Face, MockFace};
+use tos_common::brain::Brain;
+use tos_common::common::CommandHubMode;
+use tos_common::face::{Face, MockFace};
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {

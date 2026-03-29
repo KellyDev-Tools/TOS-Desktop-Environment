@@ -2,7 +2,7 @@ use tokio::io::{AsyncBufReadExt, AsyncWriteExt, BufReader};
 use tokio::net::{TcpListener, TcpStream};
 
 use tos_common::marketplace::*;
-use tos_lib::services::marketplace::MarketplaceService;
+use tos_common::services::marketplace::MarketplaceService;
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
@@ -14,7 +14,7 @@ async fn main() -> anyhow::Result<()> {
     tracing::info!("TOS-MARKETPLACED: Operational on port {}", port);
 
     // §4.1: Dynamic Port Registration Gate
-    tos_lib::daemon::register_with_brain("tos-marketplaced", port).await?;
+    tos_common::daemon::register_with_brain("tos-marketplaced", port).await?;
 
     loop {
         let (socket, _) = listener.accept().await?;
@@ -105,7 +105,7 @@ async fn handle_client(socket: TcpStream) -> anyhow::Result<()> {
                 }
             }
             "verify" => {
-                match serde_json::from_str::<tos_lib::services::marketplace::ModuleManifest>(
+                match serde_json::from_str::<tos_common::services::marketplace::ModuleManifest>(
                     payload,
                 ) {
                     Ok(m) => match MarketplaceService::get_trusted_public_key() {

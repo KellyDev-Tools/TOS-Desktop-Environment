@@ -29,7 +29,7 @@ async fn main() -> anyhow::Result<()> {
     tracing::info!("TOS-LOGGERD: Listening on port {}", port);
 
     // §4.1: Dynamic Port Registration Gate
-    tos_lib::daemon::register_with_brain("tos-loggerd", port).await?;
+    tos_common::daemon::register_with_brain("tos-loggerd", port).await?;
 
     // Log file management (JSONL format for Alpha-2.1)
     let log_path = dirs::home_dir()
@@ -102,7 +102,7 @@ async fn handle_client(mut socket: TcpStream, log_path: std::path::PathBuf) -> a
                     let _ = writeln!(file, "{}", json_entry);
                 }
 
-                let config = tos_lib::config::TosConfig::load();
+                let config = tos_common::config::TosConfig::load();
                 let addr = format!("127.0.0.1:{}", config.remote.anchor_port);
                 if let Ok(mut brain_stream) = std::net::TcpStream::connect_timeout(
                     &addr.parse().unwrap(),

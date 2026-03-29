@@ -1,6 +1,6 @@
 use std::sync::Arc;
 use tos_common::state::*;
-use tos_lib::brain::ipc_handler::IpcHandler;
+use tos_common::brain::ipc_handler::IpcHandler;
 use std::fs;
 use std::path::PathBuf;
 use tokio::time::{sleep, Duration};
@@ -9,19 +9,19 @@ use tokio::time::{sleep, Duration};
 async fn test_session_persistence_lifecycle() -> anyhow::Result<()> {
     // 1. Setup Brain with Mock Components
     let state = Arc::new(std::sync::Mutex::new(TosState::default()));
-    let config = tos_lib::config::TosConfig::default();
+    let config = tos_common::config::TosConfig::default();
     
     // Ensure we are testing the LOCAL fallback first, then we'll verify the daemon logic
     let mut config_local = config.clone();
     config_local.local.persistence = true;
     
-    let services = Arc::new(tos_lib::services::ServiceManager::with_config(&config_local));
-    let modules = Arc::new(tos_lib::brain::module_manager::ModuleManager::new(PathBuf::from("./dev/fixtures")));
+    let services = Arc::new(tos_common::services::ServiceManager::with_config(&config_local));
+    let modules = Arc::new(tos_common::brain::module_manager::ModuleManager::new(PathBuf::from("./dev/fixtures")));
     
     let sid = state.lock().unwrap().sectors[0].id;
     let hid = state.lock().unwrap().sectors[0].hubs[0].id;
     let shell_api = Arc::new(std::sync::Mutex::new(
-        tos_lib::brain::shell::ShellApi::new(
+        tos_common::brain::shell::ShellApi::new(
             state.clone(), 
             modules, 
             services.ai.clone(), 

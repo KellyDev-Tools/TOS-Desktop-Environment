@@ -8,7 +8,7 @@ In Alpha-2, services often used hardcoded ports (e.g., 7002, 7003). In Beta-0, a
 
 ### The Brain Discovery Gate
 - **Socket Path**: `/tmp/brain.sock` (Unix Domain Socket)
-- **Mechanism**: Use the `tos_lib::daemon::register_with_brain` helper.
+- **Mechanism**: Use the `tos_common::daemon::register_with_brain` helper.
 
 ### Code Example (Old Alpha-2):
 ```rust
@@ -17,7 +17,7 @@ let listener = TcpListener::bind("127.0.0.1:7002").await?;
 
 ### Code Example (New Beta-0):
 ```rust
-use tos_lib::daemon::register_with_brain;
+use tos_common::daemon::register_with_brain;
 
 // 1. Bind to an ephemeral port (0)
 let listener = TcpListener::bind("127.0.0.1:0").await?;

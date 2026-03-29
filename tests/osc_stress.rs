@@ -1,8 +1,8 @@
 use std::sync::Arc;
 use tos_common::state::*;
-use tos_lib::brain::ipc_handler::IpcHandler;
-use tos_lib::brain::module_manager::ModuleManager;
-use tos_lib::services::ServiceManager;
+use tos_common::brain::ipc_handler::IpcHandler;
+use tos_common::brain::module_manager::ModuleManager;
+use tos_common::services::ServiceManager;
 use std::path::PathBuf;
 
 #[tokio::test]
@@ -11,7 +11,7 @@ async fn test_osc_integration_cascade_stress() -> anyhow::Result<()> {
     
     // 1. Setup Brain State
     let state = Arc::new(std::sync::Mutex::new(TosState::default()));
-    let config = tos_lib::config::TosConfig::default();
+    let config = tos_common::config::TosConfig::default();
     let services = Arc::new(ServiceManager::with_config(&config));
     let modules = Arc::new(ModuleManager::new(PathBuf::from("./dev/fixtures")));
     
@@ -20,8 +20,8 @@ async fn test_osc_integration_cascade_stress() -> anyhow::Result<()> {
     
     // We don't need a real shell for this; we want to test the OscParser directly 
     // in the context of the Brain's ShellApi read_loop logic.
-    use tos_lib::brain::shell::OscParser;
-    use tos_lib::brain::shell::OscEvent;
+    use tos_common::brain::shell::OscParser;
+    use tos_common::brain::shell::OscEvent;
     
     let mut parser = OscParser::new();
 

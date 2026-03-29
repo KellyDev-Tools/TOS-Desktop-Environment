@@ -2,17 +2,17 @@ use std::sync::Arc;
 use tos_common::state::*;
 use tos_common::ipc::*;
 use uuid::Uuid;
-use tos_lib::brain::shell::ShellApi;
-use tos_lib::brain::module_manager::ModuleManager;
-use tos_lib::services::ServiceManager;
-use tos_lib::brain::ipc_handler::IpcHandler;
+use tos_common::brain::shell::ShellApi;
+use tos_common::brain::module_manager::ModuleManager;
+use tos_common::services::ServiceManager;
+use tos_common::brain::ipc_handler::IpcHandler;
 
 #[tokio::test]
 async fn test_collaboration_presence_and_cursor_sync() {
     // Tests Phase 5.9 - Collaboration sync tracking over WebRTC presence events
     
     let state = Arc::new(std::sync::Mutex::new(TosState::default()));
-    let config = tos_lib::config::TosConfig::default();
+    let config = tos_common::config::TosConfig::default();
     let services = Arc::new(ServiceManager::with_config(&config));
     
     let modules = Arc::new(ModuleManager::new(std::path::PathBuf::from("./dev/fixtures")));

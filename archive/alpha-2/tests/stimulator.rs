@@ -56,8 +56,8 @@ fn strip_timing(resp: &str) -> &str {
 }
 
 /// Boot a Brain + TCP server, return (port, brain) so tests can send commands.
-async fn boot_brain_server() -> (u16, tos_lib::brain::Brain) {
-    let brain = tos_lib::brain::Brain::new()
+async fn boot_brain_server() -> (u16, tos_common::brain::Brain) {
+    let brain = tos_common::brain::Brain::new()
         .expect("Brain must initialize");
     let ipc = brain.ipc.clone();
 

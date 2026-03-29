@@ -1,6 +1,6 @@
-use tos_lib::brain::Brain;
-use tos_lib::face::Face;
-use tos_lib::platform::RemoteServer;
+use tos_common::brain::Brain;
+use tos_common::face::Face;
+use tos_common::platform::RemoteServer;
 use std::time::Duration;
 use tokio::time::sleep;
 

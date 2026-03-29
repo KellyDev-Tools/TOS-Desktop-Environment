@@ -9,8 +9,8 @@ async fn test_ai_manual_submit_gate() {
     
     // 1. Setup Brain State
     let state = Arc::new(std::sync::Mutex::new(TosState::default()));
-    let config = tos_lib::config::TosConfig::default();
-    let services = Arc::new(tos_lib::services::ServiceManager::with_config(&config));
+    let config = tos_common::config::TosConfig::default();
+    let services = Arc::new(tos_common::services::ServiceManager::with_config(&config));
     
     // Simulate an AI suggestion arriving over IPC
     let suggestion_json = serde_json::json!({
@@ -22,12 +22,12 @@ async fn test_ai_manual_submit_gate() {
     let request = format!("ai_stage_command:{}", payload);
     
     // The modules and shell_api are required for full initialization
-    let modules = Arc::new(tos_lib::brain::module_manager::ModuleManager::new(std::path::PathBuf::from("./dev/fixtures")));
+    let modules = Arc::new(tos_common::brain::module_manager::ModuleManager::new(std::path::PathBuf::from("./dev/fixtures")));
     let sid = state.lock().unwrap().sectors[0].id;
     let hid = state.lock().unwrap().sectors[0].hubs[0].id;
-    let shell_api = Arc::new(std::sync::Mutex::new(tos_lib::brain::shell::ShellApi::new(state.clone(), modules, services.ai.clone(), services.heuristic.clone(), sid, hid).unwrap()));
+    let shell_api = Arc::new(std::sync::Mutex::new(tos_common::brain::shell::ShellApi::new(state.clone(), modules, services.ai.clone(), services.heuristic.clone(), sid, hid).unwrap()));
     
-    let handler = tos_lib::brain::ipc_handler::IpcHandler::new(state.clone(), shell_api, services);
+    let handler = tos_common::brain::ipc_handler::IpcHandler::new(state.clone(), shell_api, services);
     
     // 2. Stage the command
     let response = handler.dispatch(&request);

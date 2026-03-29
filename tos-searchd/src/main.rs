@@ -171,7 +171,7 @@ async fn main() -> anyhow::Result<()> {
     });
 
     // Register with Brain (§4.1)
-    tos_lib::daemon::register_with_brain("tos-searchd", port).await?;
+    tos_common::daemon::register_with_brain("tos-searchd", port).await?;
 
     loop {
         let (socket, _) = listener.accept().await?;

@@ -4,7 +4,7 @@
 //! implement. The Brain loads modules dynamically and calls them through
 //! these trait objects.
 
-use crate::state::{TerminalContext, TerminalLine};
+use crate::{TerminalContext, TerminalLine};
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
@@ -110,3 +110,4 @@ pub trait TerminalOutputModule: Send + Sync {
     /// Return the module's unique identifier.
     fn get_id(&self) -> &str;
 }
+pub mod sandbox;

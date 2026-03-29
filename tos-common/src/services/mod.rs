@@ -107,7 +107,7 @@ impl ServiceManager {
             capture,
         }
     }
-    pub fn set_ipc(&self, ipc: std::sync::Arc<dyn crate::common::ipc_dispatcher::IpcDispatcher>) {
+    pub fn set_ipc(&self, ipc: std::sync::Arc<dyn crate::ipc::IpcDispatcher>) {
         self.logger.set_ipc(ipc.clone());
         self.ai.set_ipc(ipc);
     }

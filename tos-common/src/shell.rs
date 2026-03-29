@@ -4,7 +4,7 @@ use serde::{Deserialize, Serialize};
 pub enum OscEvent {
     Priority(u8),
     Cwd(String),
-    DirectoryListing(crate::state::DirectoryListing),
+    DirectoryListing(crate::DirectoryListing),
     CommandResult {
         command: String,
         status: i32,

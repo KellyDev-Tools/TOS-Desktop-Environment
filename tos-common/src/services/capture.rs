@@ -6,7 +6,7 @@
 
 use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
-pub use tos_common::platform::{CaptureBackend, FrameCapture, MockCaptureBackend};
+pub use crate::platform::{CaptureBackend, FrameCapture, MockCaptureBackend};
 
 pub struct CaptureService {
     backend: Mutex<Option<Arc<dyn CaptureBackend>>>,

@@ -8,7 +8,7 @@ pub mod shell;
 use self::ipc_handler::IpcHandler;
 use self::module_manager::ModuleManager;
 use self::shell::ShellApi;
-use crate::common::TosState;
+use crate::TosState;
 use std::sync::{Arc, Mutex};
 use std::thread;
 

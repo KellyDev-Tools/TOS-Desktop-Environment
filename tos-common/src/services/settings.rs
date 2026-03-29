@@ -1,4 +1,4 @@
-use crate::common::SettingsStore;
+use crate::SettingsStore;
 use crate::config::TosConfig;
 use std::collections::HashMap;
 use std::io::{BufRead, BufReader, Write};

@@ -35,3 +35,6 @@ mdns-sd = "0.18.2"
 
 [target.'cfg(not(target_os = "android"))'.dependencies]
 portable-pty = "0.8"
+
+[features]
+test-utils = []

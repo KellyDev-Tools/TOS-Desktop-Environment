@@ -1,5 +1,5 @@
 use tos_common::brain::Brain;
-// use tos_common::face::{Face, MockFace};
+// use tos_common::{Face, MockFace};
 use std::env;
 use std::time::{Duration, Instant};
 use tokio::time::sleep;

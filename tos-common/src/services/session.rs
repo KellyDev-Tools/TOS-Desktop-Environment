@@ -1,4 +1,4 @@
-use crate::common::TosState;
+use crate::TosState;
 use crate::config::TosConfig;
 use crate::services::registry::ServiceRegistry;
 use std::io::{BufRead, BufReader, Write};

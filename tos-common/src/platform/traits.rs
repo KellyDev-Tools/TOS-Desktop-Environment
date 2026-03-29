@@ -74,7 +74,20 @@ pub struct ProcessHandle(pub u32);
 
 pub trait SystemServices {
     fn spawn_process(&self, cmd: &str, args: &[&str]) -> anyhow::Result<ProcessHandle>;
-    fn read_dir(&self, path: &Path) -> anyhow::Result<Vec<crate::state::DirectoryEntry>>;
+    fn read_dir(&self, path: &Path) -> anyhow::Result<Vec<crate::DirectoryEntry>>;
     fn get_system_metrics(&self) -> SystemMetrics;
     fn open_url(&self, url: &str);
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct PlatformStatus {
+    pub name: String,
+    pub version: String,
+    pub uptime: u64,
+}
+
+pub trait AppPlatform: Send + Sync {
+    fn get_status(&self) -> PlatformStatus;
+    fn get_services(&self) -> Arc<dyn SystemServices>;
+    fn get_capture(&self) -> Arc<dyn CaptureBackend>;
 }

@@ -1,4 +1,4 @@
-use crate::common::DirectoryEntry;
+use crate::DirectoryEntry;
 use crate::platform::{
     InputSource, ProcessHandle, RawInputEvent, Renderer, SemanticEvent, SurfaceConfig,
     SurfaceContent, SurfaceHandle, SystemMetrics, SystemServices,

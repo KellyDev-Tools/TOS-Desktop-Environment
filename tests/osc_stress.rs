@@ -11,7 +11,7 @@ async fn test_osc_integration_cascade_stress() -> anyhow::Result<()> {
     
     // 1. Setup Brain State
     let state = Arc::new(std::sync::Mutex::new(TosState::default()));
-    let config = tos_common::config::TosConfig::default();
+    let config = tos_common::TosConfig::default();
     let services = Arc::new(ServiceManager::with_config(&config));
     let modules = Arc::new(ModuleManager::new(PathBuf::from("./dev/fixtures")));
     

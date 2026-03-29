@@ -1,5 +1,5 @@
 use tos_common::brain::Brain;
-use tos_common::common::{HierarchyLevel, CommandHubMode};
+use tos_common::{HierarchyLevel, CommandHubMode};
 use std::sync::Arc;
 
 #[test]

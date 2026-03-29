@@ -7,8 +7,8 @@
 //!  - Per-behavior backend resolution cascade (behavior override → system default)
 //!  - Preserve existing ai_query / ai_tool_call internal messages as backend protocol
 
-use crate::common::ipc_dispatcher::IpcDispatcher;
-use crate::common::{AiBehavior, TosState};
+use crate::ipc::IpcDispatcher;
+use crate::{AiBehavior, TosState};
 use serde_json::json;
 use std::sync::{Arc, Mutex};
 
@@ -287,7 +287,7 @@ impl AiService {
                         "chat_history".to_string(),
                     ];
                     let context = ctx.filter_to_fields(&ctx_fields);
-                    let req = crate::common::modules::AiQuery {
+                    let req = crate::modules::AiQuery {
                         prompt: prompt.to_string(),
                         context,
                         stream: false,
@@ -375,7 +375,7 @@ impl AiService {
                         command, status, stderr.unwrap_or("none")
                     );
 
-                    let req = crate::common::modules::AiQuery {
+                    let req = crate::modules::AiQuery {
                         prompt,
                         context: ctx.filter_to_fields(
                             &["cwd", "terminal_tail", "last_command"]

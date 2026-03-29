@@ -21,7 +21,7 @@ async fn test_dynamic_service_registration() {
     let daemon_name = "test-daemon";
     let daemon_port = 12345;
     
-    let result = tos_common::daemon::register_with_brain(daemon_name, daemon_port).await;
+    let result = tos_common::register_with_brain(daemon_name, daemon_port).await;
     if let Err(e) = &result {
         eprintln!("DEBUG: Registration error: {:?}", e);
     }

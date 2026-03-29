@@ -57,7 +57,7 @@ async fn main() -> anyhow::Result<()> {
     }
 
     // §4.1: Dynamic Port Registration Gate
-    tos_common::daemon::register_with_brain("tos-sessiond", port).await?;
+    tos_common::register_with_brain("tos-sessiond", port).await?;
 
     loop {
         let (socket, _) = listener.accept().await?;

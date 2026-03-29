@@ -4,7 +4,7 @@ use serde::{Deserialize, Serialize};
 use std::path::PathBuf;
 use std::sync::{Arc, Mutex};
 use toml;
-use tos_common::*;
+use crate::*;
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub struct ModuleManifest {
@@ -18,10 +18,10 @@ pub struct ModuleManifest {
 
     // §1.7: Shell Specifics
     pub executable: Option<ExecutableConfig>,
-    pub integration: Option<crate::common::modules::ShellIntegration>,
+    pub integration: Option<crate::modules::ShellIntegration>,
 
     // §1.6: Theme Specifics
-    pub assets: Option<crate::common::ThemeAssetDefinition>,
+    pub assets: Option<crate::ThemeAssetDefinition>,
 
     // §1.3: AI Specifics
     pub capabilities: Option<Vec<String>>,
@@ -150,7 +150,7 @@ impl MarketplaceService {
     }
 
     /// Lists terminal modules installed in the system modules directory.
-    pub fn list_terminal_modules() -> Vec<crate::common::TerminalOutputModule> {
+    pub fn list_terminal_modules() -> Vec<crate::TerminalOutputModuleMeta> {
         let mut modules = Vec::new();
         let mut base_path = dirs::home_dir().unwrap_or_else(|| PathBuf::from("/tmp"));
         base_path.push(".config/tos/modules/terminal");
@@ -159,15 +159,15 @@ impl MarketplaceService {
             for entry in entries.flatten() {
                 if let Ok(manifest) = Self::discover_module_local(entry.path()) {
                     if manifest.module_type == "TerminalOutput" {
-                        modules.push(crate::common::TerminalOutputModule {
+                        modules.push(crate::TerminalOutputModuleMeta {
                             id: manifest.id.clone(),
                             name: manifest.name,
                             version: manifest.version,
                             layout: match manifest.id.as_str() {
                                 id if id.contains("cinematic") => {
-                                    crate::common::TerminalLayoutType::Cinematic
+                                    crate::TerminalLayoutType::Cinematic
                                 }
-                                _ => crate::common::TerminalLayoutType::Rectangular,
+                                _ => crate::TerminalLayoutType::Rectangular,
                             },
                             supports_high_contrast: true,
                             supports_reduced_motion: true,
@@ -180,7 +180,7 @@ impl MarketplaceService {
     }
 
     /// Lists theme modules installed in the system modules directory.
-    pub fn list_theme_modules() -> Vec<crate::common::ThemeModule> {
+    pub fn list_theme_modules() -> Vec<crate::ThemeModule> {
         let mut themes = Vec::new();
         let mut base_path = dirs::home_dir().unwrap_or_else(|| PathBuf::from("/tmp"));
         base_path.push(".config/tos/modules/themes");
@@ -190,7 +190,7 @@ impl MarketplaceService {
                 if let Ok(manifest) = Self::discover_module_local(entry.path()) {
                     if manifest.module_type == "Theme" {
                         if let Some(assets) = manifest.assets {
-                            themes.push(crate::common::ThemeModule {
+                            themes.push(crate::ThemeModule {
                                 id: manifest.id,
                                 name: manifest.name,
                                 version: manifest.version,
@@ -207,7 +207,7 @@ impl MarketplaceService {
     }
 
     /// Lists AI modules installed in the system modules directory.
-    pub fn list_ai_modules() -> Vec<crate::common::AiModuleMetadata> {
+    pub fn list_ai_modules() -> Vec<crate::AiModuleMetadata> {
         let mut modules = Vec::new();
         let mut base_path = dirs::home_dir().unwrap_or_else(|| PathBuf::from("/tmp"));
         base_path.push(".config/tos/modules/ai");
@@ -216,7 +216,7 @@ impl MarketplaceService {
             for entry in entries.flatten() {
                 if let Ok(manifest) = Self::discover_module_local(entry.path()) {
                     if manifest.module_type == "AI" || manifest.module_type == "ai" {
-                        modules.push(crate::common::AiModuleMetadata {
+                        modules.push(crate::AiModuleMetadata {
                             id: manifest.id,
                             name: manifest.name,
                             version: manifest.version,

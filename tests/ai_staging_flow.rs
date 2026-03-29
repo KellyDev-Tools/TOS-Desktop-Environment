@@ -9,7 +9,7 @@ async fn test_ai_manual_submit_gate() {
     
     // 1. Setup Brain State
     let state = Arc::new(std::sync::Mutex::new(TosState::default()));
-    let config = tos_common::config::TosConfig::default();
+    let config = tos_common::TosConfig::default();
     let services = Arc::new(tos_common::services::ServiceManager::with_config(&config));
     
     // Simulate an AI suggestion arriving over IPC

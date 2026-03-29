@@ -28,7 +28,7 @@ mod tests {
         
         // Setup Brain environment
         let state = Arc::new(std::sync::Mutex::new(TosState::default()));
-        let config = tos_common::config::TosConfig::load();
+        let config = tos_common::TosConfig::load();
         let services = Arc::new(tos_common::services::ServiceManager::with_config(&config));
         let modules = Arc::new(tos_common::brain::module_manager::ModuleManager::new(std::path::PathBuf::from("./modules")));
         let sid = state.lock().unwrap().sectors[0].id;

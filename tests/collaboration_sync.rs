@@ -12,7 +12,7 @@ async fn test_collaboration_presence_and_cursor_sync() {
     // Tests Phase 5.9 - Collaboration sync tracking over WebRTC presence events
     
     let state = Arc::new(std::sync::Mutex::new(TosState::default()));
-    let config = tos_common::config::TosConfig::default();
+    let config = tos_common::TosConfig::default();
     let services = Arc::new(ServiceManager::with_config(&config));
     
     let modules = Arc::new(ModuleManager::new(std::path::PathBuf::from("./dev/fixtures")));

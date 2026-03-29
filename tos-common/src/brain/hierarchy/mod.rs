@@ -1,4 +1,4 @@
-use crate::common::{HierarchyLevel, TosState};
+use crate::{HierarchyLevel, TosState};
 
 pub struct HierarchyManager;
 

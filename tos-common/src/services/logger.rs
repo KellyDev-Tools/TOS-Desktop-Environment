@@ -1,7 +1,7 @@
-// use crate::common::TerminalLine; // Replaced by IPC state append
+// use crate::TerminalLine; // Replaced by IPC state append
 use std::sync::{Arc, Mutex};
 // use chrono::Local; // Replaced by IPC state append
-use crate::common::ipc_dispatcher::IpcDispatcher;
+use crate::ipc::IpcDispatcher;
 use crate::services::audio::AudioService;
 
 pub struct LoggerService {

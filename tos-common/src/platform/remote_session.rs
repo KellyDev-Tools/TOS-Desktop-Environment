@@ -1,4 +1,4 @@
-use crate::common::Sector;
+use crate::Sector;
 use std::collections::HashMap;
 use uuid::Uuid;
 

@@ -1,7 +1,4 @@
 //! TOS Common — universal foundation for TOS.
-//!
-//! This crate contains shared types, platform traits, and core orchestration logic
-//! used by the Brain and all Face implementations.
 
 pub mod collaboration;
 pub mod ipc;
@@ -11,7 +8,7 @@ pub mod modules;
 pub mod platform;
 pub mod shell;
 
-// Migrate core Brain/Face logic into common foundation
+// Brain orchestrator logic
 pub mod brain;
 pub mod config;
 pub mod daemon;
@@ -21,11 +18,25 @@ pub mod services;
 #[cfg(test)]
 mod brain_tests;
 
-// Re-export core types
-pub use collaboration::*;
+pub use config::TosConfig;
+pub use state::{
+    TosState, Sector, CommandHub, CommandHubMode,
+    TerminalOutputModuleMeta, TerminalLayoutType, ThemeModule, ThemeAssetDefinition,
+    AiModuleMetadata, TerminalContext, TerminalLine, SettingsStore, HierarchyLevel,
+    TrustTier, ConfirmationRequest, ApplicationModel, BezelAction, DecorationPolicy,
+    ZoomBehavior, AppInstance, SectorTemplate, HubTemplate, DirectoryListing,
+    DirectoryEntry, ActivityListing, ProcessEntry, SearchResult, AiMessage,
+    SplitOrientation, PaneContent, SplitPane, SplitNode, AiBehavior
+};
+
+pub use modules::{AiModule, AiQuery, AiResponse, ShellModule, ShellIntegration};
 pub use ipc::IpcDispatcher;
-pub use marketplace::*;
-pub use modules::*;
-pub use platform::*;
-pub use shell::*;
-pub use state::*;
+pub use marketplace::{
+    MarketplaceHome, MarketplaceCategory, MarketplaceModuleSummary, 
+    MarketplaceModuleDetail, InstallProgress
+};
+pub use services::marketplace::{ModuleManifest, ExecutableConfig};
+pub use collaboration::{Participant, ParticipantRole, PresenceStatus, WebRtcPayload};
+pub use platform::{AppPlatform, PlatformStatus, RemoteServer, remote::RemoteRenderer};
+pub use shell::{OscEvent, OscParser};
+pub use daemon::{register_with_brain, log_to_brain, MockBrain};

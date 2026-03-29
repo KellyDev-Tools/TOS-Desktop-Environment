@@ -1,10 +1,10 @@
-use crate::common::{TerminalLine, TosState};
+use crate::{TerminalLine, TosState};
 use chrono::Local;
 use portable_pty::{native_pty_system, Child, CommandBuilder, MasterPty, PtySize};
 use std::io::{Read, Write};
 use std::sync::{Arc, Mutex};
 use std::thread;
-use tos_common::shell::{OscEvent, OscParser};
+use crate::shell::{OscEvent, OscParser};
 
 /// §15.2: PTY-backed Shell Implementation (Desktop Only)
 pub struct PtyShell {

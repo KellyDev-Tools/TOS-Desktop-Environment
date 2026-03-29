@@ -14,7 +14,7 @@ async fn main() -> anyhow::Result<()> {
     tracing::info!("TOS-MARKETPLACED: Operational on port {}", port);
 
     // §4.1: Dynamic Port Registration Gate
-    tos_common::daemon::register_with_brain("tos-marketplaced", port).await?;
+    tos_common::register_with_brain("tos-marketplaced", port).await?;
 
     loop {
         let (socket, _) = listener.accept().await?;

@@ -9,7 +9,7 @@ use tokio::time::{sleep, Duration};
 async fn test_session_persistence_lifecycle() -> anyhow::Result<()> {
     // 1. Setup Brain with Mock Components
     let state = Arc::new(std::sync::Mutex::new(TosState::default()));
-    let config = tos_common::config::TosConfig::default();
+    let config = tos_common::TosConfig::default();
     
     // Ensure we are testing the LOCAL fallback first, then we'll verify the daemon logic
     let mut config_local = config.clone();

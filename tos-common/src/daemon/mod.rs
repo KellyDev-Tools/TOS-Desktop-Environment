@@ -1,7 +1,7 @@
 use ed25519_dalek::{Signer, SigningKey};
 use rand_core::OsRng;
 use tokio::io::{AsyncBufReadExt, AsyncWriteExt, BufReader};
-use tos_common::ipc::{ServiceRegister, ServiceRegisterResponse};
+use crate::ipc::{ServiceRegister, ServiceRegisterResponse};
 
 /// Register a satellite daemon with the Brain on brain.sock.
 ///
@@ -61,6 +61,41 @@ pub async fn register_with_brain(name: &str, port: u16) -> anyhow::Result<()> {
         Ok(())
     } else {
         Err(anyhow::anyhow!("Registration denied: {}", response.message))
+    }
+}
+
+/// A simplified Mock Brain for testing satellite daemons (§4.1).
+#[cfg(feature = "test-utils")]
+pub struct MockBrain {
+    pub listener: tokio::net::UnixListener,
+}
+
+#[cfg(feature = "test-utils")]
+impl MockBrain {
+    pub async fn new() -> anyhow::Result<Self> {
+        let path = "/tmp/brain.sock";
+        let _ = std::fs::remove_file(path);
+        let listener = tokio::net::UnixListener::bind(path)?;
+        Ok(Self { listener })
+    }
+
+    pub async fn handle_one_registration(&self) -> anyhow::Result<(String, u16)> {
+        let (mut stream, _) = self.listener.accept().await?;
+        let mut reader = BufReader::new(&mut stream);
+        let mut line = String::new();
+        reader.read_line(&mut line).await?;
+        
+        if let Some(payload) = line.strip_prefix("service_register:") {
+            let reg: ServiceRegister = serde_json::from_str(payload.trim())?;
+            let resp = ServiceRegisterResponse {
+                status: "OK".to_string(),
+                message: "Mock authorization".to_string(),
+            };
+            stream.write_all(format!("{}\n", serde_json::to_string(&resp)?).as_bytes()).await?;
+            Ok((reg.name, reg.port))
+        } else {
+            Err(anyhow::anyhow!("Malformed registration: {}", line))
+        }
     }
 }
 

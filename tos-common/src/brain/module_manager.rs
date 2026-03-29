@@ -1,4 +1,4 @@
-use crate::common::modules::{AiModule, ShellIntegration, ShellModule};
+use crate::modules::{AiModule, ShellIntegration, ShellModule};
 use crate::services::marketplace::ModuleManifest;
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
@@ -120,7 +120,7 @@ impl ModuleManager {
     pub fn load_terminal_output(
         &self,
         id: &str,
-    ) -> anyhow::Result<Box<dyn crate::common::modules::TerminalOutputModule>> {
+    ) -> anyhow::Result<Box<dyn crate::modules::TerminalOutputModule>> {
         let manifest = self
             .get_manifest(id)
             .ok_or_else(|| anyhow::anyhow!("Module not found"))?;
@@ -136,9 +136,9 @@ struct GenericTerminalOutputModule {
     id: String,
 }
 
-impl crate::common::modules::TerminalOutputModule for GenericTerminalOutputModule {
-    fn init(&mut self, _context: crate::common::TerminalContext, _config: serde_json::Value) {}
-    fn push_lines(&mut self, _lines: Vec<crate::common::TerminalLine>) {
+impl crate::modules::TerminalOutputModule for GenericTerminalOutputModule {
+    fn init(&mut self, _context: crate::TerminalContext, _config: serde_json::Value) {}
+    fn push_lines(&mut self, _lines: Vec<crate::TerminalLine>) {
         // Logically, the Brain doesn't render; it just passes lines through.
         // In a headless system, this could pipe to a log or external surface.
     }
@@ -179,8 +179,8 @@ struct GenericAiModule {
 impl AiModule for GenericAiModule {
     fn query(
         &self,
-        request: crate::common::modules::AiQuery,
-    ) -> anyhow::Result<crate::common::modules::AiResponse> {
+        request: crate::modules::AiQuery,
+    ) -> anyhow::Result<crate::modules::AiResponse> {
         // --- Provider-driven HTTP dispatch ---
         // If the manifest declares an endpoint + provider, make a real API call
         // via a blocking tokio task. Otherwise fall through to subprocess exec.
@@ -267,7 +267,7 @@ impl AiModule for GenericAiModule {
             return Err(anyhow::anyhow!("AI Module execution failed: {}", err));
         }
 
-        let response: crate::common::modules::AiResponse = serde_json::from_slice(&output.stdout)?;
+        let response: crate::modules::AiResponse = serde_json::from_slice(&output.stdout)?;
         Ok(response)
     }
     fn name(&self) -> &str {
@@ -285,7 +285,7 @@ async fn llm_http_call(
     api_key: Option<&str>,
     prompt: &str,
     context: &[String],
-) -> anyhow::Result<crate::common::modules::AiResponse> {
+) -> anyhow::Result<crate::modules::AiResponse> {
     use serde_json::json;
 
     let client = reqwest::Client::new();
@@ -365,13 +365,13 @@ async fn llm_http_call(
             .to_string(),
     };
 
-    Ok(crate::common::modules::AiResponse {
+    Ok(crate::modules::AiResponse {
         id: uuid::Uuid::new_v4(),
-        choice: crate::common::modules::AiChoice {
+        choice: crate::modules::AiChoice {
             role: "assistant".to_string(),
             content,
         },
-        usage: crate::common::modules::AiUsage { tokens: 0 },
-        status: crate::common::modules::AiStatus::Complete,
+        usage: crate::modules::AiUsage { tokens: 0 },
+        status: crate::modules::AiStatus::Complete,
     })
 }

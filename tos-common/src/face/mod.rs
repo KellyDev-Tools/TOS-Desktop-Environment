@@ -1,5 +1,5 @@
 use crate::brain::ipc_handler::IpcHandler;
-use crate::common::{HierarchyLevel, TosState};
+use crate::{HierarchyLevel, TosState};
 use crate::platform::Renderer;
 use std::sync::{Arc, Mutex};
 

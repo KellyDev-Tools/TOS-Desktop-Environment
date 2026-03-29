@@ -1,6 +1,6 @@
-use crate::common::{CommandHubMode, HierarchyLevel, TosState};
+use crate::{CommandHubMode, HierarchyLevel, TosState};
 use crate::services::MarketplaceService;
-// use tos_common::*;
+// use crate::*;
 use std::sync::{Arc, Mutex};
 use std::time::Instant;
 use uuid::Uuid;
@@ -202,7 +202,7 @@ impl IpcHandler {
             tracing::warn!("{}", msg);
             // Surface latency warnings in the Face's System Output
             let mut state = self.state.lock().unwrap();
-            state.system_log.push(crate::common::TerminalLine {
+            state.system_log.push(crate::TerminalLine {
                 text: msg,
                 priority: 2,
                 timestamp: chrono::Local::now(),
@@ -265,7 +265,7 @@ impl IpcHandler {
                     _ => String::new(),
                 };
                 if !chip_msg.is_empty() {
-                    state.system_log.push(crate::common::TerminalLine {
+                    state.system_log.push(crate::TerminalLine {
                         text: chip_msg,
                         priority: 2,
                         timestamp: chrono::Local::now(),
@@ -282,7 +282,7 @@ impl IpcHandler {
                     return format!("TRUST_BLOCKED: {:?}", class);
                 }
                 if policy == "confirm" {
-                    state.pending_confirmation = Some(crate::common::ConfirmationRequest {
+                    state.pending_confirmation = Some(crate::ConfirmationRequest {
                         id: Uuid::new_v4(),
                         original_request: format!("force_prompt_submit:{}", cmd),
                         message: format!("⚠ DANGEROUS COMMAND: {}", cmd),
@@ -468,7 +468,7 @@ impl IpcHandler {
     }
 
     fn handle_sector_create_from_template(&self, json_payload: &str) -> String {
-        let template: crate::common::SectorTemplate = match serde_json::from_str(json_payload) {
+        let template: crate::SectorTemplate = match serde_json::from_str(json_payload) {
             Ok(t) => t,
             Err(e) => return format!("ERROR: Invalid template JSON: {}", e),
         };
@@ -486,18 +486,18 @@ impl IpcHandler {
         // 1. Rust Development
         let mut env = std::collections::HashMap::new();
         env.insert("RUST_LOG".to_string(), "info".to_string());
-        templates.push(crate::common::SectorTemplate {
+        templates.push(crate::SectorTemplate {
             name: "Rust Dev".to_string(),
             description: "Pre-configured for Rust development with Dual-Hub layout.".to_string(),
             environment: env,
             hubs: vec![
-                crate::common::HubTemplate {
-                    mode: crate::common::CommandHubMode::Command,
+                crate::HubTemplate {
+                    mode: crate::CommandHubMode::Command,
                     cwd: "~/".to_string(),
                     shell: "fish".to_string(),
                 },
-                crate::common::HubTemplate {
-                    mode: crate::common::CommandHubMode::Directory,
+                crate::HubTemplate {
+                    mode: crate::CommandHubMode::Directory,
                     cwd: "~/".to_string(),
                     shell: "fish".to_string(),
                 },
@@ -505,12 +505,12 @@ impl IpcHandler {
         });
 
         // 2. Monitoring
-        templates.push(crate::common::SectorTemplate {
+        templates.push(crate::SectorTemplate {
             name: "Tactical Monitoring".to_string(),
             description: "System telemetry and log aggregation.".to_string(),
             environment: std::collections::HashMap::new(),
-            hubs: vec![crate::common::HubTemplate {
-                mode: crate::common::CommandHubMode::Activity,
+            hubs: vec![crate::HubTemplate {
+                mode: crate::CommandHubMode::Activity,
                 cwd: "/".to_string(),
                 shell: "bash".to_string(),
             }],
@@ -554,7 +554,7 @@ impl IpcHandler {
     }
 
     fn handle_app_launch(&self, json_payload: &str) -> String {
-        let model: crate::common::ApplicationModel = match serde_json::from_str(json_payload) {
+        let model: crate::ApplicationModel = match serde_json::from_str(json_payload) {
             Ok(m) => m,
             Err(e) => return format!("ERROR: Invalid app model JSON: {}", e),
         };
@@ -635,21 +635,21 @@ impl IpcHandler {
             let mut modules = MarketplaceService::list_terminal_modules();
             // Ensure built-ins are also there
             if !modules.iter().any(|m| m.id == "tos-standard-rect") {
-                modules.push(crate::common::TerminalOutputModule {
+                modules.push(crate::TerminalOutputModuleMeta {
                     id: "tos-standard-rect".to_string(),
                     name: "Standard Rectangular".to_string(),
                     version: "1.0.0".to_string(),
-                    layout: crate::common::TerminalLayoutType::Rectangular,
+                    layout: crate::TerminalLayoutType::Rectangular,
                     supports_high_contrast: true,
                     supports_reduced_motion: true,
                 });
             }
             if !modules.iter().any(|m| m.id == "tos-cinematic-tri") {
-                modules.push(crate::common::TerminalOutputModule {
+                modules.push(crate::TerminalOutputModuleMeta {
                     id: "tos-cinematic-tri".to_string(),
                     name: "Cinematic Triangular".to_string(),
                     version: "1.0.0".to_string(),
-                    layout: crate::common::TerminalLayoutType::Cinematic,
+                    layout: crate::TerminalLayoutType::Cinematic,
                     supports_high_contrast: false,
                     supports_reduced_motion: false,
                 });
@@ -672,13 +672,13 @@ impl IpcHandler {
             let mut themes = MarketplaceService::list_theme_modules();
             // Ensure built-ins are also there
             if !themes.iter().any(|t| t.id == "tos-classic-lcars") {
-                themes.push(crate::common::ThemeModule {
+                themes.push(crate::ThemeModule {
                     id: "tos-classic-lcars".to_string(),
                     name: "Classic LCARS".to_string(),
                     version: "1.0.0".to_string(),
                     author: "TOS Core".to_string(),
                     description: "Standard LCARS color scheme (Blue/Purple/Gold)".to_string(),
-                    assets: crate::common::ThemeAssetDefinition {
+                    assets: crate::ThemeAssetDefinition {
                         css: "theme-classic.css".to_string(),
                         fonts: vec!["Outfit-Regular.ttf".to_string()],
                         icons: "assets/icons/classic/".to_string(),
@@ -686,13 +686,13 @@ impl IpcHandler {
                 });
             }
             if !themes.iter().any(|t| t.id == "tos-tactical-amber") {
-                themes.push(crate::common::ThemeModule {
+                themes.push(crate::ThemeModule {
                     id: "tos-tactical-amber".to_string(),
                     name: "Tactical Amber".to_string(),
                     version: "1.0.0".to_string(),
                     author: "TOS Core".to_string(),
                     description: "High-contrast amber tactical interface".to_string(),
-                    assets: crate::common::ThemeAssetDefinition {
+                    assets: crate::ThemeAssetDefinition {
                         css: "theme-tactical.css".to_string(),
                         fonts: vec!["Outfit-Bold.ttf".to_string()],
                         icons: "assets/icons/tactical/".to_string(),
@@ -700,13 +700,13 @@ impl IpcHandler {
                 });
             }
             if !themes.iter().any(|t| t.id == "tos-red-alert") {
-                themes.push(crate::common::ThemeModule {
+                themes.push(crate::ThemeModule {
                     id: "tos-red-alert".to_string(),
                     name: "Red Alert".to_string(),
                     version: "1.0.0".to_string(),
                     author: "TOS Core".to_string(),
                     description: "High-intensity emergency mode".to_string(),
-                    assets: crate::common::ThemeAssetDefinition {
+                    assets: crate::ThemeAssetDefinition {
                         css: "theme-red.css".to_string(),
                         fonts: vec!["Outfit-Bold.ttf".to_string()],
                         icons: "assets/icons/red/".to_string(),
@@ -761,13 +761,13 @@ impl IpcHandler {
                 if let Some(ref mut results) = hub.search_results {
                     results.insert(
                         0,
-                        crate::common::SearchResult {
+                        crate::SearchResult {
                             source_sector: "Global FS Index".to_string(),
                             matches,
                         },
                     );
                 } else {
-                    hub.search_results = Some(vec![crate::common::SearchResult {
+                    hub.search_results = Some(vec![crate::SearchResult {
                         source_sector: "Global FS Index".to_string(),
                         matches,
                     }]);
@@ -794,7 +794,7 @@ impl IpcHandler {
                     .map(|h| format!("{} [{}]", h.path, if h.is_dir { "DIR" } else { "FILE" }))
                     .collect();
 
-                let semantic_result = crate::common::SearchResult {
+                let semantic_result = crate::SearchResult {
                     source_sector: "AI Semantic Engine".to_string(),
                     matches,
                 };
@@ -836,7 +836,7 @@ impl IpcHandler {
     }
 
     fn handle_face_register(&self, payload: &str) -> String {
-        let reg: tos_common::ipc::FaceRegister = match serde_json::from_str(payload) {
+        let reg: crate::ipc::FaceRegister = match serde_json::from_str(payload) {
             Ok(r) => r,
             Err(e) => return format!("ERROR: Invalid face_register JSON: {}", e),
         };
@@ -845,7 +845,7 @@ impl IpcHandler {
         state.device_profile = reg.profile;
 
         match reg.profile {
-            tos_common::ipc::FaceProfile::Handheld => {
+            crate::ipc::FaceProfile::Handheld => {
                 // §3.3.5: Handheld profile automations
                 state.bezel_expanded = false;
                 // Set default hub layout to tabs (if supported by settings)
@@ -856,7 +856,7 @@ impl IpcHandler {
 
                 tracing::info!("FACE_REGISTER: Handheld profile active. Adapting layout and AI.");
             }
-            tos_common::ipc::FaceProfile::Spatial => {
+            crate::ipc::FaceProfile::Spatial => {
                 tracing::info!("FACE_REGISTER: Spatial profile active. Enabling spatial bezel.");
             }
             _ => {}
@@ -867,14 +867,14 @@ impl IpcHandler {
     }
 
     fn handle_service_register(&self, payload: &str) -> String {
-        let req: tos_common::ipc::ServiceRegister = match serde_json::from_str(payload) {
+        let req: crate::ipc::ServiceRegister = match serde_json::from_str(payload) {
             Ok(r) => r,
             Err(e) => return format!("ERROR: Invalid registration JSON: {}", e),
         };
 
         // §4.1: Cryptographic signature verification
         if !self.services.trust.verify_service_signature(&req) {
-            return serde_json::to_string(&tos_common::ipc::ServiceRegisterResponse {
+            return serde_json::to_string(&crate::ipc::ServiceRegisterResponse {
                 status: "DENIED".to_string(),
                 message: "Cryptographic signature verification failed".to_string(),
             })
@@ -886,7 +886,7 @@ impl IpcHandler {
 
         tracing::info!("SERVICE_REGISTER: {} on port {}", req.name, req.port);
 
-        serde_json::to_string(&tos_common::ipc::ServiceRegisterResponse {
+        serde_json::to_string(&crate::ipc::ServiceRegisterResponse {
             status: "OK".to_string(),
             message: format!("Service {} registered successfully", req.name),
         })
@@ -928,7 +928,7 @@ impl IpcHandler {
                 .and_then(|s| s.parse().ok())
                 .unwrap_or(1000);
 
-            state.system_log.push(crate::common::TerminalLine {
+            state.system_log.push(crate::TerminalLine {
                 text: text.to_string(),
                 priority,
                 timestamp: chrono::Local::now(),
@@ -960,7 +960,7 @@ impl IpcHandler {
             sector.disconnected = true;
         }
         state.version += 1;
-        state.system_log.push(crate::common::TerminalLine {
+        state.system_log.push(crate::TerminalLine {
             text: "[CRITICAL] LEVEL 4 TACTICAL RESET EXECUTED - ALL PROCESSES TERMINATED"
                 .to_string(),
             priority: 3,
@@ -1127,7 +1127,7 @@ impl IpcHandler {
     fn handle_webrtc_presence(&self, payload: &str) -> String {
         // Parse the incoming generic WebRTC payload structure
         if let Ok(presence_event) =
-            serde_json::from_str::<crate::common::collaboration::WebRtcPayload>(payload)
+            serde_json::from_str::<crate::collaboration::WebRtcPayload>(payload)
         {
             let mut state = self.state.lock().unwrap();
             let mut changed = false;
@@ -1138,7 +1138,7 @@ impl IpcHandler {
                 let sector = &mut state.sectors[active_idx];
 
                 match presence_event {
-                    crate::common::collaboration::WebRtcPayload::CursorSync {
+                    crate::collaboration::WebRtcPayload::CursorSync {
                         user,
                         x,
                         y,
@@ -1153,7 +1153,7 @@ impl IpcHandler {
                             changed = true;
                         }
                     }
-                    crate::common::collaboration::WebRtcPayload::Presence {
+                    crate::collaboration::WebRtcPayload::Presence {
                         user,
                         status,
                         level,
@@ -1174,11 +1174,11 @@ impl IpcHandler {
                             // Register new remote guest observation to the active sector
                             sector
                                 .participants
-                                .push(crate::common::collaboration::Participant {
+                                .push(crate::collaboration::Participant {
                                     id: user,
                                     alias: format!("Guest {}", user.to_string()[..4].to_string()),
                                     status,
-                                    role: crate::common::collaboration::ParticipantRole::Observer,
+                                    role: crate::collaboration::ParticipantRole::Observer,
                                     current_level: level,
                                     viewport_title: active_viewport_title,
                                     left_chip_state,
@@ -1191,7 +1191,7 @@ impl IpcHandler {
                         }
                         changed = true;
                     }
-                    crate::common::collaboration::WebRtcPayload::Following {
+                    crate::collaboration::WebRtcPayload::Following {
                         follower,
                         leader,
                         sync,
@@ -1462,7 +1462,7 @@ impl IpcHandler {
     fn handle_ai_chip_stage(&self, payload: &str) -> String {
         // Stage an AI chip in the system_log. Payload is the chip text.
         let mut state = self.state.lock().unwrap();
-        state.system_log.push(crate::common::TerminalLine {
+        state.system_log.push(crate::TerminalLine {
             text: format!("[AI CHIP] {}", payload),
             priority: 1,
             timestamp: chrono::Local::now(),
@@ -1484,7 +1484,7 @@ impl IpcHandler {
         // Push an expanded thought chip to system_log
         let id = thought_id.unwrap_or("unknown");
         let mut state = self.state.lock().unwrap();
-        state.system_log.push(crate::common::TerminalLine {
+        state.system_log.push(crate::TerminalLine {
             text: format!("[AI THOUGHT:EXPANDED] id={}", id),
             priority: 1,
             timestamp: chrono::Local::now(),
@@ -1627,7 +1627,7 @@ impl IpcHandler {
             Ok(id) => format!("SPLIT_CREATED: {}", id),
             Err(e) => {
                 // Emit amber warning chip
-                state.system_log.push(crate::common::TerminalLine {
+                state.system_log.push(crate::TerminalLine {
                     text: format!("[SPLIT] ⚠ {}", e),
                     priority: 2,
                     timestamp: chrono::Local::now(),
@@ -1681,9 +1681,9 @@ impl IpcHandler {
                 let idx = state.active_sector_index;
                 let hub_idx = state.sectors[idx].active_hub_index;
                 let hub = &mut state.sectors[idx].hubs[hub_idx];
-                fn set_weight(node: &mut crate::common::SplitNode, id: Uuid, weight: f32) -> bool {
+                fn set_weight(node: &mut crate::SplitNode, id: Uuid, weight: f32) -> bool {
                     match node {
-                        crate::common::SplitNode::Leaf(p) => {
+                        crate::SplitNode::Leaf(p) => {
                             if p.id == id {
                                 p.weight = weight;
                                 true
@@ -1691,7 +1691,7 @@ impl IpcHandler {
                                 false
                             }
                         }
-                        crate::common::SplitNode::Container { children, .. } => {
+                        crate::SplitNode::Container { children, .. } => {
                             children.iter_mut().any(|c| set_weight(c, id, weight))
                         }
                     }
@@ -1748,14 +1748,14 @@ impl IpcHandler {
                 let hub_idx = state.sectors[idx].active_hub_index;
                 let hub = &mut state.sectors[idx].hubs[hub_idx];
 
-                fn swap_leaves(node: &mut crate::common::SplitNode, a: Uuid, b: Uuid) {
-                    if let crate::common::SplitNode::Container { children, .. } = node {
+                fn swap_leaves(node: &mut crate::SplitNode, a: Uuid, b: Uuid) {
+                    if let crate::SplitNode::Container { children, .. } = node {
                         // Find positions of a and b within immediate children
                         let pos_a = children.iter().position(
-                            |c| matches!(c, crate::common::SplitNode::Leaf(p) if p.id == a),
+                            |c| matches!(c, crate::SplitNode::Leaf(p) if p.id == a),
                         );
                         let pos_b = children.iter().position(
-                            |c| matches!(c, crate::common::SplitNode::Leaf(p) if p.id == b),
+                            |c| matches!(c, crate::SplitNode::Leaf(p) if p.id == b),
                         );
                         if let (Some(ia), Some(ib)) = (pos_a, pos_b) {
                             children.swap(ia, ib);
@@ -1834,7 +1834,7 @@ impl IpcHandler {
         if let Some(sector) = state.sectors.get_mut(idx) {
             let h_idx = sector.active_hub_index;
             if let Some(hub) = sector.hubs.get_mut(h_idx) {
-                hub.ai_history.push(crate::common::AiMessage {
+                hub.ai_history.push(crate::AiMessage {
                     role: role.to_string(),
                     content: message.to_string(),
                     timestamp: chrono::Local::now(),
@@ -1990,7 +1990,7 @@ impl IpcHandler {
     }
 }
 
-impl crate::common::ipc_dispatcher::IpcDispatcher for IpcHandler {
+impl crate::ipc::IpcDispatcher for IpcHandler {
     fn dispatch(&self, request: &str) -> String {
         self.handle_request(request)
     }

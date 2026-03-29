@@ -80,7 +80,7 @@ pub enum SemanticEvent {
     SecondarySelect(String),
 
     // Mode Control
-    SetMode(crate::state::CommandHubMode),
+    SetMode(crate::CommandHubMode),
     ToggleHiddenFiles,
 
     // Bezel & View

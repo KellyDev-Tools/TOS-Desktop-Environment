@@ -14,7 +14,7 @@ async fn main() -> anyhow::Result<()> {
     tracing::info!("TOS-PRIORITYD: Listening on port {}", port);
 
     // §4.1: Dynamic Port Registration Gate
-    tos_common::daemon::register_with_brain("tos-priorityd", port).await?;
+    tos_common::register_with_brain("tos-priorityd", port).await?;
 
     let mut sys = System::new_all();
 
@@ -81,7 +81,7 @@ async fn handle_client(mut socket: TcpStream, cpu_load: f32, mem_usage: f32) -> 
 
                 // Trigger tactile feedback if priority is high (§21.1)
                 if rank >= 4 {
-                    let config = tos_common::config::TosConfig::load();
+                    let config = tos_common::TosConfig::load();
                     let addr = format!("127.0.0.1:{}", config.remote.anchor_port);
                     if let Ok(mut haptic_stream) = std::net::TcpStream::connect_timeout(
                         &addr.parse().unwrap(),

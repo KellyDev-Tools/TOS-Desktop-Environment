@@ -1,4 +1,4 @@
-use crate::common::TosState;
+use crate::TosState;
 use std::path::Path;
 
 #[derive(Debug, Clone, PartialEq)]
@@ -17,7 +17,7 @@ impl TrustService {
     }
 
     /// Verifies the cryptographic signature of a service registration request (§4.1).
-    pub fn verify_service_signature(&self, req: &crate::common::ipc::ServiceRegister) -> bool {
+    pub fn verify_service_signature(&self, req: &crate::ipc::ServiceRegister) -> bool {
         use ed25519_dalek::{Signature, Verifier, VerifyingKey};
         use std::convert::TryInto;
 
@@ -202,7 +202,7 @@ impl TrustService {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::common::ipc::ServiceRegister;
+    use crate::ipc::ServiceRegister;
     use ed25519_dalek::{Signer, SigningKey};
     use rand_core::OsRng;
     use std::fs::File;

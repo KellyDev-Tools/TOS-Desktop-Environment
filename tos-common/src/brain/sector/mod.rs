@@ -1,4 +1,4 @@
-use crate::common::{CommandHub, CommandHubMode, Sector, TosState};
+use crate::{CommandHub, CommandHubMode, Sector, TosState};
 use std::path::PathBuf;
 use uuid::Uuid;
 
@@ -47,7 +47,7 @@ impl SectorManager {
             frozen: false,
             is_remote: false,
             disconnected: false,
-            trust_tier: crate::common::TrustTier::System,
+            trust_tier: crate::TrustTier::System,
             priority: 1,
             active_apps: vec![],
             active_app_index: 0,
@@ -62,7 +62,7 @@ impl SectorManager {
     /// Create a sector from a predefined blueprint.
     pub fn create_from_template(
         state: &mut TosState,
-        template: crate::common::SectorTemplate,
+        template: crate::SectorTemplate,
     ) -> Uuid {
         let sector_id = Uuid::new_v4();
         let mut hubs = Vec::new();
@@ -112,7 +112,7 @@ impl SectorManager {
             frozen: false,
             is_remote: false,
             disconnected: false,
-            trust_tier: crate::common::TrustTier::Standard,
+            trust_tier: crate::TrustTier::Standard,
             priority: 1,
             active_apps: vec![],
             active_app_index: 0,
@@ -128,11 +128,11 @@ impl SectorManager {
     pub fn launch_app(
         state: &mut TosState,
         sector_id: Uuid,
-        model: crate::common::ApplicationModel,
+        model: crate::ApplicationModel,
     ) -> Uuid {
         let app_id = Uuid::new_v4();
         if let Some(sector) = state.sectors.iter_mut().find(|s| s.id == sector_id) {
-            sector.active_apps.push(crate::common::AppInstance {
+            sector.active_apps.push(crate::AppInstance {
                 id: app_id,
                 model_id: model.id,
                 title: model.name.clone(),
@@ -141,7 +141,7 @@ impl SectorManager {
             sector.active_app_index = sector.active_apps.len() - 1;
 
             // Automatic Zoom In to Level 3 (§1.1)
-            state.current_level = crate::common::HierarchyLevel::ApplicationFocus;
+            state.current_level = crate::HierarchyLevel::ApplicationFocus;
             tracing::info!(
                 "Application {} launched in sector {}",
                 model.name,
@@ -158,8 +158,8 @@ impl SectorManager {
             if sector.active_apps.is_empty() {
                 sector.active_app_index = 0;
                 // Zoom Out to Level 2 if no apps remain (§1.1)
-                if state.current_level == crate::common::HierarchyLevel::ApplicationFocus {
-                    state.current_level = crate::common::HierarchyLevel::CommandHub;
+                if state.current_level == crate::HierarchyLevel::ApplicationFocus {
+                    state.current_level = crate::HierarchyLevel::CommandHub;
                 }
             } else if sector.active_app_index >= sector.active_apps.len() {
                 sector.active_app_index = sector.active_apps.len() - 1;
@@ -226,11 +226,11 @@ impl SectorManager {
                     let is_dir = metadata.as_ref().map(|m| m.is_dir()).unwrap_or(false);
                     let size = metadata.as_ref().map(|m| m.len()).unwrap_or(0);
 
-                    entries.push(crate::common::DirectoryEntry { name, is_dir, size });
+                    entries.push(crate::DirectoryEntry { name, is_dir, size });
                 }
             }
 
-            hub.shell_listing = Some(crate::common::DirectoryListing {
+            hub.shell_listing = Some(crate::DirectoryListing {
                 path: path.to_string_lossy().to_string(),
                 entries,
             });
@@ -246,7 +246,7 @@ impl SectorManager {
         let idx = state.active_sector_index;
         if let Some(sector) = state.sectors.get_mut(idx) {
             let hub = &mut sector.hubs[sector.active_hub_index];
-            if hub.mode != crate::common::CommandHubMode::Activity {
+            if hub.mode != crate::CommandHubMode::Activity {
                 return;
             }
 
@@ -259,7 +259,7 @@ impl SectorManager {
                 // Fetch dynamic snapshot from the capture service if available
                 let snapshot = capture_svc.and_then(|svc| svc.get_snapshot(pid));
 
-                processes.push(crate::common::ProcessEntry {
+                processes.push(crate::ProcessEntry {
                     pid,
                     name: process.name().to_string(),
                     cpu_usage: process.cpu_usage(),
@@ -275,7 +275,7 @@ impl SectorManager {
                     .unwrap_or(std::cmp::Ordering::Equal)
             });
 
-            hub.activity_listing = Some(crate::common::ActivityListing { processes });
+            hub.activity_listing = Some(crate::ActivityListing { processes });
         }
     }
 
@@ -297,7 +297,7 @@ impl SectorManager {
                 }
             }
             if !matches.is_empty() {
-                results.push(crate::common::SearchResult {
+                results.push(crate::SearchResult {
                     source_sector: sector.name.clone(),
                     matches,
                 });
@@ -331,41 +331,41 @@ impl SectorManager {
             .map(|l| l.pane_count())
             .unwrap_or(1);
 
-        if !crate::common::SplitNode::can_split(existing_count, display_width, display_height) {
+        if !crate::SplitNode::can_split(existing_count, display_width, display_height) {
             return Err("SPLIT_BLOCKED: minimum pane size limit reached".to_string());
         }
 
         let new_pane_id = Uuid::new_v4();
-        let new_pane = crate::common::SplitPane {
+        let new_pane = crate::SplitPane {
             id: new_pane_id,
             weight: 0.5,
             cwd: hub.current_directory.clone(),
-            content: crate::common::PaneContent::Terminal,
+            content: crate::PaneContent::Terminal,
         };
 
         let orientation =
-            crate::common::SplitNode::ideal_orientation(display_width, display_height);
+            crate::SplitNode::ideal_orientation(display_width, display_height);
 
         hub.split_layout = Some(match hub.split_layout.take() {
             None => {
                 // First split: wrap the implicit single pane into a 2-pane container
-                let original_pane = crate::common::SplitPane {
+                let original_pane = crate::SplitPane {
                     id: Uuid::new_v4(),
                     weight: 0.5,
                     cwd: hub.current_directory.clone(),
-                    content: crate::common::PaneContent::Terminal,
+                    content: crate::PaneContent::Terminal,
                 };
-                crate::common::SplitNode::Container {
+                crate::SplitNode::Container {
                     orientation,
                     children: vec![
-                        crate::common::SplitNode::Leaf(original_pane),
-                        crate::common::SplitNode::Leaf(new_pane),
+                        crate::SplitNode::Leaf(original_pane),
+                        crate::SplitNode::Leaf(new_pane),
                     ],
                 }
             }
-            Some(existing) => crate::common::SplitNode::Container {
+            Some(existing) => crate::SplitNode::Container {
                 orientation,
-                children: vec![existing, crate::common::SplitNode::Leaf(new_pane)],
+                children: vec![existing, crate::SplitNode::Leaf(new_pane)],
             },
         });
 
@@ -380,18 +380,18 @@ impl SectorManager {
         let hub = &mut state.sectors[idx].hubs[hub_idx];
 
         fn remove_pane(
-            node: crate::common::SplitNode,
+            node: crate::SplitNode,
             id: Uuid,
-        ) -> Option<crate::common::SplitNode> {
+        ) -> Option<crate::SplitNode> {
             match node {
-                crate::common::SplitNode::Leaf(p) => {
+                crate::SplitNode::Leaf(p) => {
                     if p.id == id {
                         None
                     } else {
-                        Some(crate::common::SplitNode::Leaf(p))
+                        Some(crate::SplitNode::Leaf(p))
                     }
                 }
-                crate::common::SplitNode::Container {
+                crate::SplitNode::Container {
                     orientation,
                     children,
                 } => {
@@ -404,7 +404,7 @@ impl SectorManager {
                     } else if filtered.len() == 1 {
                         Some(filtered.into_iter().next().unwrap())
                     } else {
-                        Some(crate::common::SplitNode::Container {
+                        Some(crate::SplitNode::Container {
                             orientation,
                             children: filtered,
                         })
@@ -481,11 +481,11 @@ impl SectorManager {
         let idx = state.active_sector_index;
         let hub_idx = state.sectors[idx].active_hub_index;
         let hub = &mut state.sectors[idx].hubs[hub_idx];
-        fn equalize(node: &mut crate::common::SplitNode) {
-            if let crate::common::SplitNode::Container { children, .. } = node {
+        fn equalize(node: &mut crate::SplitNode) {
+            if let crate::SplitNode::Container { children, .. } = node {
                 let weight = 1.0 / children.len() as f32;
                 for child in children.iter_mut() {
-                    if let crate::common::SplitNode::Leaf(p) = child {
+                    if let crate::SplitNode::Leaf(p) = child {
                         p.weight = weight;
                     }
                     equalize(child);
@@ -505,25 +505,25 @@ impl SectorManager {
         let hub_idx = state.sectors[idx].active_hub_index;
         let hub = &mut state.sectors[idx].hubs[hub_idx];
         fn find_pane(
-            node: &crate::common::SplitNode,
+            node: &crate::SplitNode,
             id: Uuid,
-        ) -> Option<crate::common::SplitPane> {
+        ) -> Option<crate::SplitPane> {
             match node {
-                crate::common::SplitNode::Leaf(p) => {
+                crate::SplitNode::Leaf(p) => {
                     if p.id == id {
                         Some(p.clone())
                     } else {
                         None
                     }
                 }
-                crate::common::SplitNode::Container { children, .. } => {
+                crate::SplitNode::Container { children, .. } => {
                     children.iter().find_map(|c| find_pane(c, id))
                 }
             }
         }
         if let Some(layout) = &hub.split_layout {
             if let Some(pane) = find_pane(layout, pane_id) {
-                hub.split_layout = Some(crate::common::SplitNode::Leaf(pane));
+                hub.split_layout = Some(crate::SplitNode::Leaf(pane));
                 hub.focused_pane_id = Some(pane_id);
                 return true;
             }
@@ -540,16 +540,16 @@ impl SectorManager {
             let hub_idx = state.sectors[idx].active_hub_index;
             let hub = &state.sectors[idx].hubs[hub_idx];
             let layout = hub.split_layout.as_ref()?;
-            fn find_cwd(node: &crate::common::SplitNode, id: Uuid) -> Option<std::path::PathBuf> {
+            fn find_cwd(node: &crate::SplitNode, id: Uuid) -> Option<std::path::PathBuf> {
                 match node {
-                    crate::common::SplitNode::Leaf(p) => {
+                    crate::SplitNode::Leaf(p) => {
                         if p.id == id {
                             Some(p.cwd.clone())
                         } else {
                             None
                         }
                     }
-                    crate::common::SplitNode::Container { children, .. } => {
+                    crate::SplitNode::Container { children, .. } => {
                         children.iter().find_map(|c| find_cwd(c, id))
                     }
                 }
@@ -578,12 +578,12 @@ impl SectorManager {
     ) -> Uuid {
         let sector_id = Uuid::new_v4();
         let hub_id = Uuid::new_v4();
-        let sector = crate::common::Sector {
+        let sector = crate::Sector {
             id: sector_id,
             name,
-            hubs: vec![crate::common::CommandHub {
+            hubs: vec![crate::CommandHub {
                 id: hub_id,
-                mode: crate::common::CommandHubMode::Command,
+                mode: crate::CommandHubMode::Command,
                 prompt: String::new(),
                 current_directory: cwd,
                 terminal_output: vec![],
@@ -606,7 +606,7 @@ impl SectorManager {
             frozen: false,
             is_remote: false,
             disconnected: false,
-            trust_tier: crate::common::TrustTier::System,
+            trust_tier: crate::TrustTier::System,
             priority: 1,
             active_apps: vec![],
             active_app_index: 0,

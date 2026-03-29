@@ -8,6 +8,20 @@
         android-check android-build android-build-release clean-android android-test
 
 # -----------------------------------------------------------------------------
+# 0. INFRASTRUCTURE & HOOKS
+# -----------------------------------------------------------------------------
+
+PRE_COMMIT_HOOK := .git/hooks/pre-commit
+
+$(PRE_COMMIT_HOOK): scripts/pre-commit.sh
+	@mkdir -p .git/hooks
+	@cp scripts/pre-commit.sh $(PRE_COMMIT_HOOK)
+	@chmod +x $(PRE_COMMIT_HOOK)
+	@echo "[TOS] Pre-commit hooks updated."
+
+install-hooks: $(PRE_COMMIT_HOOK)
+
+# -----------------------------------------------------------------------------
 # 1. HELP & DISCOVERY
 # -----------------------------------------------------------------------------
 
@@ -15,7 +29,7 @@ help:
 	@echo "\033[1;36mTOS BETA-0 BUILD SYSTEM\033[0m"
 	@echo ""
 	@echo "\033[1;33mIndependent Build Targets:\033[0m"
-	@echo "  make build-all       Compile the entire workspace"
+	@echo "  make build-all       Compile the entire workspace (Auto-installs hooks)"
 	@echo "  make build-brain     Compile the core Brain process only"
 	@echo "  make build-faces     Compile all active face implementations"
 	@echo "  make build-face-web  Compile the Svelte web-based Face"
@@ -61,7 +75,7 @@ help:
 # 2. CORE DEVELOPMENT
 # -----------------------------------------------------------------------------
 
-build-all: build-common build-brain build-services
+build-all: $(PRE_COMMIT_HOOK) build-common build-brain build-services
 	cd face-wayland-linux && cargo build
 	cd face-android-handheld && cargo build
 
@@ -87,7 +101,7 @@ build-services:
 	cd tos-heuristicd && cargo build
 	cd tos-searchd && cargo build
 
-check:
+check: $(PRE_COMMIT_HOOK)
 	cd tos-common && cargo check
 	cd brain && cargo check
 	cd tos-settingsd && cargo check
@@ -127,7 +141,7 @@ docs:
 
 test: test-all
 
-test-all: test-common test-core test-shell test-search
+test-all: $(PRE_COMMIT_HOOK) test-common test-core test-shell test-search
 
 test-common:
 	cd tos-common && cargo test
@@ -206,7 +220,7 @@ test-health:
 # --- NVM Helper (Node v20 required for Svelte) ---
 NVM_INIT = export NVM_DIR="$$HOME/.nvm" && [ -s "$$NVM_DIR/nvm.sh" ] && . "$$NVM_DIR/nvm.sh" && nvm use 20 --silent
 
-run: run-services
+run: $(PRE_COMMIT_HOOK) run-services
 	@mkdir -p logs
 	@pkill -x tos-brain || true
 	cd brain && cargo run --bin tos-brain | tee ../logs/tos-brain.log

@@ -1,0 +1,17 @@
+[workspace]
+resolver = "2"
+
+members = [
+    "brain",
+    "tos-common",
+    "tos-heuristicd",
+    "tos-loggerd",
+    "tos-marketplaced",
+    "tos-priorityd",
+    "tos-searchd",
+    "tos-sessiond",
+    "tos-settingsd",
+    "face-wayland-linux",
+    "face-android-handheld",
+    "tests",
+]

@@ -6,7 +6,6 @@ publish = false
 
 [dependencies]
 tos-common = { path = "../tos-common" }
-tos_common = { package = "tos-brain", path = "../brain" }
 tokio = { version = "1.36", features = ["full"] }
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"

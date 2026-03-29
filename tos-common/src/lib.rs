@@ -39,4 +39,6 @@ pub use services::marketplace::{ModuleManifest, ExecutableConfig, MarketplaceSer
 pub use collaboration::{Participant, ParticipantRole, PresenceStatus, WebRtcPayload};
 pub use platform::{AppPlatform, PlatformStatus, RemoteServer, remote::RemoteRenderer};
 pub use shell::{OscEvent, OscParser};
-pub use daemon::{register_with_brain, log_to_brain, MockBrain};
+#[cfg(feature = "test-utils")]
+pub use daemon::MockBrain;
+pub use daemon::{register_with_brain, log_to_brain};

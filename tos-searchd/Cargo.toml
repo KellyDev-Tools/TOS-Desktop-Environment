@@ -11,5 +11,19 @@ tokio = { version = "1.36", features = ["full"] }
 anyhow = "1.0"
 tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
-fastembed = "5.13"
+candle-core = "0.8.0"
+candle-nn = "0.8.0"
+candle-transformers = "0.8.0"
+tokenizers = "0.20.0"
+hf-hub = "0.4.0"
+tantivy = "0.22"
+hnsw_rs = "0.3.1"
+notify = "6.1"
 walkdir = "2.5.0"
+tempfile = "3.10"
+rand = "0.8.5"
+
+[features]
+default = []
+cuda = ["candle-core/cuda", "candle-nn/cuda"]
+vulkan = []

@@ -11,3 +11,6 @@ tokio = { version = "1.36", features = ["full"] }
 anyhow = "1.0"
 tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+[dev-dependencies]
+tos-common = { path = "../tos-common", features = ["test-utils"] }
+serde_json = "1.0"

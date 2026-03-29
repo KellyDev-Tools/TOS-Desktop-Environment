@@ -33,9 +33,9 @@ pub use modules::{AiModule, AiQuery, AiResponse, ShellModule, ShellIntegration};
 pub use ipc::IpcDispatcher;
 pub use marketplace::{
     MarketplaceHome, MarketplaceCategory, MarketplaceModuleSummary, 
-    MarketplaceModuleDetail, InstallProgress
+    MarketplaceModuleDetail, InstallProgress, MarketplaceReview
 };
-pub use services::marketplace::{ModuleManifest, ExecutableConfig};
+pub use services::marketplace::{ModuleManifest, ExecutableConfig, MarketplaceService};
 pub use collaboration::{Participant, ParticipantRole, PresenceStatus, WebRtcPayload};
 pub use platform::{AppPlatform, PlatformStatus, RemoteServer, remote::RemoteRenderer};
 pub use shell::{OscEvent, OscParser};

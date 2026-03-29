@@ -12,3 +12,9 @@ anyhow = "1.0"
 tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 dirs = "6.0.0"
+hex = "0.4"
+ed25519-dalek = "2.1"
+rand_core = { version = "0.6", features = ["getrandom"] }
+[dev-dependencies]
+tos-common = { path = "../tos-common", features = ["test-utils"] }
+serde_json = "1.0"

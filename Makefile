@@ -1,11 +1,12 @@
 # TOS Beta-0 Build System
 # High-Fidelity OS Pipeline
 
-.PHONY: help build-all build-brain build-faces build-face-web build-protocol build-services \
+.PHONY: help build-all build-brain build-faces build-face-web build-face-electron build-protocol build-services \
         check check-brain fmt lint docs \
         test test-all test-core test-shell test-ai test-sec test-system test-brain-component test-ui-component test-self test-e2e test-health \
         run run-web run-web-dev dev-web clean \
-        android-check android-build android-build-release clean-android android-test
+        android-check android-build android-build-release clean-android android-test \
+        pack-face-electron-win pack-face-electron-linux pack-face-electron-mac
 
 # -----------------------------------------------------------------------------
 # 0. INFRASTRUCTURE & HOOKS
@@ -32,9 +33,10 @@ help:
 	@echo "  make build-all       Compile the entire workspace (Auto-installs hooks)"
 	@echo "  make build-brain     Compile the core Brain process only"
 	@echo "  make build-faces     Compile all active face implementations"
-	@echo "  make build-face-web  Compile the Svelte web-based Face"
-	@echo "  make build-common    Compile the shared common crate"
-	@echo "  make build-services  Compile all auxiliary daemons"
+	@echo "  make build-face-web      Compile the Svelte web-based Face"
+	@echo "  make build-face-electron Compile the Electron desktop Face"
+	@echo "  make build-common        Compile the shared common crate"
+	@echo "  make build-services      Compile all auxiliary daemons"
 	@echo ""
 	@echo "\033[1;33mDevelopment Targets:\033[0m"
 	@echo "  make check           Fast workspace verification (cargo check)"
@@ -68,6 +70,11 @@ help:
 	@echo "  make android-release Cross-compile release APK"
 	@echo "  make android-test    Run Android Face tests"
 	@echo ""
+	@echo "\033[1;33mElectron Packaging:\033[0m"
+	@echo "  make pack-face-electron-win   Bundle Electron Face for Windows (.exe)"
+	@echo "  make pack-face-electron-linux Bundle Electron Face for Linux (.AppImage)"
+	@echo "  make pack-face-electron-mac   Bundle Electron Face for macOS (.dmg)"
+	@echo ""
 	@echo "\033[1;33mMaintenance:\033[0m"
 	@echo "  make clean           Purge build artifacts and logs"
 
@@ -82,12 +89,28 @@ build-all: $(PRE_COMMIT_HOOK) build-common build-brain build-services
 build-brain:
 	cd brain && cargo build --bin tos-brain
 
-build-faces: build-face-web android-check
+build-faces: build-face-web build-face-electron android-check
 
 build-face-web:
 	@echo "[TOS] Building Svelte Face UI..."
 	@$(NVM_INIT) && cd face-svelte-ui && npm run build
 	@echo "[TOS] Svelte Face UI: BUILD COMPLETE"
+
+build-face-electron: build-face-web
+	@echo "[TOS] Building Electron Face Container..."
+	cd face-electron-any && npm install && npm run build
+
+pack-face-electron-win: build-face-electron
+	@echo "[TOS] Packaging Electron Face for Windows..."
+	cd face-electron-any && npm run pack:win
+
+pack-face-electron-linux: build-face-electron
+	@echo "[TOS] Packaging Electron Face for Linux..."
+	cd face-electron-any && npm run pack:linux
+
+pack-face-electron-mac: build-face-electron
+	@echo "[TOS] Packaging Electron Face for macOS..."
+	cd face-electron-any && npm run pack:mac
 
 build-common:
 	cd tos-common && cargo build

@@ -39,19 +39,23 @@ thumbs.db
 /beta-0/*.tar.gz
 
 # UI & E2E Web related
-**/svelte_ui/build/
-**/svelte_ui/test-results/
-**/svelte_ui/playwright-report/
-**/svelte_ui/dom-e2e-dump.html
 **/node_modules/
 **/.svelte-kit/
+face-svelte-ui/build/
+face-svelte-ui/test-results/
+face-svelte-ui/playwright-report/
+face-svelte-ui/dom-e2e-dump.html
 .next/
-dist/
 /pkg/
-/build/
 /out/
+
+# Electron Face
+face-electron-any/dist/
+face-electron-any/release/
+face-electron-any/build-log*.txt
+.cache-eb/
+
 # Android / Gradle
 .gradle/
 local.properties
 **/libs/arm64-v8a/
-**/build/

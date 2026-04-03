@@ -2,6 +2,8 @@
     "name": "face-electron-any",
     "version": "2.2.1",
     "description": "TOS Desktop Environment — Electron Face Container",
+    "author": "TOS Project",
+    "homepage": "https://github.com/KellyDev-Tools/TOS-Desktop-Environment",
     "private": true,
     "main": "dist/main.js",
     "scripts": {

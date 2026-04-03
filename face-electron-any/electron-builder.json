@@ -14,7 +14,7 @@
     ],
     "extraResources": [
         {
-            "from": "../../svelte_ui/build",
+            "from": "../face-svelte-ui/build",
             "to": "renderer",
             "filter": [
                 "**/*"
@@ -67,7 +67,6 @@
                 ]
             }
         ],
-        "icon": "resources/icon.icns",
         "category": "public.app-category.utilities",
         "darkModeSupport": true,
         "hardenedRuntime": true,
@@ -111,12 +110,12 @@
                 ]
             }
         ],
-        "icon": "resources/icons",
         "category": "Utility",
         "artifactName": "TOS-${version}-linux-${arch}.${ext}"
     },
     "publish": {
-        "provider": "generic",
-        "url": "https://updates.tos.dev/releases"
+        "provider": "github",
+        "owner": "KellyDev-Tools",
+        "repo": "TOS-Desktop-Environment"
     }
 }

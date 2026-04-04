@@ -193,6 +193,234 @@ The Brain broadcasts state updates as JSON deltas to minimize bandwidth. A delta
 - **Query:** `log_query:{"surface": "browser", "since": "-10m", "limit": 50}`
 - **Response:** `{"query_id": "uuid", "results": [{"ts": 1709299400, "level": "INFO", "source": "browser", "event": "navigation", "data": "https://..."}]}`
 
+### 3.4 Face Disconnected Mode
+
+The Face must operate gracefully when no Brain is reachable. This section defines the connection lifecycle, visual states, degraded capabilities, and reconnection logic for a Face that has lost contact with its Brain — or never had one.
+
+#### 3.4.1 Connection Lifecycle
+
+The Face's relationship with the Brain has four states:
+
+| State | Description |
+|:---|:---|
+| **Connecting** | Face is actively attempting to reach a Brain (local socket → remote anchor → saved hosts → mDNS scan). |
+| **Connected** | Brain link established. Face has received at least one `state_delta` and sent `face_register`. Normal operation. |
+| **Disconnected** | Brain link was previously established but has been lost (socket closed, heartbeat timeout, network failure). |
+| **No Brain** | Face has exhausted all discovery methods and has never connected in this session. |
+
+**State Transitions:**
+
+- **Launch →** `Connecting` (always).
+- **`Connecting` →** `Connected` when Brain responds and `face_register` is accepted.
+- **`Connecting` →** `No Brain` when all discovery methods are exhausted.
+- **`Connected` →** `Disconnected` on heartbeat timeout or socket closure.
+- **`Disconnected` →** `Connecting` when automatic retry triggers.
+- **`No Brain` →** `Connecting` when the user initiates manual connect, or on periodic background probe (every 60 seconds).
+
+#### 3.4.2 Connection Health Detection
+
+The Brain already maintains a 1Hz background heartbeat that increments `brain_time` and the state `version` counter on every tick (see §3.3.2). These version-bumped `state_delta` messages serve as an implicit heartbeat
+
+**Face-side detection:** The Face monitors the incoming `state_delta` stream. If **no `state_delta` is received for 5 consecutive seconds** (5 missed 1Hz ticks), the Face transitions to `Disconnected`. This threshold accounts for minor network jitter without triggering false disconnects.
+
+**Brain-side detection:** The Brain's Service Registry (Ecosystem §4.3) already probes registered services at 30-second intervals and marks unresponsive daemons as `offline`. For Face connections specifically, the Brain detects Face loss when the WebSocket or IPC channel reports a closed/errored socket, at which point it unregisters the Face internally.
+
+**Clock drift:** The `brain_time` field in `state_delta` messages is used by the **Brain Connection Status** bezel component (§8.1) to display Brain time and detect clock drift between the Face and Brain.
+
+#### 3.4.3 Visual States
+
+##### Connecting State
+
+The Face displays a **Connection Screen** — a full-viewport LCARS-styled overlay. This is the first screen the user sees when no Brain is immediately available.
+
+```
+┌──────────────────────────────────────────────────────────────────┐
+│                                                                  │
+│                                                                  │
+│                          ╔═══════════╗                           │
+│                          ║  TOS ◉    ║   ← animated pulse       │
+│                          ╚═══════════╝                           │
+│                                                                  │
+│                    Connecting to Brain...                         │
+│                                                                  │
+│              ┌──────────────────────────────────┐                │
+│              │  ● Local socket       checking... │                │
+│              │  ○ Remote anchor      waiting     │                │
+│              │  ○ mDNS scan          waiting     │                │
+│              │  ○ Saved hosts         waiting     │                │
+│              └──────────────────────────────────┘                │
+│                                                                  │
+│         [ Connect Manually ]     [ Continue Offline ]            │
+│                                                                  │
+└──────────────────────────────────────────────────────────────────┘
+```
+
+- **Discovery progress:** Each method shows a status indicator: `●` active (with spinner), `✓` succeeded, `✗` failed, `○` waiting.
+- **[Connect Manually]** — opens the connection dialog (Ecosystem §5.3) so the user can enter a host and port directly.
+- **[Continue Offline]** — transitions to the **No Brain** state immediately (skips remaining discovery).
+
+The Face cycles through discovery methods in the order defined by §3.3 and Ecosystem §5.4, with a **3-second timeout** per method.
+
+##### Disconnected State
+
+When transitioning from Connected to Disconnected, the existing UI remains visible but enters a degraded state:
+
+```
+┌──────────────────────────────────────────────────────────────────┐
+│ ▮ Top Bezel ▮▮▮▮▮▮▮▮▮▮▮▮▮▮▮▮▮▮▮▮▮▮▮▮▮▮▮▮▮▮▮▮▮▮▮▮▮▮▮▮▮▮▮▮▮▮▮▮ │
+│┌────────────────────────────────────────────────────────────────┐│
+││  ⚠ Brain connection lost — reconnecting...  attempt 2 (in 3s) ││ ← amber banner
+│├────────────────────────────────────────────────────────────────┤│
+││                                                                ││
+││  ┌─────────┐  ┌─────────┐  ┌─────────┐                       ││
+││  │ Sector1 │  │ Sector2 │  │ Sector3 │  ← dimmed 50% opacity ││
+││  │  (idle) │  │  (idle) │  │  (idle) │                        ││
+││  └─────────┘  └─────────┘  └─────────┘                        ││
+││                                                                ││
+│├────────────────────────────────────────────────────────────────┤│
+││  ▮ ⊘ Disconnected ▮▮▮▮▮▮▮▮▮▮▮▮▮▮▮▮▮▮▮▮▮▮▮  [ Connect → ]   ││ ← prompt disabled
+│└────────────────────────────────────────────────────────────────┘│
+└──────────────────────────────────────────────────────────────────┘
+```
+
+1. **Immediate:** The **Brain Connection Status** bezel component (§8.1) switches to a pulsing red "OFFLINE" indicator.
+2. **After 1 second:** An amber banner slides down from the top bezel showing the retry counter and next-attempt countdown.
+3. **All sector content freezes** in its last-known state. Sector tiles remain visible but are dimmed (50% opacity). Terminal output stops scrolling but the last-known content remains visible.
+4. **The Persistent Unified Prompt** (§7.1) is disabled — input is blocked with a "Disconnected" placeholder. A **[Connect →]** button replaces the mic/stop controls, opening the connection dialog (Ecosystem §5.3).
+5. **Bezel slots** remain visible but non-interactive (except Brain Connection Status and the prompt's Connect button).
+
+##### No Brain State
+
+If no Brain is found (all discovery exhausted), or the user chose **[Continue Offline]**, the Face renders a connection-focused UI:
+
+```
+┌──────────────────────────────────────────────────────────────────┐
+│ ▮ Brain: No Brain ▮▮▮▮▮▮▮▮▮▮▮▮▮▮▮▮▮▮▮▮▮▮▮▮▮▮▮▮▮▮▮▮▮▮▮▮▮▮▮▮▮▮ │
+│                                                                  │
+│                     No Brain Connected                           │
+│                                                                  │
+│   ─── Connect to a Brain ─────────────────────────────────────   │
+│                                                                  │
+│   [ Scan Network ]    Discover TOS instances on your LAN (mDNS)  │
+│   [ Enter Address ]   Connect to a known host and port           │
+│                                                                  │
+│   ─── Recent Hosts ───────────────────────────────────────────   │
+│                                                                  │
+│   ┌──────────────────────────────────────────────────────────┐   │
+│   │  ★ Workstation        10.0.0.42:7000    2h ago  [ → ]   │   │
+│   │    Dev Server         192.168.1.5:7000  3d ago  [ → ]   │   │
+│   │    Laptop             192.168.1.12:7000 1w ago  [ → ]   │   │
+│   └──────────────────────────────────────────────────────────┘   │
+│                                                                  │
+│   ─── Last Session ───────────────────────────────────────────   │
+│   Lost connection to 10.0.0.42:7000 at 16:05:12                  │
+│                                                                  │
+│   [ Reconnect Last ]                                             │
+│                                                                  │
+│   Keyboard shortcut: Ctrl+Shift+R to reconnect at any time       │
+│                                                                  │
+└──────────────────────────────────────────────────────────────────┘
+```
+
+- **[Scan Network]** — triggers mDNS discovery (`_tos-brain._tcp`). Results appear as selectable rows below the button as they are found.
+- **[Enter Address]** — opens the connection dialog (Ecosystem §5.3) for manual host:port entry.
+- **Recent Hosts** — pulled from `~/.config/tos/remote-hosts.toml`. Each row shows the saved name, address, time since last connection, and a one-tap **[→]** connect button. The most recently used host is marked with ★.
+- **Last Session** — if the Face was previously connected and lost the brain this session, displays the last-known endpoint and time of disconnection, with a **[Reconnect Last]** shortcut.
+- **Bezel:** Only the **Brain Connection Status** component is active (gray "No Brain" indicator). If the Face has cached settings from a prior session, the Settings panel is accessible in read-only mode.
+- **Theme:** The active theme CSS remains applied (themes are loaded by the Face from local files, not streamed from the Brain).
+- **No sectors, no prompt, no chips.** The Face cannot create or display sectors without a Brain.
+
+#### 3.4.4 Reconnection Logic
+
+##### Automatic Retry (Disconnected State Only)
+
+When the Face enters the Disconnected state, it initiates automatic reconnection:
+
+| Attempt | Delay | Method |
+|:---|:---|:---|
+| 1–3 | 1s, 2s, 4s | Reconnect to last-known Brain endpoint (same socket/host:port) |
+| 4–6 | 8s, 16s, 30s | Full discovery cycle (local socket → anchor port → mDNS → saved hosts) |
+| 7+ | 60s (steady) | Background probe every 60 seconds until successful or user cancels |
+
+The amber banner displays: `"Reconnecting... attempt N (next in Xs)"`.
+
+##### Manual Retry
+
+At any time during Disconnected or No Brain states, the user can:
+- Click **[Connect to Brain]** to open the connection dialog.
+- Press `Ctrl+Shift+R` (semantic event: `reconnect_brain`) to force an immediate discovery cycle.
+
+##### Successful Reconnection
+
+When reconnection succeeds:
+
+1. Face sends `face_register` (§3.3.5) as if freshly connecting.
+2. Brain responds with a **full state snapshot** (not a delta — the Face's cached state may be stale).
+3. The amber banner transitions to green: `"Brain reconnected"` for 3 seconds, then dismisses.
+4. All sectors, bezel components, and the prompt restore to their Brain-authoritative state.
+5. An earcon plays (§23): `reconnect_success`.
+6. If the Brain's state differs significantly from the cached state (e.g., sectors were created/destroyed while disconnected), the Face performs a full viewport rebuild rather than attempting to diff.
+
+#### 3.4.5 Degraded Capability Matrix
+
+| Capability | Connected | Disconnected | No Brain |
+|:---|:---|:---|:---|
+| View sectors | ✓ Live | ✓ Frozen (last known) | ✗ None |
+| Execute commands | ✓ | ✗ | ✗ |
+| View terminal history | ✓ | ✓ Read-only (cached) | ✗ |
+| Change settings | ✓ | ✗ | ✗ (read-only if cached) |
+| Switch themes | ✓ | ✓ (local CSS only) | ✓ (local CSS only) |
+| View bezel telemetry | ✓ | ✗ (stale values shown) | ✗ |
+| Use AI | ✓ | ✗ (queued per Features §4.9) | ✗ |
+| Connect to remote Brain | ✓ | ✓ | ✓ |
+| Navigate hierarchy | ✓ | ✗ | ✗ |
+| Copy text from terminals | ✓ | ✓ (from cached buffer) | ✗ |
+
+#### 3.4.6 State Caching
+
+The Face maintains a **local state cache** to support the Disconnected state:
+
+- **Cache contents:** The most recent `state_delta` snapshot, including sector tree, hub states, terminal buffer (last 500 lines per hub), and bezel slot states.
+- **Cache lifetime:** Valid for the current Face process lifetime only. Not persisted to disk (session persistence is the Brain's responsibility via `tos-sessiond`).
+- **Cache invalidation:** Fully replaced on reconnection when the Brain sends a fresh state snapshot.
+
+#### 3.4.7 IPC Contracts — Connection Lifecycle
+
+| Message | Direction | When |
+|:---|:---|:---|
+| `state_delta` | Brain → Face | Every 1 second (1Hz heartbeat tick). Absence for 5s triggers Disconnected state. |
+| `face_reconnect` | Face → Brain | Face is reconnecting after disconnect; requests full state snapshot |
+| `state_snapshot` | Brain → Face | Full state (not delta) sent in response to `face_reconnect` |
+| `connection_lost` | Face (internal) | Synthetic event fired when no `state_delta` received for 5 seconds; triggers Disconnected visual state |
+
+#### 3.4.8 Audio & Haptic Cues
+
+| Event | Earcon | Haptic |
+|:---|:---|:---|
+| Connection lost | `connection_lost` — descending two-tone alert | Medium pulse (200ms) |
+| Reconnection attempt | None (silent) | None |
+| Reconnection successful | `reconnect_success` — ascending chime | Light pulse (100ms) |
+| No Brain (discovery exhausted) | `no_brain` — single low tone | Long pulse (400ms) |
+
+#### 3.4.9 Developer Mode (`make dev-web`)
+
+When the Face is started via `make dev-web` (no Brain), it operates in the **No Brain** state by default. For UI development convenience:
+
+- An environment variable `TOS_DEV_MODE=1` is set by the `dev-web` target.
+- When `TOS_DEV_MODE=1`, the Face loads a **mock state fixture** from `svelte_ui/fixtures/mock_state.json` instead of waiting for a Brain connection.
+- The fixture provides synthetic sectors, hubs, terminal output, and bezel state so that all UI components can be developed and tested visually.
+- The mock state is static — no IPC, no real PTY. But all rendering paths are exercised.
+- The **Brain Connection Status** component shows "DEV MODE" in amber instead of "No Brain".
+
+#### 3.4.10 Platform-Specific Notes
+
+| Platform | Behavior |
+|:---|:---|
+| **Electron (Windows/Linux/macOS)** | Face launches and enters Connecting state. If Brain is expected to be co-located (same machine), the Electron main process can optionally spawn the Brain binary itself before the renderer loads. |
+| **Web Face (Browser)** | Connects to Brain via WebSocket. Disconnected state shows the reconnection banner within the browser tab. Browser refresh triggers a full reconnect cycle. |
+| **Android Handheld** | Face app shows a dedicated connection screen with LAN scan and saved hosts. Background retry uses Android WorkManager to respect battery limits. |
+| **Horizon OS (Quest)** | Remote-only client. Disconnected state overlays the VR environment with a 2D reconnection panel. |
+
 ---
 
 ## 4. Modular Service Architecture
@@ -487,7 +715,7 @@ Only **Bezel Component Modules** (`.tos-bezel` packages, §30.2) may be docked i
 | **Resource Telemetry** | `Top_Center` | `Top_Left`, `Top_Center`, `Top_Right` | Real-time CPU, Memory, Network, and PTY latency. |
 | **Mini-Log Telemetry** | `Right_Sidebar` | `Left_Sidebar`, `Right_Sidebar` | Persistent readout of system state and last executed command. |
 | **Active Viewport Title** | `Top_Left` | Any | Real-time text readout of current Level, Sector, or App context. |
-| **Brain Connection Status** | `Top_Center` | Any | Connection state (Online/Offline) and Brain time. |
+| **Brain Connection Status** | `Top_Center` | Any | Connection state (Connecting/Connected/Disconnected/No Brain) and Brain time. See §3.4 for state definitions. |
 | **System Status Badges** | `Top_Right` | Any | Quick-toggles for UI settings, sandboxes, and Terminal output overlay. |
 | **Collaboration Hub** | — | Any | Multi-user avatars and follow-mode toggles. |
 | **Media Controller** | — | Any | Global audio playback controls. |
@@ -1691,3 +1919,6 @@ Notifications appear in the **Right Lateral Bezel** and unfurl inward:
 | **Projection** | The animation of a bezel component expanding inward to reveal more detail. |
 | **SemanticEvent** | An abstract input action (e.g., `zoom_in`, `select`) derived from raw physical input. |
 | **Terminal Output Module** | An installable plugin (`.tos-terminal`) that defines how terminal output is visually rendered. |
+| **Disconnected Mode** | A Face state where a previously established Brain connection has been lost. The Face displays frozen last-known state while attempting reconnection (§3.4). |
+| **No Brain** | A Face state where no Brain has been found after exhausting all discovery methods. The Face displays a minimal connection UI (§3.4). |
+| **Connection Health Detection** | The mechanism by which the Face detects Brain loss: if no `state_delta` arrives for 5 seconds (5 missed 1Hz ticks), the Face transitions to Disconnected (§3.4.2). |

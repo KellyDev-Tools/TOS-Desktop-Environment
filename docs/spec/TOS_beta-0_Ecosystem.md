@@ -626,7 +626,7 @@ Since the Brain always binds an anchor port (default `7000`), remote clients can
 2. **Query:** Client sends `get_port_map` over the TCP connection.
 3. **Response:** Brain replies with the full service map.
 4. **Upgrade:** Client uses the returned `brain_ws` port to establish a WebSocket for state synchronization.
-5. **Re-discover:** If a connection drops, the client reconnects to the anchor port and re-queries the map.
+5. **Re-discover:** If a connection drops, the client reconnects to the anchor port and re-queries the map. See [Architecture §3.4.4](./TOS_beta-0_Architecture.md#344-reconnection-logic) for the full retry schedule and visual states during reconnection.
 
 ### 5.2 Method 2: mDNS / DNS-SD (Zero-Config LAN)
 

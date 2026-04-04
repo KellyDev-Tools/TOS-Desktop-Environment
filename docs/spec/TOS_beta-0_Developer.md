@@ -91,7 +91,7 @@ Starts the Vite dev server (with HMR) alongside the Brain. Changes to `.svelte` 
 
 Other web targets:
 - `make build-web` — Build the Svelte Face only
-- `make dev-web` — Start the Svelte dev server only (no Brain)
+- `make dev-web` — Start the Svelte dev server only (no Brain). Sets `TOS_DEV_MODE=1` so the Face loads mock state fixtures instead of entering the No Brain connection screen. See [Architecture §3.4.9](../spec/TOS_beta-0_Architecture.md#349-developer-mode-make-dev-web) for details.
 
 #### Manual Component Launch
 
@@ -502,6 +502,17 @@ Testing in TOS is strictly categorized into four tiers. No feature code should b
 3. **Expected:** Log warning; no state change.
 4. **Input:** `click:zoom_out` (identifier)
 5. **Expected:** `state.level` decrements.
+
+#### 4.4.5 Face Disconnect & Reconnect Test
+
+1. **Define Test:** `test_face_disconnect_reconnect`
+2. **Setup:** Established Face ↔ Brain connection with `face_register` completed. Brain is sending 1Hz `state_delta` ticks.
+3. **Action:** Stop sending `state_delta` messages to the Face (simulate Brain loss).
+4. **Wait 5.1s:** Assert Face internal state transitions to `Disconnected` (5 missed 1Hz ticks).
+5. **Assert:** Face emits `connection_lost` internal event.
+6. **Assert:** Face begins auto-retry sequence (attempt 1 at 1s, attempt 2 at 2s, attempt 3 at 4s).
+7. **Action:** Resume sending `state_delta` during retry attempt 2.
+8. **Assert:** Face sends `face_reconnect`. Brain responds with `state_snapshot`. Face transitions to `Connected`.
 
 ### 4.5 Success Criteria
 

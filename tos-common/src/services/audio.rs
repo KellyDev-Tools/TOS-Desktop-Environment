@@ -58,7 +58,7 @@ impl AudioService {
 
     /// Trigger a specific system earcon (audio notification).
     pub fn play_earcon(&self, name: &str) {
-        println!("[EARCON TRIGGER] Playing cue: {}", name);
+        tracing::debug!("[EARCON TRIGGER] Playing cue: {}", name);
         let _ = self.sender.send(name.to_string());
     }
 }

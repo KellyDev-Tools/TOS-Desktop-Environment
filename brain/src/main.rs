@@ -1,8 +1,7 @@
 use tos_common::brain::Brain;
 // use tos_common::{Face, MockFace};
 use std::env;
-use std::time::{Duration, Instant};
-use tokio::time::sleep;
+use std::time::Instant;
 use tos_common::platform::RemoteServer;
 // use tos_common::brain::renderer_manager::RendererMode;
 

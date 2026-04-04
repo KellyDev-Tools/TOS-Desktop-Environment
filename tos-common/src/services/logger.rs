@@ -78,7 +78,7 @@ impl LoggerService {
             }
         }
 
-        println!("[LOG P{}] [{}] {}", priority, source, text);
+        tracing::info!("[LOG P{}] [{}] {}", priority, source, text);
     }
 
     /// Query system logs via the Log Service (§3.3.4).

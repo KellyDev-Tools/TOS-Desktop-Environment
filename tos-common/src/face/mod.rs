@@ -67,7 +67,7 @@ impl Face {
         }
 
         // Terminal Mirror (for development/headless visibility)
-        println!("\x1B[2J\x1B[1;1H{}", frame);
+        tracing::debug!("{}\n", frame);
     }
 
     /// Render the current frame to a String (testable — no ANSI clear/cursor control).
@@ -240,22 +240,22 @@ pub struct MockFace(pub Face);
 
 impl MockFace {
     pub fn simulate_bezel_zoom_in(&self) {
-        println!("(Face) User clicked ZOOM IN bezel button");
+        tracing::debug!("(Face) User clicked ZOOM IN bezel button");
         self.0.send_event("zoom_in:");
     }
 
     pub fn simulate_prompt_submit(&self, cmd: &str) {
-        println!("(Face) User submitted prompt: {}", cmd);
+        tracing::debug!("(Face) User submitted prompt: {}", cmd);
         self.0.send_event(&format!("prompt_submit:{}", cmd));
     }
 
     pub fn simulate_ai_submit(&self, query: &str) {
-        println!("(Face) User submitted AI query: {}", query);
+        tracing::debug!("(Face) User submitted AI query: {}", query);
         self.0.send_event(&format!("ai_submit:{}", query));
     }
 
     pub fn simulate_ai_accept(&self) {
-        println!("(Face) User accepted AI suggestion");
+        tracing::debug!("(Face) User accepted AI suggestion");
         self.0.send_event("ai_suggestion_accept:");
     }
 }

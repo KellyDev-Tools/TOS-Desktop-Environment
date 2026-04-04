@@ -23,7 +23,7 @@ impl HapticService {
                     _ => (50, 50),
                 };
 
-                println!(
+                tracing::debug!(
                     "[HAPTIC TRIGGER] Intensity: {}, Duration: {}ms",
                     intensity, duration
                 );

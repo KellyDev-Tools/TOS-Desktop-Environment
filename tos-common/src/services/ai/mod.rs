@@ -261,7 +261,7 @@ impl AiService {
         let state: TosState = match serde_json::from_str(clean_json) {
             Ok(s) => s,
             Err(e) => {
-                eprintln!("[AiService] Failed to parse state JSON: {}", e);
+                tracing::error!("[AiService] Failed to parse state JSON: {}", e);
                 return Err(e.into());
             }
         };
@@ -314,7 +314,7 @@ impl AiService {
                             }
                         }
                         Err(e) => {
-                            eprintln!("[AiService] Module query failed: {}. Using fallback.", e);
+                            tracing::error!("[AiService] Module query failed: {}. Using fallback.", e);
                             self.fallback_query(prompt, &ctx).await
                         }
                     }

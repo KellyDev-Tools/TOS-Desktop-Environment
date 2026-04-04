@@ -59,3 +59,5 @@ face-electron-any/build-log*.txt
 .gradle/
 local.properties
 **/libs/arm64-v8a/
+face-android-handheld/build/
+face-android-handheld/.cxx/

@@ -32,7 +32,7 @@
 | IPC prefix:payload protocol | §3.3.1 | ✅ | `IpcHandler::handle_request()` — 1998 lines, 80+ message types |
 | Face registration with capability profile | §3.3.5 | ✅ | `face_register` IPC, `FaceProfile` enum (Desktop/Handheld/Spatial) |
 | Disconnected Mode (heartbeat, frozen state) | §3.4 | 🔶 | `DisconnectOverlay.svelte` exists; heartbeat tick detection not active |
-| No Brain state (connection UI) | §3.4 | 🔶 | DisconnectOverlay handles it visually; full discovery retry loop absent |
+| No Brain state (connection UI) | §3.4 | ✅ | `DisconnectOverlay.svelte` + dynamic WebSocket connection |
 | State delta sync (1Hz tick) | §3.4.2 | 🔶 | `get_state_delta` handler exists; no periodic push from Brain |
 | Bezel slot mechanism (Top/Left/Right) | §5 | ✅ | `ExpandedBezel.svelte`, slot components: BrainStatus, MiniLog, Minimap, PriorityStack, Telemetry |
 | Expanded Bezel Command Surface | §5.4 | ✅ | `bezel_expand`/`bezel_collapse` IPC + overlay rendering |
@@ -440,7 +440,7 @@
 
 | Category | ✅ Complete | 🔶 Stubbed | ❌ Unimplemented |
 |---|---|---|---|
-| Core Architecture | 11 | 5 | 0 |
+| Core Architecture | 12 | 4 | 0 |
 | Sector & Command Hub | 9 | 4 | 0 |
 | Split Viewports | 4 | 4 | 0 |
 | Remote & Collaboration | 2 | 6 | 0 |
@@ -458,7 +458,7 @@
 | Accessibility | 0 | 2 | 3 |
 | Predictive Fillers | 0 | 0 | 6 |
 | Reset / Log / Settings | 4 | 1 | 4 |
-| **TOTAL** | **65** | **42** | **49** |
+| **TOTAL** | **66** | **41** | **49** |
 
 > [!IMPORTANT]
 > The **TOS Editor** is the single largest gap — 14 features with zero implementation. It is the critical path for AI edit flows (Vibe Coder, Diff Mode), session handoff, and the overall developer experience that distinguishes TOS from a standard terminal.

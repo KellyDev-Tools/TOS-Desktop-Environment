@@ -18,9 +18,33 @@ let ws: WebSocket | null = null;
 let syncInterval: ReturnType<typeof setInterval> | null = null;
 let reconnectTimer: ReturnType<typeof setTimeout> | null = null;
 
-const WS_URL = 'ws://127.0.0.1:7001';
+let activeWsUrl = $state<string | null>(null);
+const DEFAULT_WS_URL = 'ws://127.0.0.1:7001';
+
+if (typeof window !== 'undefined') {
+    const saved = localStorage.getItem('tos_remote_host');
+    if (saved) activeWsUrl = saved;
+    else activeWsUrl = DEFAULT_WS_URL;
+}
+
 const SYNC_INTERVAL_MS = 1000;
 const RECONNECT_DELAY_MS = 3000;
+
+export function getActiveWsUrl(): string | null {
+    return activeWsUrl;
+}
+
+export function setActiveWsUrl(url: string) {
+    activeWsUrl = url;
+    if (typeof window !== 'undefined') {
+        localStorage.setItem('tos_remote_host', url);
+    }
+    // Force reconnect if we're changing URLs
+    if (connectionState !== 'disconnected') {
+        disconnect();
+        scheduleReconnect();
+    }
+}
 
 // --- Public Reactive Getters ---
 export function getConnectionState(): ConnectionState {
@@ -111,15 +135,21 @@ async function syncState(): Promise<void> {
 
 // --- WebSocket Lifecycle ---
 
-export function connect(): void {
+export function connect(customUrl?: string): void {
+    if (customUrl) {
+        setActiveWsUrl(customUrl);
+    }
+
     if (ws && ws.readyState === WebSocket.OPEN) return;
     if (connectionState === 'connecting') return;
 
+    const targetUrl = activeWsUrl || DEFAULT_WS_URL;
+
     connectionState = 'connecting';
-    console.log('[IPC] Connecting to Brain...', WS_URL);
+    console.log('[IPC] Connecting to Brain...', targetUrl);
 
     try {
-        ws = new WebSocket(WS_URL);
+        ws = new WebSocket(targetUrl);
     } catch {
         connectionState = 'disconnected';
         scheduleReconnect();

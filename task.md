@@ -1,5 +1,11 @@
 # TOS Beta-0 Consolidated Roadmap — Execution Tasks
 
+## UI: Remote Brain Connection
+- [x] Add dynamic `WS_URL` and `connect(customUrl)` logic in `ipc.svelte.ts`
+- [x] Add `localStorage` persistence for recent connections in `ipc.svelte.ts`
+- [x] Refactor `DisconnectOverlay.svelte` into a full Connection Dialog
+- [x] Add Saved Connections list to Connection Dialog (loaded via URL parsing)
+- [x] Add Manual Host/Port input form to Connection Dialog
 ## Repo Cleanup — Replace Old Roadmaps
 - [x] Copy consolidated roadmap to repo root as `TOS_Beta-0_Roadmap.md`
 - [x] Archive `TOS_alpha2-to-beta0.md` to `docs/archive/`

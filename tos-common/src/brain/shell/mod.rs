@@ -6,7 +6,7 @@ pub use pty::PtyShell as ShellApi;
 
 #[cfg(target_os = "android")]
 use std::sync::{Arc, Mutex};
-// use crate::TosState;
+use crate::TosState;
 
 #[cfg(target_os = "android")]
 pub struct ShellApi {

@@ -37,13 +37,30 @@ else
     if [ -f /etc/os-release ]; then
         . /etc/os-release
         OS=$ID
-        VERSION_ID=$VERSION_ID
+        VERSION_MAJOR=$(echo "$VERSION_ID" | cut -d. -f1)
+        
+        # Smart detection: Normalize Fedora/RHEL/CentOS/Rocky/Alma/Oracle to "rhel"
+        # but keep track of the specific version for the "rhel9" request.
+        IS_RHEL_FAMILY=false
+        if [[ "$ID" =~ ^(fedora|rhel|centos|rocky|alma|ol)$ ]]; then
+            IS_RHEL_FAMILY=true
+        elif [[ " $ID_LIKE " == *" rhel "* ]] || [[ " $ID_LIKE " == *" centos "* ]] || [[ " $ID_LIKE " == *" fedora "* ]]; then
+            IS_RHEL_FAMILY=true
+        fi
+
+        if [ "$IS_RHEL_FAMILY" = true ]; then
+            if [ "$VERSION_MAJOR" = "9" ]; then
+                OS="rhel9"
+            else
+                OS="rhel"
+            fi
+        fi
     else
         echo "Could not detect OS. /etc/os-release not found."
         exit 1
     fi
 
-    echo "Detected OS: $OS"
+    echo "Detected OS: $OS ($PRETTY_NAME)"
     echo ""
 fi
 
@@ -78,7 +95,16 @@ install_debian() {
 }
 
 install_fedora() {
-    echo "Installing dependencies for Fedora-based system..."
+    echo "Installing dependencies for RHEL/Fedora/CentOS-based system..."
+    
+    # Enable CRB (CodeReady Builder) for development headers
+    if [[ "$OS" == "rhel9" ]] || [[ "$ID" == "rocky" ]]; then
+        echo "Ensuring CRB and EPEL are enabled..."
+        sudo dnf install -y epel-release
+        sudo dnf config-manager --set-enabled crb || true
+    fi
+
+    # Core development tools and libraries
     sudo dnf install -y \
         gcc-c++ \
         curl \
@@ -94,12 +120,19 @@ install_fedora() {
         vulkan-devel \
         fontconfig-devel \
         clang \
+        unzip \
+        java-17-openjdk-devel \
+        perl-FindBin \
+        perl-core
+
+    # Optional desktop components (might be missing in some RHEL 9 repos)
+    echo "Attempting to install optional Wayland testing tools (Sway, Waybar, etc.)..."
+    sudo dnf install -y \
         sway \
         waybar \
         alacritty \
         fish \
-        unzip \
-        java-17-openjdk-devel
+        weston || echo "WARNING: Some optional desktop packages (sway, waybar, alacritty) were not found. Using XDG fallback mode."
 }
 
 install_arch() {
@@ -127,10 +160,10 @@ install_arch() {
 
 if [ "$IS_WINDOWS" = false ]; then
     case $OS in
-        ubuntu|debian|pop|linuxmint|elementary)
+        ubuntu|debian|pop|linuxmint|elementary|kali|raspbian)
             install_debian
             ;;
-        fedora|centos|rhel)
+        fedora|centos|rhel|rhel9|rocky|alma|ol|amazon)
             install_fedora
             ;;
         arch|manjaro|endeavouros)
@@ -353,8 +386,8 @@ echo "=========================================================="
 
 if command -v npx &> /dev/null; then
     npm install -g playwright
-    if [ "$IS_WINDOWS" = true ]; then
-        # On Windows, --with-deps is not supported (it uses apt-get internally)
+    if [ "$IS_WINDOWS" = true ] || [[ "$OS" =~ ^(rhel|rhel9|centos|rocky|alma|ol)$ ]]; then
+        # On Windows and RHEL-likes, --with-deps is not supported (it uses apt-get internally)
         npx playwright install chromium
     else
         npx playwright install --with-deps

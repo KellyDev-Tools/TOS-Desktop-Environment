@@ -36,6 +36,9 @@ mdns-sd = "0.18.2"
 [target.'cfg(not(target_os = "android"))'.dependencies]
 portable-pty = "0.8"
 
+[target.'cfg(target_os = "android")'.dependencies]
+openssl = { version = "0.10", features = ["vendored"] }
+
 [features]
 test-utils = []
 

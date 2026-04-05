@@ -5,7 +5,7 @@
         check check-brain fmt lint docs \
         test test-all test-core test-shell test-ai test-sec test-system test-brain-component test-ui-component test-self test-e2e test-health \
         run run-web run-web-dev dev-web clean \
-        android-check android-build android-build-release clean-android android-test \
+        android-check android-build android-release clean-android android-test \
         pack-face-electron-win pack-face-electron-linux pack-face-electron-mac
 
 # -----------------------------------------------------------------------------

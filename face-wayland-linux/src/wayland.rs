@@ -1,9 +1,15 @@
 use smithay_client_toolkit::{
     compositor::{CompositorHandler, CompositorState},
-    delegate_compositor, delegate_layer, delegate_output, delegate_registry, delegate_shm,
+    delegate_compositor, delegate_layer, delegate_output, delegate_registry, delegate_shm, delegate_xdg_shell, delegate_xdg_window,
     output::{OutputHandler, OutputState},
     registry::{ProvidesRegistryState, RegistryHandler, RegistryState},
-    shell::wlr_layer::{Layer, LayerShell, LayerShellHandler, LayerSurface, LayerSurfaceConfigure},
+    shell::{
+        wlr_layer::{Layer, LayerShell, LayerShellHandler, LayerSurface, LayerSurfaceConfigure},
+        xdg::{
+            window::{Window as XdgWindow, WindowConfigure as XdgWindowConfigure, WindowHandler as XdgWindowHandler},
+            XdgShell,
+        },
+    },
     shm::{Shm, ShmHandler},
 };
 use wayland_client::{protocol::wl_surface, Connection, QueueHandle};
@@ -19,7 +25,8 @@ pub struct WaylandState {
     pub registry_state: RegistryState,
     pub compositor_state: CompositorState,
     pub shm: Shm,
-    pub layer_shell: LayerShell,
+    pub layer_shell: Option<LayerShell>,
+    pub xdg_shell: Option<XdgShell>,
     pub output_state: OutputState,
 }
 
@@ -73,16 +80,14 @@ impl WaylandShell {
                 return None;
             }
         };
-        let layer_shell = match LayerShell::bind(&globals, &qh) {
-            Ok(s) => s,
-            Err(e) => {
-                tracing::debug!(
-                    "LayerShell not supported on this compositor, entering headless mode: {:?}",
-                    e
-                );
-                return None;
-            }
-        };
+        let layer_shell = LayerShell::bind(&globals, &qh).ok();
+        let xdg_shell = XdgShell::bind(&globals, &qh).ok();
+
+        if layer_shell.is_none() && xdg_shell.is_none() {
+            tracing::warn!("Neither LayerShell nor XdgShell supported on this compositor.");
+            return None;
+        }
+
         let output_state = OutputState::new(&globals, &qh);
 
         let state = WaylandState {
@@ -90,6 +95,7 @@ impl WaylandShell {
             compositor_state,
             shm,
             layer_shell,
+            xdg_shell,
             output_state,
         };
 
@@ -101,22 +107,31 @@ impl WaylandShell {
         })
     }
 
-    pub fn create_layer_surface(&mut self, _title: &str, width: u32, height: u32) {
+    pub fn create_layer_surface(&mut self, title: &str, width: u32, height: u32) {
         let surface = self
             .state
             .compositor_state
             .create_surface(&self.queue_handle);
-        let layer_surface = self.state.layer_shell.create_layer_surface(
-            &self.queue_handle,
-            surface.clone(),
-            Layer::Top,
-            Some("tos-native"),
-            None,
-        );
 
-        layer_surface.set_size(width, height);
-        surface.commit();
-        tracing::info!("Wayland: Real Layer Surface created ({}x{})", width, height);
+        if let Some(ref layer_shell) = self.state.layer_shell {
+            let layer_surface = layer_shell.create_layer_surface(
+                &self.queue_handle,
+                surface.clone(),
+                Layer::Top,
+                Some("tos-native"),
+                None,
+            );
+            layer_surface.set_size(width, height);
+            surface.commit();
+            tracing::info!("Wayland: Real Layer Surface created ({}x{})", width, height);
+        } else if let Some(ref xdg_shell) = self.state.xdg_shell {
+            let window = xdg_shell.create_window(surface.clone(), &self.queue_handle);
+            window.set_title(title.to_string());
+            // Standard windows might need an app_id for some DEs
+            window.set_app_id("org.tos.native-shell".to_string());
+            surface.commit();
+            tracing::info!("Wayland: Fallback XDG Window created ({}x{})", width, height);
+        }
     }
 
     pub fn dispatch(&mut self) {
@@ -248,8 +263,31 @@ impl LayerShellHandler for WaylandState {
     }
 }
 
+impl XdgShellHandler for WaylandState {
+    fn xdg_shell_state(&mut self) -> &mut XdgShell {
+        self.xdg_shell.as_mut().expect("XDG Shell state requested but missing")
+    }
+}
+
+impl XdgWindowHandler for WaylandState {
+    fn configure(
+        &mut self,
+        _conn: &Connection,
+        _qh: &QueueHandle<Self>,
+        _window: &XdgWindow,
+        _configure: XdgWindowConfigure,
+        _serial: u32,
+    ) {
+    }
+
+    fn closed(&mut self, _conn: &Connection, _qh: &QueueHandle<Self>, _window: &XdgWindow) {
+    }
+}
+
 delegate_registry!(WaylandState);
 delegate_compositor!(WaylandState);
 delegate_shm!(WaylandState);
+delegate_xdg_shell!(WaylandState);
+delegate_xdg_window!(WaylandState);
 delegate_layer!(WaylandState);
 delegate_output!(WaylandState);

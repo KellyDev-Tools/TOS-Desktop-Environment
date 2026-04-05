@@ -139,7 +139,256 @@ The TOS Editor is a code and text viewer/editor that lives alongside your termin
 
 ---
 
-## 9. Multi-Sensory Interface
+## 9. Working with Workflows & Agent Orchestration
+
+TOS includes a powerful workflow management system that lets you organize multi-step tasks, assign AI agents to execute them, and learn from completed work.
+
+### Opening a Project's Kanban Board
+
+A project is a directory containing code and a `.tos/` metadata folder.
+
+```bash
+# Navigate to your project
+$ cd ~/projects/tos-desktop
+
+# Open the kanban board (replaces the sector's terminal view with Workflow Manager)
+$ tos workflow open
+
+# Or:
+$ Ctrl+Shift+W to focus the Workflow Manager pane
+```
+
+### Understanding the Kanban Board
+
+The kanban board shows tasks in columns (lanes):
+
+```
+BACKLOG │ PLANNED │ WIP │ BLOCKED │ REVIEW │ DONE
+
+BACKLOG:   Work that hasn't been scheduled yet
+PLANNED:   Ready to start, waiting for bandwidth
+WIP:       Currently in progress (agent is working)
+BLOCKED:   Agent hit a problem, waiting for your input
+REVIEW:    Agent finished, waiting for your code review
+DONE:      Work approved and complete
+```
+
+**Customizing lanes:** Settings → Workflows → Board Lanes
+
+### Creating Tasks
+
+Tasks are work items on the kanban board. You can create them:
+
+**Option 1: Manual (create a task directly)**
+```
+In Workflow Manager, drag the [+] button to the Backlog lane.
+Enter: Title, description, acceptance criteria, tags.
+```
+
+**Option 2: Roadmap Skill (auto-generate from GitHub/issues)**
+```
+Type: "Plan v0.5 from GitHub issues"
+
+Roadmap Planner will:
+- Fetch GitHub issues
+- Group by epic
+- Create tasks in Backlog
+- Suggest suitable agents
+```
+
+**Option 3: YAML file (.tos-task)**
+Create `roadmap.tos-tasks`:
+```yaml
+version: "1.0"
+roadmap_id: "v0.5"
+
+tasks:
+  - id: task_001
+    title: "Fix borrow checker"
+    description: "Line 142 of session.rs needs error handling"
+    depends_on: []
+    tags: ["backend", "critical"]
+    acceptance_criteria:
+      - "cargo check passes"
+      - "tests pass"
+      - "Code reviewed"
+```
+
+Then: Workflow Manager → [Import tasks] → `roadmap.tos-tasks`
+
+### Assigning Tasks to Agents
+
+When you move a task to the WIP lane, assign an agent.
+
+**Available agents:**
+- `careful_bot` — slow but thorough (test-first, validates everything)
+- `fast_bot` — quick iteration (large steps, parallel testing)
+- `creative_bot` — exploratory work (suggests alternatives)
+- Custom personas you've created or installed
+
+```
+Right-click task card → Assign agent → Select "careful_bot"
+```
+
+### Auto-Accept Setting
+
+By default, agents propose commands but wait for your approval. You can enable auto-accept per task:
+
+```
+Task → [Settings] → Auto-Accept: ON
+
+Now commands will execute immediately (you can still pause/inspect).
+```
+
+### Watching an Agent Work
+
+Once assigned, an agent:
+
+1. **Decomposes the task** — reads your task description, loads its persona (strategy), generates a step-by-step plan
+2. **Shows the plan** — displays: "I'll do this in 5 steps. Proceed?"
+3. **Executes each step** — runs commands, observes output, decides next step
+4. **Reports progress** — shows which step it's on, what's happening
+
+**Your workflow:**
+```
+Terminal pane (main work):
+$ your commands here
+
+Workflow Manager pane:
+┌─ @careful_bot (task: Fix borrow checker)
+│  Step 2/5: cargo clippy --all-targets
+│  [⏸ Pause] [→ Next] [⏹ Abort]
+│  $ Checking brain/session.rs...
+└─ Agent observation: "Warning detected, continuing to step 3..."
+```
+
+### Pausing & Inspecting
+
+If something looks wrong, pause the agent:
+
+```
+Click [⏸ Pause] in the agent's terminal
+
+The agent stops. You can:
+- [Inspect]: View full command output, LLM reasoning
+- [Retry]: Retry the current step with a different approach
+- [Suggest]: Tell the agent a different approach
+- [Skip]: Skip this step, move to next
+- [Abort]: Abort the entire task
+```
+
+### Agent Reasoning (LLM History)
+
+Every step includes the **agent's reasoning** (what the LLM decided):
+
+```
+Step 1: Read error and context [✓ Done]
+┌────────────────────────────────────────┐
+│ Agent observation (LLM reasoning):     │
+│ "The function returns Session directly,│
+│ but the caller expects Result<Session>.│
+│ This is the mismatch."                │
+│                                        │
+│ [Show full command output]             │
+└────────────────────────────────────────┘
+```
+
+Expand any step to see the full LLM conversation. This is useful for:
+- Understanding why the agent made a decision
+- Learning from the agent's analysis
+- Auditing the work
+
+### Multi-Agent Work
+
+When multiple tasks are in WIP with different agents:
+
+```
+Tab bar: [@careful task_001] [@fast task_002] [@creative task_003]
+
+Click each tab to see that agent's work.
+Or drag to split view to see multiple agents simultaneously.
+```
+
+Agents work in **parallel** — they don't block each other.
+
+### Resuming Work Across Sessions
+
+If you close TOS while an agent is working:
+
+```
+You close TOS while @careful_bot is on step 2/5.
+
+Later, you reopen:
+→ Workflow Manager shows the kanban board
+→ task_001 is still in WIP with @careful_bot
+→ [Resume] chip appears: "Resume @careful_bot on Fix borrow checker?"
+
+Click [Resume] → agent continues from step 3 with full context
+```
+
+The agent remembers:
+- What it discovered in steps 1-2
+- What it was planning to do
+- All previous LLM reasoning
+
+### Code Review Before Merge
+
+When an agent finishes, the task moves to REVIEW lane:
+
+```
+Right-click task → View task history
+
+Shows:
+- All steps executed
+- Full LLM reasoning
+- Files changed (link to diff)
+- Test results
+```
+
+Review the code, then:
+- **[Approve]** → task moves to DONE
+- **[Request Changes]** → move back to WIP with notes
+
+### Project Memory & Learning
+
+After completing tasks, consolidate your project's learnings:
+
+```
+$ tos dream consolidate ~/projects/tos-desktop
+
+Processing 5 completed tasks...
+✓ task_001: Fix borrow checker → pattern: lifetime_error_resolution
+✓ task_002: Optimize PTY perf → pattern: buffer_pooling_effectiveness
+...
+
+Project memory updated: .tos/memory/project_memory.md
+```
+
+Future agents will:
+- Read your project memory
+- Learn from past successful decompositions
+- Suggest similar approaches for similar problems
+- Get better (faster, more accurate) over time
+
+### Viewing Project Memory
+
+```
+Settings → Workflows → Project Memory
+
+Or open the file directly:
+~/projects/tos-desktop/.tos/memory/project_memory.md
+```
+
+Project memory includes:
+- **Quick patterns** — common problems + solutions
+- **Completed tasks index** — all past work
+- **Cross-task dependencies** — how tasks relate
+- **Emergent recommendations** — lessons learned
+- **Metrics** — project statistics (speed, test coverage, agents used)
+
+---
+
+## 10. Multi-Sensory Interface
 
 TOS uses immersive feedback loops to minimize cognitive load:
 
@@ -151,7 +400,7 @@ All audio and haptic feedback is configurable in **Settings → Interface → Au
 
 ---
 
-## 10. Global Shortcuts
+## 11. Global Shortcuts
 
 | Shortcut | Action |
 |---|---|
@@ -171,7 +420,7 @@ All shortcuts can be remapped in **Settings → Interface → Keyboard**.
 
 ---
 
-## 11. Configuration: System Settings
+## 12. Configuration: System Settings
 
 Access the **System Settings** modal (⚙ icon, Top Bezel Right) to adjust:
 
@@ -187,7 +436,7 @@ Access the **System Settings** modal (⚙ icon, Top Bezel Right) to adjust:
 
 ---
 
-## 12. Session Persistence
+## 13. Session Persistence
 
 TOS automatically saves your workspace state continuously. When you return, your sectors, terminals, histories, and AI chat are exactly where you left them — with no restore notification, no animation, no prompt.
 
@@ -197,7 +446,7 @@ Session files (`.tos-session`) are portable — copy them to another machine and
 
 ---
 
-## 13. Deep Inspection & Recovery (LVL 4)
+## 14. Deep Inspection & Recovery (LVL 4)
 
 Level 4 provides three sub-views:
 

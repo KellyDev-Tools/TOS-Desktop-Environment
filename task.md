@@ -23,11 +23,18 @@
 ## Stage 1 — Core Runtime Hardening
 - [x] 1.1 Implement 1Hz state_delta push from Brain
 - [x] 1.2 Implement Face heartbeat detection
+- [x] **SPEC:** Kanban-Driven Agent Orchestration (Features §7, Ecosystem §1.6-1.7, Arch §30.8) + Feedback Refinements (Sandboxing, Merge, Bulk Trust, active_view)
 - [ ] 1.3 Add `Editor` variant to `PaneContent` enum
 - [ ] 1.4 Wire OSC 9012 line-level priority parser
 - [ ] 1.5 Configurable keyboard shortcut mapping layer
-- [ ] 1.6 Exponential backoff on daemon registration retry
-- [ ] 1.7 Dynamic sector labeling from cwd changes
-- [ ] 1.8 Auto Activity Mode detection on top/ps
+
+## Stage 7 — Kanban & Agent Orchestration (New)
+- [ ] 7.1 Implement KanbanBoard service in Brain
+- [ ] 7.2 Implement `WorkflowManager.svelte` pane
+- [ ] 7.3 Implement Agent Persona parser
+- [ ] 7.4 Implement LLM Interaction Archival service
+- [ ] 7.5 Implement `roadmap_planner` skill
+- [ ] 7.6 Implement `dream consolidate` (Memory Synthesis)
+- [ ] 7.7 Multi-agent terminal routing (isolated PTYs)
 
 ## Stage 2–6 — Deferred to subsequent sessions

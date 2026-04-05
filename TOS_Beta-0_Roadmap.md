@@ -284,6 +284,18 @@
 | Privacy controls (opt-out) | §19.4 | ❌ | Not implemented |
 | Logger service running | §19 | ✅ | `tos-loggerd` operational |
 
+### 1.22 Kanban & Agent Orchestration (Features §7, Ecosystem §1.6–1.7)
+
+| Feature | Spec Ref | Status | Evidence |
+|---|---|---|---|
+| Kanban Board Model (JSON, lanes, tasks) | Features §7.2 | ✅ | Spec defined; board schema in Features §7.2 |
+| Agent Persona Format (.md strategies) | Ecosystem §1.6 | ✅ | 3 default personas in `modules/personas/` |
+| Roadmap Skill (Task generation) | Ecosystem §1.7 | ✅ | Spec defined; role="planner" manifest |
+| Workflow Manager Pane (`workflow`) | Arch §11.2 | 🔶 | IPC stubs in §30.8; no UI implementation |
+| Project-level persistence (.tos/kanban) | Features §7.1 | 🔶 | Spec defined; `tos-sessiond` field added in v1.1 |
+| LLM Interaction Archival | Features §2.9.1 | 🔶 | Spec defined; storage schema in Arch §30.8.3 |
+| Dream Consolidation (Memory) | Features §7.8 | ❌ | No synthesis logic |
+
 ---
 
 ## Part 2 — Consolidated Roadmap
@@ -436,6 +448,23 @@
 
 ---
 
+### Stage 7 — Kanban & Agent Orchestration
+
+*Project-level planning and multi-agent concurrency.*
+
+| # | Task | Priority | Spec Ref | Deps | Status |
+|---|---|---|---|---|---|
+| 7.1 | Implement KanbanBoard service in Brain | HIGH | Arch §30.8 | tos-sessiond, Stage 1.1 | ❌ |
+| 7.2 | Implement `WorkflowManager.svelte` pane | HIGH | Features §7.6 | Stage 4.5, 7.1, **Stage 2** | ❌ |
+| 7.3 | Implement Agent Persona parser (Markdown → Brain Strategy) | HIGH | Ecosystem §1.6 | Stage 3.1 | ❌ |
+| 7.4 | Implement Agent Sandboxing & Merge Logic | HIGH | Features §7.7 | Stage 7.1, 7.3, **Stage 2** | ❌ |
+| 7.5 | Implement LLM Interaction Archival service | MEDIUM | Features §2.9.1 | Stage 7.1, 7.3 | ❌ |
+| 7.6 | Implement `roadmap_planner` skill (local task generation) | MEDIUM | Ecosystem §1.7 | Stage 7.1, 3.1 | ❌ |
+| 7.7 | Implement `dream consolidate` (Memory Synthesis) | LOW | Features §7.8 | Stage 7.5 | ❌ |
+| 7.8 | Multi-agent terminal routing (isolated PTYs) | HIGH | Arch §10.1.3 | Stage 7.2 | ❌ |
+
+---
+
 ## Summary Statistics
 
 | Category | ✅ Complete | 🔶 Stubbed | ❌ Unimplemented |
@@ -458,7 +487,8 @@
 | Accessibility | 0 | 2 | 3 |
 | Predictive Fillers | 0 | 0 | 6 |
 | Reset / Log / Settings | 4 | 1 | 4 |
-| **TOTAL** | **66** | **41** | **49** |
+| **Kanban & Agents** | **3** | **3** | **1** |
+| **TOTAL** | **69** | **44** | **50** |
 
 > [!IMPORTANT]
 > The **TOS Editor** is the single largest gap — 14 features with zero implementation. It is the critical path for AI edit flows (Vibe Coder, Diff Mode), session handoff, and the overall developer experience that distinguishes TOS from a standard terminal.

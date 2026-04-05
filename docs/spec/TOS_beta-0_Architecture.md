@@ -105,6 +105,8 @@ TOS adopts a clean separation between logic and presentation by running two conc
 - Receives state updates from the Brain and renders the interface.
 - Hosts the Tactical Bezel, mini-map, and all visual overlays.
 - Instantiates and manages Terminal Output Modules for each terminal context.
+- Instantiates terminal output areas for each active agent in the Workflow Manager pane, ensuring isolated output context per agent.
+- Manages viewport focus based on the session's `active_view` field; if empty, defaults to the primary sector terminal.
 
 **Kinetic Zoom Transitions:** Transformations between levels use a **Kinetic Zoom Transition**:
 - **Borders as Anchors:** When zooming from Level 1 to 2, the sector tile's borders expand outward to become the Tactical Bezel.
@@ -805,6 +807,56 @@ Users navigate between Level 4 sub-views via bezel controls or keyboard shortcut
 
 A **sector** is a self-contained workspace with its own identity, settings, and (if remote) connection. Internally it follows a tree:
 
+### 10.1 Project Context & Shared Kanban Boards
+
+Sectors can associate with a **project** to share a kanban board and collaborate with other sectors.
+
+#### 10.1.1 Project Association
+
+A sector optionally specifies a project context:
+
+```json
+{
+  "id": "sector_laptop",
+  "name": "dev-laptop",
+  "project_context": {
+    "project_path": "/home/user/projects/tos-desktop",
+    "project_id": "tos-desktop-v0.5",
+    "shared_kanban_board": true
+  }
+}
+```
+
+If `shared_kanban_board: true`:
+- Multiple sectors can open the same project
+- All sectors see the same kanban board (`.tos/kanban.tos-board`)
+- Task state updates propagate across sectors in real-time
+- Agents in different sectors can work on different tasks simultaneously
+
+#### 10.1.2 Multi-Sector Synchronization
+
+When multiple sectors reference the same project:
+
+1. **File system watches** (`inotify`, FSEvents) detect changes to `.tos/kanban.tos-board`
+2. **Brain broadcasts** task state changes via IPC to all connected sectors
+3. **Face updates** kanban board view in real-time (cards move, agents show progress)
+
+For remote sectors:
+- Synchronization via TOS Remote Server protocol (§12)
+- Conflicts resolved by "last write wins" or user prompt (configurable)
+
+#### 10.1.3 Agent Isolation
+
+Each agent operates in its own terminal context, even when multiple agents are active:
+
+- **Isolated PTY**: Each agent's commands execute in a separate pseudo-terminal
+- **Isolated output**: Terminal output is captured separately per agent
+- **No contention**: Agents do not block each other (except for explicitly exclusive resources)
+
+See §7.7 (Features) for concurrency details.
+
+#### 10.1.4 Internal Tree Structure
+
 ```
 SECTOR
 ├── Command Hub A
@@ -840,6 +892,7 @@ The split system follows three principles:
 |:---|:---|:---|
 | **Terminal (Command Hub)** | `terminal` | A full Command Hub instance — prompt, chip columns, terminal output module. Shares the sector's shell context. |
 | **Editor** | `editor` | The TOS Editor surface — code/text viewer and editor with live AI context integration. See [Features Specification §6](./TOS_beta-0_Features.md). |
+| **Workflow Manager** | `workflow` | The Kanban board and agent terminal orchestration interface. See [Features Specification §7](./TOS_beta-0_Features.md). |
 | **Level 3 Application** | `app` | Any running graphical application in Application Focus. |
 
 These can be combined freely. The default desktop layout is a vertical split with `terminal` on the left and `editor` on the right. On mobile, the default is a `tabs` layout with `terminal` as the first tab and `editor` as the second.
@@ -1842,6 +1895,56 @@ These messages support cross-device AI context roaming (see §12 Remote Sectors 
 | `ai_skill_load:<skill_id>;<sector_id>` | Face → Brain | Loads a skill into the sector's AI engine |
 | `ai_skill_unload:<skill_id>;<sector_id>` | Face → Brain | Unloads a skill from the sector |
 | `ai_skill_list:<sector_id>` | Face → Brain | Returns active skills for the sector |
+
+---
+
+### 30.8 Workflow Management API
+
+Messages for kanban board, task, and agent orchestration.
+
+#### 30.8.1 Kanban Board Management (Face ↔ Brain)
+
+| Message | Direction | Payload | Effect |
+|:---|:---|:---|:---|
+| `workflow_board_load:<project_path>` | Face → Brain | project_path | Load kanban board definition + tasks |
+| `workflow_board_watch:<project_path>` | Face → Brain | project_path | Subscribe to real-time updates |
+| `workflow_task_move:<task_id>:<lane_id>` | Face → Brain | task_id, lane_id | Move task to lane (triggers auto-promotion checks) |
+| `workflow_task_update:<task_id>` | Face → Brain | JSON (title, description, agent, etc.) | Update task properties |
+| `workflow_task_assign:<task_id>:<agent_id>` | Face → Brain | task_id, agent_id | Assign/reassign agent to task |
+| `workflow_board_state:<project_path>` | Brain → Face | Full board state JSON | Broadcast board state update |
+
+#### 30.8.2 Agent Orchestration (Face ↔ Brain)
+
+| Message | Direction | Payload | Effect |
+|:---|:---|:---|:---|
+| `workflow_agent_start:<task_id>` | Face → Brain | task_id | Agent begins task (reads LLM decomposition or generates new) |
+| `workflow_agent_step_next:<task_id>:<agent_id>` | Face → Brain | task_id, agent_id | Agent advances to next step |
+| `workflow_agent_step_pause:<task_id>:<agent_id>` | Face → Brain | task_id, agent_id | Agent pauses at current step |
+| `workflow_agent_step_retry:<task_id>:<agent_id>` | Face → Brain | task_id, agent_id, retry_reason | Retry current step with different approach |
+| `workflow_agent_step_skip:<task_id>:<agent_id>` | Face → Brain | task_id, agent_id | Skip to next step (manual override) |
+| `workflow_agent_abort:<task_id>:<agent_id>` | Face → Brain | task_id, agent_id | Abort task, move to BLOCKED |
+| `workflow_agent_output:<agent_id>:<pane_id>` | Brain → Face | agent_id, pane_id | Route agent terminal to pane |
+| `workflow_agent_progress:<agent_id>` | Brain → Face | step_current, step_total, status | Update agent progress (for kanban card) |
+| `workflow_agent_sandbox:<agent_id>:<action>`| Brain → Disk | agent_id, action | Manage transient filesystem overlay (`create`, `destroy`, `stage`) |
+| `workflow_task_merge:<task_id>` | Brain → Disk | task_id | Merge sandboxed changes into project tree; triggers Diff Mode if conflicts |
+
+#### 30.8.3 LLM Interaction Archive (Brain ↔ Storage)
+
+| Message | Direction | Payload | Effect |
+|:---|:---|:---|:---|
+| `workflow_llm_history_save:<task_id>` | Brain → Storage | Full LLM interaction object | Archive all LLM requests/responses for task |
+| `workflow_llm_history_load:<task_id>` | Brain ← Storage | Full LLM interaction object | Retrieve LLM history for resuming task |
+| `workflow_patterns_update:<agent_id>` | Brain → Storage | Learned patterns JSON | Update agent's learned patterns file |
+| `workflow_patterns_load:<agent_id>` | Brain ← Storage | Learned patterns JSON | Load agent's patterns for new decomposition |
+
+#### 30.8.4 Dream Consolidation (Brain → Storage)
+
+| Message | Direction | Payload | Effect |
+|:---|:---|:---|:---|
+| `workflow_dream_consolidate:<project_path>` | Face → Brain | project_path | Consolidate completed tasks' LLM histories into project memory |
+| `workflow_dream_update:<project_path>` | Brain → Storage | Project memory markdown | Write synthesized memory to `.tos/memory/project_memory.md` |
+| `workflow_dream_query:<project_path>:<tag>` | Face → Brain | project_path, tag | Search project memory by pattern/tag |
+| `workflow_memory_export:<project_path>` | Face → Brain | project_path, export_path | Export project memory as markdown file |
 
 ---
 

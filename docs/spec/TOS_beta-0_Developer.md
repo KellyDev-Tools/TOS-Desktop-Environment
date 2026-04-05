@@ -11,6 +11,7 @@
 3. [Third-Party Module SDK](#3-third-party-module-sdk)
 4. [Testing Strategy & TDD Protocols](#4-testing-strategy--tdd-protocols)
 5. [Cross-System Dependencies Map](#5-cross-system-dependencies-map)
+6. [Agent Personas & Workflow Extension](#6-agent-personas--workflow-extension)
 
 ---
 
@@ -586,3 +587,223 @@ To safely navigate these blockers, development MUST proceed in this order:
 
 **Session Handoff** (Features §2.10)
 - **Blocks [HANDOFF]:** Cross-device handoff requires the `face_register` capability profile (Architecture §3.3.5) to be implemented first — the Brain must know the connecting Face profile before it can serve the appropriate session context.
+## 6. Agent Personas & Workflow Extension
+
+This section covers how to build custom agent personas, extend the Roadmap Skill, and integrate workflows with external systems.
+
+### 6.1 Creating a Custom Agent Persona
+
+Agent personas are markdown files stored in `~/.local/share/tos/personas/` (local install) or `modules/personas/` within the source tree for development and deployment. Any markdown file in these locations is automatically discoverable.
+
+**Minimal persona:**
+
+```markdown
+# Agent Persona: my_agent
+
+## Identity
+- **Name:** my_agent
+- **Role:** [your description]
+
+## Core Strategies
+
+### Strategy 1 Name
+- **Rule:** [What the agent should do]
+- **Implementation:** [How to do it]
+
+### Strategy 2 Name
+- **Rule:** [...]
+- **Implementation:** [...]
+
+## Tool Bundle
+- read_file, write_file, exec_cmd, ...
+
+## Backend Preference
+- **Preferred:** [local_ollama / openai_gpt4 / ...]
+- **Fallback:** [...]
+```
+
+When an LLM decomposes a task using `my_agent`, it reads this markdown and follows the strategies.
+
+### 6.2 Learned Patterns Storage
+
+As an agent executes tasks, it learns patterns:
+
+```json
+{
+  "problem_type_your_domain": {
+    "count": 3,
+    "successful_approaches": [
+      {
+        "problem": "Description of problem",
+        "solution_path": "step1 → step2 → step3",
+        "success_rate": 1.0,
+        "avg_steps": 5
+      }
+    ]
+  }
+}
+```
+
+Stored in: `~/.local/share/tos/personas/<agent_id>/patterns.json`
+
+Future task decompositions include these patterns as few-shot examples, improving accuracy.
+
+### 6.3 Extending Roadmap Planning
+
+The `roadmap_planner` skill can be extended for custom sources:
+
+```toml
+# marketplace-extension: jira_roadmap_planner
+
+name = "Jira Roadmap Planner"
+version = "1.0.0"
+type = "skill"
+role = "planner"
+description = "Generate tasks from Jira issues"
+
+[capabilities]
+interaction_surface = "thought_bubble"
+trigger = "manual"
+
+[tool_bundle]
+allowed_tools = [
+  "read_jira_issue",
+  "create_task",
+  "assign_agent"
+]
+
+[permissions]
+network = true
+```
+
+When user says: "Plan v0.5 from Jira", the skill:
+- Fetches issues from Jira API
+- Maps fields to `.tos-task` format
+- Creates tasks in kanban board
+
+### 6.4 Workflow Task Format (.tos-task)
+
+Tasks are YAML files defining discrete work:
+
+```yaml
+version: "1.0"
+roadmap_id: "v0.5"
+roadmap_name: "My Sprint"
+
+tasks:
+  - id: "task_001"
+    title: "Fix bug #123"
+    description: |
+      Detailed description of the bug.
+      What needs to be done.
+    source: "github://org/repo/issues/123"
+    depends_on: ["task_000"]
+    tags: ["bug", "backend"]
+    acceptance_criteria:
+      - "Bug is fixed"
+      - "Tests pass"
+      - "Code reviewed"
+```
+
+Custom tools can generate `.tos-task` files from any source (GitHub, Jira, manual input, etc.).
+
+### 6.5 LLM History Archive Format
+
+Every task's execution is archived for learning:
+
+```json
+{
+  "task_id": "task_001",
+  "llm_history": {
+    "initial_decomposition": {
+      "timestamp": "2025-04-04T10:22:00Z",
+      "request": {
+        "task_title": "...",
+        "task_description": "...",
+        "persona_md": "[full persona markdown]",
+        "codebase_context": { ... }
+      },
+      "response": {
+        "reasoning": "...",
+        "steps": [ ... ]
+      }
+    },
+    "step_interactions": [
+      {
+        "step_id": "step_1",
+        "executed_at": "...",
+        "command_executed": "...",
+        "command_output": "...",
+        "agent_response": "..."
+      }
+    ]
+  }
+}
+```
+
+This archive is used to:
+- Resume incomplete tasks with full context
+- Generate learned patterns
+- Train future agents on successful decompositions
+- Audit decision-making
+
+### 6.6 Project Memory Synthesis
+
+The `dream consolidate` process reads completed task archives and generates:
+
+```markdown
+# Project Memory: [project_name]
+
+## 🎯 Quick Patterns
+- Pattern 1: problem → solution
+- Pattern 2: ...
+
+## 📚 Completed Tasks Index
+- Task 1: description + decomposition + result
+- Task 2: ...
+
+## 🔗 Cross-Task Dependencies
+- How tasks relate
+- Which approaches worked together
+
+## 💡 Emergent Recommendations
+- Lessons learned
+- Best practices discovered
+
+## 📊 Project Statistics
+- Total tasks, duration, agents used, success rate, etc.
+```
+
+Custom synthesis strategies can be provided via marketplace skills.
+
+### 6.7 IPC Contracts for Agents
+
+Agents communicate with the Brain via IPC:
+
+**Start task decomposition:**
+```json
+{
+  "method": "workflow_agent_start",
+  "params": {
+    "task_id": "task_001",
+    "agent_id": "careful_bot"
+  }
+}
+```
+
+**Advance to next step:**
+```json
+{
+  "method": "workflow_agent_step_next",
+  "params": {
+    "task_id": "task_001",
+    "agent_id": "careful_bot"
+  }
+}
+```
+
+See Architecture §30.8 for complete IPC contract specification.
+
+---
+
+*TOS Developer Reference*

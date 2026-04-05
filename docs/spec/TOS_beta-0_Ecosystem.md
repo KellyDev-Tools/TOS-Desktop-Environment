@@ -129,6 +129,7 @@ Every skill has four composable layers:
 name = "Vibe Coder"
 version = "1.0.0"
 type = "skill"
+role = "agent"
 description = "Decomposes natural language intent into reviewable multi-step file edits"
 author = "TOS Team"
 icon = "vibe-coder.png"
@@ -138,6 +139,12 @@ interaction_surface = "chip_sequence"   # chip_sequence | chat_panel | editor_an
 context_signals     = [".git", "Cargo.toml", "package.json"]
 learns_patterns     = true
 latency_profile     = "local"           # local | fast_remote | slow_remote
+
+[agent_capabilities]
+can_spawn_subtasks = true           # Can invoke other skills
+can_switch_backend = true           # Can override backend per step
+can_manage_workflow = true          # Can read/write workflow definitions
+requires_approval_for_tools = ["write_file", "exec_cmd"]
 
 [tool_bundle]
 allowed_tools = ["read_file", "write_file", "list_dir", "exec_cmd", "get_terminal_output", "get_sector_context", "search_codebase"]
@@ -149,6 +156,24 @@ prompt_read = true
 ```
 
 `context_signals` declares file or directory names that trigger automatic skill activation when present in the sector's `cwd`. The AI Engine evaluates signals on every `cd` and sector creation.
+
+#### 1.4.2.1 Agent Role (New in this version)
+
+Skills with `role = "agent"` have additional capabilities for workflow orchestration:
+
+```toml
+name = "workflow_orchestrator"
+version = "1.0.0"
+type = "skill"
+role = "agent"
+description = "Coordinates multi-step task execution and agent decomposition"
+
+[agent_capabilities]
+can_spawn_subtasks = true           # Can invoke other skills
+can_switch_backend = true           # Can override backend per step
+can_manage_workflow = true          # Can read/write workflow definitions
+requires_approval_for_tools = ["write_file", "exec_cmd"]
+```
 
 #### 1.4.3 Brain Tool Registry
 
@@ -227,7 +252,47 @@ pub trait TerminalOutputModule {
 - Users can select the active module globally, or per-sector (if the module supports it).
 - Switching modules takes effect immediately in all open Command Hubs (existing terminal history is re-rendered by the new module).
 
-### 1.6 Theme Modules (`.tos-theme`)
+### 1.6 Agent Personas (`.tos-persona`)
+
+An Agent Persona is a markdown-based definition of an agent's strategy, identity, and tool preferences. Any AI backend can load a persona and interpret its instructions at runtime.
+
+#### 1.6.1 Identity & Strategy
+
+A persona defines:
+- **Identity:** Role, tone, and specific strengths/weaknesses.
+- **Core Strategies:** Explicit rules for task decomposition, testing, and error handling.
+- **Tool Bundle:** The subset of Brain tools the agent prefers (or is restricted to).
+- **Backend Preference:** Preferred LLM backend for local vs. complex reasoning.
+
+#### 1.6.2 Learned Patterns
+
+Personas track and accumulate codebase-specific patterns (e.g., successful fixes for repeat errors) in a local `patterns.json` file. This knowledge is used to refine future task decompositions.
+
+#### 1.6.3 Distribution
+
+Personas are distributed as `.tos-persona` packages via the Marketplace or installed manually to `~/.local/share/tos/personas/`. For development and deployment, they can also be stored in the source tree under `modules/personas/`.
+
+#### 1.6.4 Sandboxing & Merging
+
+To satisfy the **Local First** and **Security** philosophies, agents operate in a transient filesystem sandbox. The Brain manages the creation and destruction of these sandboxes via the `workflow_agent_sandbox` IPC. Merging back to the project tree (and conflict resolution) is handled via `workflow_task_merge`.
+
+---
+
+### 1.7 Roadmap Skill (`.tos-skill`)
+
+The Roadmap Skill is a system-tier agent that synchronizes the project's kanban board with external sources (GitHub, Jira, etc.) and orchestrates task assignment.
+
+#### 1.7.1 GitHub Integration
+
+The Roadmap Skill can fetch issues, pull requests, and project milestones to populate the kanban backlog automatically.
+
+#### 1.7.2 Task Decomposition
+
+Once a roadmap is loaded, the Roadmap Skill suggests task decompositions and agent assignments based on the detected project context.
+
+---
+
+### 1.8 Theme Modules (`.tos-theme`)
 
 Theme Modules define the visual appearance of TOS across all levels.
 
@@ -265,7 +330,7 @@ supports_reduced_motion = true
 
 **Permissions:** Typically none — themes are static assets. If a theme includes web fonts, it must declare network permissions.
 
-### 1.7 Shell Modules (`.tos-shell`)
+### 1.9 Shell Modules (`.tos-shell`)
 
 Shell Modules provide different shell implementations. They include the shell executable (or wrapper script), integration scripts to enable OSC communication, and default configuration files.
 
@@ -313,17 +378,17 @@ rc_file = "etc/zshrc"
 
 **Built-in shell:** TOS includes a reference Fish shell module with full OSC integration. Additional modules (Bash, Zsh) available via the Marketplace.
 
-### 1.8 Bezel Component Modules (`.tos-bezel`)
+### 1.10 Bezel Component Modules (`.tos-bezel`)
 
 Bezel Components are modular UI elements that can be installed via the marketplace and docked into any available Tactical Bezel Slot (Top, Left, or Right). Each component runs as a background process or thread and communicates with the Face via the API defined in Architecture §30.2.
 
 For the complete list of core system components and their default slot assignments, see Architecture §8.1.
 
-### 1.9 Audio Theme Modules (`.tos-audio`)
+### 1.11 Audio Theme Modules (`.tos-audio`)
 
 Audio themes define earcon sets and ambient audio layers for the three-layer audio model (Architecture §23). Can be installed via the Marketplace and selected in **Settings → Interface → Audio Theme**.
 
-### 1.10 Language Modules (`.tos-language`)
+### 1.12 Language Modules (`.tos-language`)
 
 Language modules add syntax highlighting and optional LSP configuration for languages not built into TOS. They are used exclusively by the TOS Editor (Features §6).
 
@@ -349,14 +414,14 @@ args = ["lsp"]
 
 **Permissions:** Language modules require no special permissions. They are static grammar assets plus an optional LSP configuration. They do not run in the sandbox — they are loaded directly into the editor's rendering pipeline.
 
-### 1.11 Module Isolation & Permissions
+### 1.13 Module Isolation & Permissions
 
 - Modules run in sandbox with limited access (network filtered, filesystem restricted).
 - Permissions are displayed to user during installation; user grants/denies.
 - Dangerous capabilities (e.g., local file access) require explicit consent.
 - AI Skill tool bundles are double-enforced: declared in the manifest at install time and verified by the Brain Tool Registry at runtime.
 
-### 1.12 Relationship Between Module Types
+### 1.14 Relationship Between Module Types
 
 - **Sector Types** may specify a preferred shell and a default set of AI skills to activate.
 - **Application Models** are shell-agnostic; they interact with the Brain, not directly with the shell.
@@ -371,13 +436,12 @@ args = ["lsp"]
 
 ### 2.1 Package Types & Manifests
 
-| Package Type | Extension | Description |
-|---|---|---|
 | Sector Template | `.tos-template` | Blueprint for creating pre-configured workspaces. |
 | Sector Type | `.tos-sector` | Logic for special sector behavior. |
 | Application Model | `.tos-appmodel` | Customizes Level 3 integration. |
 | AI Backend | `.tos-ai` | Connection logic for LLMs. |
 | AI Skill | `.tos-skill` | Pluggable co-pilot interaction patterns, tool bundles, and learned behaviors. |
+| Agent Persona | `.tos-persona` | Markdown-based strategy definition for agents. |
 | Terminal Output Module | `.tos-terminal` | Visual terminal rendering logic. |
 | Theme Module | `.tos-theme` | Global CSS and assets. |
 | Shell Module | `.tos-shell` | PTY integration and shell binaries. |

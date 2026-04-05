@@ -163,18 +163,63 @@ impl RemoteServer {
     }
 
     async fn handle_ws_client(socket: TcpStream, ipc: Arc<IpcHandler>) -> anyhow::Result<()> {
-        let mut ws_stream = accept_async(socket).await?;
+        let ws_stream = accept_async(socket).await?;
+        let (mut ws_tx, mut ws_rx) = ws_stream.split();
+        let (mpsc_tx, mut mpsc_rx) = tokio::sync::mpsc::unbounded_channel::<String>();
 
-        while let Some(msg) = ws_stream.next().await {
-            let msg = msg?;
-            if msg.is_text() {
-                let command = msg.to_text()?;
-                let response = ipc.handle_request(command);
-                ws_stream
-                    .send(tokio_tungstenite::tungstenite::Message::Text(response))
-                    .await?;
+        let push_ipc = ipc.clone();
+        let push_tx = mpsc_tx.clone();
+        
+        let push_task = tokio::spawn(async move {
+            let mut last_version = 0;
+            let mut interval = tokio::time::interval(tokio::time::Duration::from_secs(1));
+            loop {
+                interval.tick().await;
+                let request = format!("get_state_delta:{}", last_version);
+                let response = push_ipc.handle_request(&request);
+                if response != "NO_CHANGE" && !response.starts_with("ERROR") {
+                    if let Ok(parsed) = serde_json::from_str::<serde_json::Value>(&response) {
+                        if let Some(v) = parsed.get("version").and_then(|v| v.as_u64()) {
+                            last_version = v;
+                        }
+                    }
+                    if push_tx.send(format!("state_delta:{}", response)).is_err() {
+                        break;
+                    }
+                }
+            }
+        });
+
+        loop {
+            tokio::select! {
+                Some(msg_result) = ws_rx.next() => {
+                    let msg = match msg_result {
+                        Ok(m) => m,
+                        Err(_) => break,
+                    };
+                    if msg.is_text() {
+                        if let Ok(command) = msg.to_text() {
+                            let response = ipc.handle_request(command);
+                            if mpsc_tx.send(response).is_err() {
+                                break;
+                            }
+                        }
+                    } else if msg.is_close() {
+                        break;
+                    }
+                }
+                Some(send_msg) = mpsc_rx.recv() => {
+                    if ws_tx.send(tokio_tungstenite::tungstenite::Message::Text(send_msg)).await.is_err() {
+                        break;
+                    }
+                }
+                else => {
+                    break;
+                }
             }
         }
+        
+        push_task.abort();
         Ok(())
     }
 

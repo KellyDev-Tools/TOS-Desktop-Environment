@@ -65,11 +65,15 @@ async fn handle_client(socket: TcpStream) -> anyhow::Result<()> {
             }
             "marketplace_install" => {
                 let mod_id = payload.trim().to_string();
-                tokio::spawn(async move {
-                    // Simulate install
-                    tracing::info!("[MARKETPLACED] Starting install for {}", mod_id);
-                });
-                "INSTALLING".to_string()
+                if mod_id.ends_with(".tos-aibehavior") {
+                    "ERROR: Legacy .tos-aibehavior modules are no longer supported. Use .tos-skill instead.".to_string()
+                } else {
+                    tokio::spawn(async move {
+                        // Simulate install
+                        tracing::info!("[MARKETPLACED] Starting install for {}", mod_id);
+                    });
+                    "INSTALLING".to_string()
+                }
             }
             "marketplace_status" => {
                 let mod_id = payload.trim();
@@ -108,16 +112,22 @@ async fn handle_client(socket: TcpStream) -> anyhow::Result<()> {
                 match serde_json::from_str::<tos_common::ModuleManifest>(
                     payload,
                 ) {
-                    Ok(m) => match MarketplaceService::get_trusted_public_key() {
-                        Ok(pk) => {
-                            if MarketplaceService::verify_manifest_local(&m, &pk) {
-                                "VALID".to_string()
-                            } else {
-                                "INVALID".to_string()
+                    Ok(m) => {
+                        if m.module_type.to_lowercase() == "aibehavior" || m.module_type.to_lowercase() == "ai_behavior" {
+                            "ERROR: Legacy AI behaviors are no longer supported. Use Skill instead.".to_string()
+                        } else {
+                            match MarketplaceService::get_trusted_public_key() {
+                                Ok(pk) => {
+                                    if MarketplaceService::verify_manifest_local(&m, &pk) {
+                                        "VALID".to_string()
+                                    } else {
+                                        "INVALID".to_string()
+                                    }
+                                }
+                                Err(e) => format!("ERROR: PK retrieval failed: {}", e),
                             }
                         }
-                        Err(e) => format!("ERROR: PK retrieval failed: {}", e),
-                    },
+                    }
                     Err(e) => format!("ERROR: Invalid manifest JSON: {}", e),
                 }
             }
@@ -185,7 +195,7 @@ fn get_mock_home() -> MarketplaceHome {
         categories: vec![
             MarketplaceCategory {
                 id: "ai".to_string(),
-                name: "AI Behaviors".to_string(),
+                name: "AI Skills".to_string(),
                 icon: "🧠".to_string(),
                 module_count: all
                     .iter()

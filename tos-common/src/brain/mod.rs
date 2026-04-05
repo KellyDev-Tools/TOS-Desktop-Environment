@@ -28,9 +28,11 @@ impl Brain {
 
         let mut state_val = TosState::default();
         let live_path = sessions_dir.join("_live.tos-session");
+        let mut restored = false;
         if let Ok(content) = std::fs::read_to_string(&live_path) {
             if let Ok(live_state) = serde_json::from_str::<TosState>(&content) {
                 state_val = live_state;
+                restored = true;
             }
         }
 
@@ -85,8 +87,13 @@ impl Brain {
             services.ai.register_defaults(&mut lock);
         }
 
-        services.logger.log("Brain Core Initialized.", 2);
-        services.audio.play_earcon("system_ready");
+        // Silent restore: suppress the boot notification.
+        if !restored {
+            services.logger.log("Brain Core Initialized.", 2);
+            services.audio.play_earcon("system_ready");
+        } else {
+            services.logger.log("Session restored silently.", 1);
+        }
 
         // Spawn the background logic thread for state heartbeats
         let state_clock = state.clone();

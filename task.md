@@ -13,16 +13,16 @@
 
 ## Stage 0 — Hard Gate Blockers
 - [x] 0.1 Brain Tool Registry: enforce `tool_bundle` permissions at runtime
-- [ ] 0.2 Verify `.tos-skill` accepted / `.tos-aibehavior` rejected by Marketplace
-- [ ] 0.3 Silent restore — no notification or prompt on session launch
+- [x] 0.2 Verify `.tos-skill` accepted / `.tos-aibehavior` rejected by Marketplace
+- [x] 0.3 Silent restore — no notification or prompt on session launch
 - [x] 0.4 Verify profile diversity (handheld/spatial face_register) — validated via face_visual_states.rs
 - [x] 0.5 All errors routed through `tracing` — fixed 9 stray println/eprintln in audio.rs, haptic.rs, logger.rs, ai/mod.rs, face/mod.rs
 - [x] 0.6 Verify IPC round-trip < 16ms — latency warning threshold enforced in IpcHandler
 - [x] **BONUS:** Fixed 2 unused import warnings in brain/src/main.rs → 0 warnings workspace-wide
 
 ## Stage 1 — Core Runtime Hardening
-- [ ] 1.1 Implement 1Hz state_delta push from Brain
-- [ ] 1.2 Implement Face heartbeat detection
+- [x] 1.1 Implement 1Hz state_delta push from Brain
+- [x] 1.2 Implement Face heartbeat detection
 - [ ] 1.3 Add `Editor` variant to `PaneContent` enum
 - [ ] 1.4 Wire OSC 9012 line-level priority parser
 - [ ] 1.5 Configurable keyboard shortcut mapping layer

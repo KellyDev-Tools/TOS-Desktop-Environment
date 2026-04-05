@@ -181,6 +181,24 @@ impl AiService {
     }
 
     pub fn validate_tool_call(&self, state: &TosState, behavior_id: &str, tool_name: &str) -> bool {
+        // Check if behavior is enabled
+        let behavior_enabled = state.ai_behaviors.iter().any(|b| b.id == behavior_id && b.enabled);
+        if !behavior_enabled {
+            return false;
+        }
+
+        // Check manifest tool_bundle via ModuleManager
+        if let Ok(m_lock) = self.modules.lock() {
+            if let Some(modules) = m_lock.as_ref() {
+                if let Some(manifest) = modules.get_manifest(behavior_id) {
+                    if let Some(bundle) = &manifest.tool_bundle {
+                        return bundle.allowed_tools.iter().any(|t| t == tool_name);
+                    }
+                }
+            }
+        }
+
+        // Fallback for built-ins without an explicit module manifest
         if let Some(b) = state.ai_behaviors.iter().find(|b| b.id == behavior_id) {
             if let Some(tools) = &b.allowed_tools {
                 return tools.iter().any(|t| t == tool_name);

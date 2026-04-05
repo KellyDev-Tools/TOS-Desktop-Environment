@@ -106,31 +106,27 @@ export function sendCommand(cmd: string): Promise<string | null> {
     }).catch(() => null);
 }
 
-// --- State Synchronization ---
-let isSyncing = false;
+// --- State Synchronization & Pushed Heartbeats (1Hz) ---
+let heartbeatTimer: ReturnType<typeof setTimeout> | null = null;
+const HEARTBEAT_TIMEOUT_MS = 5000;
 
-async function syncState(): Promise<void> {
-    if (!ws || ws.readyState !== WebSocket.OPEN) return;
-    if (isSyncing) return;
-    isSyncing = true;
-
-    const start = performance.now();
+function handleStateDelta(payload: string) {
     try {
-        const response = await sendCommand('get_state:');
-        if (!response) {
-            isSyncing = false;
-            return;
-        }
-
-        const parsed = JSON.parse(response) as TosState;
+        const parsed = JSON.parse(payload) as TosState;
         tosState = parsed;
         lastSyncTime = Date.now();
-        syncLatency = `${(performance.now() - start).toFixed(0)}ms`;
+        resetHeartbeat();
     } catch (e) {
-        console.error('[IPC] Sync failure:', e);
-    } finally {
-        isSyncing = false;
+        console.error('[IPC] Failed to parse state_delta:', e);
     }
+}
+
+function resetHeartbeat() {
+    if (heartbeatTimer) clearTimeout(heartbeatTimer);
+    heartbeatTimer = setTimeout(() => {
+        console.warn('[IPC] Heartbeat lost (5s without state_delta). Disconnecting...');
+        disconnect();
+    }, HEARTBEAT_TIMEOUT_MS);
 }
 
 // --- WebSocket Lifecycle ---
@@ -160,12 +156,19 @@ export function connect(customUrl?: string): void {
         connectionState = 'connected';
         console.log('[IPC] ✅ Connected to Brain');
 
-        // Start sync loop
-        if (syncInterval) clearInterval(syncInterval);
-        syncInterval = setInterval(syncState, SYNC_INTERVAL_MS);
+        // Immediate first sync to get full state, which also starts the heartbeat
+        sendCommand('get_state:').then(res => {
+            if (res && typeof res === 'string') {
+                handleStateDelta(res);
+            }
+        });
 
-        // Immediate first sync
-        syncState();
+        // Setup global passive listener for pushed state_delta
+        ws!.onmessage = (event) => {
+            if (typeof event.data === 'string' && event.data.startsWith('state_delta:')) {
+                handleStateDelta(event.data.substring(12));
+            }
+        };
     };
 
     ws.onclose = () => {
@@ -192,9 +195,9 @@ export function disconnect(): void {
 
 function cleanup(): void {
     connectionState = 'disconnected';
-    if (syncInterval) {
-        clearInterval(syncInterval);
-        syncInterval = null;
+    if (heartbeatTimer) {
+        clearTimeout(heartbeatTimer);
+        heartbeatTimer = null;
     }
 }
 

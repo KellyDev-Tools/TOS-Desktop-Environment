@@ -306,9 +306,9 @@
 
 | # | Task | Priority | Spec Ref | Deps | Status |
 |---|---|---|---|---|---|
-| 0.1 | Brain Tool Registry: enforce `tool_bundle` permissions at runtime for all skills | **CRITICAL** | Eco §1.4.3 | Brain IPC, ModuleManager | ❌ |
-| 0.2 | Verify `.tos-skill` accepted / `.tos-aibehavior` rejected by Marketplace daemon | **CRITICAL** | Eco §1.4 | tos-marketplaced | 🔶 |
-| 0.3 | Silent restore — no notification or prompt on session launch | **HIGH** | Features §2.6.2 | SessionService | 🔶 |
+| 0.1 | Brain Tool Registry: enforce `tool_bundle` permissions at runtime for all skills | **CRITICAL** | Eco §1.4.3 | Brain IPC, ModuleManager | ✅ |
+| 0.2 | Verify `.tos-skill` accepted / `.tos-aibehavior` rejected by Marketplace daemon | **CRITICAL** | Eco §1.4 | tos-marketplaced | ✅ |
+| 0.3 | Silent restore — no notification or prompt on session launch | **HIGH** | Features §2.6.2 | SessionService | ✅ |
 | 0.4 | Profile diversity — Brain adapts layout to `handheld`/`spatial` face_register profiles | **HIGH** | Arch §3.3.5 | face_register IPC | ✅ (verify) |
 | 0.5 | All errors routed through `tracing` — zero stray `eprintln!`/`println!` | **HIGH** | Standards §2.1 | Codebase sweep | ✅ (verify) |
 | 0.6 | IPC round-trip < 16ms verified in local testing | **HIGH** | Dev §4.5 | IPC handler | ✅ (latency warning exists) |
@@ -322,8 +322,8 @@
 
 | # | Task | Priority | Spec Ref | Deps | Status |
 |---|---|---|---|---|---|
-| 1.1 | Implement 1Hz `state_delta` push from Brain to all connected Faces | HIGH | Arch §3.4.2 | RemoteServer | 🔶 |
-| 1.2 | Implement Face heartbeat detection (5 missed ticks → Disconnected) | HIGH | Arch §3.4 | DisconnectOverlay | 🔶 |
+| 1.1 | Implement 1Hz `state_delta` push from Brain to all connected Faces | HIGH | Arch §3.4.2 | RemoteServer | ✅ |
+| 1.2 | Implement Face heartbeat detection (5 missed ticks → Disconnected) | HIGH | Arch §3.4 | DisconnectOverlay | ✅ |
 | 1.3 | Add `Editor` variant to `PaneContent` enum | HIGH | Arch §11.2 | state.rs | ❌ |
 | 1.4 | Wire OSC 9012 line-level priority parser in ShellApi | MEDIUM | Arch §27.4 | shell/mod.rs | 🔶 |
 | 1.5 | Implement configurable keyboard shortcut mapping layer | MEDIUM | Arch §14.2 | tos-protocol SemanticEvent | 🔶 |

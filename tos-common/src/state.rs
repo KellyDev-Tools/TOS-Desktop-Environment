@@ -103,6 +103,8 @@ pub struct AiBehavior {
     pub backend_override: Option<String>,
     /// Context fields this behavior has declared it needs.
     pub context_fields: Vec<String>,
+    /// Authorized tools in the tool bundle.
+    pub allowed_tools: Option<Vec<String>>,
     /// Arbitrary configuration key-value pairs.
     pub config: HashMap<String, String>,
 }

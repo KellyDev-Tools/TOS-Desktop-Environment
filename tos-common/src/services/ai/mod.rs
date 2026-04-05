@@ -141,6 +141,10 @@ impl AiService {
                     "last_command".to_string(),
                     "mode".to_string(),
                 ],
+                allowed_tools: Some(vec![
+                    "exec_cmd".to_string(),
+                    "semantic_search".to_string(),
+                ]),
                 config: std::collections::HashMap::new(),
             },
         );
@@ -158,6 +162,9 @@ impl AiService {
                     "terminal_tail".to_string(),
                     "last_command".to_string(),
                 ],
+                allowed_tools: Some(vec![
+                    "exec_cmd".to_string(),
+                ]),
                 config: [("sensitivity".to_string(), "Medium".to_string())]
                     .iter()
                     .cloned()
@@ -171,6 +178,15 @@ impl AiService {
     pub fn register_behavior(&self, state: &mut TosState, behavior: AiBehavior) {
         state.ai_behaviors.retain(|b| b.id != behavior.id);
         state.ai_behaviors.push(behavior);
+    }
+
+    pub fn validate_tool_call(&self, state: &TosState, behavior_id: &str, tool_name: &str) -> bool {
+        if let Some(b) = state.ai_behaviors.iter().find(|b| b.id == behavior_id) {
+            if let Some(tools) = &b.allowed_tools {
+                return tools.iter().any(|t| t == tool_name);
+            }
+        }
+        false
     }
 
     pub fn enable_behavior(&self, state: &mut TosState, id: &str) -> bool {

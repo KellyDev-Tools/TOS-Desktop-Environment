@@ -40,6 +40,9 @@ async fn test_shell_priority_osc_update() {
     
     let cmd = "printf '\\033]50;3\\007Critical Alert\\n'\n";
     
+    // Wait for shell to stabilize
+    sleep(Duration::from_millis(500)).await;
+    
     brain.ipc.handle_request(&format!("prompt_submit:{}", cmd));
     
     let mut success = false;

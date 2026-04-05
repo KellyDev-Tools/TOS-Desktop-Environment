@@ -12,7 +12,7 @@
 - [x] Archive `TOS_SSH_Wayland_Fix_Plan.md` to `docs/archive/`
 
 ## Stage 0 — Hard Gate Blockers
-- [ ] 0.1 Brain Tool Registry: enforce `tool_bundle` permissions at runtime
+- [x] 0.1 Brain Tool Registry: enforce `tool_bundle` permissions at runtime
 - [ ] 0.2 Verify `.tos-skill` accepted / `.tos-aibehavior` rejected by Marketplace
 - [ ] 0.3 Silent restore — no notification or prompt on session launch
 - [x] 0.4 Verify profile diversity (handheld/spatial face_register) — validated via face_visual_states.rs

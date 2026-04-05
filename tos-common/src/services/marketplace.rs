@@ -32,8 +32,16 @@ pub struct ModuleManifest {
     /// Latency profile hint: "low" (<300ms p95), "medium" (<1s p95), "high" (>1s p95).
     pub latency_profile: Option<String>,
 
+    // §1.4: AI Skill Specifics
+    pub tool_bundle: Option<ToolBundleConfig>,
+
     // The Ed25519 cryptographic signature of the manifest contents
     pub signature: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+pub struct ToolBundleConfig {
+    pub allowed_tools: Vec<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
@@ -305,6 +313,7 @@ mod tests {
             provider: None,
             endpoint: None,
             latency_profile: None,
+            tool_bundle: None,
             signature: None,
         };
 

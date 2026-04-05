@@ -68,6 +68,7 @@ impl IpcHandler {
             "force_prompt_submit" => self.handle_prompt_submit(payload, true),
             "ai_suggestion_accept" => self.handle_ai_suggestion_accept(),
             "ai_stage_command" => self.handle_ai_stage_command(payload),
+            "ai_tool_call" => self.handle_ai_tool_call(payload),
             "system_log_append" => {
                 self.handle_system_log_append(args.get(0).copied(), args.get(1).copied())
             }
@@ -911,6 +912,48 @@ impl IpcHandler {
             return "AI_COMMAND_STAGED".to_string();
         }
         "ERROR: Invalid JSON for ai_stage_command".to_string()
+    }
+
+    fn handle_ai_tool_call(&self, payload: &str) -> String {
+        // payload format: <behavior_id>;<json_args>
+        let (behavior_id, json_payload) = payload.split_once(';').unwrap_or((payload, ""));
+        if json_payload.is_empty() {
+            return "ERROR: Missing tool arguments".to_string();
+        }
+
+        if let Ok(parsed) = serde_json::from_str::<serde_json::Value>(json_payload) {
+            let tool_name = parsed.get("name").and_then(|v| v.as_str()).unwrap_or("");
+            
+            {
+                let state = self.state.lock().unwrap();
+                if !self.services.ai.validate_tool_call(&state, behavior_id, tool_name) {
+                    tracing::warn!("[TOOL REGISTRY] Denied tool '{}' for behavior '{}'", tool_name, behavior_id);
+                    return format!("ERROR: Tool '{}' not permitted for behavior '{}'", tool_name, behavior_id);
+                }
+            }
+
+            // Route recognized tools
+            if tool_name == "exec_cmd" {
+                if let Some(args) = parsed.get("args") {
+                    let cmd = args.get("cmd").and_then(|v| v.as_str()).unwrap_or("");
+                    let explanation = args.get("explanation").and_then(|v| v.as_str()).unwrap_or("Invoked via exec_cmd tool");
+                    let stage_payload = serde_json::json!({
+                        "command": cmd,
+                        "explanation": explanation
+                    }).to_string();
+                    return self.handle_ai_stage_command(&stage_payload);
+                }
+            } else if tool_name == "semantic_search" {
+                if let Some(args) = parsed.get("args") {
+                    let query = args.get("query").and_then(|v| v.as_str()).unwrap_or("");
+                    return self.handle_semantic_search(query);
+                }
+            }
+
+            return format!("ERROR: Tool '{}' recognized but not implemented locally", tool_name);
+        }
+
+        "ERROR: Invalid JSON for ai_tool_call".to_string()
     }
 
     fn handle_system_log_append(

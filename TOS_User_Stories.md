@@ -8,14 +8,15 @@
 1. [Navigation & Hierarchy](#1-navigation--hierarchy)
 2. [Command Hub & Persistent Unified Prompt](#2-command-hub--persistent-unified-prompt)
 3. [AI Skills System](#3-ai-co-pilot-system)
-4. [SEARCH Mode](#4-search-mode)
-5. [Trust & Security Model](#5-trust--security-model)
-6. [Multi-Sensory Feedback](#6-multi-sensory-feedback)
-7. [Onboarding & First-Run Experience](#7-onboarding--first-run-experience)
-8. [Marketplace & Module System](#8-marketplace--module-system)
-9. [Collaboration](#9-collaboration)
-10. [Performance & Accessibility](#10-performance--accessibility)
-11. [Appendix A — Story ID Index](#appendix-a--story-id-index)
+4. [Workflow Management & Kanban Boards](#4-workflow-management--kanban-boards)
+5. [SEARCH Mode](#5-search-mode)
+6. [Trust & Security Model](#6-trust--security-model)
+7. [Multi-Sensory Feedback](#7-multi-sensory-feedback)
+8. [Onboarding & First-Run Experience](#8-onboarding--first-run-experience)
+9. [Marketplace & Module System](#9-marketplace--module-system)
+10. [Collaboration](#10-collaboration)
+11. [Performance & Accessibility](#11-performance--accessibility)
+12. [Appendix A — Story ID Index](#appendix-a--story-id-index)
 
 ---
 
@@ -125,7 +126,132 @@ Stories covering the Passive Observer, Chat Companion, and the AI safety boundar
 
 ---
 
-## 4. SEARCH Mode
+## 4. Workflow Management & Kanban Boards
+
+Stories covering project-scoped kanban boards, agent personas, multi-agent task execution, and project memory consolidation. Workflows enable teams to decompose complex work into steps, assign AI agents with distinct personalities to execute them, and learn from completed tasks.
+
+| ID | As a… | I want to… | So that… |
+|---|---|---|---|
+| WF-01 | developer | open a project's kanban board from any sector | I can see all active work for that project regardless of which device I'm on |
+| WF-02 | team lead | define custom kanban lanes (Backlog, Planned, WIP, Blocked, Review, Done) | The board reflects our team's actual workflow |
+| WF-03 | developer | set auto-promotion rules (e.g., "move from Planned to WIP when capacity available") | Tasks automatically advance without manual intervention |
+| WF-04 | operator | create a task from a GitHub issue using the Roadmap Planner skill | I don't manually type task descriptions and acceptance criteria |
+| WF-05 | developer | assign an agent persona (careful_bot, fast_bot, creative_bot) to a task | The agent executes the task using a strategy that matches the work |
+| WF-06 | developer | see the agent's decomposition plan before execution | I understand how the agent will approach the task and can request changes |
+| WF-07 | developer | enable auto-accept for a task so the agent's commands run without my approval | I can let the agent work autonomously while I focus on other tasks |
+| WF-08 | developer | pause an agent mid-task and inspect its reasoning | I can understand why it made a decision and guide it if needed |
+| WF-09 | developer | watch multiple agents work on different tasks simultaneously in separate terminal panes | I can monitor parallel progress without context-switching |
+| WF-10 | developer | skip a step or retry with a different approach when an agent hits an error | I can manually correct course without aborting the entire task |
+| WF-11 | team lead | have an agent automatically activate based on project context (e.g., presence of Cargo.toml) | I don't need to manually configure agent strategies per-project |
+| WF-12 | developer | create custom agent personas by mixing strategies or writing new ones | I can tune agent behavior to my team's preferences |
+| WF-13 | developer | see all LLM reasoning archived for a completed task | I can audit how the agent decomposed and executed the work |
+| WF-14 | developer | resume a task with an agent starting from exactly where it paused | I can continue without losing context even after closing TOS |
+| WF-15 | team lead | have the kanban board synchronized across multiple sectors working on the same project | All team members see real-time updates when tasks move lanes |
+| WF-16 | developer | view a project's accumulated knowledge in a running memory file | I understand patterns, lessons learned, and best practices from past tasks |
+| WF-17 | developer | consolidate completed task LLM histories into project memory with `tos dream consolidate` | The project learns from what worked and future agents improve |
+| WF-18 | developer | export a task's complete transcript (all steps, LLM reasoning, outputs) as markdown | I can share work with others or create documentation |
+| WF-19 | developer | view learned patterns for an agent and see which strategies have worked most often | I can make informed decisions about agent assignment |
+| WF-20 | team lead | install alternative agent personas from the Marketplace | I can use community-built strategies without writing my own |
+| WF-21 | developer | drag a task to a different lane to change its status | The kanban board reflects real-time workflow progress |
+| WF-22 | developer | see a task's acceptance criteria and validation status in the kanban card | I know what success looks like and whether the task is meeting its goals |
+| WF-23 | team lead | have older completed tasks auto-archive after N days | The kanban board stays focused on current and recent work |
+| WF-24 | developer | filter the kanban board by agent, tag, or lane | I can focus on relevant tasks without visual clutter |
+| WF-25 | developer | import a `.tos-task` YAML file to populate the kanban board | I can define tasks in code and version control them |
+
+### WF-01 Acceptance Criteria
+- `tos workflow open ~/projects/tos-desktop` loads the kanban board from `~/.tos/kanban.tos-board`.
+- The Workflow Manager pane replaces the terminal view (user can switch via tab or split view).
+- If multiple sectors open the same project, they all see the same board state.
+
+### WF-02 Acceptance Criteria
+- Users customize lanes via Settings → Workflows → Board Lanes.
+- Lane order, names, and descriptions are persisted to the project's kanban file.
+- New lanes appear immediately in the Workflow Manager pane.
+
+### WF-04 Acceptance Criteria
+- Roadmap Planner skill reads GitHub issues from a repository.
+- Issues are decomposed into tasks with titles, descriptions, and acceptance criteria.
+- User review step: "Create 12 tasks in Backlog?" before confirmation.
+- Created tasks appear in the Backlog lane within 2 seconds.
+
+### WF-05 Acceptance Criteria
+- Right-click a task card → "Assign agent" displays list of available personas.
+- Selecting an agent immediately loads its persona markdown and prepares for task decomposition.
+- Agent assignment is persisted to the task in the kanban file.
+
+### WF-06 Acceptance Criteria
+- When a task moves to WIP, the agent reads the task and persona, generates a step-by-step plan.
+- Plan appears in the Workflow Manager pane: "Step 1: Read error context... Step 2: Search patterns... [Proceed?]"
+- User can request changes before execution begins.
+- Proceeding advances to step 1 execution.
+
+### WF-08 Acceptance Criteria
+- Clicking [⏸ Pause] in an agent's terminal stops execution at the current step.
+- An expandable section shows the agent's LLM reasoning for that step (why it chose this step, expected outcome).
+- User can [Inspect] command output, [Retry] with different approach, or [Suggest] an alternative.
+
+### WF-09 Acceptance Criteria
+- Each active agent is displayed as a tab in the Workflow Manager pane: [@careful_bot #task_001] [@fast_bot #task_002].
+- Clicking a tab switches to that agent's isolated terminal output.
+- Or, split the pane to see 2-4 agents simultaneously.
+- Agents' commands execute in parallel without blocking each other.
+
+### WF-12 Acceptance Criteria
+- Users create personas in `~/.local/share/tos/personas/<n>.md`.
+- Persona markdown defines strategies (testing, error handling, step sizing, etc.) in plain text.
+- Any persona file is immediately discoverable and usable.
+- Settings → Workflows → Agent Personas shows built-in, custom, and Marketplace personas.
+
+### WF-13 Acceptance Criteria
+- Every task's session file includes a `llm_history` object containing:
+  - `initial_decomposition`: {request, response, reasoning}
+  - `step_interactions`: [{step_id, executed_at, command_executed, command_output, agent_response}]
+- Expanding a step in the Workflow Manager shows this history in an expandable LLM reasoning panel.
+- Full history is exported when user exports task transcript.
+
+### WF-14 Acceptance Criteria
+- If TOS closes while an agent is on step 2/5, the session file saves: `{ paused_at_step: 2, steps_completed: 1 }`.
+- On reopen, the Workflow Manager shows the task in WIP with [Resume] chip.
+- Clicking [Resume] loads the full LLM context from `llm_history` and continues from step 3.
+
+### WF-15 Acceptance Criteria
+- Sector A (laptop) and Sector B (desktop) both open `~/projects/torpedo/.tos/kanban.tos-board`.
+- Task state changes propagate via file system watches (inotify / FSEvents) in < 2 seconds.
+- Kanban board refreshes in both sectors, showing task moved to new lane.
+- For remote sectors, TOS Remote Server protocol broadcasts updates (see Architecture §12).
+
+### WF-17 Acceptance Criteria
+- `tos dream consolidate ~/projects/torpedo` reads all completed task LLM histories.
+- Synthesizes patterns: "Problem type: lifetime_error → Solution: wrap_in_result → Test first"
+- Generates `~/.tos/memory/project_memory.md` with:
+  - Quick patterns (problem + solution)
+  - Completed tasks index
+  - Cross-task dependencies
+  - Emergent recommendations
+  - Project statistics (total tasks, duration, agents used, success rate)
+- Future agents load project memory as few-shot examples for new decompositions.
+
+### WF-19 Acceptance Criteria
+- Settings → Workflows → Agent Personas → [careful_bot] → Learned Patterns shows:
+  - Problem type: lifetime_error (count: 5)
+  - Successful approaches: [wrap_in_result → test_first → validate (100% success rate)]
+  - Historical trends
+- Agent uses these patterns in future task decompositions to improve accuracy and speed.
+
+### WF-21 Acceptance Criteria
+- Drag-and-drop a task card between lanes.
+- Auto-promotion rules evaluate: if target lane is "wip" and current count < max_concurrent, move succeeds.
+- If rule prevents move (e.g., WIP is full), card snaps back and a tooltip explains the blocker.
+
+### WF-25 Acceptance Criteria
+- Import button in Workflow Manager accepts `.tos-task` YAML files.
+- YAML is validated (schema check) before creating tasks.
+- Tasks are created in the Backlog lane in the order specified.
+- Any validation errors are reported with line numbers.
+
+---
+
+## 5. SEARCH Mode
 
 Stories covering semantic and filesystem search, result chips, and cross-domain filtering.
 
@@ -143,7 +269,7 @@ Stories covering semantic and filesystem search, result chips, and cross-domain 
 
 ---
 
-## 5. Trust & Security Model
+## 6. Trust & Security Model
 
 Stories covering the non-blocking warning system, explicit trust promotion, and role-based access in collaboration.
 
@@ -168,7 +294,7 @@ Stories covering the non-blocking warning system, explicit trust promotion, and 
 
 ---
 
-## 6. Multi-Sensory Feedback
+## 7. Multi-Sensory Feedback
 
 Stories covering earcons, haptic pulses, alert levels, and the notification center.
 
@@ -187,7 +313,7 @@ Stories covering earcons, haptic pulses, alert levels, and the notification cent
 
 ---
 
-## 7. Onboarding & First-Run Experience
+## 8. Onboarding & First-Run Experience
 
 Stories covering the cinematic intro, guided demo, ambient hints, and the power-user escape hatch.
 
@@ -206,7 +332,7 @@ Stories covering the cinematic intro, guided demo, ambient hints, and the power-
 
 ---
 
-## 8. Marketplace & Module System
+## 9. Marketplace & Module System
 
 Stories covering module discovery, installation, sandboxing, and the permission model.
 
@@ -225,7 +351,7 @@ Stories covering module discovery, installation, sandboxing, and the permission 
 
 ---
 
-## 9. Collaboration
+## 10. Collaboration
 
 Stories covering real-time presence, following mode, role management, and the audit trail.
 
@@ -331,6 +457,31 @@ Stories covering frame-rate targets, headless testing, and keyboard/screen reade
 | AI-12 | AI Skills | Approve multi-file edit steps individually |
 | AI-13 | AI Skills | Pending edit persists across device handoff |
 | AI-14 | AI Skills | Offline AI queue drains on reconnect |
+| WF-01 | Workflow | Open project kanban board from any sector |
+| WF-02 | Workflow | Define custom kanban lanes |
+| WF-03 | Workflow | Set auto-promotion rules for lanes |
+| WF-04 | Workflow | Create task from GitHub issue via Roadmap Skill |
+| WF-05 | Workflow | Assign agent persona to task |
+| WF-06 | Workflow | View agent decomposition plan before execution |
+| WF-07 | Workflow | Enable auto-accept for autonomous agent work |
+| WF-08 | Workflow | Pause agent and inspect LLM reasoning |
+| WF-09 | Workflow | Watch multiple agents work simultaneously |
+| WF-10 | Workflow | Skip step or retry with different approach |
+| WF-11 | Workflow | Agent auto-activation by project context signals |
+| WF-12 | Workflow | Create custom agent personas |
+| WF-13 | Workflow | Archive all LLM reasoning for completed task |
+| WF-14 | Workflow | Resume task with agent from exact pause point |
+| WF-15 | Workflow | Sync kanban board across multi-sector team |
+| WF-16 | Workflow | View project accumulated knowledge in memory file |
+| WF-17 | Workflow | Consolidate task histories into project memory |
+| WF-18 | Workflow | Export task transcript with full LLM reasoning |
+| WF-19 | Workflow | View learned patterns and strategy effectiveness |
+| WF-20 | Workflow | Install agent personas from Marketplace |
+| WF-21 | Workflow | Drag-drop task between kanban lanes |
+| WF-22 | Workflow | View acceptance criteria and validation status |
+| WF-23 | Workflow | Auto-archive completed tasks after N days |
+| WF-24 | Workflow | Filter kanban board by agent/tag/lane |
+| WF-25 | Workflow | Import .tos-task YAML to populate board |
 | EDT-01 | Editor | Auto-open editor on build failure |
 | EDT-02 | Editor | Preview file by typing path in prompt |
 | EDT-03 | Editor | Diff Mode for Vibe Coder proposals |

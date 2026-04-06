@@ -43,3 +43,29 @@ pub mod services;
 pub use face::AndroidFace;
 pub use input::{AndroidInput, GestureState, GestureType};
 pub use services::AndroidServices;
+
+#[cfg(target_os = "android")]
+#[no_mangle]
+fn android_main(app: android_activity::AndroidApp) {
+    // android_logger::init_once(
+    //     android_logger::Config::default()
+    //         .with_max_level(log::LevelFilter::Info)
+    //         .with_tag("TOS_Face"),
+    // );
+    // log::info!("TOS Android Face started!");
+
+    use android_activity::{MainEvent, PollEvent};
+    let mut destroyed = false;
+    loop {
+        app.poll_events(Some(std::time::Duration::from_millis(100)), |event| {
+            if let PollEvent::Main(MainEvent::Destroy) = event {
+                log::info!("Destroying Activity");
+                destroyed = true;
+            }
+        });
+
+        if destroyed {
+            break;
+        }
+    }
+}

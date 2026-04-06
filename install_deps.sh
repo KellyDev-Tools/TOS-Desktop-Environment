@@ -565,6 +565,39 @@ else
 fi
 
 # ─────────────────────────────────────────────────────────────────────────────
+# Flutter SDK Setup
+# ─────────────────────────────────────────────────────────────────────────────
+
+echo ""
+echo "=========================================================="
+echo "Flutter SDK Detection"
+echo "=========================================================="
+
+FLUTTER_HOME="$HOME/flutter"
+
+if [ -d "$FLUTTER_HOME/bin" ]; then
+    echo "Flutter SDK already installed at: $FLUTTER_HOME"
+    export PATH="$FLUTTER_HOME/bin:$PATH"
+else
+    echo "Flutter SDK not detected. Installing Flutter SDK (stable branch)..."
+    mkdir -p "$HOME/.tmp"
+    FLUTTER_URL="https://storage.googleapis.com/flutter_infra_release/releases/stable/linux/flutter_linux_3.19.5-stable.tar.xz"
+    curl -o "$HOME/.tmp/flutter.tar.xz" "$FLUTTER_URL"
+    tar -xf "$HOME/.tmp/flutter.tar.xz" -C "$HOME"
+    rm "$HOME/.tmp/flutter.tar.xz"
+    export PATH="$FLUTTER_HOME/bin:$PATH"
+fi
+
+if ! command -v flutter &> /dev/null; then
+    echo "WARNING: flutter command not found in PATH."
+else
+    echo "Flutter $(flutter --version | head -n 1) is ready."
+fi
+
+echo "Installing flutter_rust_bridge_codegen..."
+cargo install flutter_rust_bridge_codegen || echo "WARNING: flutter_rust_bridge_codegen install failed"
+
+# ─────────────────────────────────────────────────────────────────────────────
 # Shell Profile Updates
 # ─────────────────────────────────────────────────────────────────────────────
 
@@ -572,31 +605,43 @@ fi
 if [ "$IS_WINDOWS" = true ]; then
     SHELL_PROFILE="$HOME/.bashrc"
 else
+    # Update both if they exist, but default to .bashrc
     SHELL_PROFILE="$HOME/.bashrc"
+    [ -f "$HOME/.zshrc" ] && ZSH_PROFILE="$HOME/.zshrc"
 fi
 
 update_shell_profile() {
     local target_var=$1
     local value=$2
-    if ! grep -q "$target_var=" "$SHELL_PROFILE" 2>/dev/null; then
-        echo "export $target_var=\"$value\"" >> "$SHELL_PROFILE"
+    local profile=$3
+    if [ -f "$profile" ] && ! grep -q "$target_var=" "$profile" 2>/dev/null; then
+        echo "export $target_var=\"$value\"" >> "$profile"
     fi
 }
 
-update_shell_profile "ANDROID_HOME" "$ANDROID_HOME"
-update_shell_profile "ANDROID_NDK_HOME" "$ANDROID_NDK_HOME"
+update_shell_profile "ANDROID_HOME" "$ANDROID_HOME" "$SHELL_PROFILE"
+update_shell_profile "ANDROID_NDK_HOME" "$ANDROID_NDK_HOME" "$SHELL_PROFILE"
+update_shell_profile "FLUTTER_HOME" "$FLUTTER_HOME" "$SHELL_PROFILE"
 
-if ! grep -q "cmdline-tools/latest/bin" "$SHELL_PROFILE" 2>/dev/null; then
-    EXTRA_PATHS="\$ANDROID_HOME/cmdline-tools/latest/bin:\$ANDROID_NDK_HOME:\$HOME/gradle/gradle-8.5/bin"
+if [ -n "$ZSH_PROFILE" ]; then
+    update_shell_profile "ANDROID_HOME" "$ANDROID_HOME" "$ZSH_PROFILE"
+    update_shell_profile "ANDROID_NDK_HOME" "$ANDROID_NDK_HOME" "$ZSH_PROFILE"
+    update_shell_profile "FLUTTER_HOME" "$FLUTTER_HOME" "$ZSH_PROFILE"
+fi
+
+if ! grep -q "flutter/bin" "$SHELL_PROFILE" 2>/dev/null; then
+    EXTRA_PATHS="\$ANDROID_HOME/cmdline-tools/latest/bin:\$ANDROID_NDK_HOME:\$HOME/gradle/gradle-8.5/bin:\$FLUTTER_HOME/bin"
     if [ "$IS_WINDOWS" = true ]; then
         EXTRA_PATHS="\$LOCALAPPDATA/Microsoft/WinGet/Packages/ezwinports.make_Microsoft.Winget.Source_8wekyb3d8bbwe/bin:\$LOCALAPPDATA/Microsoft/WindowsApps:\$USERPROFILE/.cargo/bin:$EXTRA_PATHS"
     fi
     echo "export PATH=\"$EXTRA_PATHS:\$PATH\"" >> "$SHELL_PROFILE"
-    echo "Added paths to $SHELL_PROFILE"
+    [ -n "$ZSH_PROFILE" ] && echo "export PATH=\"$EXTRA_PATHS:\$PATH\"" >> "$ZSH_PROFILE"
+    echo "Added paths to profiles."
 fi
 
 echo ""
-echo "Android Build Environment Ready!"
+echo "TOS Environment Ready!"
 echo "  NDK: $ANDROID_NDK_HOME"
 echo "  Gradle: $(command -v gradle 2>/dev/null || echo 'not in PATH')"
-echo "Please run 'source $SHELL_PROFILE' to ensure paths are loaded."
+echo "  Flutter: $FLUTTER_HOME"
+echo "Please run 'source $SHELL_PROFILE' (or .zshrc) to ensure paths are loaded."

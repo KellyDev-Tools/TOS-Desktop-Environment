@@ -5,7 +5,8 @@
         check check-brain fmt lint docs \
         test test-all test-core test-shell test-ai test-sec test-system test-brain-component test-ui-component test-self test-e2e test-health \
         run run-web run-web-dev dev-web clean \
-        android-check android-build android-release clean-android android-test \
+        android-check android-build android-release android-install android-run clean-android android-test \
+        android-flutter-generate android-flutter-build android-flutter-install android-flutter-run \
         pack-face-electron-win pack-face-electron-linux pack-face-electron-mac
 
 # -----------------------------------------------------------------------------
@@ -68,7 +69,15 @@ help:
 	@echo "  make android-check   Check Android Face crate (host target)"
 	@echo "  make android-build   Check + instructions for cross-compile"
 	@echo "  make android-release Cross-compile release APK"
+	@echo "  make android-install Install the built APK to a connected device"
+	@echo "  make android-run     Install and launch the APK on a connected device"
 	@echo "  make android-test    Run Android Face tests"
+	@echo ""
+	@echo "\033[1;33mAndroid (Flutter-based - New):\033[0m"
+	@echo "  make android-flutter-generate  Generate Rust bridge code"
+	@echo "  make android-flutter-build     Build Flutter Release APK"
+	@echo "  make android-flutter-install   Install Flutter APK to device"
+	@echo "  make android-flutter-run       Build and launch Flutter Face"
 	@echo ""
 	@echo "\033[1;33mElectron Packaging:\033[0m"
 	@echo "  make pack-face-electron-win   Bundle Electron Face for Windows (.exe)"
@@ -342,12 +351,47 @@ android-release:
 	@echo "[TOS] Building Android Face (Release, arm64-v8a)..."
 	cd face-android-handheld && /home/tim/gradle/gradle-8.5/bin/gradle assembleRelease
 	@echo "[TOS] Android Face: RELEASE BUILD COMPLETE"
-	@echo "[TOS] APK located at: face-android-handheld/build/outputs/apk/release/face-android-handheld-release-unsigned.apk"
+	@echo "[TOS] APK located at: face-android-handheld/build/outputs/apk/release/face-android-handheld-release.apk"
+
+android-install: android-release
+	@echo "[TOS] Installing Android Face to connected device or emulator..."
+	/home/tim/android-sdk/platform-tools/adb install -r face-android-handheld/build/outputs/apk/release/face-android-handheld-release.apk
+	@echo "[TOS] Install complete."
+
+android-run: android-install
+	@echo "[TOS] Starting Android Face on device..."
+	/home/tim/android-sdk/platform-tools/adb shell am start -n org.tos.face.android/android.app.NativeActivity
+	@echo "[TOS] Android Face launched."
 
 android-test:
 	@echo "[TOS] Running Android Face tests (host target)..."
-	cd face-android-handheld && cargo test
+	cd $(ANDROID_CRATE) && cargo test
 	@echo "[TOS] Android Face: TESTS PASSED"
+
+# -----------------------------------------------------------------------------
+# 6.1 ANDROID FLUTTER BUILD (New face-android-flutter/)
+# -----------------------------------------------------------------------------
+
+FLUTTER_DIR := face-android-flutter
+
+android-flutter-generate:
+	@echo "[TOS] Generating Flutter-Rust Bridge..."
+	cd $(FLUTTER_DIR) && ./generate.sh
+	@echo "[TOS] Bridge Generation: COMPLETE"
+
+android-flutter-build: android-flutter-generate
+	@echo "[TOS] Building Flutter Android Face (Release)..."
+	cd $(FLUTTER_DIR) && export PATH="$$HOME/flutter/bin:$$PATH" && flutter build apk --release
+	@echo "[TOS] Flutter Android Face: BUILD COMPLETE"
+
+android-flutter-install:
+	@echo "[TOS] Installing Flutter APK to connected device..."
+	cd $(FLUTTER_DIR) && export PATH="$$HOME/flutter/bin:$$PATH" && flutter install
+	@echo "[TOS] Install complete."
+
+android-flutter-run: android-flutter-generate
+	@echo "[TOS] Launching Flutter Face on device..."
+	cd $(FLUTTER_DIR) && export PATH="$$HOME/flutter/bin:$$PATH" && flutter run --release
 
 clean-android:
 	@echo "[TOS] Cleaning Android Face build artifacts..."

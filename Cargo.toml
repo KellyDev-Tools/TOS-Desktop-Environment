@@ -13,5 +13,6 @@ members = [
     "tos-settingsd",
     "face-wayland-linux",
     "face-android-handheld",
+    "face-android-flutter/rust",
     "tests",
 ]

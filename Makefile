@@ -390,6 +390,27 @@ android-flutter-install:
 	@echo "[TOS] Install complete."
 
 android-flutter-run: android-flutter-generate
+	@mkdir -p logs
+	@echo "[TOS] Ensuring Android device/emulator is available..."
+	@DEVICE_FOUND=$$(export PATH="$$HOME/android-sdk/platform-tools:$$PATH" && adb devices | grep -v "List" | grep "device" | head -n 1); \
+	if [ -z "$$DEVICE_FOUND" ]; then \
+		echo "[TOS] No device detected. Attempting to launch TOS_Handheld emulator (headless)..."; \
+		export PATH="$$HOME/android-sdk/emulator:$$HOME/android-sdk/platform-tools:$$PATH" && \
+		emulator -avd TOS_Handheld -no-window -no-audio -no-boot-anim -gpu swiftshader_indirect > logs/emulator.log 2>&1 & \
+		EMU_PID=$$!; \
+		echo "[TOS] Waiting for emulator to bind to ADB..."; \
+		export PATH="$$HOME/android-sdk/platform-tools:$$PATH" && \
+		while ! adb devices | grep -v "List" | grep -q "device"; do \
+			if ! kill -0 $$EMU_PID 2>/dev/null; then \
+				echo "[TOS] ERROR: Emulator process died. See logs/emulator.log for details."; \
+				exit 1; \
+			fi; \
+			sleep 1; \
+		done; \
+		echo "[TOS] Emulator connected."; \
+	else \
+		echo "[TOS] Found device: $$DEVICE_FOUND"; \
+	fi
 	@echo "[TOS] Launching Flutter Face on device..."
 	cd $(FLUTTER_DIR) && export PATH="$$HOME/flutter/bin:$$PATH" && flutter run --release
 

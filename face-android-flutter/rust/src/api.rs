@@ -1,6 +1,6 @@
-use tos_common::state::{TosState, HierarchyLevel};
+pub use tos_common::state::{TosState, HierarchyLevel};
 
-mod frb_generated;
+
 
 #[flutter_rust_bridge::frb(init)]
 pub fn init_app() {

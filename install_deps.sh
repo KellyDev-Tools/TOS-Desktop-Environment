@@ -452,6 +452,13 @@ export ANDROID_NDK_HOME="$ANDROID_HOME/ndk/26.1.10909125"
 
 if [ -d "$ANDROID_NDK_HOME" ]; then
     echo "Android NDK already installed at: $ANDROID_NDK_HOME"
+    # Ensure SDKMANAGER is defined even if NDK exists
+    SDKMANAGER="sdkmanager"
+    if [ -f "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" ]; then
+        SDKMANAGER="$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager"
+    elif [ -f "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager.bat" ]; then
+        SDKMANAGER="$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager.bat"
+    fi
 else
     echo "Android NDK not detected. Installing Android NDK r26d..."
     mkdir -p "$ANDROID_HOME/cmdline-tools"
@@ -574,14 +581,22 @@ echo "Flutter SDK Detection"
 echo "=========================================================="
 
 FLUTTER_HOME="$HOME/flutter"
+FLUTTER_VERSION="3.22.2"
 
 if [ -d "$FLUTTER_HOME/bin" ]; then
-    echo "Flutter SDK already installed at: $FLUTTER_HOME"
-    export PATH="$FLUTTER_HOME/bin:$PATH"
-else
-    echo "Flutter SDK not detected. Installing Flutter SDK (stable branch)..."
+    CURRENT_FLUTTER_VER=$(export PATH="$FLUTTER_HOME/bin:$PATH" && flutter --version | head -n 1 | awk '{print $2}')
+    if [[ "$CURRENT_FLUTTER_VER" == "$FLUTTER_VERSION"* ]]; then
+        echo "Flutter $FLUTTER_VERSION is already installed."
+    else
+        echo "Current Flutter version ($CURRENT_FLUTTER_VER) is out of date. Reinstalling $FLUTTER_VERSION..."
+        rm -rf "$FLUTTER_HOME"
+    fi
+fi
+
+if [ ! -d "$FLUTTER_HOME/bin" ]; then
+    echo "Installing Flutter SDK $FLUTTER_VERSION (stable branch)..."
     mkdir -p "$HOME/.tmp"
-    FLUTTER_URL="https://storage.googleapis.com/flutter_infra_release/releases/stable/linux/flutter_linux_3.19.5-stable.tar.xz"
+    FLUTTER_URL="https://storage.googleapis.com/flutter_infra_release/releases/stable/linux/flutter_linux_${FLUTTER_VERSION}-stable.tar.xz"
     curl -o "$HOME/.tmp/flutter.tar.xz" "$FLUTTER_URL"
     tar -xf "$HOME/.tmp/flutter.tar.xz" -C "$HOME"
     rm "$HOME/.tmp/flutter.tar.xz"
@@ -596,6 +611,52 @@ fi
 
 echo "Installing flutter_rust_bridge_codegen..."
 cargo install flutter_rust_bridge_codegen || echo "WARNING: flutter_rust_bridge_codegen install failed"
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Android Emulator Setup
+# ─────────────────────────────────────────────────────────────────────────────
+
+echo ""
+echo "=========================================================="
+echo "Android Emulator Setup"
+echo "=========================================================="
+
+if avdmanager list avd | grep -q "TOS_Handheld"; then
+    echo "AVD 'TOS_Handheld' already exists."
+else
+    echo "Installing system image (Android 34, Google APIs, x86_64)..."
+    # Ensure licenses are accepted
+    yes | "$SDKMANAGER" --sdk_root="$ANDROID_HOME" --licenses >/dev/null 2>&1 || true
+    "$SDKMANAGER" --sdk_root="$ANDROID_HOME" "system-images;android-34;google_apis;x86_64" "emulator" "platform-tools"
+    
+    echo "Creating AVD 'TOS_Handheld'..."
+    # echo "no" handles the "Do you wish to create a custom hardware profile" question
+    echo "no" | "$ANDROID_HOME/cmdline-tools/latest/bin/avdmanager" create avd -n TOS_Handheld -k "system-images;android-34;google_apis;x86_64" --force
+    echo "AVD Created successfully."
+fi
+
+# ─────────────────────────────────────────────────────────────────────────────
+# KVM Permission Check (for Android Emulator)
+# ─────────────────────────────────────────────────────────────────────────────
+
+if [ "$IS_WINDOWS" = false ]; then
+    echo "=========================================================="
+    echo "Checking KVM Permissions..."
+    echo "=========================================================="
+    if [ -e /dev/kvm ]; then
+        if ! groups | grep -q "\bkvm\b"; then
+            echo "Current user is not in the 'kvm' group. Adding..."
+            sudo gpasswd -a $USER kvm
+            echo "IMPORTANT: You must log out and back in for KVM permissions to take effect."
+            echo "Alternatively, run 'newgrp kvm' in your current shell before launching the emulator."
+        else
+            echo "KVM permissions verified (user in 'kvm' group)."
+        fi
+    else
+        echo "WARNING: /dev/kvm not found. Hardware acceleration for the Android emulator may not be available."
+        echo "If you are in WSL2, ensure you have enabled nested virtualization."
+    fi
+fi
 
 # ─────────────────────────────────────────────────────────────────────────────
 # Shell Profile Updates

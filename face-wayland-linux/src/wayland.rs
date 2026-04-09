@@ -6,7 +6,7 @@ use smithay_client_toolkit::{
     shell::{
         wlr_layer::{Layer, LayerShell, LayerShellHandler, LayerSurface, LayerSurfaceConfigure},
         xdg::{
-            window::{Window as XdgWindow, WindowConfigure as XdgWindowConfigure, WindowHandler as XdgWindowHandler},
+            window::{Window as XdgWindow, WindowConfigure as XdgWindowConfigure, WindowHandler as XdgWindowHandler, WindowDecorations},
             XdgShell,
         },
     },
@@ -125,7 +125,7 @@ impl WaylandShell {
             surface.commit();
             tracing::info!("Wayland: Real Layer Surface created ({}x{})", width, height);
         } else if let Some(ref xdg_shell) = self.state.xdg_shell {
-            let window = xdg_shell.create_window(surface.clone(), &self.queue_handle);
+            let window = xdg_shell.create_window(surface.clone(), WindowDecorations::RequestServer, &self.queue_handle);
             window.set_title(title.to_string());
             // Standard windows might need an app_id for some DEs
             window.set_app_id("org.tos.native-shell".to_string());
@@ -263,11 +263,6 @@ impl LayerShellHandler for WaylandState {
     }
 }
 
-impl XdgShellHandler for WaylandState {
-    fn xdg_shell_state(&mut self) -> &mut XdgShell {
-        self.xdg_shell.as_mut().expect("XDG Shell state requested but missing")
-    }
-}
 
 impl XdgWindowHandler for WaylandState {
     fn configure(
@@ -280,7 +275,7 @@ impl XdgWindowHandler for WaylandState {
     ) {
     }
 
-    fn closed(&mut self, _conn: &Connection, _qh: &QueueHandle<Self>, _window: &XdgWindow) {
+    fn request_close(&mut self, _conn: &Connection, _qh: &QueueHandle<Self>, _window: &XdgWindow) {
     }
 }
 

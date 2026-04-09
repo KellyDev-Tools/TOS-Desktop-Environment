@@ -23,6 +23,8 @@ alias gsi='git status --short --ignored'
 alias gsl='git status'
 alias gsli='git status --ignored'
 
+alias gl='git log --oneline --decorate -n 10'
+
 alias gcm='git commit -m "__CURSOR__"'
 alias gcs='git __CURSOR__ --compact-summary'
 

@@ -1,6 +1,18 @@
 # TOS Beta-0 Build System
 # High-Fidelity OS Pipeline
 
+# --- Android / Handheld Configuration ---
+# Set ANDROID_HOME if not already set, defaulting to a common path
+ANDROID_HOME ?= $(HOME)/Android/Sdk
+ANDROID_PLATFORM_TOOLS := $(ANDROID_HOME)/platform-tools
+ANDROID_EMULATOR_BIN := $(ANDROID_HOME)/emulator/emulator
+ADB_BIN := $(ANDROID_PLATFORM_TOOLS)/adb
+GRADLE_BIN ?= $(HOME)/gradle/gradle-8.5/bin/gradle
+
+# AVD Location Fix: some tools use ~/.config/.android/avd
+ANDROID_AVD_HOME ?= $(HOME)/.config/.android/avd
+FLUTTER_HOME ?= $(HOME)/flutter
+
 .PHONY: help build-all build-brain build-faces build-face-web build-face-electron build-protocol build-services \
         check check-brain fmt lint docs \
         test test-all test-core test-shell test-ai test-sec test-system test-brain-component test-ui-component test-self test-e2e test-health \
@@ -349,18 +361,18 @@ android-build: android-check
 
 android-release:
 	@echo "[TOS] Building Android Face (Release, arm64-v8a)..."
-	cd face-android-handheld && /home/tim/gradle/gradle-8.5/bin/gradle assembleRelease
+	cd face-android-handheld && $(GRADLE_BIN) assembleRelease
 	@echo "[TOS] Android Face: RELEASE BUILD COMPLETE"
 	@echo "[TOS] APK located at: face-android-handheld/build/outputs/apk/release/face-android-handheld-release.apk"
 
 android-install: android-release
 	@echo "[TOS] Installing Android Face to connected device or emulator..."
-	/home/tim/android-sdk/platform-tools/adb install -r face-android-handheld/build/outputs/apk/release/face-android-handheld-release.apk
+	$(ADB_BIN) install -r face-android-handheld/build/outputs/apk/release/face-android-handheld-release.apk
 	@echo "[TOS] Install complete."
 
 android-run: android-install
 	@echo "[TOS] Starting Android Face on device..."
-	/home/tim/android-sdk/platform-tools/adb shell am start -n org.tos.face.android/android.app.NativeActivity
+	$(ADB_BIN) shell am start -n org.tos.face.android/android.app.NativeActivity
 	@echo "[TOS] Android Face launched."
 
 android-test:
@@ -381,26 +393,28 @@ android-flutter-generate:
 
 android-flutter-build: android-flutter-generate
 	@echo "[TOS] Building Flutter Android Face (Release)..."
-	cd $(FLUTTER_DIR) && export PATH="$$HOME/flutter/bin:$$PATH" && flutter build apk --release
+	cd $(FLUTTER_DIR) && export PATH="$(FLUTTER_HOME)/bin:$(PATH)" && flutter build apk --release
+	@mv $(FLUTTER_DIR)/build/app/outputs/flutter-apk/app-release.apk $(FLUTTER_DIR)/build/app/outputs/flutter-apk/tos-face.apk || true
 	@echo "[TOS] Flutter Android Face: BUILD COMPLETE"
+	@echo "[TOS] APK located at: $(FLUTTER_DIR)/build/app/outputs/flutter-apk/tos-face.apk"
 
 android-flutter-install:
 	@echo "[TOS] Installing Flutter APK to connected device..."
-	cd $(FLUTTER_DIR) && export PATH="$$HOME/flutter/bin:$$PATH" && flutter install
+	cd $(FLUTTER_DIR) && export PATH="$(FLUTTER_HOME)/bin:$(PATH)" && flutter install
 	@echo "[TOS] Install complete."
 
 android-flutter-run: android-flutter-generate
 	@mkdir -p logs
 	@echo "[TOS] Ensuring Android device/emulator is available..."
-	@DEVICE_FOUND=$$(export PATH="$$HOME/android-sdk/platform-tools:$$PATH" && adb devices | grep -v "List" | grep "device" | head -n 1); \
+	@DEVICE_FOUND=$$(export PATH="$(ANDROID_PLATFORM_TOOLS):$(PATH)" && $(ADB_BIN) devices | grep -v "List" | grep "device" | head -n 1); \
 	if [ -z "$$DEVICE_FOUND" ]; then \
 		echo "[TOS] No device detected. Attempting to launch TOS_Handheld emulator (headless)..."; \
-		export PATH="$$HOME/android-sdk/emulator:$$HOME/android-sdk/platform-tools:$$PATH" && \
-		emulator -avd TOS_Handheld -no-window -no-audio -no-boot-anim -gpu swiftshader_indirect > logs/emulator.log 2>&1 & \
+		export ANDROID_AVD_HOME="$(ANDROID_AVD_HOME)" && \
+		export PATH="$(ANDROID_HOME)/emulator:$(ANDROID_PLATFORM_TOOLS):$(PATH)" && \
+		$(ANDROID_EMULATOR_BIN) -avd TOS_Handheld -no-window -no-audio -no-boot-anim -gpu swiftshader_indirect > logs/emulator.log 2>&1 & \
 		EMU_PID=$$!; \
 		echo "[TOS] Waiting for emulator to bind to ADB..."; \
-		export PATH="$$HOME/android-sdk/platform-tools:$$PATH" && \
-		while ! adb devices | grep -v "List" | grep -q "device"; do \
+		while ! $(ADB_BIN) devices | grep -v "List" | grep -q "device"; do \
 			if ! kill -0 $$EMU_PID 2>/dev/null; then \
 				echo "[TOS] ERROR: Emulator process died. See logs/emulator.log for details."; \
 				exit 1; \
@@ -412,7 +426,7 @@ android-flutter-run: android-flutter-generate
 		echo "[TOS] Found device: $$DEVICE_FOUND"; \
 	fi
 	@echo "[TOS] Launching Flutter Face on device..."
-	cd $(FLUTTER_DIR) && export PATH="$$HOME/flutter/bin:$$PATH" && flutter run --release
+	cd $(FLUTTER_DIR) && export PATH="$(FLUTTER_HOME)/bin:$(PATH)" && flutter run --release
 
 clean-android:
 	@echo "[TOS] Cleaning Android Face build artifacts..."

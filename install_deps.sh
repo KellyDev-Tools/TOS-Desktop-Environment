@@ -341,21 +341,49 @@ if [ "$IS_WINDOWS" = true ]; then
     fi
 else
     # Linux: use NVM
-    export NVM_DIR="$HOME/.nvm"
+    if [ -z "$NVM_DIR" ]; then
+        if [ -d "$HOME/.config/nvm" ]; then
+            export NVM_DIR="$HOME/.config/nvm"
+        elif [ -d "$HOME/.nvm" ]; then
+            export NVM_DIR="$HOME/.nvm"
+        else
+            export NVM_DIR="$HOME/.nvm"
+        fi
+    fi
+
     if [ ! -d "$NVM_DIR" ]; then
         echo "NVM not found. Installing NVM..."
+        # Backup and unset NVM_DIR to let the installer decide or use its default
+        OLD_NVM_DIR="$NVM_DIR"
         unset NVM_DIR
         curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.7/install.sh | bash
-        export NVM_DIR="$HOME/.nvm"
+        
+        # Re-detect where it was installed
+        if [ -d "$HOME/.config/nvm" ]; then
+            export NVM_DIR="$HOME/.config/nvm"
+        elif [ -d "$HOME/.nvm" ]; then
+            export NVM_DIR="$HOME/.nvm"
+        else
+            export NVM_DIR="$OLD_NVM_DIR"
+        fi
     fi
 
     # Load NVM for the current session
-    [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
+    if [ -s "$NVM_DIR/nvm.sh" ]; then
+        \. "$NVM_DIR/nvm.sh"
+    elif [ -s "$HOME/.nvm/nvm.sh" ]; then
+        export NVM_DIR="$HOME/.nvm"
+        \. "$NVM_DIR/nvm.sh"
+    fi
 
-    echo "Installing and using Node.js v20 (LTS)..."
-    nvm install 20
-    nvm use 20
-    echo "Node $(node -v) installed."
+    if command -v nvm &> /dev/null; then
+        echo "Installing and using Node.js v20 (LTS)..."
+        nvm install 20
+        nvm use 20
+        echo "Node $(node -v) installed."
+    else
+        echo "WARNING: NVM installed but 'nvm' command not found. Skipping Node install."
+    fi
 fi
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -447,31 +475,54 @@ else
 fi
 rustup target add aarch64-linux-android
 
-export ANDROID_HOME="$HOME/android-sdk"
+# Set ANDROID_HOME to existing env var, or common paths, or default
+if [ -z "$ANDROID_HOME" ]; then
+    if [ -d "$HOME/Android/Sdk" ]; then
+        export ANDROID_HOME="$HOME/Android/Sdk"
+    elif [ -d "$HOME/AndroidSDK" ]; then
+        export ANDROID_HOME="$HOME/AndroidSDK"
+    elif [ -d "$HOME/android-sdk" ]; then
+        export ANDROID_HOME="$HOME/android-sdk"
+    else
+        export ANDROID_HOME="$HOME/android-sdk"
+    fi
+fi
 export ANDROID_NDK_HOME="$ANDROID_HOME/ndk/26.1.10909125"
+
+# Detect sdkmanager and avdmanager
+SDKMANAGER=$(command -v sdkmanager 2>/dev/null || echo "sdkmanager")
+AVDMANAGER=$(command -v avdmanager 2>/dev/null || echo "avdmanager")
+
+# Helper to find binaries in the SDK
+find_android_bin() {
+    local name=$1
+    for dir in \
+        "$ANDROID_HOME/cmdline-tools/latest/bin" \
+        "$ANDROID_HOME/cmdline-tools/bin" \
+        "$ANDROID_HOME/tools/bin"; do
+        if [ -f "$dir/$name" ]; then
+            echo "$dir/$name"
+            return 0
+        fi
+        if [ "$IS_WINDOWS" = true ] && [ -f "$dir/$name.bat" ]; then
+            echo "$dir/$name.bat"
+            return 0
+        fi
+    done
+    return 1
+}
+
+# Try to find binaries if not in PATH or if specifically in our ANDROID_HOME
+SDK_SDKMANAGER=$(find_android_bin "sdkmanager") && SDKMANAGER="$SDK_SDKMANAGER"
+SDK_AVDMANAGER=$(find_android_bin "avdmanager") && AVDMANAGER="$SDK_AVDMANAGER"
 
 if [ -d "$ANDROID_NDK_HOME" ]; then
     echo "Android NDK already installed at: $ANDROID_NDK_HOME"
-    # Ensure SDKMANAGER is defined even if NDK exists
-    SDKMANAGER="sdkmanager"
-    if [ -f "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" ]; then
-        SDKMANAGER="$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager"
-    elif [ -f "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager.bat" ]; then
-        SDKMANAGER="$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager.bat"
-    fi
 else
-    echo "Android NDK not detected. Installing Android NDK r26d..."
+    echo "Android NDK not detected. Ensuring cmdline-tools are available..."
     mkdir -p "$ANDROID_HOME/cmdline-tools"
     
-    # Determine the correct sdkmanager command (Windows uses .bat)
-    SDKMANAGER="sdkmanager"
-    if [ "$IS_WINDOWS" = true ]; then
-        SDKMANAGER_BAT="$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager.bat"
-    else
-        SDKMANAGER_BAT="$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager"
-    fi
-
-    if ! command -v sdkmanager &> /dev/null && [ ! -f "$SDKMANAGER_BAT" ]; then
+    if ! command -v sdkmanager &> /dev/null && [ ! -f "$SDK_SDKMANAGER" ]; then
         echo "Downloading Android cmdline-tools..."
         if [ "$IS_WINDOWS" = true ]; then
             CMDLINE_TOOLS_URL="https://dl.google.com/android/repository/commandlinetools-win-11076708_latest.zip"
@@ -486,7 +537,10 @@ else
         if [ -d "$ANDROID_HOME/cmdline-tools/cmdline-tools" ]; then
             mv "$ANDROID_HOME/cmdline-tools/cmdline-tools" "$ANDROID_HOME/cmdline-tools/latest"
         fi
-        export PATH="$ANDROID_HOME/cmdline-tools/latest/bin:$PATH"
+        # Re-detect
+        SDK_SDKMANAGER=$(find_android_bin "sdkmanager") && SDKMANAGER="$SDK_SDKMANAGER"
+        SDK_AVDMANAGER=$(find_android_bin "avdmanager") && AVDMANAGER="$SDK_AVDMANAGER"
+        export PATH="$(dirname "$SDK_SDKMANAGER"):$PATH"
     fi
 
     # Verify Java is available (required by sdkmanager)
@@ -546,12 +600,8 @@ else
         fi
     fi
 
-    if [ "${SKIP_SDK:-false}" = false ]; then
-        # Use the correct sdkmanager binary
-        if [ -f "$SDKMANAGER_BAT" ]; then
-            SDKMANAGER="$SDKMANAGER_BAT"
-        fi
-        
+    if [ "${SKIP_SDK:-false}" = false ] && [ ! -d "$ANDROID_NDK_HOME" ]; then
+        echo "Installing Android NDK r26d..."
         yes | "$SDKMANAGER" --licenses >/dev/null 2>&1 || true
         "$SDKMANAGER" --sdk_root="$ANDROID_HOME" "ndk;26.1.10909125"
     fi
@@ -584,7 +634,7 @@ FLUTTER_HOME="$HOME/flutter"
 FLUTTER_VERSION="3.22.2"
 
 if [ -d "$FLUTTER_HOME/bin" ]; then
-    CURRENT_FLUTTER_VER=$(export PATH="$FLUTTER_HOME/bin:$PATH" && flutter --version | head -n 1 | awk '{print $2}')
+    CURRENT_FLUTTER_VER=$(export PATH="$FLUTTER_HOME/bin:$PATH" && flutter --version 2>/dev/null | grep "Flutter" | awk '{print $2}')
     if [[ "$CURRENT_FLUTTER_VER" == "$FLUTTER_VERSION"* ]]; then
         echo "Flutter $FLUTTER_VERSION is already installed."
     else
@@ -606,7 +656,7 @@ fi
 if ! command -v flutter &> /dev/null; then
     echo "WARNING: flutter command not found in PATH."
 else
-    echo "Flutter $(flutter --version | head -n 1) is ready."
+    echo "Flutter $(flutter --version 2>/dev/null | grep "Flutter" | xargs) is ready."
 fi
 
 echo "Installing flutter_rust_bridge_codegen..."
@@ -631,7 +681,7 @@ else
     
     echo "Creating AVD 'TOS_Handheld'..."
     # echo "no" handles the "Do you wish to create a custom hardware profile" question
-    echo "no" | "$ANDROID_HOME/cmdline-tools/latest/bin/avdmanager" create avd -n TOS_Handheld -k "system-images;android-34;google_apis;x86_64" --force
+    echo "no" | "$AVDMANAGER" create avd -n TOS_Handheld -k "system-images;android-34;google_apis;x86_64" --force
     echo "AVD Created successfully."
 fi
 
@@ -662,13 +712,15 @@ fi
 # Shell Profile Updates
 # ─────────────────────────────────────────────────────────────────────────────
 
-# Determine the shell profile file to update
+# Determine the shell profile files to update
+PROFILES_TO_UPDATE=""
 if [ "$IS_WINDOWS" = true ]; then
-    SHELL_PROFILE="$HOME/.bashrc"
+    PROFILES_TO_UPDATE="$HOME/.bashrc"
 else
-    # Update both if they exist, but default to .bashrc
-    SHELL_PROFILE="$HOME/.bashrc"
-    [ -f "$HOME/.zshrc" ] && ZSH_PROFILE="$HOME/.zshrc"
+    [ -f "$HOME/.bashrc" ] && PROFILES_TO_UPDATE="$PROFILES_TO_UPDATE $HOME/.bashrc"
+    [ -f "$HOME/.zshrc" ] && PROFILES_TO_UPDATE="$PROFILES_TO_UPDATE $HOME/.zshrc"
+    [ -f "$HOME/.ashrc" ] && PROFILES_TO_UPDATE="$PROFILES_TO_UPDATE $HOME/.ashrc"
+    [ -f "$HOME/.profile" ] && PROFILES_TO_UPDATE="$PROFILES_TO_UPDATE $HOME/.profile"
 fi
 
 update_shell_profile() {
@@ -680,24 +732,53 @@ update_shell_profile() {
     fi
 }
 
-update_shell_profile "ANDROID_HOME" "$ANDROID_HOME" "$SHELL_PROFILE"
-update_shell_profile "ANDROID_NDK_HOME" "$ANDROID_NDK_HOME" "$SHELL_PROFILE"
-update_shell_profile "FLUTTER_HOME" "$FLUTTER_HOME" "$SHELL_PROFILE"
+# Apply environment variables to all detected profiles
+for profile in $PROFILES_TO_UPDATE; do
+    update_shell_profile "ANDROID_HOME" "$ANDROID_HOME" "$profile"
+    update_shell_profile "ANDROID_NDK_HOME" "$ANDROID_NDK_HOME" "$profile"
+    update_shell_profile "FLUTTER_HOME" "$FLUTTER_HOME" "$profile"
+done
 
-if [ -n "$ZSH_PROFILE" ]; then
-    update_shell_profile "ANDROID_HOME" "$ANDROID_HOME" "$ZSH_PROFILE"
-    update_shell_profile "ANDROID_NDK_HOME" "$ANDROID_NDK_HOME" "$ZSH_PROFILE"
-    update_shell_profile "FLUTTER_HOME" "$FLUTTER_HOME" "$ZSH_PROFILE"
+# Add binary paths to profiles
+EXTRA_PATHS="\$ANDROID_HOME/cmdline-tools/latest/bin:\$ANDROID_NDK_HOME:\$HOME/gradle/gradle-8.5/bin:\$FLUTTER_HOME/bin"
+if [ "$IS_WINDOWS" = true ]; then
+    EXTRA_PATHS="\$LOCALAPPDATA/Microsoft/WinGet/Packages/ezwinports.make_Microsoft.Winget.Source_8wekyb3d8bbwe/bin:\$LOCALAPPDATA/Microsoft/WindowsApps:\$USERPROFILE/.cargo/bin:$EXTRA_PATHS"
 fi
 
-if ! grep -q "flutter/bin" "$SHELL_PROFILE" 2>/dev/null; then
-    EXTRA_PATHS="\$ANDROID_HOME/cmdline-tools/latest/bin:\$ANDROID_NDK_HOME:\$HOME/gradle/gradle-8.5/bin:\$FLUTTER_HOME/bin"
-    if [ "$IS_WINDOWS" = true ]; then
-        EXTRA_PATHS="\$LOCALAPPDATA/Microsoft/WinGet/Packages/ezwinports.make_Microsoft.Winget.Source_8wekyb3d8bbwe/bin:\$LOCALAPPDATA/Microsoft/WindowsApps:\$USERPROFILE/.cargo/bin:$EXTRA_PATHS"
+for profile in $PROFILES_TO_UPDATE; do
+    if ! grep -q "flutter/bin" "$profile" 2>/dev/null; then
+        echo "export PATH=\"$EXTRA_PATHS:\$PATH\"" >> "$profile"
+        echo "Added paths to $profile"
     fi
-    echo "export PATH=\"$EXTRA_PATHS:\$PATH\"" >> "$SHELL_PROFILE"
-    [ -n "$ZSH_PROFILE" ] && echo "export PATH=\"$EXTRA_PATHS:\$PATH\"" >> "$ZSH_PROFILE"
-    echo "Added paths to profiles."
+done
+
+# Install TOS shell-specific configurations
+echo "Installing TOS shell configurations..."
+if [ -f "scripts/tos_bash_config.sh" ] && [ -f "$HOME/.bashrc" ]; then
+    cp scripts/tos_bash_config.sh "$HOME/.tos_bash_config.sh"
+    if ! grep -q ".tos_bash_config.sh" "$HOME/.bashrc"; then
+        echo "[ -f \"\$HOME/.tos_bash_config.sh\" ] && . \"\$HOME/.tos_bash_config.sh\"" >> "$HOME/.bashrc"
+        echo "Configured .bashrc to source .tos_bash_config.sh"
+    fi
+fi
+
+if [ -f "scripts/tos_zsh_config.sh" ] && [ -f "$HOME/.zshrc" ]; then
+    cp scripts/tos_zsh_config.sh "$HOME/.tos_zsh_config.sh"
+    if ! grep -q ".tos_zsh_config.sh" "$HOME/.zshrc"; then
+        echo "[ -f \"\$HOME/.tos_zsh_config.sh\" ] && . \"\$HOME/.tos_zsh_config.sh\"" >> "$HOME/.zshrc"
+        echo "Configured .zshrc to source .tos_zsh_config.sh"
+    fi
+fi
+
+if [ -f "scripts/tos_ash_config.sh" ] && ([ -f "$HOME/.ashrc" ] || [ -f "$HOME/.profile" ]); then
+    cp scripts/tos_ash_config.sh "$HOME/.tos_ash_config.sh"
+    # For ash, we update both .ashrc and .profile if they exist
+    for ash_prof in "$HOME/.ashrc" "$HOME/.profile"; do
+        if [ -f "$ash_prof" ] && ! grep -q ".tos_ash_config.sh" "$ash_prof"; then
+            echo "[ -f \"\$HOME/.tos_ash_config.sh\" ] && . \"\$HOME/.tos_ash_config.sh\"" >> "$ash_prof"
+            echo "Configured $(basename "$ash_prof") to source .tos_ash_config.sh"
+        fi
+    done
 fi
 
 echo ""
@@ -705,4 +786,4 @@ echo "TOS Environment Ready!"
 echo "  NDK: $ANDROID_NDK_HOME"
 echo "  Gradle: $(command -v gradle 2>/dev/null || echo 'not in PATH')"
 echo "  Flutter: $FLUTTER_HOME"
-echo "Please run 'source $SHELL_PROFILE' (or .zshrc) to ensure paths are loaded."
+echo "Please run 'source <your_profile>' (e.g., .bashrc, .zshrc, or .ashrc) to ensure paths are loaded."

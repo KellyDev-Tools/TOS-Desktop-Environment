@@ -316,6 +316,17 @@ pub struct DiffHunk {
     pub content: String,
 }
 
+/// An inline annotation bound to a specific line in an editor pane (§6.5.4).
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct EditorAnnotation {
+    /// 0-indexed line number where the annotation applies.
+    pub line: usize,
+    /// Severity level: "info", "warning", "error", or "ai".
+    pub severity: String,
+    /// The message to display.
+    pub message: String,
+}
+
 /// Persistent state for an editor pane surface (Features §6).
 ///
 /// Serialized into the split pane tree and included in session snapshots.
@@ -340,6 +351,8 @@ pub struct EditorPaneState {
     pub dirty: bool,
     /// Diff hunks when in Diff mode (AI proposal or VCS).
     pub diff_hunks: Vec<DiffHunk>,
+    /// Inline margin annotations (AI remarks, compilation errors) associated with lines.
+    pub annotations: Vec<EditorAnnotation>,
 }
 
 impl EditorPaneState {
@@ -355,6 +368,7 @@ impl EditorPaneState {
             scroll_offset: 0,
             dirty: false,
             diff_hunks: vec![],
+            annotations: vec![],
         }
     }
 }

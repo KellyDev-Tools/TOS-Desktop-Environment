@@ -44,20 +44,20 @@
 
 		<div class="active-annotations section">
 			<div class="section-title">ACTIVE ANNOTATIONS</div>
-			{#if (!editorState.diff_hunks || editorState.diff_hunks.length === 0)}
+			{#if (!editorState.annotations || editorState.annotations.length === 0)}
 				<div class="empty-state">No active annotations in scope.</div>
 			{:else}
-				{#each editorState.diff_hunks as hunk, i}
-					<div class="annotation-item">
-						<div class="annotation-text">› Lines {hunk.old_start}-{hunk.old_start + hunk.old_count} — proposed change</div>
+				{#each editorState.annotations as annotation, i}
+					<div class="annotation-item" class:error={annotation.severity === 'error'}>
+						<div class="annotation-text">› Line {annotation.line + 1} — {annotation.message}</div>
 						<div class="annotation-actions">
-							<button onclick={() => submitCommand(`!ipc editor_edit_apply:${paneId};${i}`)}>[Apply]</button>
-							<button onclick={() => submitCommand(`!ipc editor_edit_reject:${paneId};${i}`)}>[Reject]</button>
+							<button onclick={() => submitCommand(`!ipc ai_ask:Explain line ${annotation.line + 1}`)}>[Ask AI]</button>
+							<button onclick={() => submitCommand(`!ipc ai_ask:Fix line ${annotation.line + 1} error`)}>[Fix]</button>
+							<!-- We map the clear command eventually -->
 						</div>
 					</div>
 				{/each}
 			{/if}
-			<!-- Stub implementation for linter diagnostic integration -->
 		</div>
 
 		<div class="recent-edits section">
@@ -182,6 +182,10 @@
 		display: flex;
 		flex-direction: column;
 		gap: 4px;
+	}
+
+	.annotation-item.error {
+		border-left-color: var(--color-warning);
 	}
 
 	.annotation-text, .edit-name {

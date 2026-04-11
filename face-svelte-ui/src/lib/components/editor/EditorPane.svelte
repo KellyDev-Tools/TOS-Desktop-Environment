@@ -24,12 +24,39 @@
 	let syncTimeout: any;
 
 	let showAiContext = $state(false);
+	let prevAnnotationsLength = $state(0);
+
+	const annotationsByLine = $derived.by(() => {
+		const map = new Map<number, typeof editorState.annotations>();
+		for (const ann of editorState.annotations || []) {
+			if (!map.has(ann.line)) map.set(ann.line, []);
+			map.get(ann.line)!.push(ann);
+		}
+		return map;
+	});
 
 	$effect(() => {
 		// Sync initial or brain-updated state
 		if (!editorState.dirty && editorState.content !== localContent) {
 			localContent = editorState.content;
 		}
+	});
+
+	$effect(() => {
+		// Semantic Scroll Sync for new annotations
+		const currentAnnotations = editorState.annotations || [];
+		if (currentAnnotations.length > prevAnnotationsLength) {
+			const newest = currentAnnotations[currentAnnotations.length - 1];
+			setTimeout(() => {
+				const lineEl = document.getElementById(`editor-${paneId}-line-${newest.line}`);
+				if (lineEl) {
+					lineEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+					lineEl.classList.add('pulse-amber');
+					setTimeout(() => lineEl.classList.remove('pulse-amber'), 2000);
+				}
+			}, 100);
+		}
+		prevAnnotationsLength = currentAnnotations.length;
 	});
 
 	function syncContext(line: number, col: number) {
@@ -192,9 +219,18 @@
 			{/if}
 			<div class="code-layer">
 				{#each highlightedLines as line, i}
-					<div class="editor-line" class:active-line={i === editorState.cursor_line}>
+					<div id="editor-{paneId}-line-{i}" class="editor-line" class:active-line={i === editorState.cursor_line}>
 						<span class="line-number">{i + 1}</span>
 						<span class="line-text">{@html line || ' '}</span>
+						{#if annotationsByLine.has(i)}
+							<div class="inline-annotations">
+								{#each annotationsByLine.get(i)! as ann}
+									<div class="margin-chip" class:error={ann.severity === 'error'}>
+										{ann.severity === 'error' ? '⚠' : '💡'} {ann.message}
+									</div>
+								{/each}
+							</div>
+						{/if}
 					</div>
 				{/each}
 			</div>
@@ -302,18 +338,64 @@
 
 	.editor-line {
 		display: flex;
+		padding: 0 var(--space-md);
+		border-left: 2px solid transparent;
+		min-height: 1.5em;
+		align-items: flex-start;
+		position: relative;
 		white-space: pre;
 		line-height: inherit;
-		min-height: 1em;
 	}
 	
 	.editor-line:hover {
-		background: rgba(255, 255, 255, 0.05); /* VSCode line highlight on hover */
+		background: rgba(255, 255, 255, 0.05);
+	}
+
+	.editor-line.active-line {
+		background: rgba(255, 255, 255, 0.03);
+		border-left-color: var(--color-primary);
+	}
+
+	.inline-annotations {
+		position: absolute;
+		right: 20px;
+		display: flex;
+		gap: 8px;
+		z-index: 10;
+		pointer-events: none; /* Let text selection fall through if desired, or auto for interactions */
+	}
+
+	.margin-chip {
+		background: rgba(10, 10, 20, 0.85);
+		border: 1px solid var(--color-primary);
+		color: var(--color-primary);
+		padding: 2px 8px;
+		border-radius: var(--radius-sm);
+		font-family: var(--font-display);
+		font-size: 0.65rem;
+		white-space: nowrap;
+		box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
+		pointer-events: auto;
+		cursor: default;
+	}
+
+	.margin-chip.error {
+		border-color: var(--color-warning);
+		color: var(--color-warning);
 	}
 
 	.active-line {
 		background-color: rgba(255, 255, 255, 0.05); /* VSCode active line highlight */
 		box-shadow: inset 2px 0 0 rgba(255, 255, 255, 0.4);
+	}
+
+	:global(.pulse-amber) {
+		animation: amberPulse 2s ease-out;
+	}
+
+	@keyframes amberPulse {
+		0% { background-color: rgba(255, 170, 0, 0.3); box-shadow: inset 2px 0 0 var(--color-warning); }
+		100% { background-color: transparent; }
 	}
 
 	/* Diff UI */

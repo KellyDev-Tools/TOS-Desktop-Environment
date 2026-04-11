@@ -90,6 +90,12 @@ export interface DiffHunk {
     content: string;
 }
 
+export interface EditorAnnotation {
+    line: number;
+    severity: string;
+    message: string;
+}
+
 export interface EditorPaneState {
     file_path: string;
     content: string;
@@ -100,6 +106,7 @@ export interface EditorPaneState {
     scroll_offset: number;
     dirty: boolean;
     diff_hunks: DiffHunk[];
+    annotations: EditorAnnotation[];
 }
 
 export type PaneContent = 'Terminal' | { Application: string } | { Editor: EditorPaneState };

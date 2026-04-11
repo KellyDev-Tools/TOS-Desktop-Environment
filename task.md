@@ -48,6 +48,7 @@
 - [x] 2.6 Select-to-open on build error (PTY output → file:line parser) — Added `renderTermLine` to `SplitPaneView` for capturing line/file regex boundaries as interactive span tags mapped to `!ipc editor_open`.
 - [x] 2.7 Editor Context Object integrated into AI pipeline — Added recursive `all_editors` extraction over SplitNode structures directly into `AiContext` aggregation inside `tos-common/src/services/ai/mod.rs`.
 - [x] 2.8 AI Context Panel (Right Bezel slot) — Built `AiContextPanel.svelte`, hooked interactive bindings for toggling the window out of standard `EditorPane` boundaries matching spec layouts.
+- [x] 2.9 Inline AI annotations in editor margin — Extended `EditorPaneState` struct across Rust/TS schemas with `EditorAnnotation` schemas. Svelte `$derived` mapping projects chips dynamically inside code line blocks. Triggered automatic "amberPulse" smooth scrolling via $effect bindings when new annotations mutate.
 - [ ] 2.10 Editor pane state persistence in session
 
 ## Stage 3–6 — Deferred to subsequent sessions

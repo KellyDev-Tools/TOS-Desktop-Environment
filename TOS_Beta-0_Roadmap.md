@@ -31,9 +31,9 @@
 | Brain / Face process separation | §3.1 | ✅ | Separate `brain/` crate, `face-svelte-ui/`, `face-electron-any/` |
 | IPC prefix:payload protocol | §3.3.1 | ✅ | `IpcHandler::handle_request()` — 1998 lines, 80+ message types |
 | Face registration with capability profile | §3.3.5 | ✅ | `face_register` IPC, `FaceProfile` enum (Desktop/Handheld/Spatial) |
-| Disconnected Mode (heartbeat, frozen state) | §3.4 | 🔶 | `DisconnectOverlay.svelte` exists; heartbeat tick detection not active |
+| Disconnected Mode (heartbeat, frozen state) | §3.4 | ✅ | `DisconnectOverlay.svelte` + 5s heartbeat timeout in `ipc.svelte.ts` |
 | No Brain state (connection UI) | §3.4 | ✅ | `DisconnectOverlay.svelte` + dynamic WebSocket connection |
-| State delta sync (1Hz tick) | §3.4.2 | 🔶 | `get_state_delta` handler exists; no periodic push from Brain |
+| State delta sync (1Hz tick) | §3.4.2 | ✅ | `remote_server.rs` 1Hz push loop + `get_state_delta` handler in IpcHandler |
 | Bezel slot mechanism (Top/Left/Right) | §5 | ✅ | `ExpandedBezel.svelte`, slot components: BrainStatus, MiniLog, Minimap, PriorityStack, Telemetry |
 | Expanded Bezel Command Surface | §5.4 | ✅ | `bezel_expand`/`bezel_collapse` IPC + overlay rendering |
 | Bezel as overlay (not a level) | Features §1.9 | ✅ | `bezel_expanded: bool` flag in TosState |
@@ -88,7 +88,7 @@
 | Feature | Spec Ref | Status | Evidence |
 |---|---|---|---|
 | SemanticEvent enum defined | §14.1 | ✅ | Defined in `tos-protocol` |
-| Default keyboard shortcuts mapped | §14.2 | 🔶 | Some shortcuts in IPC handlers; no configurable mapping layer |
+| Default keyboard shortcuts mapped | §14.2 | ✅ | `KeybindingMap` with 29 default bindings, `keybindings_get/set/reset` IPC, `keybindings.svelte.ts` store |
 | Voice command grammar | §14.3 | ❌ | No voice processing code |
 | Game controller / VR input mapping | §14.4 | ❌ | No controller mapping code |
 | Accessibility switch scanning | §14.5 | ❌ | No switch scan implementation |
@@ -187,7 +187,7 @@
 
 | Feature | Spec Ref | Status | Evidence |
 |---|---|---|---|
-| Editor pane type | §6.3.1 | ❌ | `PaneContent` has Terminal/Application but no Editor variant |
+| Editor pane type | §6.3.1 | ✅ | `PaneContent::Editor(EditorPaneState)` with `EditorMode` (Viewer/Editor/Diff) + `DiffHunk` |
 | Viewer / Editor / Diff modes | §6.2 | ❌ | No editor surface code exists |
 | Auto-open on build error | §6.3.2 | ❌ | No PTY output → file:line parser |
 | AI Context Panel | §6.5.2 | ❌ | No component exists |
@@ -206,7 +206,7 @@
 | Session export / import | §2.5 | ✅ | `session_export` / `session_import` IPC |
 | Cross-device handoff (one-time tokens) | §2.6 | ❌ | No token generation or claim logic |
 | Crash recovery (atomic rename) | §2.4 | ✅ | `_live.tos-session.tmp` → rename on success |
-| Silent restore (no notification) | §2.6.2 | 🔶 | No explicit notification suppression on restore |
+| Silent restore (no notification) | §2.6.2 | ✅ | Notification suppressed on restore in `brain/mod.rs` |
 | Editor pane state persistence | §2.9 | ❌ | No editor-specific session fields |
 
 ### 1.14 Onboarding (Features §3)
@@ -338,7 +338,7 @@
 | 1.2 | Implement Face heartbeat detection (5 missed ticks → Disconnected) | HIGH | Arch §3.4 | DisconnectOverlay | ✅ |
 | 1.3 | Add `Editor` variant to `PaneContent` enum | HIGH | Arch §11.2 | state.rs | ✅ |
 | 1.4 | Wire OSC 9012 line-level priority parser in ShellApi | MEDIUM | Arch §27.4 | shell/mod.rs | ✅ |
-| 1.5 | Implement configurable keyboard shortcut mapping layer | MEDIUM | Arch §14.2 | tos-protocol SemanticEvent | 🔶 |
+| 1.5 | Implement configurable keyboard shortcut mapping layer | MEDIUM | Arch §14.2 | tos-protocol SemanticEvent | ✅ |
 | 1.6 | Implement exponential backoff on daemon registration retry | LOW | Eco §3.3 | daemon/mod.rs | 🔶 |
 | 1.7 | Implement dynamic sector labeling from cwd changes | MEDIUM | Arch §31.3 | SectorManager, heuristicd | 🔶 |
 | 1.8 | Auto Activity Mode detection on `top`/`ps` commands | LOW | Arch §7.3 | IPC command dispatcher | 🔶 |
@@ -469,26 +469,26 @@
 
 | Category | ✅ Complete | 🔶 Stubbed | ❌ Unimplemented |
 |---|---|---|---|
-| Core Architecture | 12 | 4 | 0 |
+| Core Architecture | 14 | 2 | 0 |
 | Sector & Command Hub | 9 | 4 | 0 |
-| Split Viewports | 4 | 4 | 0 |
+| Split Viewports | 5 | 3 | 0 |
 | Remote & Collaboration | 2 | 6 | 0 |
-| Input Abstraction | 1 | 1 | 3 |
+| Input Abstraction | 2 | 0 | 3 |
 | Platform & Rendering | 2 | 3 | 3 |
 | Security & Trust | 7 | 2 | 1 |
 | Module System | 4 | 4 | 3 |
 | Service Daemons | 8 | 1 | 0 |
 | AI System | 5 | 1 | 6 |
 | Marketplace UI | 3 | 3 | 0 |
-| **Editor** | **0** | **0** | **14** |
-| Session Persistence | 4 | 1 | 2 |
+| **Editor** | **1** | **0** | **13** |
+| Session Persistence | 5 | 0 | 2 |
 | Onboarding | 1 | 2 | 1 |
 | Multi-Sensory | 0 | 2 | 3 |
 | Accessibility | 0 | 2 | 3 |
 | Predictive Fillers | 0 | 0 | 6 |
 | Reset / Log / Settings | 4 | 1 | 4 |
 | **Kanban & Agents** | **3** | **3** | **1** |
-| **TOTAL** | **69** | **44** | **50** |
+| **TOTAL** | **75** | **39** | **49** |
 
 > [!IMPORTANT]
 > The **TOS Editor** is the single largest gap — 14 features with zero implementation. It is the critical path for AI edit flows (Vibe Coder, Diff Mode), session handoff, and the overall developer experience that distinguishes TOS from a standard terminal.

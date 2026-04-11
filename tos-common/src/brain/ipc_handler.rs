@@ -180,6 +180,12 @@ impl IpcHandler {
             "marketplace_install_cancel" => {
                 self.handle_marketplace_install_cancel(args.get(0).copied())
             }
+            // §14.2: Configurable Keyboard Shortcuts
+            "keybindings_get" => self.handle_keybindings_get(),
+            "keybindings_set" => {
+                self.handle_keybindings_set(args.get(0).copied(), args.get(1).copied(), args.get(2).copied())
+            }
+            "keybindings_reset" => self.handle_keybindings_reset(),
             _ => "ERROR: Unknown prefix".to_string(),
         };
 
@@ -2030,6 +2036,84 @@ impl IpcHandler {
             },
             None => "ERROR: Missing module ID".to_string(),
         }
+    }
+
+    // ── §14.2: Configurable Keyboard Shortcuts ─────────────────────────
+
+    /// Return the full keybinding map as JSON.
+    ///
+    /// If the user has a saved custom map in settings, that is returned.
+    /// Otherwise the spec defaults are returned.
+    fn handle_keybindings_get(&self) -> String {
+        let state = self.state.lock().unwrap();
+        let map = if let Some(json) = state.settings.global.get("tos.keybindings") {
+            crate::keybindings::KeybindingMap::from_json(json)
+                .unwrap_or_default()
+        } else {
+            crate::keybindings::KeybindingMap::default()
+        };
+        map.to_json()
+    }
+
+    /// Remap a keybinding: `keybindings_set:<combo_str>;<action>;<description>`
+    ///
+    /// Persists to settings. Returns the displaced action if a conflict was resolved.
+    fn handle_keybindings_set(
+        &self,
+        combo_str: Option<&str>,
+        action: Option<&str>,
+        description: Option<&str>,
+    ) -> String {
+        let combo_str = match combo_str {
+            Some(s) => s,
+            None => return "ERROR: Missing key combo".to_string(),
+        };
+        let action = match action {
+            Some(a) => a,
+            None => return "ERROR: Missing action".to_string(),
+        };
+        let description = description.unwrap_or("");
+
+        let combo = match crate::keybindings::KeyCombo::parse(combo_str) {
+            Some(c) => c,
+            None => return format!("ERROR: Invalid key combo: {}", combo_str),
+        };
+
+        let mut state = self.state.lock().unwrap();
+
+        // Load existing or default map
+        let mut map = if let Some(json) = state.settings.global.get("tos.keybindings") {
+            crate::keybindings::KeybindingMap::from_json(json)
+                .unwrap_or_default()
+        } else {
+            crate::keybindings::KeybindingMap::default()
+        };
+
+        let displaced = map.set(combo, action.to_string(), description.to_string());
+
+        // Persist to settings
+        state
+            .settings
+            .global
+            .insert("tos.keybindings".to_string(), map.to_json());
+        state.version += 1;
+
+        match displaced {
+            Some(old_action) => format!("KEYBINDING_SET: {} (displaced: {})", action, old_action),
+            None => format!("KEYBINDING_SET: {}", action),
+        }
+    }
+
+    /// Reset all keybindings to spec defaults.
+    fn handle_keybindings_reset(&self) -> String {
+        let mut state = self.state.lock().unwrap();
+        let map = crate::keybindings::KeybindingMap::default();
+        state
+            .settings
+            .global
+            .insert("tos.keybindings".to_string(), map.to_json());
+        state.version += 1;
+        "KEYBINDINGS_RESET".to_string()
     }
 }
 

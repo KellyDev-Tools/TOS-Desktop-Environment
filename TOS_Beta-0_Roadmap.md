@@ -52,7 +52,7 @@
 | Auto Activity Mode on `top`/`ps` | §7.3 | 🔶 | Mode exists; no auto-detection from command prefix |
 | Directory pick behavior | §27.6 | 🔶 | `dir_pick_file`/`dir_pick_dir` IPC stubs; staging banner absent |
 | Shell OSC integration (9002/9003/9004) | §27.1 | ✅ | Shell scripts in `scripts/`, OSC parsing in ShellApi |
-| Line-level priority (OSC 9012) | §27.4 | 🔶 | `TerminalLine.priority` field exists; OSC 9012 parser not wired |
+| Line-level priority (OSC 9012) | §27.4 | ✅ | `OscEvent::LinePriority` variant + `OscParser.process()` wired in PTY read loop |
 | Command auto-detection (no false positives) | §27.5 | ✅ | Tested — `rls`, `echo cd` don't trigger |
 | Terminal buffer limit (500 default, adjustable) | §29.2 | ✅ | `buffer_limit: 500` in CommandHub + `set_terminal_buffer_limit` IPC |
 | ANSI stripping before storage | §29.1 | ✅ | Implemented in shell reader |
@@ -65,7 +65,7 @@
 | Aspect-ratio-driven orientation | §11.3 | ✅ | `SplitNode::ideal_orientation()` |
 | Minimum pane size / split blocking | §11.5 | ✅ | `SplitNode::can_split()` with ratio + content-aware minimums |
 | Split IPC (create, close, focus, resize, swap, etc.) | §11.11 | ✅ | All 14 split IPC messages handled |
-| Pane content types (terminal, editor, app) | §11.2 | 🔶 | `PaneContent` has Terminal + Application; Editor variant missing |
+| Pane content types (terminal, editor, app) | §11.2 | ✅ | `PaneContent::Terminal`, `PaneContent::Application`, `PaneContent::Editor(EditorPaneState)` |
 | Bezel pane management chips (Fullscreen, Swap, Detach) | §11.8 | 🔶 | IPC stubs exist; UI chips not rendered |
 | Divider drag / snap assist | §11.6 | 🔶 | `SplitLayout.svelte` exists; drag interaction incomplete |
 | Split state persistence | §11.9 | 🔶 | `split_layout` field persisted in session; restore logic partial |
@@ -336,8 +336,8 @@
 |---|---|---|---|---|---|
 | 1.1 | Implement 1Hz `state_delta` push from Brain to all connected Faces | HIGH | Arch §3.4.2 | RemoteServer | ✅ |
 | 1.2 | Implement Face heartbeat detection (5 missed ticks → Disconnected) | HIGH | Arch §3.4 | DisconnectOverlay | ✅ |
-| 1.3 | Add `Editor` variant to `PaneContent` enum | HIGH | Arch §11.2 | state.rs | ❌ |
-| 1.4 | Wire OSC 9012 line-level priority parser in ShellApi | MEDIUM | Arch §27.4 | shell/mod.rs | 🔶 |
+| 1.3 | Add `Editor` variant to `PaneContent` enum | HIGH | Arch §11.2 | state.rs | ✅ |
+| 1.4 | Wire OSC 9012 line-level priority parser in ShellApi | MEDIUM | Arch §27.4 | shell/mod.rs | ✅ |
 | 1.5 | Implement configurable keyboard shortcut mapping layer | MEDIUM | Arch §14.2 | tos-protocol SemanticEvent | 🔶 |
 | 1.6 | Implement exponential backoff on daemon registration retry | LOW | Eco §3.3 | daemon/mod.rs | 🔶 |
 | 1.7 | Implement dynamic sector labeling from cwd changes | MEDIUM | Arch §31.3 | SectorManager, heuristicd | 🔶 |

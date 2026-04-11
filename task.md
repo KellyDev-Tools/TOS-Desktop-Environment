@@ -24,9 +24,11 @@
 - [x] 1.1 Implement 1Hz state_delta push from Brain
 - [x] 1.2 Implement Face heartbeat detection
 - [x] **SPEC:** Kanban-Driven Agent Orchestration (Features §7, Ecosystem §1.6-1.7, Arch §30.8) + Feedback Refinements (Sandboxing, Merge, Bulk Trust, active_view)
-- [ ] 1.3 Add `Editor` variant to `PaneContent` enum
-- [ ] 1.4 Wire OSC 9012 line-level priority parser
+- [x] 1.3 Add `Editor` variant to `PaneContent` enum — EditorPaneState, EditorMode (Viewer/Editor/Diff), DiffHunk types added to state.rs
+- [x] 1.4 Wire OSC 9012 line-level priority parser — OscEvent::LinePriority + PTY read loop wired with line-local override
 - [ ] 1.5 Configurable keyboard shortcut mapping layer
+- [x] **FIX:** Updated default `sys_title` from ALPHA-2.2 to BETA-0
+- [x] **FIX:** Gated unused `crate::TosState` import behind `#[cfg(target_os = "android")]` — 0 warnings workspace-wide
 
 ## Stage 7 — Kanban & Agent Orchestration (New)
 - [ ] 7.1 Implement KanbanBoard service in Brain

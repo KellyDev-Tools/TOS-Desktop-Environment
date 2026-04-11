@@ -182,9 +182,14 @@ fn read_loop(
                     tracing::debug!("[PTY READ] Line: {:?}, Events: {}, Clean: {:?}", line, events.len(), clean_text);
 
                     let mut state_lock = state.lock().unwrap();
+                    let mut line_priority_override: Option<u8> = None;
                     for event in events {
                         match event {
                             OscEvent::Priority(p) => osc_parser.current_priority = p,
+                            OscEvent::LinePriority(p) => {
+                                // §27.4: Override priority for this line only.
+                                line_priority_override = Some(p);
+                            }
                             OscEvent::Cwd(path) => {
                                 let path_buf = std::path::PathBuf::from(path);
                                 if let Some(sector) =
@@ -238,6 +243,9 @@ fn read_loop(
                         }
                     }
 
+                    // Use line-specific priority override if present, else the persistent parser priority.
+                    let effective_priority = line_priority_override.unwrap_or(osc_parser.current_priority);
+
                     if !clean_text.is_empty() {
                         if let Some(sector) =
                             state_lock.sectors.iter_mut().find(|s| s.id == sector_id)
@@ -245,7 +253,7 @@ fn read_loop(
                             if let Some(hub) = sector.hubs.iter_mut().find(|h| h.id == hub_id) {
                                 hub.terminal_output.push(TerminalLine {
                                     text: clean_text.to_string(),
-                                    priority: osc_parser.current_priority,
+                                    priority: effective_priority,
                                     timestamp: Local::now(),
                                 });
                                 if hub.terminal_output.len() > hub.buffer_limit {

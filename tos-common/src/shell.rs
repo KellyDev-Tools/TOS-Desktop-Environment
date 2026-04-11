@@ -3,6 +3,8 @@ use serde::{Deserialize, Serialize};
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum OscEvent {
     Priority(u8),
+    /// Per-line priority set via OSC 9012 (§27.4).
+    LinePriority(u8),
     Cwd(String),
     DirectoryListing(crate::DirectoryListing),
     CommandResult {
@@ -64,6 +66,23 @@ impl OscParser {
                     }
                 }
                 clean_text = format!("{}{}", &line[..pos], &line[actual_end + 1..]);
+            }
+        }
+
+        // §27.4: OSC 9012 — Line-Level Priority
+        // Format: OSC 9012 ; <priority_digit> ST
+        // Sets the priority for the current output line (1=Low, 2=Normal, 3=High).
+        // Stripped from visible output.
+        if let Some(pos) = clean_text.find("\x1b]9012;") {
+            if let Some(end) = clean_text[pos..].find('\x07') {
+                let actual_end = pos + end;
+                let payload = &clean_text[pos + 7..actual_end];
+                if let Ok(p) = payload.trim().parse::<u8>() {
+                    if (1..=3).contains(&p) {
+                        events.push(OscEvent::LinePriority(p));
+                    }
+                }
+                clean_text = format!("{}{}", &clean_text[..pos], &clean_text[actual_end + 1..]);
             }
         }
 

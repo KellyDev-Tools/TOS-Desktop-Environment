@@ -290,11 +290,82 @@ pub enum SplitOrientation {
     Horizontal,
 }
 
+/// The mode an editor pane is operating in (§6.2).
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+pub enum EditorMode {
+    /// Read-only file view (default on open).
+    Viewer,
+    /// Full editing with syntax highlighting and input.
+    Editor,
+    /// Side-by-side diff of pending AI proposal or VCS changes.
+    Diff,
+}
+
+/// A single diff hunk for Diff Mode rendering (§6.6.2).
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct DiffHunk {
+    /// 1-indexed starting line in the original file.
+    pub old_start: usize,
+    /// Number of lines removed.
+    pub old_count: usize,
+    /// 1-indexed starting line in the modified file.
+    pub new_start: usize,
+    /// Number of lines added.
+    pub new_count: usize,
+    /// The unified-diff text for this hunk.
+    pub content: String,
+}
+
+/// Persistent state for an editor pane surface (Features §6).
+///
+/// Serialized into the split pane tree and included in session snapshots.
+/// The Face renders a code editing surface from this data.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct EditorPaneState {
+    /// Absolute path to the file being edited.
+    pub file_path: PathBuf,
+    /// The full file content (or the visible window for large files).
+    pub content: String,
+    /// Current editing mode.
+    pub mode: EditorMode,
+    /// Language identifier for syntax highlighting (e.g. "rust", "python").
+    pub language: Option<String>,
+    /// 0-indexed cursor line position.
+    pub cursor_line: usize,
+    /// 0-indexed cursor column position.
+    pub cursor_col: usize,
+    /// First visible line for scroll-position persistence.
+    pub scroll_offset: usize,
+    /// Whether the buffer has unsaved modifications.
+    pub dirty: bool,
+    /// Diff hunks when in Diff mode (AI proposal or VCS).
+    pub diff_hunks: Vec<DiffHunk>,
+}
+
+impl EditorPaneState {
+    /// Create a new editor pane in Viewer mode for the given file.
+    pub fn new_viewer(path: PathBuf, content: String, language: Option<String>) -> Self {
+        Self {
+            file_path: path,
+            content,
+            mode: EditorMode::Viewer,
+            language,
+            cursor_line: 0,
+            cursor_col: 0,
+            scroll_offset: 0,
+            dirty: false,
+            diff_hunks: vec![],
+        }
+    }
+}
+
 /// The type of content a leaf pane contains.
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub enum PaneContent {
     Terminal,
     Application(String),
+    /// A code editor surface (§6, §11.2).
+    Editor(EditorPaneState),
 }
 
 /// A leaf pane in the split tree — an independently rendered terminal surface.
@@ -525,7 +596,7 @@ impl Default for TosState {
             pending_confirmation: None,
             system_log: vec![],
             sys_prefix: "TOS // SYSTEM-BRAIN".to_string(),
-            sys_title: "ALPHA-2.2 // INTEL-DRIVEN".to_string(),
+            sys_title: "BETA-0 // INTEL-DRIVEN".to_string(),
             sys_status: "BRAIN: ACTIVE".to_string(),
             brain_time: "00:00:00".to_string(),
             active_terminal_module: "tos-standard-rect".to_string(),

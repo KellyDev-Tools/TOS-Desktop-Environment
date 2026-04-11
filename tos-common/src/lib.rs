@@ -26,7 +26,8 @@ pub use state::{
     TrustTier, ConfirmationRequest, ApplicationModel, BezelAction, DecorationPolicy,
     ZoomBehavior, AppInstance, SectorTemplate, HubTemplate, DirectoryListing,
     DirectoryEntry, ActivityListing, ProcessEntry, SearchResult, AiMessage,
-    SplitOrientation, PaneContent, SplitPane, SplitNode, AiBehavior
+    SplitOrientation, PaneContent, SplitPane, SplitNode, AiBehavior,
+    EditorPaneState, EditorMode, DiffHunk
 };
 
 pub use modules::{AiModule, AiQuery, AiResponse, ShellModule, ShellIntegration};

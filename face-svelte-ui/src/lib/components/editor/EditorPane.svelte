@@ -16,7 +16,7 @@
 	import 'prismjs/components/prism-markup'; // HTML
 	import 'prismjs/components/prism-markup'; // HTML
 
-	let { editorState, activeHub, paneId }: { editorState: EditorPaneState; activeHub: Hub | null; paneId: string } = $props();
+	let { editorState, activeHub, paneId, paneCwd }: { editorState: EditorPaneState; activeHub: Hub | null; paneId: string, paneCwd?: string } = $props();
 
 	// Local state for debounced typed content
 	let localContent = $state('');
@@ -25,6 +25,10 @@
 	let syncTimeout: any;
 
 	let showAiContext = $state(false);
+	
+	// Trust State
+	let pendingTrustTarget: string | null = $state(null);
+	let pendingTrustAction: (() => void) | null = null;
 	let prevAnnotationsLength = $state(0);
 
 	const annotationsByLine = $derived.by(() => {
@@ -107,6 +111,36 @@
 		syncContext(line, col);
 	}
 
+	function checkAndSave(targetPath: string, saveAction: () => void) {
+		// Flush context
+		if (textareaEl) {
+			const textBefore = localContent.substring(0, textareaEl.selectionStart);
+			const l = textBefore.split('\n');
+			const currentLine = l.length - 1;
+			const currentScroll = editorContentEl ? Math.floor(editorContentEl.scrollTop / 24) : 0;
+			submitCommand(`!ipc editor_context_update:${paneId};${JSON.stringify({ 
+				content: localContent, 
+				cursor_line: currentLine, 
+				cursor_col: l[l.length - 1].length,
+				scroll_offset: currentScroll 
+			})}`);
+		}
+		
+		if (paneCwd && !targetPath.startsWith(paneCwd)) {
+			// Requires Trust Confirmation
+			pendingTrustTarget = targetPath;
+			pendingTrustAction = saveAction;
+		} else {
+			saveAction();
+		}
+	}
+
+	function approveTrust() {
+		if (pendingTrustAction) pendingTrustAction();
+		pendingTrustTarget = null;
+		pendingTrustAction = null;
+	}
+
 	function handleKeydown(e: KeyboardEvent) {
 		// Save hotkey Ctrl+S
 		if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 's') {
@@ -114,35 +148,10 @@
 			if (e.shiftKey) {
 				const newPath = prompt("Enter new file path:", editorState.file_path);
 				if (newPath && newPath.trim() !== '') {
-					// Quick sync before save
-					const target = e.target as HTMLTextAreaElement;
-					const textBefore = localContent.substring(0, target.selectionStart);
-					const l = textBefore.split('\n');
-					const currentLine = l.length - 1;
-					const currentScroll = editorContentEl ? Math.floor(editorContentEl.scrollTop / 24) : 0;
-					submitCommand(`!ipc editor_context_update:${paneId};${JSON.stringify({ 
-						content: localContent, 
-						cursor_line: currentLine, 
-						cursor_col: l[l.length - 1].length,
-						scroll_offset: currentScroll 
-					})}`);
-					submitCommand(`!ipc editor_save_as:${paneId};${newPath.trim()}`);
+					checkAndSave(newPath.trim(), () => submitCommand(`!ipc editor_save_as:${paneId};${newPath.trim()}`));
 				}
 			} else {
-				// Quick send the current state synchronously before saving
-				const target = e.target as HTMLTextAreaElement;
-				const textBefore = localContent.substring(0, target.selectionStart);
-				const l = textBefore.split('\n');
-				const currentLine = l.length - 1;
-				const currentScroll = editorContentEl ? Math.floor(editorContentEl.scrollTop / 24) : 0;
-				submitCommand(`!ipc editor_context_update:${paneId};${JSON.stringify({ 
-					content: localContent, 
-					cursor_line: currentLine, 
-					cursor_col: l[l.length - 1].length,
-					scroll_offset: currentScroll 
-				})}`);
-				
-				submitCommand(`!ipc editor_save:${paneId}`);
+				checkAndSave(editorState.file_path, () => submitCommand(`!ipc editor_save:${paneId}`));
 			}
 			return;
 		}
@@ -203,10 +212,17 @@
 
 <div class="editor-container glass-panel">
 	<div class="editor-header">
-		<span class="file-path">{editorState.file_path}</span>
-		<span class="file-stats">
-			{#if editorState.dirty}
-				<span class="dirty-marker">●</span>
+		<span class="file-path">
+			{#if editorState.dirty}<span class="dirty-marker">•</span>{/if}
+			{editorState.file_path.split('/').pop() || 'Untitled'}
+		</span>
+		<span class="header-tools">
+			{#if pendingTrustTarget}
+				<div class="trust-chip flex items-center">
+					<span class="error-text">⚠ OUTSIDE CWD</span>
+					<button class="pill-btn danger-chip" onclick={approveTrust}>[ALLOW PENDING WRITE]</button>
+					<button class="pill-btn" onclick={() => pendingTrustTarget = null}>[CANCEL]</button>
+				</div>
 			{/if}
 			<span class="pill-badge">{editorState.language || 'text'}</span>
 			<span class="pill-badge">{highlightedLines.length} lines</span>
@@ -335,6 +351,27 @@
 		font-size: 0.65rem;
 		text-transform: uppercase;
 		letter-spacing: 0.05em;
+	}
+
+	.trust-chip {
+		display: inline-flex;
+		align-items: center;
+		background: rgba(255, 50, 50, 0.1);
+		border: 1px solid var(--color-warning);
+		border-radius: 4px;
+		padding: 1px 4px;
+		margin-right: 8px;
+	}
+
+	.error-text {
+		color: var(--color-warning);
+		font-weight: bold;
+		margin-right: 6px;
+	}
+
+	.danger-chip {
+		background: rgba(255, 0, 0, 0.3) !important;
+		color: white !important;
 	}
 
 	.editor-content {

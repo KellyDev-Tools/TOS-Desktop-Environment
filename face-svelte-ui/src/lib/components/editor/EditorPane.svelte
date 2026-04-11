@@ -21,6 +21,7 @@
 	// Local state for debounced typed content
 	let localContent = $state('');
 	let textareaEl: HTMLTextAreaElement | null = $state(null);
+	let editorContentEl: HTMLDivElement | null = $state(null);
 	let syncTimeout: any;
 
 	let showAiContext = $state(false);
@@ -59,16 +60,38 @@
 		prevAnnotationsLength = currentAnnotations.length;
 	});
 
-	function syncContext(line: number, col: number) {
+	$effect(() => {
+		// Restore scroll_offset on mount or when switching files
+		if (editorContentEl && editorState.scroll_offset > 0 && !textareaEl?.matches(':focus')) {
+			const lineEl = document.getElementById(`editor-${paneId}-line-${editorState.scroll_offset}`);
+			if (lineEl) {
+				editorContentEl.scrollTop = lineEl.offsetTop;
+			}
+		}
+	});
+
+	function syncContext(line: number, col: number, scrollOffset?: number) {
 		clearTimeout(syncTimeout);
 		syncTimeout = setTimeout(() => {
+			const offset = scrollOffset ?? (editorContentEl ? Math.floor(editorContentEl.scrollTop / 24) : 0);
 			const payload = {
 				content: localContent,
 				cursor_line: line,
-				cursor_col: col
+				cursor_col: col,
+				scroll_offset: offset
 			};
 			submitCommand(`!ipc editor_context_update:${paneId};${JSON.stringify(payload)}`);
 		}, 300); // 300ms debounce
+	}
+
+	function handleScroll(e: Event) {
+		const target = e.target as HTMLDivElement;
+		const lineEl = target.querySelector('.editor-line');
+		if (lineEl) {
+			const lineHeight = lineEl.getBoundingClientRect().height || 24;
+			const firstVisibleLine = Math.floor(target.scrollTop / lineHeight);
+			syncContext(editorState.cursor_line, editorState.cursor_col, firstVisibleLine);
+		}
 	}
 
 	function handleInput(e: Event) {
@@ -97,7 +120,13 @@
 				const textBefore = localContent.substring(0, target.selectionStart);
 				const l = textBefore.split('\n');
 				const currentLine = l.length - 1;
-				submitCommand(`!ipc editor_context_update:${paneId};${JSON.stringify({ content: localContent, cursor_line: currentLine, cursor_col: l[l.length - 1].length })}`);
+				const currentScroll = editorContentEl ? Math.floor(editorContentEl.scrollTop / 24) : 0;
+				submitCommand(`!ipc editor_context_update:${paneId};${JSON.stringify({ 
+					content: localContent, 
+					cursor_line: currentLine, 
+					cursor_col: l[l.length - 1].length,
+					scroll_offset: currentScroll 
+				})}`);
 				
 				submitCommand(`!ipc editor_save:${paneId}`);
 			}
@@ -174,7 +203,7 @@
 	</div>
 	
 	<div class="editor-body-wrapper">
-		<div class="editor-content" class:line-numbers={editorState.mode !== 'Diff'}>
+		<div bind:this={editorContentEl} onscroll={handleScroll} class="editor-content" class:line-numbers={editorState.mode !== 'Diff'}>
 		{#if editorState.mode === 'Diff'}
 			<div class="diff-container">
 				{#if !editorState.diff_hunks || editorState.diff_hunks.length === 0}

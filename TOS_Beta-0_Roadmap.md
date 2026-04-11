@@ -360,7 +360,7 @@
 | 2.7 | Editor Context Object integrated into AI pipeline | HIGH | Features §6.5.1 | 2.3, AiService | ✅ |
 | 2.8 | AI Context Panel (Right Bezel slot) | MEDIUM | Features §6.5.2 | 2.7 | ✅ |
 | 2.9 | Inline AI annotations in editor margin | MEDIUM | Features §6.5.4 | 2.3, 2.7 | ✅ |
-| 2.10 | Editor pane state persistence in session | HIGH | Features §2.9 | 2.1, SessionService | ❌ |
+| 2.10 | Editor pane state persistence in session | HIGH | Features §2.9 | 2.1, SessionService | ✅ |
 | 2.11 | Save (`Ctrl+S`) and Save As (`Ctrl+Shift+S`) | HIGH | Features §6.8 | 2.4 | ❌ |
 | 2.12 | Trust chip for writes outside sector cwd | HIGH | Features §6.8 | 2.11, TrustService | ❌ |
 | 2.13 | LSP client integration (diagnostics, hover, completion) | MEDIUM | Features §6.9 | 2.4 | ❌ |
@@ -480,7 +480,7 @@
 | Service Daemons | 8 | 1 | 0 |
 | AI System | 5 | 1 | 6 |
 | Marketplace UI | 3 | 3 | 0 |
-| **Editor** | **10** | **0** | **4** |
+| **Editor** | **11** | **0** | **3** |
 | Session Persistence | 5 | 0 | 2 |
 | Onboarding | 1 | 2 | 1 |
 | Multi-Sensory | 0 | 2 | 3 |
@@ -488,7 +488,7 @@
 | Predictive Fillers | 0 | 0 | 6 |
 | Reset / Log / Settings | 4 | 1 | 4 |
 | **Kanban & Agents** | **3** | **3** | **1** |
-| **TOTAL** | **84** | **39** | **40** |
+| **TOTAL** | **85** | **39** | **39** |
 
 > [!IMPORTANT]
 > The **TOS Editor** is the single largest gap — 14 features with zero implementation. It is the critical path for AI edit flows (Vibe Coder, Diff Mode), session handoff, and the overall developer experience that distinguishes TOS from a standard terminal.

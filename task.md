@@ -49,6 +49,6 @@
 - [x] 2.7 Editor Context Object integrated into AI pipeline — Added recursive `all_editors` extraction over SplitNode structures directly into `AiContext` aggregation inside `tos-common/src/services/ai/mod.rs`.
 - [x] 2.8 AI Context Panel (Right Bezel slot) — Built `AiContextPanel.svelte`, hooked interactive bindings for toggling the window out of standard `EditorPane` boundaries matching spec layouts.
 - [x] 2.9 Inline AI annotations in editor margin — Extended `EditorPaneState` struct across Rust/TS schemas with `EditorAnnotation` schemas. Svelte `$derived` mapping projects chips dynamically inside code line blocks. Triggered automatic "amberPulse" smooth scrolling via $effect bindings when new annotations mutate.
-- [ ] 2.10 Editor pane state persistence in session
+- [x] 2.10 Editor pane state persistence in session — Mapped `scroll_offset` onto Svelte `$effect` layout constraints and `handleScroll` event loops emitting back inside `editor_context_update` payloads, finalizing end-to-end integration across `tos-sessiond` debounced state saving loops.
 
 ## Stage 3–6 — Deferred to subsequent sessions

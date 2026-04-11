@@ -216,9 +216,15 @@ impl IpcHandler {
             "editor_clear_annotations" => {
                 self.handle_editor_clear_annotations(args.get(0).copied())
             }
-            "editor_edit_proposal" => self.handle_editor_edit_proposal(payload),
-            "editor_edit_apply" => self.handle_editor_edit_apply(args.get(0).copied()),
-            "editor_edit_reject" => self.handle_editor_edit_reject(args.get(0).copied()),
+            "editor_edit_proposal" => {
+                self.handle_editor_edit_proposal(args.get(0).copied(), args.get(1).copied())
+            }
+            "editor_edit_apply" => {
+                self.handle_editor_edit_apply(args.get(0).copied(), args.get(1).copied())
+            }
+            "editor_edit_reject" => {
+                self.handle_editor_edit_reject(args.get(0).copied(), args.get(1).copied())
+            }
             "editor_context_update" => {
                 self.handle_editor_context_update(args.get(0).copied(), args.get(1).copied())
             }
@@ -2428,21 +2434,125 @@ impl IpcHandler {
         format!("EDITOR_ANNOTATIONS_CLEARED: {}", path_str)
     }
 
-    /// `editor_edit_proposal:<proposal_json>` — Trigger Diff Mode with proposed changes.
-    fn handle_editor_edit_proposal(&self, payload: &str) -> String {
-        tracing::info!("[EDITOR] Edit proposal received: {} bytes", payload.len());
-        format!("EDITOR_PROPOSAL_RECEIVED: {} bytes", payload.len())
+    /// `editor_edit_proposal:<pane_id>;<proposal_json>` — Trigger Diff Mode with proposed changes.
+    fn handle_editor_edit_proposal(&self, pane_id: Option<&str>, payload: Option<&str>) -> String {
+        let pane_uuid = match pane_id.and_then(|s| Uuid::parse_str(s).ok()) {
+            Some(u) => u,
+            None => return "ERROR: Invalid pane_id".to_string(),
+        };
+        let hunks_json = match payload {
+            Some(p) => p,
+            None => return "ERROR: Missing hunks JSON".to_string(),
+        };
+
+        let hunks: Result<Vec<crate::state::DiffHunk>, _> = serde_json::from_str(hunks_json);
+        match hunks {
+            Ok(diff_hunks) => {
+                let mut state = self.state.lock().unwrap();
+                let idx = state.active_sector_index;
+                if let Some(sector) = state.sectors.get_mut(idx) {
+                    let hub_idx = sector.active_hub_index;
+                    if let Some(hub) = sector.hubs.get_mut(hub_idx) {
+                        if let Some(pane) = hub.split_layout.as_mut().and_then(|t| t.find_pane_mut(pane_uuid)) {
+                            if let crate::PaneContent::Editor(ref mut ed) = pane.content {
+                                ed.diff_hunks = diff_hunks.clone();
+                                ed.mode = crate::EditorMode::Diff;
+                                state.version += 1;
+                                return format!("EDITOR_PROPOSAL_RECEIVED: {} hunks", diff_hunks.len());
+                            }
+                        }
+                    }
+                }
+                "ERROR: Pane not found or not an editor".to_string()
+            }
+            Err(e) => format!("ERROR: Invalid hunks JSON: {}", e),
+        }
     }
 
-    /// `editor_edit_apply:<proposal_id>` — Apply pending edit proposal.
-    fn handle_editor_edit_apply(&self, _proposal_id: Option<&str>) -> String {
-        // In full implementation, this would merge the proposal into the buffer
-        "EDITOR_EDIT_APPLIED".to_string()
+    /// `editor_edit_apply:<pane_id>;<hunk_index>` — Apply pending edit proposal.
+    fn handle_editor_edit_apply(&self, pane_id: Option<&str>, hunk_index: Option<&str>) -> String {
+        let pane_uuid = match pane_id.and_then(|s| Uuid::parse_str(s).ok()) {
+            Some(u) => u,
+            None => return "ERROR: Invalid pane_id".to_string(),
+        };
+        let h_idx: usize = match hunk_index.and_then(|i| i.parse().ok()) {
+            Some(idx) => idx,
+            None => return "ERROR: Invalid hunk_index".to_string(),
+        };
+
+        let mut state = self.state.lock().unwrap();
+        let idx = state.active_sector_index;
+        if let Some(sector) = state.sectors.get_mut(idx) {
+            let hub_idx = sector.active_hub_index;
+            if let Some(hub) = sector.hubs.get_mut(hub_idx) {
+                if let Some(pane) = hub.split_layout.as_mut().and_then(|t| t.find_pane_mut(pane_uuid)) {
+                    if let crate::PaneContent::Editor(ref mut ed) = pane.content {
+                        if h_idx < ed.diff_hunks.len() {
+                            let hunk = ed.diff_hunks.remove(h_idx);
+                            
+                            // Naive apply: find lines and replace them
+                            let mut lines: Vec<&str> = ed.content.lines().collect();
+                            let start = hunk.old_start.saturating_sub(1); // 1-indexed to 0-indexed
+                            let end = start + hunk.old_count;
+                            
+                            if start <= lines.len() && end <= lines.len() {
+                                let new_lines: Vec<&str> = hunk.content
+                                    .lines()
+                                    .filter(|l| !l.starts_with('-')) // Remove old lines
+                                    .map(|l| if l.starts_with('+') { &l[1..] } else if l.starts_with(' ') { &l[1..] } else { l })
+                                    .collect();
+                                
+                                lines.splice(start..end, new_lines);
+                                ed.content = lines.join("\n");
+                                ed.dirty = true;
+                                
+                                if ed.diff_hunks.is_empty() {
+                                    ed.mode = crate::EditorMode::Editor; // Return to editor if no diffs
+                                }
+                                state.version += 1;
+                                return "EDITOR_EDIT_APPLIED".to_string();
+                            } else {
+                                return "ERROR: Hunk bounds invalid".to_string();
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        "ERROR: Pane not found or hunk out of bounds".to_string()
     }
 
-    /// `editor_edit_reject:<proposal_id>` — Reject pending edit proposal.
-    fn handle_editor_edit_reject(&self, _proposal_id: Option<&str>) -> String {
-        "EDITOR_EDIT_REJECTED".to_string()
+    /// `editor_edit_reject:<pane_id>;<hunk_index>` — Reject pending edit proposal.
+    fn handle_editor_edit_reject(&self, pane_id: Option<&str>, hunk_index: Option<&str>) -> String {
+        let pane_uuid = match pane_id.and_then(|s| Uuid::parse_str(s).ok()) {
+            Some(u) => u,
+            None => return "ERROR: Invalid pane_id".to_string(),
+        };
+        let h_idx: usize = match hunk_index.and_then(|i| i.parse().ok()) {
+            Some(idx) => idx,
+            None => return "ERROR: Invalid hunk_index".to_string(),
+        };
+
+        let mut state = self.state.lock().unwrap();
+        let idx = state.active_sector_index;
+        if let Some(sector) = state.sectors.get_mut(idx) {
+            let hub_idx = sector.active_hub_index;
+            if let Some(hub) = sector.hubs.get_mut(hub_idx) {
+                if let Some(pane) = hub.split_layout.as_mut().and_then(|t| t.find_pane_mut(pane_uuid)) {
+                    if let crate::PaneContent::Editor(ref mut ed) = pane.content {
+                        if h_idx < ed.diff_hunks.len() {
+                            ed.diff_hunks.remove(h_idx);
+                            if ed.diff_hunks.is_empty() {
+                                ed.mode = crate::EditorMode::Editor; // Return to editor if no diffs
+                            }
+                            state.version += 1;
+                            return "EDITOR_EDIT_REJECTED".to_string();
+                        }
+                    }
+                }
+            }
+        }
+        "ERROR: Pane not found or hunk out of bounds".to_string()
     }
 
     /// `editor_context_update:<pane_id>;<context_json>` — Face sends cursor/scroll state.

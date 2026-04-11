@@ -140,27 +140,58 @@
 		</span>
 	</div>
 	
-	<div class="editor-content line-numbers">
-		{#if editorState.mode === 'Editor'}
-			<textarea 
-				bind:this={textareaEl}
-				class="editor-textarea"
-				value={localContent}
-				oninput={handleInput}
-				onkeydown={handleKeydown}
-				onclick={handleInput}
-				onkeyup={handleInput}
-				spellcheck="false"
-			></textarea>
+	<div class="editor-content" class:line-numbers={editorState.mode !== 'Diff'}>
+		{#if editorState.mode === 'Diff'}
+			<div class="diff-container">
+				{#if !editorState.diff_hunks || editorState.diff_hunks.length === 0}
+					<div class="diff-empty">
+						No pending proposed edits.
+					</div>
+				{:else}
+					{#each editorState.diff_hunks as hunk, i}
+						<div class="diff-hunk-card">
+							<div class="diff-hunk-header">
+								<span class="hunk-title">PROPOSED EDIT (Lines {hunk.old_start}-{hunk.old_start + hunk.old_count})</span>
+								<div class="hunk-actions">
+									<button onclick={() => submitCommand(`!ipc editor_edit_apply:${paneId};${i}`)}>[Apply]</button>
+									<button onclick={() => submitCommand(`!ipc editor_edit_reject:${paneId};${i}`)}>[✕]</button>
+								</div>
+							</div>
+							<div class="diff-hunk-content">
+								{#each hunk.content.split('\n') as diffLine}
+									<div class="diff-line" 
+										class:diff-add={diffLine.startsWith('+')} 
+										class:diff-sub={diffLine.startsWith('-')}>
+										{diffLine}
+									</div>
+								{/each}
+							</div>
+						</div>
+					{/each}
+				{/if}
+			</div>
+		{:else}
+			{#if editorState.mode === 'Editor'}
+				<textarea 
+					bind:this={textareaEl}
+					class="editor-textarea"
+					value={localContent}
+					oninput={handleInput}
+					onkeydown={handleKeydown}
+					onclick={handleInput}
+					onkeyup={handleInput}
+					spellcheck="false"
+				></textarea>
+			{/if}
+			<div class="code-layer">
+				{#each highlightedLines as line, i}
+					<div class="editor-line" class:active-line={i === editorState.cursor_line}>
+						<span class="line-number">{i + 1}</span>
+						<span class="line-text">{@html line || ' '}</span>
+					</div>
+				{/each}
+			</div>
 		{/if}
-		<div class="code-layer">
-			{#each highlightedLines as line, i}
-				<div class="editor-line" class:active-line={i === editorState.cursor_line}>
-					<span class="line-number">{i + 1}</span>
-					<span class="line-text">{@html line || ' '}</span>
-				</div>
-			{/each}
-		</div>
 	</div>
 </div>
 
@@ -261,8 +292,79 @@
 	}
 
 	.active-line {
-		background: rgba(255, 255, 255, 0.1); 
-		border-left: 2px solid var(--color-primary); /* Emulate active cursor line */
+		background-color: rgba(255, 255, 255, 0.05); /* VSCode active line highlight */
+		box-shadow: inset 2px 0 0 rgba(255, 255, 255, 0.4);
+	}
+
+	/* Diff UI */
+	.diff-container {
+		padding: var(--space-md);
+		display: flex;
+		flex-direction: column;
+		gap: var(--space-md);
+		width: 100%;
+	}
+
+	.diff-empty {
+		color: var(--color-text-dim);
+		text-align: center;
+		padding: var(--space-xl);
+		font-style: italic;
+	}
+
+	.diff-hunk-card {
+		background: rgba(0, 0, 0, 0.5);
+		border: 1px solid var(--color-border);
+		border-radius: 4px;
+		overflow: hidden;
+	}
+
+	.diff-hunk-header {
+		display: flex;
+		justify-content: space-between;
+		align-items: center;
+		padding: var(--space-xs) var(--space-sm);
+		background: rgba(255, 255, 255, 0.05);
+		border-bottom: 1px solid var(--color-border);
+	}
+
+	.hunk-title {
+		font-weight: bold;
+		color: var(--color-text-bright);
+	}
+
+	.hunk-actions button {
+		background: none;
+		border: none;
+		color: var(--color-primary);
+		cursor: pointer;
+		font-family: var(--font-mono);
+		font-weight: bold;
+	}
+
+	.hunk-actions button:hover {
+		color: var(--color-text-bright);
+		text-decoration: underline;
+	}
+
+	.diff-hunk-content {
+		padding: var(--space-xs) 0;
+	}
+
+	.diff-line {
+		white-space: pre;
+		padding: 0 var(--space-sm);
+		line-height: 1.4;
+	}
+
+	.diff-add {
+		background: rgba(40, 167, 69, 0.2);
+		color: #85e89d;
+	}
+
+	.diff-sub {
+		background: rgba(203, 36, 49, 0.2);
+		color: #f97583;
 	}
 
 	.line-number {

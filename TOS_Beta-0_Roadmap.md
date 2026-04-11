@@ -353,7 +353,7 @@
 |---|---|---|---|---|---|
 | 2.1 | Design editor pane data model (Viewer/Editor/Diff states) | HIGH | Features §6.2 | Stage 1.3 | ✅ |
 | 2.2 | Implement Brain-side editor IPC messages (§30.3–§30.4) | HIGH | Arch §30 | 2.1 | ✅ |
-| 2.3 | Implement Svelte `EditorPane.svelte` component (Viewer Mode) | HIGH | Features §6.3 | 2.1, 2.2 | ❌ |
+| 2.3 | Implement Svelte `EditorPane.svelte` component (Viewer Mode) | HIGH | Features §6.3 | 2.1, 2.2 | ✅ |
 | 2.4 | Implement Editor Mode (keyboard input, syntax highlighting) | HIGH | Features §6.2 | 2.3, Tree-sitter WASM | ❌ |
 | 2.5 | Implement Diff Mode (side-by-side, Apply/Reject) | HIGH | Features §6.6.2 | 2.3 | ❌ |
 | 2.6 | Auto-open on build error (PTY output → file:line parser) | HIGH | Features §6.3.2 | 2.3, ShellApi | ❌ |
@@ -480,7 +480,7 @@
 | Service Daemons | 8 | 1 | 0 |
 | AI System | 5 | 1 | 6 |
 | Marketplace UI | 3 | 3 | 0 |
-| **Editor** | **1** | **0** | **13** |
+| **Editor** | **4** | **0** | **10** |
 | Session Persistence | 5 | 0 | 2 |
 | Onboarding | 1 | 2 | 1 |
 | Multi-Sensory | 0 | 2 | 3 |
@@ -488,7 +488,7 @@
 | Predictive Fillers | 0 | 0 | 6 |
 | Reset / Log / Settings | 4 | 1 | 4 |
 | **Kanban & Agents** | **3** | **3** | **1** |
-| **TOTAL** | **75** | **39** | **49** |
+| **TOTAL** | **78** | **39** | **46** |
 
 > [!IMPORTANT]
 > The **TOS Editor** is the single largest gap — 14 features with zero implementation. It is the critical path for AI edit flows (Vibe Coder, Diff Mode), session handoff, and the overall developer experience that distinguishes TOS from a standard terminal.

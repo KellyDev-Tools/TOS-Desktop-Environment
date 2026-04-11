@@ -42,7 +42,7 @@
 ## Stage 2 — Editor System
 - [x] 2.1 Design editor pane data model — `EditorPaneState` (file_path, content, mode, language, cursor, scroll, dirty, diff_hunks) + `EditorMode` enum
 - [x] 2.2 Implement Brain-side editor IPC messages (§30.3-30.4) — 16 handlers: editor_open/save/save_as/activate/mode_switch/scroll/open_ai/diff/annotate/clear_annotations/edit_proposal/edit_apply/edit_reject/context_update/send_context/promote + detect_language(30+ extensions) + SplitNode helpers (find_pane_mut, find_editor_by_path_mut, add_pane)
-- [ ] 2.3 Implement Svelte `EditorPane.svelte` component (Viewer Mode)
+- [x] 2.3 Implement Svelte `EditorPane.svelte` component (Viewer Mode) — PrismJS syntax highlighting, VSCode-style gutter, and active line tracking.
 - [ ] 2.4 Implement Editor Mode (keyboard input, syntax highlighting)
 - [ ] 2.5 Implement Diff Mode (side-by-side, Apply/Reject)
 - [ ] 2.6 Auto-open on build error (PTY output → file:line parser)

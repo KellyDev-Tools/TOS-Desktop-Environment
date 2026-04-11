@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { getTosState, splitFocus, submitCommand } from '$lib/stores/ipc.svelte';
 	import type { SplitPane, Hub } from '$lib/stores/tos-state.svelte';
-
+	import EditorPane from '../editor/EditorPane.svelte';
 
 	let { pane, activeHub }: { pane: SplitPane; activeHub: Hub | null } = $props();
 
@@ -51,6 +51,8 @@
 					<div class="cursor-blink">_</div>
 				{/if}
 			</div>
+		{:else if typeof pane.content === 'object' && 'Editor' in pane.content}
+			<EditorPane editorState={pane.content.Editor} activeHub={activeHub} />
 		{:else if typeof pane.content === 'object' && 'Application' in pane.content}
 			<div class="app-placeholder">
 				<div class="app-icon">⊞</div>

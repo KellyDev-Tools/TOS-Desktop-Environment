@@ -245,12 +245,6 @@
 		border: 1px solid var(--color-border);
 	}
 
-	.sector-thumbnail img {
-		width: 100%;
-		height: 100%;
-		object-fit: cover;
-	}
-
 	.no-feed {
 		font-size: 0.6rem;
 		font-family: var(--font-display);

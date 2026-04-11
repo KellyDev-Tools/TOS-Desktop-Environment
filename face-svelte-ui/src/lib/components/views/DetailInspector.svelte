@@ -111,11 +111,6 @@
 		margin-bottom: var(--space-sm);
 	}
 
-	.wf-stats div {
-		margin-bottom: 4px;
-		font-size: 0.85rem;
-	}
-
 	.inspector-footer {
 		margin-top: auto;
 		display: flex;

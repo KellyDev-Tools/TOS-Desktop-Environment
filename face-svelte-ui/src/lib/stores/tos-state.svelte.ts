@@ -80,7 +80,29 @@ export interface AiBehavior {
     config: Record<string, string>;
 }
 
-export type PaneContent = 'Terminal' | { Application: string };
+export type EditorMode = 'Viewer' | 'Editor' | 'Diff';
+
+export interface DiffHunk {
+    old_start: number;
+    old_count: number;
+    new_start: number;
+    new_count: number;
+    content: string;
+}
+
+export interface EditorPaneState {
+    file_path: string;
+    content: string;
+    mode: EditorMode;
+    language: string | null;
+    cursor_line: number;
+    cursor_col: number;
+    scroll_offset: number;
+    dirty: boolean;
+    diff_hunks: DiffHunk[];
+}
+
+export type PaneContent = 'Terminal' | { Application: string } | { Editor: EditorPaneState };
 
 export interface SplitPane {
     id: string;

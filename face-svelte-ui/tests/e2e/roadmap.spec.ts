@@ -14,7 +14,7 @@
 import { test, expect } from '@playwright/test';
 
 // Mock boot function just to pass syntax check if missing
-const bootToCommandHub = async (page) => {
+const bootToCommandHub = async (page: any) => {
     await page.goto('/');
 };
 

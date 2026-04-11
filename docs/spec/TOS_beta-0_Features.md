@@ -1183,17 +1183,17 @@ The editor integrates into the Command Hub as a named output area — a peer to 
 
 `pane_type: "editor"` is a first-class pane type alongside `"terminal"` (Architecture §11.2). Editor panes are persisted in the session file (§2.9).
 
-#### 6.3.2 Auto-Open Triggers
+#### 6.3.2 Select to Open and Auto-Open Triggers
 
-The Brain automatically opens or updates the editor pane in response to terminal events:
+The Brain provides a mechanism to open or update the editor pane in response to terminal events indicated by underlined or highlighted text in the terminal output:
 
 | Terminal Event | Editor Response |
 |:---|:---|
-| Command exits non-zero with a file path + line number in output | Opens file, scrolls to error line, highlights in amber |
-| `cd` to a directory | Editor shows directory listing in Viewer Mode |
-| User types a file path in the prompt | Editor previews the file before submission |
-| AI Passive Observer identifies a relevant file | Editor opens file with AI annotation overlay |
-| `git diff` or `git show` executed | Editor switches to Diff Mode |
+| Command exits non-zero with a file path + line number in output | highlight line in amber, user can select line to open file, scrolls to error line |
+| `cd` to a directory | on user selection the Editor shows directory listing in Viewer Mode |
+| User types a file path in the prompt | on user selection the Editor previews the file before submission |
+| AI Passive Observer identifies a relevant file | on user selection the Editor opens file with AI annotation overlay |
+| `git diff` or `git show` executed | on user selection the Editor switches to Diff Mode |
 
 Auto-open is configurable per sector in **Settings → Editor → Auto-Open Triggers**.
 

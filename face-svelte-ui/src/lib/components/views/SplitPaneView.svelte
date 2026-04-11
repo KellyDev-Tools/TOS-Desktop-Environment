@@ -22,6 +22,31 @@
 		return 'inherit';
 	}
 
+	function renderTermLine(text: string): string {
+		if (!text) return '';
+		
+		// Escape HTML first
+		let escaped = text
+			.replace(/&/g, "&amp;")
+			.replace(/</g, "&lt;")
+			.replace(/>/g, "&gt;");
+			
+		// Regex to find things pointing to files like /path/to/file.rs:14 or src/main.js:142:1
+		// Pattern: ([a-zA-Z0-9_/\-.]+\.[a-zA-Z0-9]+):(\d+)
+		const pathRegex = /([a-zA-Z0-9_/\-.]+\.[a-zA-Z0-9]+):(\d+)/g;
+		
+		return escaped.replace(pathRegex, (match, path, line) => {
+			return `<span class="term-path-link" onclick="window.tos_submitCommand('!ipc editor_open:${path};${line}')" title="Hold explicitly or Click to open in Editor">${match}</span>`;
+		});
+	}
+
+	// We expose submitCommand globally for innerHTML onclick handlers
+	$effect(() => {
+		if (typeof window !== 'undefined') {
+			(window as any).tos_submitCommand = submitCommand;
+		}
+	});
+
 	function handleFocus() {
 		if (!isFocused) {
 			splitFocus(pane.id);
@@ -45,7 +70,9 @@
 		{#if pane.content === 'Terminal'}
 			<div class="terminal-container">
 				{#each termOutput as line}
-					<div class="term-line" style="color: {priorityColor(line.priority)}">{line.text || ''}</div>
+					<div class="term-line" style="color: {priorityColor(line.priority)}">
+						{@html renderTermLine(line.text)}
+					</div>
 				{/each}
 				{#if isFocused}
 					<div class="cursor-blink">_</div>
@@ -129,6 +156,18 @@
 		word-break: break-all;
 	}
 
+	:global(.term-path-link) {
+		color: var(--color-warning); /* Highlight in amber */
+		cursor: pointer;
+		text-decoration: underline;
+		text-decoration-color: rgba(255, 193, 7, 0.4);
+	}
+
+	:global(.term-path-link:hover) {
+		background-color: rgba(255, 193, 7, 0.1);
+		text-decoration-color: var(--color-warning);
+	}
+	
 	.cursor-blink {
 		display: inline-block;
 		width: 8px;

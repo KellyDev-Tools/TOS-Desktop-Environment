@@ -45,7 +45,7 @@
 - [x] 2.3 Implement Svelte `EditorPane.svelte` component (Viewer Mode) — PrismJS syntax highlighting, VSCode-style gutter, and active line tracking.
 - [x] 2.4 Implement Editor Mode (keyboard input, syntax highlighting) — `<textarea>` overlay mapped to Prism DOM logic, custom Svelte hotkeys (Tab, Ctrl+S), IPC `editor_context_update` fully integrated.
 - [x] 2.5 Implement Diff Mode (side-by-side, Apply/Reject) — Injected JSON diff-hunk parsing/application backends + CSS structured native diff review panes replacing active editors automatically.
-- [ ] 2.6 Auto-open on build error (PTY output → file:line parser)
+- [x] 2.6 Select-to-open on build error (PTY output → file:line parser) — Added `renderTermLine` to `SplitPaneView` for capturing line/file regex boundaries as interactive span tags mapped to `!ipc editor_open`.
 - [ ] 2.7 Editor Context Object integrated into AI pipeline
 - [ ] 2.10 Editor pane state persistence in session
 

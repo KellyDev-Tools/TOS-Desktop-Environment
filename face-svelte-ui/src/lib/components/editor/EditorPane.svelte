@@ -17,12 +17,12 @@
 	let { editorState, activeHub, paneId }: { editorState: EditorPaneState; activeHub: Hub | null; paneId: string } = $props();
 
 	// Local state for debounced typed content
-	let localContent = $state(editorState.content);
+	let localContent = $state('');
 	let textareaEl: HTMLTextAreaElement | null = $state(null);
 	let syncTimeout: any;
 
 	$effect(() => {
-		// If brain resyncs with non-dirty state we accept it
+		// Sync initial or brain-updated state
 		if (!editorState.dirty && editorState.content !== localContent) {
 			localContent = editorState.content;
 		}

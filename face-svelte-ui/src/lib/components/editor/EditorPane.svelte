@@ -11,8 +11,85 @@
 	import 'prismjs/components/prism-json';
 	import 'prismjs/components/prism-css';
 	import 'prismjs/components/prism-markup'; // HTML
+	import 'prismjs/components/prism-markup'; // HTML
+	import { submitCommand } from '$lib/stores/ipc.svelte';
 
-	let { editorState, activeHub }: { editorState: EditorPaneState; activeHub: Hub | null } = $props();
+	let { editorState, activeHub, paneId }: { editorState: EditorPaneState; activeHub: Hub | null; paneId: string } = $props();
+
+	// Local state for debounced typed content
+	let localContent = $state(editorState.content);
+	let textareaEl: HTMLTextAreaElement | null = $state(null);
+	let syncTimeout: any;
+
+	$effect(() => {
+		// If brain resyncs with non-dirty state we accept it
+		if (!editorState.dirty && editorState.content !== localContent) {
+			localContent = editorState.content;
+		}
+	});
+
+	function syncContext(line: number, col: number) {
+		clearTimeout(syncTimeout);
+		syncTimeout = setTimeout(() => {
+			const payload = {
+				content: localContent,
+				cursor_line: line,
+				cursor_col: col
+			};
+			submitCommand(`!ipc editor_context_update:${paneId};${JSON.stringify(payload)}`);
+		}, 300); // 300ms debounce
+	}
+
+	function handleInput(e: Event) {
+		const target = e.target as HTMLTextAreaElement;
+		localContent = target.value;
+		
+		// Calculate cursor line and col
+		const textBeforeCursor = localContent.substring(0, target.selectionStart);
+		const linesBefore = textBeforeCursor.split('\n');
+		const line = linesBefore.length - 1;
+		const col = linesBefore[linesBefore.length - 1].length;
+
+		syncContext(line, col);
+	}
+
+	function handleKeydown(e: KeyboardEvent) {
+		// Save hotkey Ctrl+S
+		if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 's') {
+			e.preventDefault();
+			if (e.shiftKey) {
+				// We need a path input for Save As, for now we just log
+				submitCommand(`!ipc editor_save_as:${paneId};${editorState.file_path}`); 
+			} else {
+				// Quick send the current state synchronously before saving
+				const target = e.target as HTMLTextAreaElement;
+				const textBefore = localContent.substring(0, target.selectionStart);
+				const l = textBefore.split('\n');
+				const currentLine = l.length - 1;
+				submitCommand(`!ipc editor_context_update:${paneId};${JSON.stringify({ content: localContent, cursor_line: currentLine, cursor_col: l[l.length - 1].length })}`);
+				
+				submitCommand(`!ipc editor_save:${paneId}`);
+			}
+			return;
+		}
+
+		if (e.key === 'Tab') {
+			e.preventDefault();
+			const target = e.target as HTMLTextAreaElement;
+			const start = target.selectionStart;
+			const end = target.selectionEnd;
+			const spaces = "    "; // 4 spaces for tab
+			
+			localContent = localContent.substring(0, start) + spaces + localContent.substring(end);
+			// setTimeout trick to update caret position after svelte updates value
+			setTimeout(() => {
+				if (textareaEl) {
+					textareaEl.selectionStart = textareaEl.selectionEnd = start + spaces.length;
+					handleInput({ target: textareaEl } as any);
+				}
+			}, 0);
+		}
+	}
 
 	// Function to highlight code using Prism
 	// We map the backend language string to a Prism language grammar
@@ -25,11 +102,11 @@
 		let highlighted = '';
 		if (Prism.languages[langStr]) {
 			try {
-				highlighted = Prism.highlight(editorState.content, grammar, langStr);
+				highlighted = Prism.highlight(localContent, grammar, langStr);
 			} catch (e) {
 				console.warn('Prism highlight error:', e);
 				// Manual escape fallback
-				highlighted = editorState.content
+				highlighted = localContent
 					.replace(/&/g, "&amp;")
 					.replace(/</g, "&lt;")
 					.replace(/>/g, "&gt;")
@@ -38,7 +115,7 @@
 			}
 		} else {
 			// Manual escape fallback
-			highlighted = editorState.content
+			highlighted = localContent
 				.replace(/&/g, "&amp;")
 				.replace(/</g, "&lt;")
 				.replace(/>/g, "&gt;")
@@ -64,12 +141,26 @@
 	</div>
 	
 	<div class="editor-content line-numbers">
-		{#each highlightedLines as line, i}
-			<div class="editor-line" class:active-line={i === editorState.cursor_line}>
-				<span class="line-number">{i + 1}</span>
-				<span class="line-text">{@html line || ' '}</span>
-			</div>
-		{/each}
+		{#if editorState.mode === 'Editor'}
+			<textarea 
+				bind:this={textareaEl}
+				class="editor-textarea"
+				value={localContent}
+				oninput={handleInput}
+				onkeydown={handleKeydown}
+				onclick={handleInput}
+				onkeyup={handleInput}
+				spellcheck="false"
+			></textarea>
+		{/if}
+		<div class="code-layer">
+			{#each highlightedLines as line, i}
+				<div class="editor-line" class:active-line={i === editorState.cursor_line}>
+					<span class="line-number">{i + 1}</span>
+					<span class="line-text">{@html line || ' '}</span>
+				</div>
+			{/each}
+		</div>
 	</div>
 </div>
 
@@ -118,6 +209,7 @@
 
 	.editor-content {
 		flex: 1;
+		position: relative;
 		overflow-y: auto;
 		padding: var(--space-xs) 0;
 		/* basic VSCode-like colors */
@@ -125,9 +217,43 @@
 		background-color: #1e1e1e;
 	}
 
+	.editor-textarea {
+		position: absolute;
+		top: var(--space-xs);
+		bottom: 0;
+		left: 4rem; /* match padding for line numbers */
+		right: 0;
+		min-height: 100%;
+		width: calc(100% - 4rem);
+		padding: 0;
+		margin: 0;
+		border: none;
+		outline: none;
+		background: transparent;
+		color: transparent; /* Text is invisible, caret is visible */
+		caret-color: #fff;
+		font-family: inherit;
+		font-size: inherit;
+		line-height: inherit;
+		resize: none;
+		white-space: pre;
+		overflow: hidden; /* Hide textarea scrollbars, let container scroll */
+		z-index: 10;
+		padding-left: 0.5rem;
+	}
+	
+	.code-layer {
+		position: relative;
+		pointer-events: none; /* Let textarea receive clicks */
+		z-index: 1;
+		min-height: 100%;
+	}
+
 	.editor-line {
 		display: flex;
 		white-space: pre;
+		line-height: inherit;
+		min-height: 1em;
 	}
 	
 	.editor-line:hover {

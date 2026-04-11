@@ -2446,9 +2446,51 @@ impl IpcHandler {
     }
 
     /// `editor_context_update:<pane_id>;<context_json>` — Face sends cursor/scroll state.
-    fn handle_editor_context_update(&self, _pane_id: Option<&str>, _context: Option<&str>) -> String {
-        // Brain stores the latest editor context for AI queries
-        "EDITOR_CONTEXT_UPDATED".to_string()
+    fn handle_editor_context_update(&self, pane_id: Option<&str>, context: Option<&str>) -> String {
+        let pane_uuid = match pane_id.and_then(|s| Uuid::parse_str(s).ok()) {
+            Some(u) => u,
+            None => return "ERROR: Invalid pane_id".to_string(),
+        };
+        let ctx_json = match context {
+            Some(c) => c,
+            None => return "ERROR: Missing context JSON payload".to_string(),
+        };
+
+        // Parse context updates (could be partial). We use a generic value to extract fields.
+        let parsed: Result<serde_json::Value, _> = serde_json::from_str(ctx_json);
+        if let Ok(json_ctx) = parsed {
+            let mut state = self.state.lock().unwrap();
+            let idx = state.active_sector_index;
+            if let Some(sector) = state.sectors.get_mut(idx) {
+                let hub_idx = sector.active_hub_index;
+                if let Some(hub) = sector.hubs.get_mut(hub_idx) {
+                    if let Some(pane) = hub.split_layout.as_mut().and_then(|t| t.find_pane_mut(pane_uuid)) {
+                        if let crate::PaneContent::Editor(ref mut ed) = pane.content {
+                            if let Some(content) = json_ctx.get("content").and_then(|v| v.as_str()) {
+                                if ed.content != content {
+                                    ed.content = content.to_string();
+                                    ed.dirty = true;
+                                }
+                            }
+                            if let Some(cursor_line) = json_ctx.get("cursor_line").and_then(|v| v.as_u64()) {
+                                ed.cursor_line = cursor_line as usize;
+                            }
+                            if let Some(cursor_col) = json_ctx.get("cursor_col").and_then(|v| v.as_u64()) {
+                                ed.cursor_col = cursor_col as usize;
+                            }
+                            if let Some(scroll) = json_ctx.get("scroll_offset").and_then(|v| v.as_u64()) {
+                                ed.scroll_offset = scroll as usize;
+                            }
+                            state.version += 1;
+                            return "EDITOR_CONTEXT_UPDATED".to_string();
+                        }
+                    }
+                }
+            }
+            "ERROR: Pane not found or not an editor".to_string()
+        } else {
+            "ERROR: Invalid context JSON".to_string()
+        }
     }
 
     /// `editor_send_context:<pane_id>;<scope>` — Explicit AI context send.

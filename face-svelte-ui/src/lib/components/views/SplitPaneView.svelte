@@ -52,7 +52,7 @@
 				{/if}
 			</div>
 		{:else if typeof pane.content === 'object' && 'Editor' in pane.content}
-			<EditorPane editorState={pane.content.Editor} activeHub={activeHub} />
+			<EditorPane editorState={pane.content.Editor} activeHub={activeHub} paneId={pane.id} />
 		{:else if typeof pane.content === 'object' && 'Application' in pane.content}
 			<div class="app-placeholder">
 				<div class="app-icon">⊞</div>

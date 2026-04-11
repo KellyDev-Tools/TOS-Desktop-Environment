@@ -274,20 +274,6 @@
 		letter-spacing: 0.05em;
 	}
 
-	.logo-accent {
-		background: linear-gradient(135deg, #fff 0%, var(--color-primary) 100%);
-		-webkit-background-clip: text;
-		background-clip: text;
-		-webkit-text-fill-color: transparent;
-	}
-
-	.welcome-stats {
-		font-size: 1rem;
-		line-height: 1.6;
-		color: var(--color-text-dim);
-		margin-bottom: 30px;
-	}
-
 	.step-desc {
 		font-size: 1rem;
 		line-height: 1.6;

@@ -1,6 +1,9 @@
 <script lang="ts">
+	import { onMount } from 'svelte';
 	import type { EditorPaneState, Hub } from '$lib/stores/tos-state.svelte';
+	import { submitCommand } from '$lib/stores/ipc.svelte';
 	import Prism from 'prismjs';
+	import AiContextPanel from './AiContextPanel.svelte';
 	import 'prismjs/themes/prism-tomorrow.css'; // VSCode-like dark theme
 	// Import common languages to ensure they exist
 	import 'prismjs/components/prism-javascript';
@@ -12,7 +15,6 @@
 	import 'prismjs/components/prism-css';
 	import 'prismjs/components/prism-markup'; // HTML
 	import 'prismjs/components/prism-markup'; // HTML
-	import { submitCommand } from '$lib/stores/ipc.svelte';
 
 	let { editorState, activeHub, paneId }: { editorState: EditorPaneState; activeHub: Hub | null; paneId: string } = $props();
 
@@ -20,6 +22,8 @@
 	let localContent = $state('');
 	let textareaEl: HTMLTextAreaElement | null = $state(null);
 	let syncTimeout: any;
+
+	let showAiContext = $state(false);
 
 	$effect(() => {
 		// Sync initial or brain-updated state
@@ -137,10 +141,13 @@
 			<span class="pill-badge">{editorState.language || 'text'}</span>
 			<span class="pill-badge">{highlightedLines.length} lines</span>
 			<span class="pill-badge">{editorState.mode}</span>
+			<button class="pill-btn" onclick={() => showAiContext = !showAiContext}>[AI]</button>
+			<button class="pill-btn" title="Promote to Pane">[⊞]</button>
 		</span>
 	</div>
 	
-	<div class="editor-content" class:line-numbers={editorState.mode !== 'Diff'}>
+	<div class="editor-body-wrapper">
+		<div class="editor-content" class:line-numbers={editorState.mode !== 'Diff'}>
 		{#if editorState.mode === 'Diff'}
 			<div class="diff-container">
 				{#if !editorState.diff_hunks || editorState.diff_hunks.length === 0}
@@ -192,7 +199,12 @@
 				{/each}
 			</div>
 		{/if}
-	</div>
+		</div> <!-- Ends editor-content -->
+
+		{#if showAiContext}
+			<AiContextPanel {editorState} {paneId} onClose={() => showAiContext = false} />
+		{/if}
+	</div> <!-- Ends editor-body-wrapper -->
 </div>
 
 <style>
@@ -204,6 +216,14 @@
 		background: var(--color-bg-deep);
 		font-family: var(--font-mono);
 		font-size: 0.85rem;
+		overflow: hidden;
+	}
+
+	.editor-body-wrapper {
+		display: flex;
+		flex-direction: row;
+		flex: 1;
+		height: 100%;
 		overflow: hidden;
 	}
 

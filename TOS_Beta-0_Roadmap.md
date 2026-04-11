@@ -364,7 +364,7 @@
 | 2.11 | Save (`Ctrl+S`) and Save As (`Ctrl+Shift+S`) | HIGH | Features §6.8 | 2.4 | ✅ |
 | 2.12 | Trust chip for writes outside sector cwd | HIGH | Features §6.8 | 2.11, TrustService | ✅ |
 | 2.13 | LSP client integration (diagnostics, hover, completion) | MEDIUM | Features §6.9 | 2.4 | ✅ |
-| 2.14 | Mobile: tap line number sends to AI | LOW | Features §6.6 | 2.3 | ❌ |
+| 2.14 | Mobile: tap line number sends to AI | LOW | Features §6.6 | 2.3 | ✅ |
 
 ---
 
@@ -488,7 +488,7 @@
 | Predictive Fillers | 0 | 0 | 6 |
 | Reset / Log / Settings | 4 | 1 | 4 |
 | **Kanban & Agents** | **3** | **3** | **1** |
-| **TOTAL** | **88** | **39** | **36** |
+| **TOTAL** | **89** | **39** | **35** |
 
 > [!IMPORTANT]
 > The **TOS Editor** is the single largest gap — 14 features with zero implementation. It is the critical path for AI edit flows (Vibe Coder, Diff Mode), session handoff, and the overall developer experience that distinguishes TOS from a standard terminal.

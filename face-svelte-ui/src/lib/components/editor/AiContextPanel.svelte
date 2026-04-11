@@ -51,8 +51,8 @@
 					<div class="annotation-item" class:error={annotation.severity === 'error'}>
 						<div class="annotation-text">› Line {annotation.line + 1} — {annotation.message}</div>
 						<div class="annotation-actions">
-							<button onclick={() => submitCommand(`!ipc ai_ask:Explain line ${annotation.line + 1}`)}>[Ask AI]</button>
-							<button onclick={() => submitCommand(`!ipc ai_ask:Fix line ${annotation.line + 1} error`)}>[Fix]</button>
+							<button onclick={() => submitCommand(`!ipc ai_submit:Explain line ${annotation.line + 1}`)}>[Ask AI]</button>
+							<button onclick={() => submitCommand(`!ipc ai_submit:Fix line ${annotation.line + 1} error`)}>[Fix]</button>
 							<!-- We map the clear command eventually -->
 						</div>
 					</div>

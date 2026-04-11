@@ -90,12 +90,15 @@
 
 	function handleScroll(e: Event) {
 		const target = e.target as HTMLDivElement;
-		const lineEl = target.querySelector('.editor-line');
-		if (lineEl) {
-			const lineHeight = lineEl.getBoundingClientRect().height || 24;
-			const firstVisibleLine = Math.floor(target.scrollTop / lineHeight);
-			syncContext(editorState.cursor_line, editorState.cursor_col, firstVisibleLine);
-		}
+		const line = Math.floor(target.scrollTop / 24); // 24px is line height
+		syncContext(editorState.cursor_line, editorState.cursor_col, line);
+	}
+
+	function handleLineClick(lineIndex: number) {
+		// Send the tapped line to the AI
+		const lineContent = localContent.split('\n')[lineIndex];
+		const msg = `Provide Context & Analysis for this code block:\nLine ${lineIndex + 1}:\n\`\`\`${editorState.language || 'text'}\n${lineContent}\n\`\`\``;
+		submitCommand(`!ipc ai_submit:${msg}`);
 	}
 
 	function handleInput(e: Event) {
@@ -279,7 +282,9 @@
 			<div class="code-layer">
 				{#each highlightedLines as line, i}
 					<div id="editor-{paneId}-line-{i}" class="editor-line" class:active-line={i === editorState.cursor_line}>
-						<span class="line-number">{i + 1}</span>
+						<!-- svelte-ignore a11y_click_events_have_key_events -->
+						<!-- svelte-ignore a11y_no_static_element_interactions -->
+						<span class="line-number" onclick={() => handleLineClick(i)} title="Send line to AI">{i + 1}</span>
 						<span class="line-text">{@html line || ' '}</span>
 						{#if annotationsByLine.has(i)}
 							<div class="inline-annotations">
@@ -333,6 +338,24 @@
 		flex-shrink: 0;
 	}
 	
+	.line-number {
+		display: inline-block;
+		width: 3rem;
+		padding-right: 1rem;
+		text-align: right;
+		color: var(--color-text-muted);
+		user-select: none;
+		border-right: 1px solid rgba(255, 255, 255, 0.1);
+		margin-right: 1rem;
+		cursor: pointer;
+		transition: color var(--transition-fast), background var(--transition-fast);
+	}
+
+	.line-number:hover {
+		color: var(--color-primary);
+		background: rgba(255, 255, 255, 0.1);
+	}
+
 	.file-path {
 		font-weight: bold;
 		color: var(--color-text);
@@ -549,15 +572,6 @@
 		color: #f97583;
 	}
 
-	.line-number {
-		color: #858585; /* VSCode line number color */
-		text-align: right;
-		min-width: 3rem;
-		padding-right: 1rem;
-		user-select: none;
-		flex-shrink: 0;
-	}
-	
 	.line-text {
 		padding-left: 0.5rem;
 		flex: 1;

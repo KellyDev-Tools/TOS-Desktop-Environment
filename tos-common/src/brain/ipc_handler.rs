@@ -2192,6 +2192,7 @@ impl IpcHandler {
             scroll_offset: line_num.saturating_sub(5),
             dirty: false,
             diff_hunks: vec![],
+            annotations: vec![],
         };
 
         // Install as a new split pane in the active hub
@@ -2291,6 +2292,9 @@ impl IpcHandler {
                 if let Some(pane) = hub.split_layout.as_mut().and_then(|t| t.find_pane_mut(pane_uuid)) {
                     if let crate::PaneContent::Editor(ref mut ed) = pane.content {
                         let path = std::path::PathBuf::from(new_path_str);
+                        if let Some(parent) = path.parent() {
+                            let _ = std::fs::create_dir_all(parent);
+                        }
                         match std::fs::write(&path, &ed.content) {
                             Ok(_) => {
                                 ed.file_path = path;

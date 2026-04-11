@@ -50,5 +50,6 @@
 - [x] 2.8 AI Context Panel (Right Bezel slot) — Built `AiContextPanel.svelte`, hooked interactive bindings for toggling the window out of standard `EditorPane` boundaries matching spec layouts.
 - [x] 2.9 Inline AI annotations in editor margin — Extended `EditorPaneState` struct across Rust/TS schemas with `EditorAnnotation` schemas. Svelte `$derived` mapping projects chips dynamically inside code line blocks. Triggered automatic "amberPulse" smooth scrolling via $effect bindings when new annotations mutate.
 - [x] 2.10 Editor pane state persistence in session — Mapped `scroll_offset` onto Svelte `$effect` layout constraints and `handleScroll` event loops emitting back inside `editor_context_update` payloads, finalizing end-to-end integration across `tos-sessiond` debounced state saving loops.
+- [x] 2.11 Save (`Ctrl+S`) and Save As (`Ctrl+Shift+S`) — Connected `editor_save` and `editor_save_as` IPC interfaces handling interactive front-end `KeyboardEvent` triggers against browser-native Modal Prompts, and wrote safe directory abstractions inside `std::fs` to flush serialized states to persistence safely.
 
 ## Stage 3–6 — Deferred to subsequent sessions

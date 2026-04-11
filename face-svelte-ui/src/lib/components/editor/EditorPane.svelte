@@ -112,8 +112,22 @@
 		if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 's') {
 			e.preventDefault();
 			if (e.shiftKey) {
-				// We need a path input for Save As, for now we just log
-				submitCommand(`!ipc editor_save_as:${paneId};${editorState.file_path}`); 
+				const newPath = prompt("Enter new file path:", editorState.file_path);
+				if (newPath && newPath.trim() !== '') {
+					// Quick sync before save
+					const target = e.target as HTMLTextAreaElement;
+					const textBefore = localContent.substring(0, target.selectionStart);
+					const l = textBefore.split('\n');
+					const currentLine = l.length - 1;
+					const currentScroll = editorContentEl ? Math.floor(editorContentEl.scrollTop / 24) : 0;
+					submitCommand(`!ipc editor_context_update:${paneId};${JSON.stringify({ 
+						content: localContent, 
+						cursor_line: currentLine, 
+						cursor_col: l[l.length - 1].length,
+						scroll_offset: currentScroll 
+					})}`);
+					submitCommand(`!ipc editor_save_as:${paneId};${newPath.trim()}`);
+				}
 			} else {
 				// Quick send the current state synchronously before saving
 				const target = e.target as HTMLTextAreaElement;

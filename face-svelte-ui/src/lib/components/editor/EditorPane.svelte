@@ -281,7 +281,10 @@
 			{/if}
 			<div class="code-layer">
 				{#each highlightedLines as line, i}
-					<div id="editor-{paneId}-line-{i}" class="editor-line" class:active-line={i === editorState.cursor_line}>
+					<div id="editor-{paneId}-line-{i}" 
+						class="editor-line" 
+						class:active-line={i === editorState.cursor_line}
+						class:pulse-amber={annotationsByLine.get(i)?.some(a => a.severity === 'error')}>
 						<!-- svelte-ignore a11y_click_events_have_key_events -->
 						<!-- svelte-ignore a11y_no_static_element_interactions -->
 						<span class="line-number" onclick={() => handleLineClick(i)} title="Send line to AI">{i + 1}</span>

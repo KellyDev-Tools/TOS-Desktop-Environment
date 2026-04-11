@@ -33,6 +33,7 @@ reqwest = { version = "0.12", features = ["json", "charset", "http2"] }
 hf-hub = { version = "0.4.3", features = ["tokio"] }
 mdns-sd = "0.18.2"
 lsp-types = "0.97.0"
+url = "2.5"
 crossbeam-channel = "0.5.15"
 
 [target.'cfg(not(target_os = "android"))'.dependencies]

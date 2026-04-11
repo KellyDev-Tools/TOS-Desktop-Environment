@@ -28,7 +28,7 @@ pub use state::{
     ZoomBehavior, AppInstance, SectorTemplate, HubTemplate, DirectoryListing,
     DirectoryEntry, ActivityListing, ProcessEntry, SearchResult, AiMessage,
     SplitOrientation, PaneContent, SplitPane, SplitNode, AiBehavior,
-    EditorPaneState, EditorMode, DiffHunk
+    EditorPaneState, EditorMode, DiffHunk, EditorAnnotation
 };
 
 pub use modules::{AiModule, AiQuery, AiResponse, ShellModule, ShellIntegration};

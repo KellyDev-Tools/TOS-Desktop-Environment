@@ -118,6 +118,12 @@ impl TrustService {
         CommandClass::Standard
     }
 
+    /// Checks if a file path is within the trusted sector root (§6.8).
+    pub fn is_path_trusted(&self, path: &Path, allowed_root: &Path) -> bool {
+        // Handle canonicalization if possible, though starts_with is usually enough for relative checks
+        path.starts_with(allowed_root)
+    }
+
     /// Implement the TrustService cascade resolution (Sector -> Global).
     pub fn get_trust_policy(
         &self,
@@ -308,5 +314,17 @@ mod tests {
         let mut tampered_sig_req = req.clone();
         tampered_sig_req.signature = "0".repeat(128);
         assert!(!trust.verify_service_signature(&tampered_sig_req));
+    }
+
+    #[test]
+    fn test_path_trust_validation() {
+        let trust = TrustService::new();
+        let root = Path::new("/sector/work");
+        
+        assert!(trust.is_path_trusted(Path::new("/sector/work/src/main.rs"), root));
+        assert!(trust.is_path_trusted(Path::new("/sector/work/Cargo.toml"), root));
+        
+        assert!(!trust.is_path_trusted(Path::new("/etc/passwd"), root));
+        assert!(!trust.is_path_trusted(Path::new("/sector/other/file.txt"), root));
     }
 }

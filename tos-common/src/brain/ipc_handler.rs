@@ -2214,7 +2214,7 @@ impl IpcHandler {
                 state.version += 1;
                 
                 // LSP integration (after state unlock)
-                let cwd = sector.cwd.clone();
+                let cwd = hub.current_directory.clone();
                 let lang_clone = editor_state.language.clone();
                 let file_clone = editor_state.file_path.clone();
                 let cont_clone = editor_state.content.clone();
@@ -2679,5 +2679,21 @@ fn detect_language(path: &std::path::Path) -> Option<String> {
 impl crate::ipc::IpcDispatcher for IpcHandler {
     fn dispatch(&self, request: &str) -> String {
         self.handle_request(request)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::path::Path;
+
+    #[test]
+    fn test_language_detection() {
+        assert_eq!(detect_language(Path::new("test.rs")), Some("rust".to_string()));
+        assert_eq!(detect_language(Path::new("script.py")), Some("python".to_string()));
+        assert_eq!(detect_language(Path::new("Styles.css")), Some("css".to_string()));
+        assert_eq!(detect_language(Path::new("README.md")), Some("markdown".to_string()));
+        assert_eq!(detect_language(Path::new("Dockerfile")), None);
+        assert_eq!(detect_language(Path::new("main.unknown")), Some("unknown".to_string()));
     }
 }

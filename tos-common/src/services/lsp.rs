@@ -5,7 +5,7 @@ use std::path::PathBuf;
 use std::process::Stdio;
 use std::sync::{Arc, Mutex};
 use tokio::io::{AsyncBufReadExt, AsyncReadExt, AsyncWriteExt, BufReader};
-use tokio::process::{Child, Command};
+use tokio::process::Command;
 use url::Url;
 
 use crate::TosState;
@@ -127,7 +127,9 @@ impl LspService {
                                                 let state_lock = state_ref.lock().unwrap();
                                                 if let Some(st) = state_lock.as_ref() {
                                                     let mut s = st.lock().unwrap();
-                                                let file_path_str = params.uri.to_file_path().unwrap().to_string_lossy().to_string();
+                                                let uri_str = params.uri.to_string();
+                                                let url = Url::parse(&uri_str).unwrap();
+                                                let file_path_str = url.to_file_path().unwrap().to_string_lossy().to_string();
                                                 
                                                 // Map to EditorAnnotations
                                                 let mut new_anns = vec![];
@@ -137,7 +139,7 @@ impl LspService {
                                                         Some(DiagnosticSeverity::WARNING) => "warning",
                                                         _ => "info",
                                                     };
-                                                    new_anns.push(crate::EditorAnnotation {
+                                                    new_anns.push(crate::state::EditorAnnotation {
                                                         line: diag.range.start.line as usize,
                                                         severity: severity.to_string(),
                                                         message: diag.message,
@@ -150,7 +152,7 @@ impl LspService {
                                                     for hub in sector.hubs.iter_mut() {
                                                         if let Some(layout) = hub.split_layout.as_mut() {
                                                             let mut updated = false;
-                                                            fn update_pane(node: &mut crate::SplitNode, path: &str, anns: Vec<crate::EditorAnnotation>) -> bool {
+                                                            fn update_pane(node: &mut crate::SplitNode, path: &str, anns: Vec<crate::state::EditorAnnotation>) -> bool {
                                                                 match node {
                                                                     crate::SplitNode::Leaf(ref mut p) => {
                                                                         if let crate::PaneContent::Editor(ref mut ed) = p.content {
@@ -188,7 +190,7 @@ impl LspService {
         // Initialize RPC
         let init_params = InitializeParams {
             process_id: Some(std::process::id()),
-            root_uri: Some(Url::from_file_path(&cwd).unwrap()),
+            root_uri: Some(Url::from_file_path(&cwd).unwrap().to_string().parse().unwrap()),
             capabilities: ClientCapabilities::default(),
             ..Default::default()
         };
@@ -211,7 +213,7 @@ impl LspService {
         if let Some(client) = self.clients.lock().unwrap().get(language) {
             let params = DidOpenTextDocumentParams {
                 text_document: TextDocumentItem {
-                    uri: Url::from_file_path(file_path).unwrap(),
+                    uri: Url::from_file_path(file_path).unwrap().to_string().parse().unwrap(),
                     language_id: language.to_string(),
                     version: 1,
                     text: content.to_string(),
@@ -230,7 +232,7 @@ impl LspService {
         if let Some(client) = self.clients.lock().unwrap().get(language) {
             let params = DidChangeTextDocumentParams {
                 text_document: VersionedTextDocumentIdentifier {
-                    uri: Url::from_file_path(file_path).unwrap(),
+                    uri: Url::from_file_path(file_path).unwrap().to_string().parse().unwrap(),
                     version: 2,
                 },
                 content_changes: vec![TextDocumentContentChangeEvent {
@@ -246,5 +248,41 @@ impl LspService {
             });
             let _ = client.tx.send(serde_json::to_string(&rpc).unwrap());
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::path::Path;
+
+    #[test]
+    fn test_lsp_message_generation() {
+        let (tx, rx) = crossbeam_channel::unbounded();
+        let diag_rx = crossbeam_channel::unbounded().1;
+        
+        let client = Arc::new(LspClient {
+            language: "rust".to_string(),
+            tx,
+            diagnostics_rx: diag_rx,
+            request_id: Arc::new(Mutex::new(1)),
+        });
+
+        let service = LspService::new();
+        service.clients.lock().unwrap().insert("rust".to_string(), client);
+
+        let path = Path::new("/tmp/test.rs");
+        service.did_open("rust", path, "fn main() {}");
+
+        let msg = rx.recv().unwrap();
+        let json: Value = serde_json::from_str(&msg).unwrap();
+        assert_eq!(json["method"], "textDocument/didOpen");
+        assert_eq!(json["params"]["textDocument"]["text"], "fn main() {}");
+
+        service.did_change("rust", path, "fn main() { println!(); }");
+        let msg2 = rx.recv().unwrap();
+        let json2: Value = serde_json::from_str(&msg2).unwrap();
+        assert_eq!(json2["method"], "textDocument/didChange");
+        assert_eq!(json2["params"]["contentChanges"][0]["text"], "fn main() { println!(); }");
     }
 }

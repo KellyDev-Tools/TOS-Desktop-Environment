@@ -2212,6 +2212,19 @@ impl IpcHandler {
                     }
                 }
                 state.version += 1;
+                
+                // LSP integration (after state unlock)
+                let cwd = sector.cwd.clone();
+                let lang_clone = editor_state.language.clone();
+                let file_clone = editor_state.file_path.clone();
+                let cont_clone = editor_state.content.clone();
+                drop(state);
+                
+                if let Some(lang) = lang_clone {
+                    self.services.lsp.start_client(&lang, cwd);
+                    self.services.lsp.did_open(&lang, &file_clone, &cont_clone);
+                }
+
                 return format!("EDITOR_OPENED: {}", path_str);
             }
         }
@@ -2584,6 +2597,10 @@ impl IpcHandler {
                                 if ed.content != content {
                                     ed.content = content.to_string();
                                     ed.dirty = true;
+                                    
+                                    if let Some(ref lang) = ed.language {
+                                        self.services.lsp.did_change(lang, &ed.file_path, content);
+                                    }
                                 }
                             }
                             if let Some(cursor_line) = json_ctx.get("cursor_line").and_then(|v| v.as_u64()) {

@@ -12,6 +12,7 @@ pub mod search;
 pub mod session;
 pub mod settings;
 pub mod trust;
+pub mod lsp;
 
 pub use ai::AiService;
 pub use audio::AudioService;
@@ -27,6 +28,7 @@ pub use search::SearchService;
 pub use session::SessionService;
 pub use settings::SettingsService;
 pub use trust::TrustService;
+pub use lsp::LspService;
 
 use crate::config::TosConfig;
 use std::sync::{Arc, Mutex};
@@ -46,6 +48,7 @@ pub struct ServiceManager {
     pub heuristic: Arc<HeuristicService>,
     pub marketplace: Arc<MarketplaceService>,
     pub capture: Arc<CaptureService>,
+    pub lsp: Arc<LspService>,
 }
 
 impl ServiceManager {
@@ -82,6 +85,8 @@ impl ServiceManager {
         capture_svc.set_backend(Arc::new(capture::MockCaptureBackend));
         let capture = Arc::new(capture_svc);
 
+        let lsp = Arc::new(LspService::new());
+
         // Establish cross-service dependencies (e.g., logging triggers audio cues)
         logger.set_audio_service(audio.clone());
 
@@ -105,6 +110,7 @@ impl ServiceManager {
             heuristic,
             marketplace,
             capture,
+            lsp,
         }
     }
     pub fn set_ipc(&self, ipc: std::sync::Arc<dyn crate::ipc::IpcDispatcher>) {

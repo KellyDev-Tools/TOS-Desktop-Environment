@@ -449,6 +449,26 @@ impl SplitNode {
         }
     }
 
+    /// Retrieve all active editor panes within this layout.
+    pub fn all_editors(&self) -> Vec<&EditorPaneState> {
+        match self {
+            SplitNode::Leaf(pane) => {
+                if let PaneContent::Editor(ed) = &pane.content {
+                    vec![ed]
+                } else {
+                    vec![]
+                }
+            }
+            SplitNode::Container { children, .. } => {
+                let mut res = vec![];
+                for c in children {
+                    res.extend(c.all_editors());
+                }
+                res
+            }
+        }
+    }
+
     /// Add a new pane to the split tree. If the tree is a single leaf,
     /// wraps it in a Container with the new pane. If it's already a Container,
     /// appends the new pane and equalizes weights.

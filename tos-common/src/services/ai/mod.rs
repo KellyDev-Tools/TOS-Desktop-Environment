@@ -29,6 +29,7 @@ pub struct AiContext {
     pub session_version: u64,
     pub env_hint: String,
     pub chat_history: Vec<String>,
+    pub editors: Vec<serde_json::Value>,
 }
 
 impl AiContext {
@@ -52,6 +53,11 @@ impl AiContext {
                 "chat_history" => {
                     for line in &self.chat_history {
                         result.push(format!("ai_history:{}", line));
+                    }
+                }
+                "editor_context" => {
+                    for ed in &self.editors {
+                        result.push(format!("editor_context:{}", serde_json::to_string(ed).unwrap_or_default()));
                     }
                 }
                 _ => {}
@@ -78,6 +84,26 @@ pub fn build_context(state: &TosState) -> AiContext {
     let last_command = hub.prompt.clone();
     let env_hint = std::env::var("TOS_ENV_HINT").unwrap_or_else(|_| "linux".to_string());
 
+    let mut editors: Vec<serde_json::Value> = vec![];
+    if let Some(layout) = &hub.split_layout {
+        for ed in layout.all_editors() {
+            let start_line = ed.scroll_offset.saturating_sub(1);
+            let end_line = start_line + 50; // Visible range approx
+            
+            editors.push(json!({
+                "file": ed.file_path.display().to_string(),
+                "language": ed.language.clone().unwrap_or_else(|| "text".to_string()),
+                "visible_range": { "start_line": start_line, "end_line": end_line },
+                "cursor_line": ed.cursor_line,
+                "cursor_col": ed.cursor_col,
+                "selection": null,
+                "unsaved_changes": ed.dirty,
+                "git_status": "unknown", // Stubbed until VCS module
+                "diagnostics": []        // Stubbed until LSP module
+            }));
+        }
+    }
+
     AiContext {
         cwd: hub.current_directory.display().to_string(),
         sector_name: sector.name.clone(),
@@ -95,6 +121,7 @@ pub fn build_context(state: &TosState) -> AiContext {
             .iter()
             .map(|m| format!("{}: {}", m.role, m.content))
             .collect(),
+        editors,
     }
 }
 
@@ -140,6 +167,7 @@ impl AiService {
                     "terminal_tail".to_string(),
                     "last_command".to_string(),
                     "mode".to_string(),
+                    "editor_context".to_string(),
                 ],
                 allowed_tools: Some(vec![
                     "exec_cmd".to_string(),
@@ -319,6 +347,7 @@ impl AiService {
                         "last_command".to_string(),
                         "mode".to_string(),
                         "chat_history".to_string(),
+                        "editor_context".to_string(),
                     ];
                     let context = ctx.filter_to_fields(&ctx_fields);
                     let req = crate::modules::AiQuery {

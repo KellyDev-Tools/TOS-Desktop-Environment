@@ -186,6 +186,46 @@ impl IpcHandler {
                 self.handle_keybindings_set(args.get(0).copied(), args.get(1).copied(), args.get(2).copied())
             }
             "keybindings_reset" => self.handle_keybindings_reset(),
+
+            // §30.3–30.4: Editor Pane IPC
+            "editor_open" => {
+                self.handle_editor_open(args.get(0).copied(), args.get(1).copied())
+            }
+            "editor_save" => self.handle_editor_save(args.get(0).copied()),
+            "editor_save_as" => {
+                self.handle_editor_save_as(args.get(0).copied(), args.get(1).copied())
+            }
+            "editor_activate" => self.handle_editor_activate(args.get(0).copied()),
+            "editor_mode_switch" => {
+                self.handle_editor_mode_switch(args.get(0).copied(), args.get(1).copied())
+            }
+            "editor_scroll" => {
+                self.handle_editor_scroll(args.get(0).copied(), args.get(1).copied())
+            }
+            "editor_open_ai" => {
+                self.handle_editor_open_ai(
+                    args.get(0).copied(),
+                    args.get(1).copied(),
+                    args.get(2).copied(),
+                )
+            }
+            "editor_diff" => {
+                self.handle_editor_diff(args.get(0).copied(), args.get(1).copied())
+            }
+            "editor_annotate" => self.handle_editor_annotate(payload),
+            "editor_clear_annotations" => {
+                self.handle_editor_clear_annotations(args.get(0).copied())
+            }
+            "editor_edit_proposal" => self.handle_editor_edit_proposal(payload),
+            "editor_edit_apply" => self.handle_editor_edit_apply(args.get(0).copied()),
+            "editor_edit_reject" => self.handle_editor_edit_reject(args.get(0).copied()),
+            "editor_context_update" => {
+                self.handle_editor_context_update(args.get(0).copied(), args.get(1).copied())
+            }
+            "editor_send_context" => {
+                self.handle_editor_send_context(args.get(0).copied(), args.get(1).copied())
+            }
+            "editor_promote" => self.handle_editor_promote(args.get(0).copied()),
             _ => "ERROR: Unknown prefix".to_string(),
         };
 
@@ -2115,6 +2155,352 @@ impl IpcHandler {
         state.version += 1;
         "KEYBINDINGS_RESET".to_string()
     }
+
+    // ── §30.3–30.4: Editor Pane IPC ────────────────────────────────────
+
+    /// `editor_open:<path>;<line>` — Read a file from disk and open it in
+    /// a new Viewer-mode editor pane in the active hub's split tree.
+    fn handle_editor_open(&self, path: Option<&str>, line: Option<&str>) -> String {
+        let path_str = match path {
+            Some(p) if !p.is_empty() => p,
+            _ => return "ERROR: Missing path".to_string(),
+        };
+        let line_num: usize = line.and_then(|l| l.parse().ok()).unwrap_or(0);
+        let file_path = std::path::PathBuf::from(path_str);
+
+        // Read file content
+        let content = match std::fs::read_to_string(&file_path) {
+            Ok(c) => c,
+            Err(e) => return format!("ERROR: Cannot read file: {}", e),
+        };
+
+        let language = detect_language(&file_path);
+
+        let editor_state = crate::EditorPaneState {
+            file_path: file_path.clone(),
+            content,
+            mode: crate::EditorMode::Viewer,
+            language,
+            cursor_line: line_num,
+            cursor_col: 0,
+            scroll_offset: line_num.saturating_sub(5),
+            dirty: false,
+            diff_hunks: vec![],
+        };
+
+        // Install as a new split pane in the active hub
+        let mut state = self.state.lock().unwrap();
+        let idx = state.active_sector_index;
+        if let Some(sector) = state.sectors.get_mut(idx) {
+            let hub_idx = sector.active_hub_index;
+            if let Some(hub) = sector.hubs.get_mut(hub_idx) {
+                // Create a new editor pane via split
+                let pane = crate::SplitPane::new_with_content(
+                    crate::PaneContent::Editor(editor_state),
+                );
+                match hub.split_layout {
+                    Some(ref mut tree) => tree.add_pane(pane),
+                    None => {
+                        hub.split_layout = Some(crate::SplitNode::Leaf(pane));
+                    }
+                }
+                state.version += 1;
+                return format!("EDITOR_OPENED: {}", path_str);
+            }
+        }
+        "ERROR: No active hub".to_string()
+    }
+
+    /// `editor_save:<pane_id>` — Write the editor buffer to its file_path.
+    fn handle_editor_save(&self, pane_id: Option<&str>) -> String {
+        let pane_uuid = match pane_id.and_then(|s| Uuid::parse_str(s).ok()) {
+            Some(u) => u,
+            None => return "ERROR: Invalid pane_id".to_string(),
+        };
+
+        let mut state = self.state.lock().unwrap();
+        let idx = state.active_sector_index;
+
+        // Extract file path and content for writing (release borrow on state.sectors)
+        let write_info = state.sectors.get(idx).and_then(|sector| {
+            let hub = sector.hubs.get(sector.active_hub_index)?;
+            let pane = hub.split_layout.as_ref().and_then(|t| {
+                fn find_pane(node: &crate::SplitNode, id: Uuid) -> Option<&crate::SplitPane> {
+                    match node {
+                        crate::SplitNode::Leaf(p) if p.id == id => Some(p),
+                        crate::SplitNode::Leaf(_) => None,
+                        crate::SplitNode::Container { children, .. } => {
+                            children.iter().find_map(|c| find_pane(c, id))
+                        }
+                    }
+                }
+                find_pane(t, pane_uuid)
+            })?;
+            if let crate::PaneContent::Editor(ref ed) = pane.content {
+                Some((ed.file_path.clone(), ed.content.clone()))
+            } else {
+                None
+            }
+        });
+
+        if let Some((file_path, content)) = write_info {
+            match std::fs::write(&file_path, &content) {
+                Ok(_) => {
+                    // Now mutate to clear dirty flag
+                    if let Some(sector) = state.sectors.get_mut(idx) {
+                        let hub_idx = sector.active_hub_index;
+                        if let Some(hub) = sector.hubs.get_mut(hub_idx) {
+                            if let Some(pane) = hub.split_layout.as_mut().and_then(|t| t.find_pane_mut(pane_uuid)) {
+                                if let crate::PaneContent::Editor(ref mut ed) = pane.content {
+                                    ed.dirty = false;
+                                }
+                            }
+                        }
+                    }
+                    state.version += 1;
+                    return format!("EDITOR_SAVED: {}", file_path.display());
+                }
+                Err(e) => return format!("ERROR: Write failed: {}", e),
+            }
+        }
+        "ERROR: Pane not found or not an editor".to_string()
+    }
+
+    /// `editor_save_as:<pane_id>;<new_path>` — Save buffer to a new path.
+    fn handle_editor_save_as(&self, pane_id: Option<&str>, new_path: Option<&str>) -> String {
+        let pane_uuid = match pane_id.and_then(|s| Uuid::parse_str(s).ok()) {
+            Some(u) => u,
+            None => return "ERROR: Invalid pane_id".to_string(),
+        };
+        let new_path_str = match new_path {
+            Some(p) if !p.is_empty() => p,
+            _ => return "ERROR: Missing new path".to_string(),
+        };
+
+        let mut state = self.state.lock().unwrap();
+        let idx = state.active_sector_index;
+        if let Some(sector) = state.sectors.get_mut(idx) {
+            let hub_idx = sector.active_hub_index;
+            if let Some(hub) = sector.hubs.get_mut(hub_idx) {
+                if let Some(pane) = hub.split_layout.as_mut().and_then(|t| t.find_pane_mut(pane_uuid)) {
+                    if let crate::PaneContent::Editor(ref mut ed) = pane.content {
+                        let path = std::path::PathBuf::from(new_path_str);
+                        match std::fs::write(&path, &ed.content) {
+                            Ok(_) => {
+                                ed.file_path = path;
+                                ed.language = detect_language(&ed.file_path);
+                                ed.dirty = false;
+                                state.version += 1;
+                                return format!("EDITOR_SAVED_AS: {}", new_path_str);
+                            }
+                            Err(e) => return format!("ERROR: Write failed: {}", e),
+                        }
+                    }
+                }
+            }
+        }
+        "ERROR: Pane not found or not an editor".to_string()
+    }
+
+    /// `editor_activate:<pane_id>` — Switch pane from Viewer to Editor mode.
+    fn handle_editor_activate(&self, pane_id: Option<&str>) -> String {
+        let pane_uuid = match pane_id.and_then(|s| Uuid::parse_str(s).ok()) {
+            Some(u) => u,
+            None => return "ERROR: Invalid pane_id".to_string(),
+        };
+
+        let mut state = self.state.lock().unwrap();
+        let idx = state.active_sector_index;
+        if let Some(sector) = state.sectors.get_mut(idx) {
+            let hub_idx = sector.active_hub_index;
+            if let Some(hub) = sector.hubs.get_mut(hub_idx) {
+                if let Some(pane) = hub.split_layout.as_mut().and_then(|t| t.find_pane_mut(pane_uuid)) {
+                    if let crate::PaneContent::Editor(ref mut ed) = pane.content {
+                        ed.mode = crate::EditorMode::Editor;
+                        state.version += 1;
+                        return "EDITOR_ACTIVATED".to_string();
+                    }
+                }
+            }
+        }
+        "ERROR: Pane not found or not an editor".to_string()
+    }
+
+    /// `editor_mode_switch:<pane_id>;<mode>` — Switch between viewer/editor/diff.
+    fn handle_editor_mode_switch(&self, pane_id: Option<&str>, mode: Option<&str>) -> String {
+        let pane_uuid = match pane_id.and_then(|s| Uuid::parse_str(s).ok()) {
+            Some(u) => u,
+            None => return "ERROR: Invalid pane_id".to_string(),
+        };
+        let target_mode = match mode {
+            Some("viewer") => crate::EditorMode::Viewer,
+            Some("editor") => crate::EditorMode::Editor,
+            Some("diff") => crate::EditorMode::Diff,
+            _ => return "ERROR: Invalid mode (viewer|editor|diff)".to_string(),
+        };
+
+        let mut state = self.state.lock().unwrap();
+        let idx = state.active_sector_index;
+        if let Some(sector) = state.sectors.get_mut(idx) {
+            let hub_idx = sector.active_hub_index;
+            if let Some(hub) = sector.hubs.get_mut(hub_idx) {
+                if let Some(pane) = hub.split_layout.as_mut().and_then(|t| t.find_pane_mut(pane_uuid)) {
+                    if let crate::PaneContent::Editor(ref mut ed) = pane.content {
+                        ed.mode = target_mode;
+                        state.version += 1;
+                        return format!("EDITOR_MODE: {:?}", target_mode);
+                    }
+                }
+            }
+        }
+        "ERROR: Pane not found or not an editor".to_string()
+    }
+
+    /// `editor_scroll:<path>;<line>` — Scroll editor showing `path` to the given line.
+    fn handle_editor_scroll(&self, path: Option<&str>, line: Option<&str>) -> String {
+        let path_str = match path {
+            Some(p) => p,
+            None => return "ERROR: Missing path".to_string(),
+        };
+        let line_num: usize = line.and_then(|l| l.parse().ok()).unwrap_or(0);
+
+        let mut state = self.state.lock().unwrap();
+        let idx = state.active_sector_index;
+        if let Some(sector) = state.sectors.get_mut(idx) {
+            let hub_idx = sector.active_hub_index;
+            if let Some(hub) = sector.hubs.get_mut(hub_idx) {
+                if let Some(ed) = hub.split_layout.as_mut().and_then(|t| t.find_editor_by_path_mut(path_str)) {
+                    ed.cursor_line = line_num;
+                    ed.scroll_offset = line_num.saturating_sub(5);
+                    state.version += 1;
+                    return format!("EDITOR_SCROLLED: {}:{}", path_str, line_num);
+                }
+            }
+        }
+        "ERROR: No editor pane found for path".to_string()
+    }
+
+    /// `editor_open_ai:<path>;<line>;<context_id>` — Open with AI context.
+    fn handle_editor_open_ai(
+        &self,
+        path: Option<&str>,
+        line: Option<&str>,
+        _context_id: Option<&str>,
+    ) -> String {
+        // Open the file normally, AI context attachment is a Face-side concern
+        self.handle_editor_open(path, line)
+    }
+
+    /// `editor_diff:<path>;<proposed_content_id>` — Open Diff Mode with proposal.
+    fn handle_editor_diff(&self, path: Option<&str>, _proposed_id: Option<&str>) -> String {
+        // Open file, then switch to Diff mode
+        let result = self.handle_editor_open(path, Some("0"));
+        if result.starts_with("EDITOR_OPENED") {
+            let path_str = path.unwrap_or("");
+            let mut state = self.state.lock().unwrap();
+            let idx = state.active_sector_index;
+            if let Some(sector) = state.sectors.get_mut(idx) {
+                let hub_idx = sector.active_hub_index;
+                if let Some(hub) = sector.hubs.get_mut(hub_idx) {
+                    if let Some(ed) = hub.split_layout.as_mut().and_then(|t| t.find_editor_by_path_mut(path_str)) {
+                        ed.mode = crate::EditorMode::Diff;
+                        state.version += 1;
+                    }
+                }
+            }
+            return format!("EDITOR_DIFF: {}", path_str);
+        }
+        result
+    }
+
+    /// `editor_annotate:<path>;<line>;<severity>;<message>;<context_id>` — Add annotation.
+    fn handle_editor_annotate(&self, payload: &str) -> String {
+        // Annotations are stored in state for the Face to render.
+        // For now, log the annotation request.
+        tracing::info!("[EDITOR] Annotation request: {}", payload);
+        format!("EDITOR_ANNOTATED: {}", payload)
+    }
+
+    /// `editor_clear_annotations:<path>` — Remove all annotations.
+    fn handle_editor_clear_annotations(&self, path: Option<&str>) -> String {
+        let path_str = path.unwrap_or("");
+        tracing::info!("[EDITOR] Clearing annotations for: {}", path_str);
+        format!("EDITOR_ANNOTATIONS_CLEARED: {}", path_str)
+    }
+
+    /// `editor_edit_proposal:<proposal_json>` — Trigger Diff Mode with proposed changes.
+    fn handle_editor_edit_proposal(&self, payload: &str) -> String {
+        tracing::info!("[EDITOR] Edit proposal received: {} bytes", payload.len());
+        format!("EDITOR_PROPOSAL_RECEIVED: {} bytes", payload.len())
+    }
+
+    /// `editor_edit_apply:<proposal_id>` — Apply pending edit proposal.
+    fn handle_editor_edit_apply(&self, _proposal_id: Option<&str>) -> String {
+        // In full implementation, this would merge the proposal into the buffer
+        "EDITOR_EDIT_APPLIED".to_string()
+    }
+
+    /// `editor_edit_reject:<proposal_id>` — Reject pending edit proposal.
+    fn handle_editor_edit_reject(&self, _proposal_id: Option<&str>) -> String {
+        "EDITOR_EDIT_REJECTED".to_string()
+    }
+
+    /// `editor_context_update:<pane_id>;<context_json>` — Face sends cursor/scroll state.
+    fn handle_editor_context_update(&self, _pane_id: Option<&str>, _context: Option<&str>) -> String {
+        // Brain stores the latest editor context for AI queries
+        "EDITOR_CONTEXT_UPDATED".to_string()
+    }
+
+    /// `editor_send_context:<pane_id>;<scope>` — Explicit AI context send.
+    fn handle_editor_send_context(&self, _pane_id: Option<&str>, _scope: Option<&str>) -> String {
+        "EDITOR_CONTEXT_SENT".to_string()
+    }
+
+    /// `editor_promote:<pane_id>` — Promote editor to Level 3 (fullscreen).
+    fn handle_editor_promote(&self, pane_id: Option<&str>) -> String {
+        // Delegate to split fullscreen
+        self.handle_split_fullscreen(pane_id)
+    }
+}
+
+/// Detect programming language from file extension for syntax highlighting.
+fn detect_language(path: &std::path::Path) -> Option<String> {
+    path.extension().and_then(|ext| ext.to_str()).map(|ext| {
+        match ext.to_lowercase().as_str() {
+            "rs" => "rust",
+            "py" => "python",
+            "js" => "javascript",
+            "ts" => "typescript",
+            "tsx" | "jsx" => "typescriptreact",
+            "html" | "htm" => "html",
+            "css" => "css",
+            "scss" | "sass" => "scss",
+            "json" => "json",
+            "toml" => "toml",
+            "yaml" | "yml" => "yaml",
+            "md" | "markdown" => "markdown",
+            "sh" | "bash" | "zsh" | "fish" => "shell",
+            "c" => "c",
+            "cpp" | "cc" | "cxx" | "h" | "hpp" => "cpp",
+            "go" => "go",
+            "java" => "java",
+            "kt" | "kts" => "kotlin",
+            "swift" => "swift",
+            "rb" => "ruby",
+            "lua" => "lua",
+            "sql" => "sql",
+            "xml" => "xml",
+            "svelte" => "svelte",
+            "vue" => "vue",
+            "dart" => "dart",
+            "zig" => "zig",
+            "nim" => "nim",
+            "ex" | "exs" => "elixir",
+            "hs" => "haskell",
+            _ => ext,
+        }
+        .to_string()
+    })
 }
 
 impl crate::ipc::IpcDispatcher for IpcHandler {

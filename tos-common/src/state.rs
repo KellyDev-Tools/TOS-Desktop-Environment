@@ -420,6 +420,83 @@ impl SplitNode {
         let min_h = ((display_height as f32 * min_fraction) as u32).max(200);
         (display_width / new_count) >= min_w && (display_height / new_count) >= min_h
     }
+
+    /// Find a SplitPane by UUID (mutable). Traverses the tree recursively.
+    pub fn find_pane_mut(&mut self, id: Uuid) -> Option<&mut SplitPane> {
+        match self {
+            SplitNode::Leaf(ref mut p) if p.id == id => Some(p),
+            SplitNode::Leaf(_) => None,
+            SplitNode::Container { children, .. } => {
+                children.iter_mut().find_map(|c| c.find_pane_mut(id))
+            }
+        }
+    }
+
+    /// Find the first EditorPaneState whose file_path matches the given path string.
+    pub fn find_editor_by_path_mut(&mut self, path: &str) -> Option<&mut EditorPaneState> {
+        match self {
+            SplitNode::Leaf(ref mut pane) => {
+                if let PaneContent::Editor(ref mut ed) = pane.content {
+                    if ed.file_path.to_string_lossy() == path {
+                        return Some(ed);
+                    }
+                }
+                None
+            }
+            SplitNode::Container { children, .. } => {
+                children.iter_mut().find_map(|c| c.find_editor_by_path_mut(path))
+            }
+        }
+    }
+
+    /// Add a new pane to the split tree. If the tree is a single leaf,
+    /// wraps it in a Container with the new pane. If it's already a Container,
+    /// appends the new pane and equalizes weights.
+    pub fn add_pane(&mut self, pane: SplitPane) {
+        match self {
+            SplitNode::Leaf(_) => {
+                let existing = std::mem::replace(
+                    self,
+                    SplitNode::Container {
+                        orientation: SplitOrientation::Vertical,
+                        children: vec![],
+                    },
+                );
+                if let SplitNode::Container { ref mut children, .. } = self {
+                    children.push(existing);
+                    children.push(SplitNode::Leaf(pane));
+                    // Equalize weights
+                    let w = 1.0 / children.len() as f32;
+                    for child in children.iter_mut() {
+                        if let SplitNode::Leaf(ref mut p) = child {
+                            p.weight = w;
+                        }
+                    }
+                }
+            }
+            SplitNode::Container { children, .. } => {
+                children.push(SplitNode::Leaf(pane));
+                let w = 1.0 / children.len() as f32;
+                for child in children.iter_mut() {
+                    if let SplitNode::Leaf(ref mut p) = child {
+                        p.weight = w;
+                    }
+                }
+            }
+        }
+    }
+}
+
+impl SplitPane {
+    /// Create a new SplitPane with the given content, a fresh UUID, and default weight.
+    pub fn new_with_content(content: PaneContent) -> Self {
+        Self {
+            id: Uuid::new_v4(),
+            weight: 1.0,
+            cwd: PathBuf::from("/"),
+            content,
+        }
+    }
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

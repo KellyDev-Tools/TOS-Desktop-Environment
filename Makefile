@@ -1,7 +1,7 @@
 # TOS Beta-0 Build System
 # High-Fidelity OS Pipeline
 
-export RUST_MIN_STACK := 67108864
+export RUST_MIN_STACK := 134217728
 
 # --- Android / Handheld Configuration ---
 # Set ANDROID_HOME if not already set, defaulting to a common path
@@ -14,6 +14,7 @@ GRADLE_BIN ?= $(HOME)/gradle/gradle-8.5/bin/gradle
 # AVD Location Fix: some tools use ~/.config/.android/avd
 ANDROID_AVD_HOME ?= $(HOME)/.config/.android/avd
 FLUTTER_HOME ?= $(HOME)/flutter
+TOS_FACE_PORT ?= 8080
 
 .PHONY: help build-all build-brain build-faces build-face-web build-face-electron build-protocol build-services \
         check check-brain fmt lint docs \
@@ -222,7 +223,7 @@ test-ui-component:
 	@echo "[TOS] Launching UI Component Paces (Playwright)..."
 	@npm install @playwright/test
 	@npx playwright install chromium
-	@npx playwright test tests/ui_component.spec.ts
+	@TOS_FACE_PORT=$(TOS_FACE_PORT) npx playwright test tests/ui_component.spec.js
 
 test-health:
 	@echo "[TOS] Running Orchestration Health Check..."
@@ -274,14 +275,14 @@ run: $(PRE_COMMIT_HOOK) run-services
 
 dev-web:
 	@echo "[TOS] Starting Svelte Face Dev Server (HMR)..."
-	@$(NVM_INIT) && cd face-svelte-ui && npm run dev -- --port 8080 --host 0.0.0.0
+	@$(NVM_INIT) && cd face-svelte-ui && npm run dev -- --port $(TOS_FACE_PORT) --host 0.0.0.0
 
 run-web: run-services build-face-web
 	@mkdir -p logs
 	@pkill -x tos-brain || true
-	@pkill -f "[h]ttp.server 8080" || true
-	@echo "[TOS] Initializing Svelte Face Server (8080)..."
-	@python3 -m http.server 8080 -d face-svelte-ui/build > logs/web_ui.log 2>&1 & WEB_PID=$$!; \
+	@pkill -f "[h]ttp.server $(TOS_FACE_PORT)" || true
+	@echo "[TOS] Initializing Svelte Face Server ($(TOS_FACE_PORT))..."
+	@python3 -m http.server $(TOS_FACE_PORT) -d face-svelte-ui/build > logs/web_ui.log 2>&1 & WEB_PID=$$!; \
 	echo "[TOS] Synchronizing Brain Core (7000/7001)..."; \
 	trap "kill $$WEB_PID; pkill -x tos-brain; exit" EXIT INT TERM; \
 	cd brain && cargo run --bin tos-brain -- --headless 2>&1 | tee ../logs/tos-brain.log
@@ -290,7 +291,7 @@ run-web-dev: run-services
 	@mkdir -p logs
 	@pkill -x tos-brain || true
 	@echo "[TOS] Starting Svelte Dev Server + Brain Core..."
-	@($(NVM_INIT) && cd face-svelte-ui && npm run dev -- --port 8080 --host 0.0.0.0) > logs/svelte_dev.log 2>&1 & SVELTE_PID=$$!; \
+	@($(NVM_INIT) && cd face-svelte-ui && npm run dev -- --port $(TOS_FACE_PORT) --host 0.0.0.0) > logs/svelte_dev.log 2>&1 & SVELTE_PID=$$!; \
 	echo "[TOS] Synchronizing Brain Core (7000/7001)..."; \
 	trap "kill $$SVELTE_PID; pkill -x tos-brain; exit" EXIT INT TERM; \
 	cd brain && cargo run --bin tos-brain -- --headless 2>&1 | tee ../logs/tos-brain.log

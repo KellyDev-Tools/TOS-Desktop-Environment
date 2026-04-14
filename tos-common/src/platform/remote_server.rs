@@ -16,8 +16,8 @@ impl RemoteServer {
 
     /// §12.1: Start the Remote Server daemons
     pub async fn run(&self, port: u16) -> anyhow::Result<()> {
-        let tcp_addr = format!("0.0.0.0:{}", port);
-        let ws_addr = format!("0.0.0.0:{}", port + 1); // e.g. 7001 for WebSocket
+        let tcp_addr = format!("[::]:{}", port);
+        let ws_addr = format!("[::]:{}", port + 1); // e.g. 7001 for WebSocket
         let uds_path = "/tmp/brain.sock";
 
         // Bind with retry — previous Brain instance may have just been killed
@@ -58,11 +58,12 @@ impl RemoteServer {
         let ws_ipc = ipc_clone.clone();
         tokio::spawn(async move {
             loop {
-                if let Ok((socket, _)) = ws_listener.accept().await {
+                if let Ok((socket, addr)) = ws_listener.accept().await {
+                    tracing::info!("[REMOTE_SERVER] WS Client connecting from {}", addr);
                     let h_ipc = ws_ipc.clone();
                     tokio::spawn(async move {
                         if let Err(e) = Self::handle_ws_client(socket, h_ipc).await {
-                            tracing::error!("[REMOTE_SERVER] WS Client error: {}", e);
+                            tracing::error!("[REMOTE_SERVER] WS Client error ({}): {}", addr, e);
                         }
                     });
                 }

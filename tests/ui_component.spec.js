@@ -8,8 +8,9 @@ const { test, expect } = require('@playwright/test');
 test.describe('TOS Alpha-2.1 UI Component Paces', () => {
 
     test.beforeEach(async ({ page }) => {
-        // Assume the test server is running on 8080 (via make run-web)
-        await page.goto('http://localhost:8080');
+        // Assume the test server is running on TOS_FACE_PORT (default 8080)
+        const port = process.env.TOS_FACE_PORT || '8080';
+        await page.goto(`http://localhost:${port}`);
     });
 
     test('should initialize in Global Overview with hidden footer', async ({ page }) => {

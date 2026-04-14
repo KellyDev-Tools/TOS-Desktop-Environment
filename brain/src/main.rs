@@ -12,7 +12,7 @@ async fn main() -> anyhow::Result<()> {
     // Face's terminal dashboard on stdout. Defaults to WARN level
     // unless RUST_LOG is set for finer control.
     let env_filter = tracing_subscriber::EnvFilter::try_from_default_env()
-        .unwrap_or_else(|_| tracing_subscriber::EnvFilter::new("warn"));
+        .unwrap_or_else(|_| tracing_subscriber::EnvFilter::new("info"));
     tracing_subscriber::fmt()
         .with_writer(std::io::stderr)
         .with_env_filter(env_filter)

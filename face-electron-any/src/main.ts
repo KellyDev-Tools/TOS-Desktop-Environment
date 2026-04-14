@@ -160,7 +160,8 @@ export async function createFaceWindow(config: PlatformConfig): Promise<void> {
         await mainWindow.loadURL('tos-app://renderer/');
     } else if (IS_DEV) {
         // In dev, try loading from the Svelte dev server directly
-        const devUrl = 'http://localhost:8080';
+        const port = process.env.TOS_FACE_PORT || '8080';
+        const devUrl = `http://localhost:${port}`;
         console.log('[Electron] Loading from Svelte dev server:', devUrl);
         try {
             await mainWindow.loadURL(devUrl);

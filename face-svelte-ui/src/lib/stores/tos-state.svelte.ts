@@ -5,36 +5,36 @@
 
 // --- Type Definitions ---
 
-export interface LogEntry {
+export type HierarchyLevel = 1 | 2 | 3 | 4 | 5 | 6;
+
+export interface TerminalLine {
     text: string;
     priority: number;
     timestamp: string;
 }
 
-export interface TerminalLine {
-    text: string;
-    priority: number;
-}
-
-export interface ProcessInfo {
+export interface ProcessEntry {
     pid: number;
     name: string;
     cpu_usage: number;
     mem_usage: number;
-    status: string;
     snapshot?: string | null;
-    icon?: string | null;
 }
 
 export interface Participant {
     id: string;
     alias: string;
+    status: 'active' | 'idle' | 'offline';
+    role: 'observer' | 'operator' | 'admin';
     current_level: number;
+    viewport_title?: string;
+    cursor_x?: number;
+    cursor_y?: number;
 }
 
 export interface Hub {
-    id?: string;
-    mode: string;
+    id: string;
+    mode: 'Command' | 'Directory' | 'Activity' | 'Search' | 'Ai';
     prompt: string;
     current_directory: string;
     terminal_output: TerminalLine[];
@@ -42,33 +42,48 @@ export interface Hub {
     ai_explanation?: string | null;
     json_context?: Record<string, any> | null;
     shell_listing?: { path: string; entries: { name: string; is_dir: boolean; size: number }[] } | null;
-    activity_listing?: { processes: ProcessInfo[] } | null;
+    activity_listing?: { processes: ProcessEntry[] } | null;
     split_layout?: SplitNode | null;
     focused_pane_id?: string | null;
+    is_running: boolean;
+    last_exit_status?: number | null;
 }
 
 export interface Sector {
-    id?: string;
+    id: string;
     name: string;
-    type?: string;
-    status?: string;
-    snapshot?: string | null;
     hubs: Hub[];
     active_hub_index: number;
-    participants?: Participant[];
-    frozen?: boolean;
+    frozen: boolean;
+    is_remote: boolean;
+    disconnected: boolean;
+    priority: number;
+    active_apps: any[];
+    participants: Participant[];
+    version: number;
 }
 
-export interface ModuleInfo {
+export interface TerminalOutputModule {
     id: string;
     name: string;
-    layout: string;
+    version: string;
+    layout: 'Rectangular' | 'Cinematic';
+    supports_high_contrast: boolean;
+    supports_reduced_motion: boolean;
 }
 
-export interface AiModuleInfo {
+export interface ThemeModule {
     id: string;
     name: string;
-    provider?: string;
+    version: string;
+    author: string;
+    description: string;
+}
+
+export interface AiModuleMetadata {
+    id: string;
+    name: string;
+    capabilities: string[];
 }
 
 export interface AiBehavior {
@@ -80,58 +95,25 @@ export interface AiBehavior {
     config: Record<string, string>;
 }
 
-export type EditorMode = 'Viewer' | 'Editor' | 'Diff';
-
-export interface DiffHunk {
-    old_start: number;
-    old_count: number;
-    new_start: number;
-    new_count: number;
-    content: string;
-}
-
-export interface EditorAnnotation {
-    line: number;
-    severity: string;
+export interface ConfirmationRequest {
+    id: string;
+    original_request: string;
     message: string;
+    progress: number;
 }
 
-export interface EditorPaneState {
-    file_path: string;
-    content: string;
-    mode: EditorMode;
-    language: string | null;
-    cursor_line: number;
-    cursor_col: number;
-    scroll_offset: number;
-    dirty: boolean;
-    diff_hunks: DiffHunk[];
-    annotations: EditorAnnotation[];
-}
-
-export type PaneContent = 'Terminal' | { Application: string } | { Editor: EditorPaneState };
+export type SplitOrientation = 'Vertical' | 'Horizontal';
 
 export interface SplitPane {
     id: string;
     weight: number;
     cwd: string;
-    content: PaneContent;
+    content: any;
 }
 
 export type SplitNode =
-    | { Leaf: SplitPane }
-    | { Container: { orientation: 'Vertical' | 'Horizontal'; children: SplitNode[] } };
-
-export interface ThemeInfo {
-    id: string;
-    name: string;
-}
-
-export interface PortalInfo {
-    active: boolean;
-    url?: string;
-    token?: string;
-}
+    | { kind: 'Leaf'; value: SplitPane }
+    | { kind: 'Container'; orientation: SplitOrientation; children: SplitNode[] };
 
 export interface TosSettings {
     global: Record<string, string>;
@@ -139,58 +121,65 @@ export interface TosSettings {
     applications: Record<string, Record<string, string>>;
 }
 
+export type FaceProfile = 'desktop' | 'handheld' | 'spatial' | 'headless';
+
 export interface TosState {
+    current_level: HierarchyLevel;
+    sectors: Sector[];
+    active_sector_index: number;
+    settings: TosSettings;
+    pending_confirmation?: ConfirmationRequest | null;
+    system_log: TerminalLine[];
     sys_prefix: string;
     sys_title: string;
     sys_status: string;
-    sys_ready: string;
     brain_time: string;
-    active_sector_index: number;
-    sectors: Sector[];
-    system_log: LogEntry[];
-    terminal_output: TerminalLine[];
-    collab_presence: Participant[];
-    settings: TosSettings;
-    pending_confirmation?: boolean;
-    available_modules: ModuleInfo[];
     active_terminal_module: string;
-    available_themes: ThemeInfo[];
-    active_theme: string;
-    portal?: PortalInfo;
-    // AI
-    available_ai_modules: AiModuleInfo[];
+    available_modules: TerminalOutputModule[];
     active_ai_module: string;
+    available_ai_modules: AiModuleMetadata[];
     ai_behaviors: AiBehavior[];
     bezel_expanded: boolean;
     ai_default_backend: string;
+    active_theme: string;
+    available_themes: ThemeModule[];
+    device_profile: FaceProfile;
+    version: number;
 }
 
 // --- Default state (used when Brain is not connected) ---
 
 export function getDefaultState(): TosState {
     return {
+        current_level: 1,
         sys_prefix: 'ALPHA-2.2 // INTEL-DRIVEN',
         sys_title: 'AWAITING BRAIN LINK...',
         sys_status: 'BRAIN: DISCONNECTED',
-        sys_ready: 'LINK FAILURE.',
         brain_time: '--:--:--',
         active_sector_index: 0,
         sectors: [
             {
                 id: 'mock-sector-1',
                 name: 'TESTING',
-                type: 'Standard',
-                status: 'Active',
                 hubs: [{
+                    id: 'mock-hub-1',
                     mode: 'Command',
                     prompt: 'tos> ',
                     current_directory: '~',
                     terminal_output: [],
+                    is_running: false,
                     activity_listing: {
-                        processes: [{ pid: 1, name: 'systemd', cpu_usage: 0.1, mem_usage: 1024, status: 'running' }]
+                        processes: [{ pid: 1, name: 'systemd', cpu_usage: 0.1, mem_usage: 1024 }]
                     }
                 }],
-                active_hub_index: 0
+                active_hub_index: 0,
+                frozen: false,
+                is_remote: false,
+                disconnected: true,
+                priority: 1,
+                active_apps: [],
+                participants: [],
+                version: 0
             }
         ],
         system_log: [
@@ -200,8 +189,6 @@ export function getDefaultState(): TosState {
                 timestamp: new Date().toISOString()
             }
         ],
-        terminal_output: [],
-        collab_presence: [],
         settings: {
             global: {
                 'tos.onboarding.first_run_complete': typeof window !== 'undefined' ? (window.localStorage.getItem('tos.onboarding.first_run_complete') || 'false') : 'false',
@@ -211,13 +198,15 @@ export function getDefaultState(): TosState {
             applications: {}
         },
         available_modules: [],
-        active_terminal_module: '',
+        active_terminal_module: 'tos-standard-rect',
         available_themes: [],
-        active_theme: '',
+        active_theme: 'tos-classic-lcars',
         available_ai_modules: [],
         active_ai_module: '',
         ai_behaviors: [],
         bezel_expanded: false,
-        ai_default_backend: 'tos-ai-standard'
+        ai_default_backend: 'tos-ai-standard',
+        device_profile: 'desktop',
+        version: 0
     };
 }

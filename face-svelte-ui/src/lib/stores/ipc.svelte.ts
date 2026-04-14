@@ -20,7 +20,8 @@ let reconnectTimer: ReturnType<typeof setTimeout> | null = null;
 
 let prediction = $state<string>('');
 let activeWsUrl = $state<string | null>(null);
-const DEFAULT_WS_URL = 'ws://127.0.0.1:7001';
+const DEFAULT_WS_HOST = typeof window !== 'undefined' ? window.location.hostname : '127.0.0.1';
+const DEFAULT_WS_URL = `ws://${DEFAULT_WS_HOST}:7001`;
 
 export function getPrediction(): string {
     return prediction;
@@ -32,12 +33,34 @@ export function clearPrediction() {
 
 if (typeof window !== 'undefined') {
     const saved = localStorage.getItem('tos_remote_host');
-    if (saved) activeWsUrl = saved;
-    else activeWsUrl = DEFAULT_WS_URL;
+    const windowHost = window.location.hostname;
+    const isLocalhost = windowHost === 'localhost' || windowHost === '127.0.0.1';
+    
+    if (saved) {
+        // Migration: If saved is localhost but we are accessing remotely, override to current host
+        try {
+            const savedUrl = new URL(saved);
+            const savedHost = savedUrl.hostname;
+            const savedIsLocal = savedHost === 'localhost' || savedHost === '127.0.0.1';
+            
+            if (savedIsLocal && !isLocalhost) {
+                console.info(`[IPC] Remote access detected (${windowHost}). Overriding local saved host (${savedHost}).`);
+                activeWsUrl = `ws://${windowHost}:7001`;
+            } else {
+                activeWsUrl = saved;
+            }
+        } catch {
+            activeWsUrl = DEFAULT_WS_URL;
+        }
+    } else {
+        activeWsUrl = DEFAULT_WS_URL;
+    }
+    
+    console.log(`[IPC] Initialized with Brain URL: ${activeWsUrl}`);
 }
 
 const SYNC_INTERVAL_MS = 1000;
-const RECONNECT_DELAY_MS = 3000;
+const RECONNECT_DELAY_MS = 2000;
 
 export function getActiveWsUrl(): string | null {
     return activeWsUrl;

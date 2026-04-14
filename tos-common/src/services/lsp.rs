@@ -15,7 +15,6 @@ pub struct LspClient {
     pub language: String,
     pub tx: crossbeam_channel::Sender<String>,      // Send IPC JSON-RPC requests
     pub diagnostics_rx: crossbeam_channel::Receiver<(String, Vec<Diagnostic>)>,
-    request_id: Arc<Mutex<i64>>,
 }
 
 pub struct LspService {
@@ -81,13 +80,12 @@ impl LspService {
         let mut reader = BufReader::new(stdout);
 
         let (tx, rcv) = crossbeam_channel::unbounded::<String>();
-        let (diag_tx, diag_rx) = crossbeam_channel::unbounded();
+        let (_diag_tx, diag_rx) = crossbeam_channel::unbounded();
 
         let lsp_client = Arc::new(LspClient {
             language: language.to_string(),
             tx,
             diagnostics_rx: diag_rx,
-            request_id: Arc::new(Mutex::new(1)),
         });
 
         // Writer Task
@@ -147,11 +145,11 @@ impl LspService {
                                                 }
 
                                                 // Update in State
+                                                let mut any_updated = false;
                                                 let idx = s.active_sector_index;
                                                 if let Some(sector) = s.sectors.get_mut(idx) {
                                                     for hub in sector.hubs.iter_mut() {
                                                         if let Some(layout) = hub.split_layout.as_mut() {
-                                                            let mut updated = false;
                                                             fn update_pane(node: &mut crate::SplitNode, path: &str, anns: Vec<crate::state::EditorAnnotation>) -> bool {
                                                                 match node {
                                                                     crate::SplitNode::Leaf(ref mut p) => {
@@ -168,11 +166,14 @@ impl LspService {
                                                                     }
                                                                 }
                                                             }
-                                                            if update_pane(layout, &file_path_str, new_anns) {
-                                                                s.version += 1;
+                                                            if update_pane(layout, &file_path_str, new_anns.clone()) {
+                                                                any_updated = true;
                                                             }
                                                         }
                                                     }
+                                                }
+                                                if any_updated {
+                                                    s.version += 1;
                                                 }
                                                 } // end st
                                             }
@@ -188,9 +189,15 @@ impl LspService {
         });
 
         // Initialize RPC
+        let root_uri_parsed: lsp_types::Uri = Url::from_file_path(&cwd).unwrap().to_string().parse().unwrap();
+        #[allow(deprecated)]
         let init_params = InitializeParams {
             process_id: Some(std::process::id()),
-            root_uri: Some(Url::from_file_path(&cwd).unwrap().to_string().parse().unwrap()),
+            root_uri: None,
+            workspace_folders: Some(vec![WorkspaceFolder {
+                uri: root_uri_parsed,
+                name: "workspace".to_string(),
+            }]),
             capabilities: ClientCapabilities::default(),
             ..Default::default()
         };
@@ -265,7 +272,6 @@ mod tests {
             language: "rust".to_string(),
             tx,
             diagnostics_rx: diag_rx,
-            request_id: Arc::new(Mutex::new(1)),
         });
 
         let service = LspService::new();

@@ -120,4 +120,28 @@ impl LoggerService {
         // Final implementation would sign this entry cryptographically
         tracing::warn!("SECURITY AUDIT ENTRY: {}", msg);
     }
+
+    /// Archive an AI interaction pair (§7.4).
+    pub fn archive_ai(&self, behavior_id: &str, prompt: &str, response: &str) {
+        let port = self
+            .registry
+            .as_ref()
+            .and_then(|r| r.lock().unwrap().port_of("tos-loggerd"))
+            .unwrap_or(7003);
+
+        let addr = format!("127.0.0.1:{}", port);
+        if let Ok(mut stream) = std::net::TcpStream::connect_timeout(
+            &addr.parse().unwrap(),
+            std::time::Duration::from_millis(50),
+        ) {
+            use std::io::Write;
+            let payload = serde_json::json!({
+                "behavior_id": behavior_id,
+                "prompt": prompt,
+                "response": response
+            });
+            let _ =
+                stream.write_all(format!("archive_ai:{}\n", payload.to_string()).as_bytes());
+        }
+    }
 }

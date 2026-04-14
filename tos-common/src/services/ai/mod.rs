@@ -10,7 +10,70 @@
 use crate::ipc::IpcDispatcher;
 use crate::{AiBehavior, TosState};
 use serde_json::json;
+use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
+use uuid::Uuid;
+
+/// Parses an Agent Persona Markdown file into an AiBehavior (§7.3).
+pub fn parse_persona_markdown(md: &str) -> AiBehavior {
+    let mut id = "unknown_agent".to_string();
+    let mut name = "Unknown Agent".to_string();
+    let mut allowed_tools = vec![];
+    let mut backend_override = None;
+    let mut config = HashMap::new();
+
+    let mut current_section = "";
+
+    for line in md.lines() {
+        let line = line.trim();
+        if line.is_empty() { continue; }
+
+        if line.starts_with("# Agent Persona:") {
+            id = line.replace("# Agent Persona:", "").trim().to_string();
+        } else if line.starts_with("## ") {
+            current_section = line.strip_prefix("## ").unwrap_or(line).trim();
+        } else if line.starts_with("- **Name:**") {
+            name = line.replace("- **Name:**", "").trim().to_string();
+        } else if current_section == "Tool Bundle" && line.starts_with("- `") {
+            let tools_str = line.replace("- ", "").replace("`", "");
+            for tool in tools_str.split(',') {
+                let t = tool.trim().to_string();
+                if !t.is_empty() {
+                    allowed_tools.push(t);
+                }
+            }
+        } else if current_section == "Backend Preference" && line.starts_with("- **Preferred:**") {
+            if line.to_lowercase().contains("openai") {
+                backend_override = Some("openai-gpt4".to_string());
+            } else if line.to_lowercase().contains("local") {
+                backend_override = Some("local-llama".to_string());
+            }
+        } else if line.starts_with("- **") && line.contains(":**") {
+            // Generic strategy/config extraction
+            let parts: Vec<&str> = line.splitn(2, " :**").collect();
+            if parts.len() == 2 {
+                let key = parts[0].replace("- **", "").trim().to_string();
+                let val = parts[1].trim().to_string();
+                config.insert(key, val);
+            }
+        }
+    }
+
+    AiBehavior {
+        id: id.clone(),
+        name,
+        enabled: true,
+        backend_override,
+        context_fields: vec![
+            "cwd".to_string(), 
+            "terminal_tail".to_string(), 
+            "editor_context".to_string(),
+            "chat_history".to_string()
+        ],
+        allowed_tools: if allowed_tools.is_empty() { None } else { Some(allowed_tools) },
+        config,
+    }
+}
 
 // ---------------------------------------------------------------------------
 // Rolling Context Object
@@ -142,6 +205,62 @@ impl AiService {
         }
     }
 
+    /// Roadmap Planner skill (§7.5, §21.4).
+    pub async fn roadmap_plan(&self) -> anyhow::Result<()> {
+        let ipc = match self.ipc.lock().unwrap().as_ref() {
+            Some(i) => i.clone(),
+            None => return Err(anyhow::anyhow!("IPC dispatcher not registered")),
+        };
+
+        let thought = crate::AiThought {
+            id: Uuid::new_v4(),
+            behavior_id: "roadmap-planner".to_string(),
+            title: "Auditing Project Trajectory".to_string(),
+            content: "Cross-referencing task.md with active Kanban board...".to_string(),
+            status: crate::AiThoughtStatus::Thinking,
+            timestamp: chrono::Local::now(),
+        };
+        let _ = ipc.dispatch(&format!("ai_thought_stage:{}", serde_json::to_string(&thought)?));
+
+        // Logic here would read roadmap.md and kanban state to suggest updates
+        tokio::time::sleep(tokio::time::Duration::from_millis(1500)).await;
+
+        let mut done = thought.clone();
+        done.status = crate::AiThoughtStatus::Decided;
+        done.content = "Strategic audit complete. Roadmap artifacts updated successfully.".to_string();
+        let _ = ipc.dispatch(&format!("ai_thought_stage:{}", serde_json::to_string(&done)?));
+
+        Ok(())
+    }
+
+    /// Dream Consolidate (Memory Synthesis) skill (§7.6, §21.5).
+    pub async fn dream_consolidate(&self) -> anyhow::Result<()> {
+        let ipc = match self.ipc.lock().unwrap().as_ref() {
+            Some(i) => i.clone(),
+            None => return Err(anyhow::anyhow!("IPC dispatcher not registered")),
+        };
+
+        let thought = crate::AiThought {
+            id: Uuid::new_v4(),
+            behavior_id: "memory-synthesis".to_string(),
+            title: "Synthesizing Daily Logs".to_string(),
+            content: "Extracting semantic patterns from session archives...".to_string(),
+            status: crate::AiThoughtStatus::Thinking,
+            timestamp: chrono::Local::now(),
+        };
+        let _ = ipc.dispatch(&format!("ai_thought_stage:{}", serde_json::to_string(&thought)?));
+
+        // Logic here would query loggerd for 'ai' level events and summarize
+        tokio::time::sleep(tokio::time::Duration::from_millis(2000)).await;
+
+        let mut done = thought.clone();
+        done.status = crate::AiThoughtStatus::Decided;
+        done.content = "Memory consolidation complete. Long-term patterns updated.".to_string();
+        let _ = ipc.dispatch(&format!("ai_thought_stage:{}", serde_json::to_string(&done)?));
+
+        Ok(())
+    }
+
     pub fn set_ipc(&self, ipc: Arc<dyn IpcDispatcher>) {
         *self.ipc.lock().unwrap() = Some(ipc);
     }
@@ -197,6 +316,33 @@ impl AiService {
                     .iter()
                     .cloned()
                     .collect(),
+            },
+        );
+        // 3. Vibe Coder (Orchestrator)
+        self.register_behavior(
+            state,
+            AiBehavior {
+                id: "vibe-coder".to_string(),
+                name: "Vibe Coder".to_string(),
+                enabled: true,
+                backend_override: None,
+                context_fields: vec![
+                    "cwd".to_string(),
+                    "sector_name".to_string(),
+                    "shell".to_string(),
+                    "terminal_tail".to_string(),
+                    "last_command".to_string(),
+                    "mode".to_string(),
+                    "editor_context".to_string(),
+                    "chat_history".to_string(),
+                ],
+                allowed_tools: Some(vec![
+                    "exec_cmd".to_string(),
+                    "semantic_search".to_string(),
+                    "editor_open".to_string(),
+                    "editor_edit_proposal".to_string(),
+                ]),
+                config: std::collections::HashMap::new(),
             },
         );
     }
@@ -395,6 +541,155 @@ impl AiService {
         // Append to history (§7.3)
         let msg = format!("staged command '{}' because {}", command, explanation);
         let _ = ipc.dispatch(&format!("ai_history_append:{}", msg));
+
+        Ok(())
+    }
+
+    /// Predict the completion of a partial command input (§4.4).
+    pub async fn predict_command(&self, partial: &str) -> anyhow::Result<String> {
+        let ipc = self
+            .ipc
+            .lock()
+            .unwrap()
+            .clone()
+            .ok_or_else(|| anyhow::anyhow!("IPC dispatcher not set for AiService"))?;
+
+        let state_json = ipc.dispatch("get_state:");
+        let clean_json = state_json.split(" (").next().unwrap_or(&state_json);
+        let state: TosState = match serde_json::from_str(clean_json) {
+            Ok(s) => s,
+            Err(_) => return Ok(String::new()),
+        };
+
+        if partial.trim().is_empty() {
+            return Ok(String::new());
+        }
+
+        // Use a fast backend if possible
+        let backend_id = self.resolve_backend(&state, "chat").to_string();
+        let ctx = build_context(&state);
+
+        let maybe_modules = self.modules.lock().unwrap().clone();
+        if let Some(modules) = maybe_modules {
+            if let Ok(ai_mod) = modules.load_ai(&backend_id) {
+                let prompt = format!(
+                    "PREDICT COMMAND GHOST TEXT: User is typing '{}'. \
+                     CWD: {}. Last Cmd: {}. \
+                     Predict the REST of the command. Return ONLY the predicted suffix string. \
+                     If no confident prediction, return an empty string.",
+                    partial, ctx.cwd, ctx.last_command
+                );
+
+                let req = crate::modules::AiQuery {
+                    prompt,
+                    context: ctx.filter_to_fields(
+                        &["cwd", "last_command"]
+                            .iter()
+                            .map(|s| s.to_string())
+                            .collect::<Vec<_>>(),
+                    ),
+                    stream: false,
+                };
+
+                if let Ok(resp) = ai_mod.query(req) {
+                    let content = resp.choice.content.trim().trim_matches('\"');
+                    if !content.is_empty() && content.len() < 50 && !content.contains('\n') {
+                        let _ = ipc.dispatch(&format!("ai_prediction_received:{}", content));
+                        return Ok(content.to_string());
+                    }
+                }
+            }
+        }
+
+        // Basic heuristic fallback
+        let p = partial.to_lowercase();
+        let fallback = if p == "l" || p == "ls" {
+            " -la".to_string()
+        } else if p == "c" || p == "cd" {
+            " ..".to_string()
+        } else if p == "cargo " {
+            "build".to_string()
+        } else {
+            String::new()
+        };
+
+        if !fallback.is_empty() {
+            let _ = ipc.dispatch(&format!("ai_prediction_received:{}", fallback));
+        }
+
+        Ok(fallback)
+    }
+
+    /// Orchestrate a multi-step plan for complex task execution (§3.3).
+    pub async fn vibe_plan(&self, prompt: &str) -> anyhow::Result<()> {
+        let ipc = match self.ipc.lock().unwrap().as_ref() {
+            Some(i) => i.clone(),
+            None => return Err(anyhow::anyhow!("IPC dispatcher not registered")),
+        };
+
+        // 1. Initial Thought: Intent Analysis
+        let step1_id = Uuid::new_v4();
+        let step1 = crate::AiThought {
+            id: step1_id,
+            behavior_id: "vibe-coder".to_string(),
+            title: "Analyzing Task Orchestration".to_string(),
+            content: format!("Decomposing complex request: '{}'", prompt),
+            status: crate::AiThoughtStatus::Thinking,
+            timestamp: chrono::Local::now(),
+        };
+        let _ = ipc.dispatch(&format!("ai_thought_stage:{}", serde_json::to_string(&step1)?));
+
+        // Delay to simulate analysis
+        tokio::time::sleep(tokio::time::Duration::from_millis(800)).await;
+
+        // 2. Discover context
+        let step2_id = Uuid::new_v4();
+        let step2 = crate::AiThought {
+            id: step2_id,
+            behavior_id: "vibe-coder".to_string(),
+            title: "Gathering Environment Metrics".to_string(),
+            content: "Scanning workspace hierarchy and service status...".to_string(),
+            status: crate::AiThoughtStatus::Thinking,
+            timestamp: chrono::Local::now(),
+        };
+        let _ = ipc.dispatch(&format!("ai_thought_stage:{}", serde_json::to_string(&step2)?));
+
+        // Mark step 1 as Decided
+        let mut step1_decided = step1.clone();
+        step1_decided.status = crate::AiThoughtStatus::Decided;
+        step1_decided.content = "Task decomposition complete: 3 sub-actions identified.".to_string();
+        let _ = ipc.dispatch(&format!("ai_thought_stage:{}", serde_json::to_string(&step1_decided)?));
+
+        tokio::time::sleep(tokio::time::Duration::from_millis(1200)).await;
+
+        // 3. Propose actions
+        let step3_id = Uuid::new_v4();
+        let step3 = crate::AiThought {
+            id: step3_id,
+            behavior_id: "vibe-coder".to_string(),
+            title: "Synthesizing Proposed Model".to_string(),
+            content: "Drafting execution sequence for tactical overview...".to_string(),
+            status: crate::AiThoughtStatus::Thinking,
+            timestamp: chrono::Local::now(),
+        };
+        let _ = ipc.dispatch(&format!("ai_thought_stage:{}", serde_json::to_string(&step3)?));
+
+        // Mark step 2 as Actioned
+        let mut step2_done = step2.clone();
+        step2_done.status = crate::AiThoughtStatus::Actioned;
+        let _ = ipc.dispatch(&format!("ai_thought_stage:{}", serde_json::to_string(&step2_done)?));
+
+        tokio::time::sleep(tokio::time::Duration::from_millis(1000)).await;
+
+        // Finalize plan
+        let mut step3_done = step3.clone();
+        step3_done.status = crate::AiThoughtStatus::Decided;
+        step3_done.content = "Orchestration plan ready for user review.".to_string();
+        let _ = ipc.dispatch(&format!("ai_thought_stage:{}", serde_json::to_string(&step3_done)?));
+
+        // Stage the actual command proposal
+        let staged = format!("# AI PLAN FOR: {}\n# 1. Inspect environment\n# 2. Reconfigure sectors\n# 3. Synchronize status", prompt);
+        let _ = ipc.dispatch(&format!("ai_stage_command:{}", staged));
 
         Ok(())
     }

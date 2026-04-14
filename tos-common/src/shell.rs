@@ -70,9 +70,6 @@ impl OscParser {
         }
 
         // §27.4: OSC 9012 — Line-Level Priority
-        // Format: OSC 9012 ; <priority_digit> ST
-        // Sets the priority for the current output line (1=Low, 2=Normal, 3=High).
-        // Stripped from visible output.
         if let Some(pos) = clean_text.find("\x1b]9012;") {
             if let Some(end) = clean_text[pos..].find('\x07') {
                 let actual_end = pos + end;
@@ -80,6 +77,39 @@ impl OscParser {
                 if let Ok(p) = payload.trim().parse::<u8>() {
                     if (1..=3).contains(&p) {
                         events.push(OscEvent::LinePriority(p));
+                    }
+                }
+                clean_text = format!("{}{}", &clean_text[..pos], &clean_text[actual_end + 1..]);
+            }
+        }
+
+        // OSC 9002: Command Result
+        if let Some(pos) = clean_text.find("\x1b]9002;") {
+            if let Some(end) = clean_text[pos..].find('\x07') {
+                let actual_end = pos + end;
+                let payload = &clean_text[pos + 7..actual_end];
+                let parts: Vec<&str> = payload.split(';').collect();
+                if parts.len() >= 2 {
+                    if let Ok(status) = parts[1].trim().parse::<i32>() {
+                        events.push(OscEvent::CommandResult {
+                            command: parts[0].to_string(),
+                            status,
+                            output: None,
+                        });
+                    }
+                }
+                clean_text = format!("{}{}", &clean_text[..pos], &clean_text[actual_end + 1..]);
+            }
+        }
+
+        // OSC 9004: JSON Context
+        if let Some(pos) = clean_text.find("\x1b]9004;") {
+            if let Some(end) = clean_text[pos..].find('\x07') {
+                let actual_end = pos + end;
+                let payload = &clean_text[pos + 7..actual_end];
+                if let Ok(decoded) = base64::Engine::decode(&base64::engine::general_purpose::STANDARD, payload) {
+                    if let Ok(val) = serde_json::from_slice::<serde_json::Value>(&decoded) {
+                        events.push(OscEvent::JsonContext(val));
                     }
                 }
                 clean_text = format!("{}{}", &clean_text[..pos], &clean_text[actual_end + 1..]);

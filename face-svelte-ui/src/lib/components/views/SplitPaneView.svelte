@@ -2,6 +2,7 @@
 	import { getTosState, splitFocus, submitCommand } from '$lib/stores/ipc.svelte';
 	import type { SplitPane, Hub } from '$lib/stores/tos-state.svelte';
 	import EditorPane from '../editor/EditorPane.svelte';
+	import WorkflowManager from './WorkflowManager.svelte';
 
 	let { pane, activeHub }: { pane: SplitPane; activeHub: Hub | null } = $props();
 
@@ -93,6 +94,8 @@
 					▶ RELAUNCH APP
 				</button>
 			</div>
+		{:else if pane.content === 'Workflow'}
+			<WorkflowManager />
 		{:else}
 			<div class="pane-unknown">UNKNOWN CONTENT TYPE</div>
 		{/if}

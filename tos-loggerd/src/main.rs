@@ -114,6 +114,38 @@ async fn handle_client(mut socket: TcpStream, log_path: std::path::PathBuf) -> a
 
                 "OK".to_string()
             }
+            "archive_ai" => {
+                #[derive(serde::Deserialize)]
+                struct ArchiveRequest {
+                    behavior_id: String,
+                    prompt: String,
+                    response: String,
+                }
+                match serde_json::from_str::<ArchiveRequest>(payload) {
+                    Ok(data) => {
+                        let record = LogRecord {
+                            ts: Local::now().timestamp(),
+                            level: "ai".to_string(),
+                            source: data.behavior_id,
+                            event: "ai_exchange".to_string(),
+                            data: serde_json::json!({
+                                "prompt": data.prompt,
+                                "response": data.response
+                            })
+                            .to_string(),
+                        };
+
+                        let json_entry = serde_json::to_string(&record).unwrap_or_default();
+                        if let Ok(mut file) =
+                            OpenOptions::new().create(true).append(true).open(&log_path)
+                        {
+                            let _ = writeln!(file, "{}", json_entry);
+                        }
+                        "OK".to_string()
+                    }
+                    Err(e) => format!("ERROR: Invalid JSON: {}", e),
+                }
+            }
             "query" => {
                 let req: QueryRequest = match serde_json::from_str(payload) {
                     Ok(r) => r,

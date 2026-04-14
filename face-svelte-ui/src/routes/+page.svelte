@@ -4,7 +4,8 @@
 	import {
 		connect, disconnect, getTosState, getConnectionState,
 		submitCommand, sendCommand,
-		splitCreate, splitClose, splitFocusDirection, splitEqualize
+		splitCreate, splitClose, splitFocusDirection, splitEqualize,
+		getPrediction, clearPrediction, predictCommand
 	} from '$lib/stores/ipc.svelte';
 	import {
 		getCurrentMode, setCurrentMode,
@@ -121,16 +122,18 @@
 		if (!cmdInput.trim()) return;
 		const input = cmdInput;
 		cmdInput = '';
+		clearPrediction();
 
 		if (promptMode === 'cmd') {
 			await submitCommand(input);
 		} else if (promptMode === 'search') {
 			await sendCommand(`search:${input}`);
 		} else if (promptMode === 'ai') {
-			await sendCommand(`ai_submit:${input}`);
+			await sendCommand(`ai_plan:${input}`);
 		}
 	}
 
+	let predictDebounce: ReturnType<typeof setTimeout>;
 	async function handleInput(e: Event) {
 		const target = e.target as HTMLInputElement;
 		const val = target.value;
@@ -143,8 +146,15 @@
 			} catch (err) {
 				heuristicSuggestions = [];
 			}
+
+			// Ghost Text Prediction
+			clearTimeout(predictDebounce);
+			predictDebounce = setTimeout(() => {
+				predictCommand(val);
+			}, 300);
 		} else {
 			heuristicSuggestions = [];
+			clearPrediction();
 		}
 	}
 
@@ -456,16 +466,31 @@
 						</div>
 						<form class="prompt-form" onsubmit={handleSubmit}>
 							<span class="prompt-prefix">{promptPrefix}</span>
-							<input
-								type="text"
-								class="cmd-input"
-								id="cmd-input"
-								placeholder={promptPlaceholder}
-								autocomplete="off"
-								bind:value={cmdInput}
-								oninput={handleInput}
-								disabled={mode === 'detail'}
-							/>
+							<div class="cmd-input-wrapper">
+								<input
+									type="text"
+									class="cmd-input"
+									id="cmd-input"
+									placeholder={promptPlaceholder}
+									autocomplete="off"
+									bind:value={cmdInput}
+									oninput={handleInput}
+									onkeydown={(e) => {
+										if (e.key === 'Tab' && getPrediction()) {
+											e.preventDefault();
+											cmdInput += getPrediction();
+											clearPrediction();
+										}
+									}}
+									disabled={mode === 'detail'}
+								/>
+								{#if cmdInput && getPrediction()}
+									<div class="ghost-overlay">
+										<span class="invisible-text">{cmdInput}</span>
+										<span class="prediction-text">{getPrediction()}</span>
+									</div>
+								{/if}
+							</div>
 						</form>
 						
 						{#if heuristicSuggestions.length > 0}
@@ -976,8 +1001,39 @@
 	.cmd-input::placeholder {
 		color: var(--color-text-muted);
 		font-family: var(--font-display);
-		letter-spacing: 0.08em;
-		font-size: 0.75rem;
+		font-weight: 500;
+		font-size: 0.7rem;
+		letter-spacing: 0.05em;
+	}
+
+	.cmd-input-wrapper {
+		flex: 1;
+		position: relative;
+		display: flex;
+		align-items: center;
+	}
+
+	.ghost-overlay {
+		position: absolute;
+		left: 0;
+		top: 0;
+		bottom: 0;
+		right: 0;
+		display: flex;
+		align-items: center;
+		pointer-events: none;
+		font-family: var(--font-mono);
+		font-size: 0.85rem;
+		white-space: pre;
+	}
+
+	.invisible-text {
+		color: transparent;
+	}
+
+	.prediction-text {
+		color: var(--color-primary);
+		opacity: 0.45;
 	}
 
 	.prefix { color: var(--color-primary); }

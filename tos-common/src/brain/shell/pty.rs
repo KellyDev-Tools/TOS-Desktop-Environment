@@ -152,6 +152,40 @@ impl PtyShell {
         self._child.kill()?;
         Ok(())
     }
+
+    /// Run a command in an isolated PTY and return its output (§7.7).
+    pub fn exec_isolated(command: &str, cwd: std::path::PathBuf) -> anyhow::Result<String> {
+        let pty_system = native_pty_system();
+        let pair = pty_system.openpty(PtySize {
+            rows: 24,
+            cols: 80,
+            pixel_width: 0,
+            pixel_height: 0,
+        })?;
+
+        let mut cmd = CommandBuilder::new("sh");
+        cmd.args(&["-c", command]);
+        cmd.cwd(cwd);
+        let _child = pair.slave.spawn_command(cmd)?;
+
+        let mut reader = pair.master.try_clone_reader()?;
+        let mut output = String::new();
+        let mut buffer = [0u8; 1024];
+
+        // Read until EOF or timeout
+        loop {
+            match reader.read(&mut buffer) {
+                Ok(0) => break,
+                Ok(n) => {
+                    output.push_str(&String::from_utf8_lossy(&buffer[..n]));
+                }
+                Err(_) => break,
+            }
+            if output.len() > 100_000 { break; } // Safety cap
+        }
+
+        Ok(output)
+    }
 }
 
 fn read_loop(

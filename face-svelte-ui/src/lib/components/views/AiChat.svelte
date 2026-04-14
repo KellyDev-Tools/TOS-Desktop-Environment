@@ -2,6 +2,8 @@
 	import { getTosState } from '$lib/stores/ipc.svelte';
 	import { slide } from 'svelte/transition';
 
+	import ActiveThoughts from './ActiveThoughts.svelte';
+
 	const tosState = $derived(getTosState());
 	const activeSector = $derived(tosState.sectors[tosState.active_sector_index]);
 	const activeHub = $derived(
@@ -19,7 +21,8 @@
 	</div>
 	
 	<div class="chat-scrollarea">
-		{#if history.length === 0}
+		<ActiveThoughts />
+		{#if history.length === 0 && (activeHub?.active_thoughts?.length || 0) === 0}
 			<div class="chat-empty">
 				<div class="empty-icon">✧</div>
 				<p>AWAITING INTENT...</p>

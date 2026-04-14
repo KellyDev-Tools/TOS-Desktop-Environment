@@ -39,6 +39,7 @@ impl SectorManager {
                 split_layout: None,
                 focused_pane_id: None,
                 ai_history: vec![],
+                active_thoughts: vec![],
                 version: 0,
                 is_running: false,
                 last_exit_status: None,
@@ -52,6 +53,7 @@ impl SectorManager {
             active_apps: vec![],
             active_app_index: 0,
             participants: vec![],
+            kanban_board: None,
             version: 0,
         };
 
@@ -92,6 +94,7 @@ impl SectorManager {
                 split_layout: None,
                 focused_pane_id: None,
                 ai_history: vec![],
+                active_thoughts: vec![],
                 version: 0,
                 is_running: false,
                 last_exit_status: None,
@@ -117,6 +120,7 @@ impl SectorManager {
             active_apps: vec![],
             active_app_index: 0,
             participants: vec![],
+            kanban_board: None,
             version: 0,
         };
 
@@ -598,6 +602,7 @@ impl SectorManager {
                 split_layout: None,
                 focused_pane_id: None,
                 ai_history: vec![],
+                active_thoughts: vec![],
                 version: 0,
                 is_running: false,
                 last_exit_status: None,
@@ -611,6 +616,7 @@ impl SectorManager {
             active_apps: vec![],
             active_app_index: 0,
             participants: vec![],
+            kanban_board: None,
             version: 0,
         };
         state.sectors.push(sector);

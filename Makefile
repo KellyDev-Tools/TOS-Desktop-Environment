@@ -1,6 +1,8 @@
 # TOS Beta-0 Build System
 # High-Fidelity OS Pipeline
 
+export RUST_MIN_STACK := 67108864
+
 # --- Android / Handheld Configuration ---
 # Set ANDROID_HOME if not already set, defaulting to a common path
 ANDROID_HOME ?= $(HOME)/Android/Sdk
@@ -114,7 +116,7 @@ build-faces: build-face-web build-face-electron android-check
 
 build-face-web:
 	@echo "[TOS] Building Svelte Face UI..."
-	@$(NVM_INIT) && cd face-svelte-ui && npm run build
+	@$(NVM_INIT) && cd face-svelte-ui && npm install && npm run build
 	@echo "[TOS] Svelte Face UI: BUILD COMPLETE"
 
 build-face-electron: build-face-web
@@ -235,13 +237,13 @@ test-health:
 	@pkill -x tos-heuristicd || true
 	@pkill -x tos-searchd || true
 	@mkdir -p logs
-	@tos-settingsd/target/debug/tos-settingsd > logs/settingsd.log 2>&1 &
-	@tos-loggerd/target/debug/tos-loggerd > logs/loggerd.log 2>&1 &
-	@tos-marketplaced/target/debug/tos-marketplaced > logs/marketplaced.log 2>&1 &
-	@tos-priorityd/target/debug/tos-priorityd > logs/priorityd.log 2>&1 &
-	@tos-sessiond/target/debug/tos-sessiond > logs/sessiond.log 2>&1 &
-	@tos-heuristicd/target/debug/tos-heuristicd > logs/heuristicd.log 2>&1 &
-	@tos-searchd/target/debug/tos-searchd > logs/searchd.log 2>&1 || true &
+	@target/debug/tos-settingsd > logs/settingsd.log 2>&1 &
+	@target/debug/tos-loggerd > logs/loggerd.log 2>&1 &
+	@target/debug/tos-marketplaced > logs/marketplaced.log 2>&1 &
+	@target/debug/tos-priorityd > logs/priorityd.log 2>&1 &
+	@target/debug/tos-sessiond > logs/sessiond.log 2>&1 &
+	@target/debug/tos-heuristicd > logs/heuristicd.log 2>&1 &
+	@target/debug/tos-searchd > logs/searchd.log 2>&1 || true &
 	@brain/target/debug/tos-brain --headless > logs/tos-brain.log 2>&1 & BR_PID=$$!; \
 	echo "[TOS] Waiting for daemons and Discovery Gate to bind (3s)..."; \
 	sleep 3; \
@@ -262,7 +264,8 @@ test-health:
 # -----------------------------------------------------------------------------
 
 # --- NVM Helper (Node v20 required for Svelte) ---
-NVM_INIT = export NVM_DIR="$$HOME/.nvm" && [ -s "$$NVM_DIR/nvm.sh" ] && . "$$NVM_DIR/nvm.sh" && nvm use 20 --silent
+# Only runs if nvm is found, otherwise assumes node is in PATH
+NVM_INIT = export NVM_DIR="$$HOME/.nvm" && ([ -s "$$NVM_DIR/nvm.sh" ] && . "$$NVM_DIR/nvm.sh" && nvm use 20 --silent || true)
 
 run: $(PRE_COMMIT_HOOK) run-services
 	@mkdir -p logs
@@ -309,13 +312,13 @@ run-services:
 	cd tos-sessiond && cargo build
 	cd tos-heuristicd && cargo build
 	cd tos-searchd && cargo build
-	@tos-settingsd/target/debug/tos-settingsd > logs/settingsd.log 2>&1 &
-	@tos-loggerd/target/debug/tos-loggerd > logs/loggerd.log 2>&1 &
-	@tos-marketplaced/target/debug/tos-marketplaced > logs/marketplaced.log 2>&1 &
-	@tos-priorityd/target/debug/tos-priorityd > logs/priorityd.log 2>&1 &
-	@tos-sessiond/target/debug/tos-sessiond > logs/sessiond.log 2>&1 &
-	@tos-heuristicd/target/debug/tos-heuristicd > logs/heuristicd.log 2>&1 &
-	@tos-searchd/target/debug/tos-searchd > logs/searchd.log 2>&1 || true &
+	@target/debug/tos-settingsd > logs/settingsd.log 2>&1 &
+	@target/debug/tos-loggerd > logs/loggerd.log 2>&1 &
+	@target/debug/tos-marketplaced > logs/marketplaced.log 2>&1 &
+	@target/debug/tos-priorityd > logs/priorityd.log 2>&1 &
+	@target/debug/tos-sessiond > logs/sessiond.log 2>&1 &
+	@target/debug/tos-heuristicd > logs/heuristicd.log 2>&1 &
+	@target/debug/tos-searchd > logs/searchd.log 2>&1 || true &
 	@echo "[TOS] Auxiliary Constellation: ONLINE"
 
 # -----------------------------------------------------------------------------

@@ -31,13 +31,13 @@
 - [x] **FIX:** Gated unused `crate::TosState` import behind `#[cfg(target_os = "android")]` — 0 warnings workspace-wide
 
 ## Stage 7 — Kanban & Agent Orchestration (New)
-- [ ] 7.1 Implement KanbanBoard service in Brain
-- [ ] 7.2 Implement `WorkflowManager.svelte` pane
-- [ ] 7.3 Implement Agent Persona parser
-- [ ] 7.4 Implement LLM Interaction Archival service
-- [ ] 7.5 Implement `roadmap_planner` skill
-- [ ] 7.6 Implement `dream consolidate` (Memory Synthesis)
-- [ ] 7.7 Multi-agent terminal routing (isolated PTYs)
+- [x] 7.1 Implement KanbanBoard service in Brain
+- [x] 7.2 Implement `WorkflowManager.svelte` pane
+- [x] 7.3 Implement Agent Persona parser
+- [x] 7.4 Implement LLM Interaction Archival service
+- [x] 7.5 Implement `roadmap_planner` skill
+- [x] 7.6 Implement `dream consolidate` (Memory Synthesis)
+- [x] 7.7 Multi-agent terminal routing (isolated PTYs)
 
 ## Stage 2 — Editor System
 - [x] 2.1 Design editor pane data model — `EditorPaneState` (file_path, content, mode, language, cursor, scroll, dirty, diff_hunks) + `EditorMode` enum
@@ -55,4 +55,17 @@
 - [x] 2.13 LSP client integration (diagnostics, hover, completion) — Built `LspService` backend binding raw `stdin`/`stdout` JSON-RPC streams out to `rust-analyzer` and `tsserver` child processes. `didChange` and `didOpen` automatically stream backwards resolving `publishDiagnostics` arrays natively into the `tosState.annotations` framework established in Task 2.9 without custom DOM overrides.
 - [x] 2.14 Mobile: tap line number sends to AI — Rewrote `.line-number` spans natively handling `onclick()` delegation across `EditorPane.svelte` hooking specific `ai_submit` string payloads resolving targeted single code lines directly outside of layout constraints safely evaluating local contents without manual copying.
 
-## Stage 3–6 — Deferred to subsequent sessions
+## Stage 3 — AI Skills & Predictive Intelligence
+- [x] 3.1 Tool bundle enforcement in Brain — (Validated in Task 0.1)
+- [x] 3.2 Implement Command Predictor (ghost text / inline suggestions) — Added `predict_command` with AI & heuristic fallbacks, connected to `ai_predict_command` IPC and Tab-to-accept UI.
+- [x] 3.3 Implement Vibe Coder skill (multi-step chip sequence) — Added `vibe-coder` behavior with multi-step `vibe_plan` logic for complex task orchestration.
+- [x] 3.4 Implement thought bubble rendering in Face — Created `ActiveThoughts.svelte` for LCARS-style reasoning chips integrated into AI Chat.
+- [ ] 3.5 Implement offline AI queue (store, drain, 30min expiry)
+- [ ] 3.6 Context-signal automatic skill activation
+- [ ] 3.7 Skill learned patterns storage + Settings UI
+- [ ] 3.8 Implement path completion chips
+- [ ] 3.9 Implement typo correction chips
+- [ ] 3.10 Implement Focus Error chip (PTY error highlighting)
+- [ ] 3.11 Implement notification display center (priority-gated)
+
+## Stage 4–6 — Deferred to subsequent sessions

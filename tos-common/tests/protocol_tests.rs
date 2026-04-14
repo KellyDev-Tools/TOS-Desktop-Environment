@@ -249,6 +249,7 @@ mod tests {
             focused_pane_id: None,
             split_layout: None,
             ai_history: vec![],
+            active_thoughts: vec![],
             version: 0,
             last_exit_status: None,
             is_running: false,
@@ -270,6 +271,7 @@ mod tests {
             focused_pane_id: None,
             split_layout: None,
             ai_history: vec![],
+            active_thoughts: vec![],
             version: 0,
             last_exit_status: Some(0),
             is_running: false,
@@ -288,6 +290,7 @@ mod tests {
             active_apps: vec![],
             active_app_index: 0,
             participants: vec![],
+            kanban_board: None,
             version: 0,
         };
 

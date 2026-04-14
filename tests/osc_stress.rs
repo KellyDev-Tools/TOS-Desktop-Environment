@@ -20,14 +20,11 @@ async fn test_osc_integration_cascade_stress() -> anyhow::Result<()> {
     
     // We don't need a real shell for this; we want to test the OscParser directly 
     // in the context of the Brain's ShellApi read_loop logic.
-    use tos_common::brain::shell::OscParser;
-    use tos_common::brain::shell::OscEvent;
+    use tos_common::{OscParser, OscEvent};
     
     let mut parser = OscParser::new();
-
-    // 2. Stress Test OSC 7 (Universal CWD)
     let osc7_seq = "\x1b]7;file://localhost/home/user/workspace/tos\x07";
-    let (clean, events) = parser.process(osc7_seq);
+    let (clean, events): (String, Vec<OscEvent>) = parser.process(osc7_seq);
     
     assert!(clean.is_empty(), "OSC sequences should be stripped from clean text");
     assert_eq!(events.len(), 1);
@@ -64,7 +61,7 @@ async fn test_osc_integration_cascade_stress() -> anyhow::Result<()> {
     // 4. Stress Test Command Result + Priority Interleaving
     // Seq: [Priority 1] [Output] [Exit 127]
     let complex_seq = "\x1b]9012;1\x07sh: command not found\x1b]9002;badcmd;127\x07";
-    let (clean_complex, events_complex) = parser.process(complex_seq);
+    let (clean_complex, events_complex): (String, Vec<OscEvent>) = parser.process(complex_seq);
     
     assert_eq!(clean_complex.trim(), "sh: command not found");
     // Should have 2 events: Priority change and Command Result
@@ -73,10 +70,10 @@ async fn test_osc_integration_cascade_stress() -> anyhow::Result<()> {
     // 5. Stress Test JSON Context Injection (§9004)
     // Using base64 for the real deal
     let json_data = serde_json::json!({"git": {"branch": "main", "dirty": true}});
-    let b64_json = base64::Engine::encode(&base64::prelude::BASE64_STANDARD, serde_json::to_string(&json_data)?);
+    let b64_json = base64::Engine::encode(&base64::engine::general_purpose::STANDARD, serde_json::to_string(&json_data)?);
     let json_seq = format!("\x1b]9004;{}\x07", b64_json);
     
-    let (_, json_events) = parser.process(&json_seq);
+    let (_, json_events): (String, Vec<OscEvent>) = parser.process(&json_seq);
     assert_eq!(json_events.len(), 1);
     if let OscEvent::JsonContext(val) = &json_events[0] {
         assert_eq!(val["git"]["branch"], "main");

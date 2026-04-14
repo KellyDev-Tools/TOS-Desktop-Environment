@@ -233,6 +233,7 @@ pub struct Sector {
     pub active_app_index: usize,
     /// Multi-user collaboration participants (§13).
     pub participants: Vec<crate::collaboration::Participant>,
+    pub kanban_board: Option<KanbanBoard>,
     pub version: u64,
 }
 
@@ -266,6 +267,7 @@ pub struct CommandHub {
     pub focused_pane_id: Option<Uuid>,
     pub version: u64,
     pub ai_history: Vec<AiMessage>,
+    pub active_thoughts: Vec<AiThought>,
     pub last_exit_status: Option<i32>,
     pub is_running: bool,
 }
@@ -275,6 +277,63 @@ pub struct AiMessage {
     pub role: String,
     pub content: String,
     pub timestamp: chrono::DateTime<chrono::Local>,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+pub enum AiThoughtStatus {
+    Thinking,
+    Decided,
+    Actioned,
+    Failed,
+}
+
+/// A "Thought Bubble" or "Decision Chip" representing an AI's internal reasoning or plan step (§3.3).
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct AiThought {
+    pub id: Uuid,
+    pub behavior_id: String,
+    pub title: String,
+    pub content: String,
+    pub status: AiThoughtStatus,
+    pub timestamp: chrono::DateTime<chrono::Local>,
+}
+
+// ---------------------------------------------------------------------------
+// Kanban & Project Orchestration (§7.2)
+// ---------------------------------------------------------------------------
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct KanbanBoard {
+    pub project_id: Uuid,
+    pub title: String,
+    pub lanes: Vec<KanbanLane>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct KanbanLane {
+    pub id: Uuid,
+    pub title: String,
+    pub tasks: Vec<KanbanTask>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct KanbanTask {
+    pub id: Uuid,
+    pub title: String,
+    pub description: String,
+    pub status: KanbanTaskStatus,
+    pub assignee: Option<String>,
+    pub priority: u8,
+    pub tags: Vec<String>,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+pub enum KanbanTaskStatus {
+    Todo,
+    InProgress,
+    Review,
+    Done,
+    Blocked,
 }
 
 // ---------------------------------------------------------------------------
@@ -380,6 +439,8 @@ pub enum PaneContent {
     Application(String),
     /// A code editor surface (§6, §11.2).
     Editor(EditorPaneState),
+    /// A project workflow/Kanban board surface defined in §7.
+    Workflow,
 }
 
 /// A leaf pane in the split tree — an independently rendered terminal surface.
@@ -684,6 +745,7 @@ impl Default for TosState {
                 focused_pane_id: None,
                 version: 0,
                 ai_history: vec![],
+                active_thoughts: vec![],
                 last_exit_status: None,
                 is_running: false,
             }],
@@ -696,6 +758,7 @@ impl Default for TosState {
             active_apps: vec![],
             active_app_index: 0,
             participants: vec![],
+            kanban_board: None,
             version: 0,
         };
 

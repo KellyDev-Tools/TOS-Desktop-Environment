@@ -18,8 +18,17 @@ let ws: WebSocket | null = null;
 let syncInterval: ReturnType<typeof setInterval> | null = null;
 let reconnectTimer: ReturnType<typeof setTimeout> | null = null;
 
+let prediction = $state<string>('');
 let activeWsUrl = $state<string | null>(null);
 const DEFAULT_WS_URL = 'ws://127.0.0.1:7001';
+
+export function getPrediction(): string {
+    return prediction;
+}
+
+export function clearPrediction() {
+    prediction = '';
+}
 
 if (typeof window !== 'undefined') {
     const saved = localStorage.getItem('tos_remote_host');
@@ -165,8 +174,12 @@ export function connect(customUrl?: string): void {
 
         // Setup global passive listener for pushed state_delta
         ws!.onmessage = (event) => {
-            if (typeof event.data === 'string' && event.data.startsWith('state_delta:')) {
-                handleStateDelta(event.data.substring(12));
+            if (typeof event.data === 'string') {
+                if (event.data.startsWith('state_delta:')) {
+                    handleStateDelta(event.data.substring(12));
+                } else if (event.data.startsWith('ai_prediction_received:')) {
+                    prediction = event.data.substring(23);
+                }
             }
         };
     };
@@ -213,6 +226,10 @@ function scheduleReconnect(): void {
 
 export async function submitCommand(cmd: string): Promise<string | null> {
     return sendCommand(`prompt_submit:${cmd}`);
+}
+
+export async function predictCommand(partial: string): Promise<void> {
+    await sendCommand(`ai_predict_command:${partial}`);
 }
 
 export async function setMode(mode: string): Promise<void> {
@@ -350,4 +367,13 @@ export async function marketplaceGetStatus(id: string): Promise<any> {
 export async function marketplaceSearchAi(query: string): Promise<any> {
     const raw = await sendCommand(`marketplace_search_ai:${query}`);
     return raw ? JSON.parse(raw) : null;
+}
+
+/**
+ * Generic IPC sender used by some legacy or high-level components.
+ * Formats as "method:payload" and dispatches via sendCommand.
+ */
+export async function sendIpc(method: string, payload: any): Promise<string | null> {
+    const data = typeof payload === 'string' ? payload : JSON.stringify(payload);
+    return sendCommand(`${method}:${data}`);
 }

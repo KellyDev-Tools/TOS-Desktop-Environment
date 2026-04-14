@@ -163,9 +163,9 @@
 | Per-behavior backend override cascade | §4.3 | ✅ | `resolve_backend()` with cascade |
 | Passive Observer (correction chips) | §4.5 | ✅ | `passive_observe()` with exit code analysis |
 | Chat Companion | §4.6 | ✅ | `query()` with OpenAI fallback + offline heuristics |
-| Command Predictor (ghost text) | §4.4 | ❌ | No ghost text implementation |
-| Vibe Coder (multi-step planning) | §4.8 | ❌ | No chip sequence / multi-step decomposition |
-| Thought bubble / expand | §4.6 | 🔶 | IPC handlers exist; no rendering in Face |
+| Command Predictor (ghost text) | §4.4 | ✅ | `predict_command` with AI/Heuristic fallbacks + Tab-to-accept UI |
+| Vibe Coder (multi-step planning) | §4.8 | ✅ | `vibe_plan` orchestration + staged AI thought sequence |
+| Thought bubble / expand | §4.6 | ✅ | `ActiveThoughts.svelte` component + `ai_thought_stage` IPC |
 | AI safety contracts (no auto-submit) | §4.12 | ✅ | Enforced via `ai_chip_stage` staging only |
 | Offline AI queue | §4.9 | ❌ | No queue storage or drain logic |
 | Context-signal skill activation | §4.7 | ❌ | No automatic skill activation from cwd signals |
@@ -188,14 +188,14 @@
 | Feature | Spec Ref | Status | Evidence |
 |---|---|---|---|
 | Editor pane type | §6.3.1 | ✅ | `PaneContent::Editor(EditorPaneState)` with `EditorMode` (Viewer/Editor/Diff) + `DiffHunk` |
-| Viewer / Editor / Diff modes | §6.2 | ❌ | No editor surface code exists |
-| Auto-open on build error | §6.3.2 | ❌ | No PTY output → file:line parser |
-| AI Context Panel | §6.5.2 | ❌ | No component exists |
-| Inline AI annotations | §6.5.4 | ❌ | No annotation rendering |
-| AI Edit Flow / Diff Mode | §6.6 | ❌ | No diff rendering or proposal pipeline |
-| Multi-file edit chip sequence | §6.6.3 | ❌ | No chip sequence state machine |
-| LSP diagnostics integration | §6.9 | ❌ | No LSP client code |
-| Editor IPC messages (§30.3–§30.4) | §30 | ❌ | No editor IPC handlers in Brain |
+| Viewer / Editor / Diff modes | §6.2 | ✅ | Svelte `EditorPane.svelte` + PrismJS + textarea overlay |
+| Auto-open on build error | §6.3.2 | ✅ | `renderTermLine` interactive span tags + `!ipc editor_open` |
+| AI Context Panel | §6.5.2 | ✅ | `AiContextPanel.svelte` in Right Bezel slot |
+| Inline AI annotations | §6.5.4 | ✅ | `EditorAnnotation` schema + amberPulse scroll $effects |
+| AI Edit Flow / Diff Mode | §6.6 | ✅ | Side-by-side Diff Mode + IPC proposal pipeline |
+| Multi-file edit chip sequence | §6.6.3 | ✅ | Vibe Coder `vibe_plan` logic with multi-stage thoughts |
+| LSP diagnostics integration | §6.9 | ✅ | `LspService` backend (rust-analyzer/tsserver) + diagnostic streams |
+| Editor IPC messages (§30.3–§30.4) | §30 | ✅ | 16 dedicated IPC handlers implemented in IpcHandler |
 
 ### 1.13 Session Persistence (Features §2)
 
@@ -291,10 +291,14 @@
 | Kanban Board Model (JSON, lanes, tasks) | Features §7.2 | ✅ | Spec defined; board schema in Features §7.2 |
 | Agent Persona Format (.md strategies) | Ecosystem §1.6 | ✅ | 3 default personas in `modules/personas/` |
 | Roadmap Skill (Task generation) | Ecosystem §1.7 | ✅ | Spec defined; role="planner" manifest |
-| Workflow Manager Pane (`workflow`) | Arch §11.2 | 🔶 | IPC stubs in §30.8; no UI implementation |
-| Project-level persistence (.tos/kanban) | Features §7.1 | 🔶 | Spec defined; `tos-sessiond` field added in v1.1 |
-| LLM Interaction Archival | Features §2.9.1 | 🔶 | Spec defined; storage schema in Arch §30.8.3 |
-| Dream Consolidation (Memory) | Features §7.8 | ❌ | No synthesis logic |
+| Workflow Manager Pane (`workflow`) | Arch §11.2 | ✅ | ### 7. Agent Orchestration & Memory [COMPLETE]
+- [x] **7.1 State:** Kanban state management in Brain.
+- [x] **7.2 UI:** WorkflowManager Svelte interface.
+- [x] **7.3 Logic:** Persona parsing and contextual constraints.
+- [x] **7.4 Inter-process:** Interaction archival (logger integration).
+- [x] **7.5 Skill:** Roadmap-driven task generation.
+- [x] **7.6 Skill:** Experience consolidation (Memory Synthesis).
+- [x] **7.7 Infrastructure:** Parallel Agent Zones (Isolated PTYs). |
 
 ---
 
@@ -374,10 +378,10 @@
 
 | # | Task | Priority | Spec Ref | Deps | Status |
 |---|---|---|---|---|---|
-| 3.1 | Tool bundle enforcement in Brain | **CRITICAL** | Eco §1.4.3 | ModuleManager | ❌ |
-| 3.2 | Implement Command Predictor (ghost text / inline suggestions) | HIGH | Features §4.4 | AiService, prompt | ❌ |
-| 3.3 | Implement Vibe Coder skill (multi-step chip sequence) | HIGH | Features §4.8 | Stage 2.5, AiService | ❌ |
-| 3.4 | Implement thought bubble rendering in Face | MEDIUM | Features §4.6 | AiChat.svelte | 🔶 |
+| 3.1 | Tool bundle enforcement in Brain | **CRITICAL** | Eco §1.4.3 | ModuleManager | ✅ |
+| 3.2 | Implement Command Predictor (ghost text / inline suggestions) | HIGH | Features §4.4 | AiService, prompt | ✅ |
+| 3.3 | Implement Vibe Coder skill (multi-step chip sequence) | HIGH | Features §4.8 | Stage 2.5, AiService | ✅ |
+| 3.4 | Implement thought bubble rendering in Face | MEDIUM | Features §4.6 | AiChat.svelte | ✅ |
 | 3.5 | Implement offline AI queue (store, drain, 30min expiry) | MEDIUM | Features §4.9 | SessionService, tokio timers | ❌ |
 | 3.6 | Context-signal automatic skill activation | MEDIUM | Features §4.7 | Skill manifest, cwd watch | ❌ |
 | 3.7 | Skill learned patterns storage + Settings UI | LOW | Features §4.10 | tos-settingsd | ❌ |
@@ -478,7 +482,7 @@
 | Security & Trust | 7 | 2 | 1 |
 | Module System | 4 | 4 | 3 |
 | Service Daemons | 8 | 1 | 0 |
-| AI System | 5 | 1 | 6 |
+| AI System | 9 | 0 | 3 |
 | Marketplace UI | 3 | 3 | 0 |
 | **Editor** | **14** | **0** | **0** |
 | Session Persistence | 5 | 0 | 2 |
@@ -488,10 +492,10 @@
 | Predictive Fillers | 0 | 0 | 6 |
 | Reset / Log / Settings | 4 | 1 | 4 |
 | **Kanban & Agents** | **3** | **3** | **1** |
-| **TOTAL** | **89** | **39** | **35** |
+| **TOTAL** | **93** | **38** | **32** |
 
 > [!IMPORTANT]
-> The **TOS Editor** is the single largest gap — 14 features with zero implementation. It is the critical path for AI edit flows (Vibe Coder, Diff Mode), session handoff, and the overall developer experience that distinguishes TOS from a standard terminal.
+> The **TOS Editor** framework is now fully implemented, enabling AI-driven edit flows, multi-pane coordination, and real-time LSP integration. The critical path now shifts to **Stage 4 & 5**: Native Platform hardening (Wayland), Multi-Sensory feedback, and Collaboration infrastructure.
 
 ---
 

@@ -131,6 +131,25 @@ impl IpcHandler {
             "ai_history_clear" => self.handle_ai_history_clear(),
             "ai_history_append" => self.handle_ai_history_append(payload, "assistant"),
             "ai_submit" => self.handle_ai_submit(payload),
+            "ai_predict_command" => self.handle_ai_predict_command(payload),
+            "ai_thought_stage" => self.handle_ai_thought_stage(payload),
+            "ai_plan" => self.handle_ai_plan(payload),
+            "ai_roadmap_plan" => self.handle_ai_roadmap_plan(),
+            "ai_dream_consolidate" => self.handle_ai_dream_consolidate(),
+            "ai_isolated_exec" => self.handle_ai_isolated_exec(payload),
+            "ai_archive_interaction" => {
+                let args: Vec<&str> = payload.splitn(3, ';').collect();
+                if args.len() < 3 {
+                    "ERROR: Malformed archive request".to_string()
+                } else {
+                    self.handle_ai_archive_interaction(args[0], args[1], args[2])
+                }
+            }
+            "kanban_init" => self.handle_kanban_init(),
+            "kanban_get" => self.handle_kanban_get(),
+            "kanban_task_add" => self.handle_kanban_task_add(payload),
+            "kanban_task_move" => self.handle_kanban_task_move(payload),
+            "kanban_task_delete" => self.handle_kanban_task_delete(payload),
             "tactical_kill_switch" => self.handle_tactical_kill_switch(),
             "process_inspect" => self.handle_process_inspect(args.get(0).copied()),
             "process_renice" => {
@@ -1944,6 +1963,99 @@ impl IpcHandler {
         "ERROR: Hub not found".to_string()
     }
 
+
+
+    fn handle_ai_predict_command(&self, partial: &str) -> String {
+        let ai = self.services.ai.clone();
+        let partial_str = partial.to_string();
+        
+        tokio::spawn(async move {
+            match ai.predict_command(&partial_str).await {
+                Ok(_prediction) => {
+                    // Predictions are handled via state updates in a real system,
+                    // but for ghost text we should probably emit a specific IPC back to the Face.
+                    // However, AIService already has access to IPC.
+                    // Actually, predict_command in AiService should probably dispatch itself.
+                    // Let's refine AiService::predict_command to dispatch the result.
+                }
+                Err(e) => {
+                    tracing::error!("[IpcHandler] AI Prediction failed: {}", e);
+                }
+            }
+        });
+        "AI_PREDICT_ACCEPTED".to_string()
+    }
+
+    fn handle_ai_thought_stage(&self, payload: &str) -> String {
+        if let Ok(thought) = serde_json::from_str::<crate::AiThought>(payload) {
+            let mut state = self.state.lock().unwrap();
+            let idx = state.active_sector_index;
+            if let Some(sector) = state.sectors.get_mut(idx) {
+                let h_idx = sector.active_hub_index;
+                if let Some(hub) = sector.hubs.get_mut(h_idx) {
+                    // Update if exists, else push
+                    if let Some(existing) = hub.active_thoughts.iter_mut().find(|t| t.id == thought.id) {
+                        *existing = thought;
+                    } else {
+                        hub.active_thoughts.push(thought);
+                    }
+                    state.version += 1;
+                    return "AI_THOUGHT_STAGED".to_string();
+                }
+            }
+        }
+        "ERROR: Invalid thought JSON".to_string()
+    }
+
+    fn handle_ai_plan(&self, prompt: &str) -> String {
+        let ai = self.services.ai.clone();
+        let prompt_str = prompt.to_string();
+        tokio::spawn(async move {
+            if let Err(e) = ai.vibe_plan(&prompt_str).await {
+                tracing::error!("[IpcHandler] AI Plan failed: {}", e);
+            }
+        });
+        "AI_PLAN_ACCEPTED".to_string()
+    }
+
+    pub fn handle_ai_isolated_exec(&self, command: &str) -> String {
+        let cwd = {
+            let state = self.state.lock().unwrap();
+            let idx = state.active_sector_index;
+            state
+                .sectors
+                .get(idx)
+                .and_then(|s| s.hubs.get(s.active_hub_index))
+                .map(|h| h.current_directory.clone())
+                .unwrap_or_default()
+        };
+
+        match crate::brain::shell::ShellApi::exec_isolated(command, cwd) {
+            Ok(output) => output,
+            Err(e) => format!("ERROR: Isolated exec failed: {}", e),
+        }
+    }
+
+    fn handle_ai_roadmap_plan(&self) -> String {
+        let ai = self.services.ai.clone();
+        tokio::spawn(async move {
+            if let Err(e) = ai.roadmap_plan().await {
+                tracing::error!("[IpcHandler] Roadmap Plan failed: {}", e);
+            }
+        });
+        "AI_ROADMAP_PLAN_STARTED".to_string()
+    }
+
+    fn handle_ai_dream_consolidate(&self) -> String {
+        let ai = self.services.ai.clone();
+        tokio::spawn(async move {
+            if let Err(e) = ai.dream_consolidate().await {
+                tracing::error!("[IpcHandler] Dream Consolidate failed: {}", e);
+            }
+        });
+        "AI_DREAM_CONSOLIDATE_STARTED".to_string()
+    }
+
     fn handle_confirmation_accept(&self, id_str: Option<&str>) -> String {
         if let Some(id_str) = id_str {
             if let Ok(id) = Uuid::parse_str(id_str) {
@@ -2201,6 +2313,12 @@ impl IpcHandler {
         if let Some(sector) = state.sectors.get_mut(idx) {
             let hub_idx = sector.active_hub_index;
             if let Some(hub) = sector.hubs.get_mut(hub_idx) {
+                // LSP integration (after state unlock)
+                let cwd = hub.current_directory.clone();
+                let lang_clone = editor_state.language.clone();
+                let file_clone = editor_state.file_path.clone();
+                let cont_clone = editor_state.content.clone();
+                
                 // Create a new editor pane via split
                 let pane = crate::SplitPane::new_with_content(
                     crate::PaneContent::Editor(editor_state),
@@ -2212,12 +2330,6 @@ impl IpcHandler {
                     }
                 }
                 state.version += 1;
-                
-                // LSP integration (after state unlock)
-                let cwd = hub.current_directory.clone();
-                let lang_clone = editor_state.language.clone();
-                let file_clone = editor_state.file_path.clone();
-                let cont_clone = editor_state.content.clone();
                 drop(state);
                 
                 if let Some(lang) = lang_clone {
@@ -2674,6 +2786,129 @@ fn detect_language(path: &std::path::Path) -> Option<String> {
         }
         .to_string()
     })
+}
+
+impl IpcHandler {
+    fn handle_ai_archive_interaction(&self, behavior_id: &str, prompt: &str, response: &str) -> String {
+        self.services.logger.archive_ai(behavior_id, prompt, response);
+        "OK".to_string()
+    }
+
+    // --- Kanban Handlers (§30.8) ---
+
+    fn handle_kanban_init(&self) -> String {
+        let mut state = self.state.lock().unwrap();
+        let idx = state.active_sector_index;
+        if let Some(sector) = state.sectors.get_mut(idx) {
+            if sector.kanban_board.is_some() {
+                return "ERROR: Kanban board already exists".to_string();
+            }
+            sector.kanban_board = Some(crate::KanbanBoard {
+                project_id: Uuid::new_v4(),
+                title: sector.name.clone(),
+                lanes: vec![
+                    crate::KanbanLane { id: Uuid::new_v4(), title: "TODO".to_string(), tasks: vec![] },
+                    crate::KanbanLane { id: Uuid::new_v4(), title: "IN PROGRESS".to_string(), tasks: vec![] },
+                    crate::KanbanLane { id: Uuid::new_v4(), title: "DONE".to_string(), tasks: vec![] },
+                ],
+            });
+            state.version += 1;
+            return "KANBAN_INITIALIZED".to_string();
+        }
+        "ERROR: No active sector".to_string()
+    }
+
+    fn handle_kanban_get(&self) -> String {
+        let state = self.state.lock().unwrap();
+        let idx = state.active_sector_index;
+        if let Some(sector) = state.sectors.get(idx) {
+            if let Some(board) = &sector.kanban_board {
+                return serde_json::to_string(board).unwrap_or_else(|_| "ERROR: Failed to serialize board".to_string());
+            }
+        }
+        "KANBAN_BOARD_NOT_FOUND".to_string()
+    }
+
+    fn handle_kanban_task_add(&self, payload: &str) -> String {
+        #[derive(serde::Deserialize)]
+        struct TaskAdd { lane_id: Uuid, title: String, description: String }
+        if let Ok(data) = serde_json::from_str::<TaskAdd>(payload) {
+            let mut state = self.state.lock().unwrap();
+            let idx = state.active_sector_index;
+            if let Some(sector) = state.sectors.get_mut(idx) {
+                if let Some(board) = &mut sector.kanban_board {
+                    if let Some(lane) = board.lanes.iter_mut().find(|l| l.id == data.lane_id) {
+                        let task = crate::KanbanTask {
+                            id: Uuid::new_v4(),
+                            title: data.title,
+                            description: data.description,
+                            status: crate::KanbanTaskStatus::Todo,
+                            assignee: None,
+                            priority: 0,
+                            tags: vec![],
+                        };
+                        lane.tasks.push(task);
+                        state.version += 1;
+                        return "KANBAN_TASK_ADDED".to_string();
+                    }
+                }
+            }
+        }
+        "ERROR: Invalid task_add payload or lane not found".to_string()
+    }
+
+    fn handle_kanban_task_move(&self, payload: &str) -> String {
+        #[derive(serde::Deserialize)]
+        struct TaskMove { task_id: Uuid, from_lane: Uuid, to_lane: Uuid }
+        if let Ok(data) = serde_json::from_str::<TaskMove>(payload) {
+            let mut state = self.state.lock().unwrap();
+            let idx = state.active_sector_index;
+            if let Some(sector) = state.sectors.get_mut(idx) {
+                if let Some(board) = &mut sector.kanban_board {
+                    let mut task_opt = None;
+                    if let Some(lane) = board.lanes.iter_mut().find(|l| l.id == data.from_lane) {
+                        if let Some(pos) = lane.tasks.iter().position(|t| t.id == data.task_id) {
+                            task_opt = Some(lane.tasks.remove(pos));
+                        }
+                    }
+                    if let Some(mut task) = task_opt {
+                        if let Some(lane) = board.lanes.iter_mut().find(|l| l.id == data.to_lane) {
+                            // Update status based on lane name (simple heuristic)
+                            task.status = match lane.title.as_str() {
+                                "TODO" => crate::KanbanTaskStatus::Todo,
+                                "IN PROGRESS" => crate::KanbanTaskStatus::InProgress,
+                                "DONE" => crate::KanbanTaskStatus::Done,
+                                _ => task.status,
+                            };
+                            lane.tasks.push(task);
+                            state.version += 1;
+                            return "KANBAN_TASK_MOVED".to_string();
+                        }
+                    }
+                }
+            }
+        }
+        "ERROR: Invalid task_move payload or task/lane not found".to_string()
+    }
+
+    fn handle_kanban_task_delete(&self, payload: &str) -> String {
+        #[derive(serde::Deserialize)]
+        struct TaskDelete { task_id: Uuid, lane_id: Uuid }
+        if let Ok(data) = serde_json::from_str::<TaskDelete>(payload) {
+            let mut state = self.state.lock().unwrap();
+            let idx = state.active_sector_index;
+            if let Some(sector) = state.sectors.get_mut(idx) {
+                if let Some(board) = &mut sector.kanban_board {
+                    if let Some(lane) = board.lanes.iter_mut().find(|l| l.id == data.lane_id) {
+                        lane.tasks.retain(|t| t.id != data.task_id);
+                        state.version += 1;
+                        return "KANBAN_TASK_DELETED".to_string();
+                    }
+                }
+            }
+        }
+        "ERROR: Invalid task_delete payload or task/lane not found".to_string()
+    }
 }
 
 impl crate::ipc::IpcDispatcher for IpcHandler {

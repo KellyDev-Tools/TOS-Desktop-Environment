@@ -15,6 +15,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **AI Contextual Awareness**: Rolling context aggregator and context-signal skill activation for passive observation (§4.7).
 - **Tactical UI Polish**: Kinetic borders, depth-aware priority indicators, and a tactical mini-map with projection overlays (§21, §22).
 - **Offline AI Support**: Request queue with auto-drain logic for intermittent connectivity (§4.9).
+- **Advanced Accessibility**: Full keyboard navigation tab-stop chain, focus containment (focus traps) for modals, and LCARS-compliant focus indicators (§5.7).
 - **Roadmap Maintenance Standards**: Formalized requirements for documentation archival and changelog integration.
 
 ### Fixed

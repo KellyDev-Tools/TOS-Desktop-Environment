@@ -9,6 +9,10 @@
 	const sectors = $derived(tosState.sectors || []);
 	const activeIndex = $derived(tosState.active_sector_index);
 
+	let showResetModal = $state(false);
+	let resetConfirmText = $state('');
+	const RESET_KEYWORD = 'RED ALERT';
+
 	let dragHoverSector = $state<number | null>(null);
 
 	let cmState = $state<{
@@ -34,6 +38,14 @@
 	async function handleSectorClick(index: number) {
 		await ipc.switchSector(index);
 		setCurrentMode('hubs');
+	}
+
+	async function handleSystemReset() {
+		if (resetConfirmText === RESET_KEYWORD) {
+			await ipc.systemReset();
+			showResetModal = false;
+			resetConfirmText = '';
+		}
 	}
 
 	function handleDragOver(e: DragEvent, index: number) {
@@ -124,6 +136,12 @@
 			</button>
 		{/each}
 	</div>
+
+	<div class="overview-actions">
+		<button class="danger-zone-btn" onclick={() => showResetModal = true}>
+			<span class="btn-icon">⚠</span> SYSTEM_RESET
+		</button>
+	</div>
 	
 	{#if cmState.open}
 		<SectorContextMenu
@@ -133,6 +151,44 @@
 			sectorName={cmState.sectorName}
 			onClose={() => cmState.open = false}
 		/>
+	{/if}
+
+	{#if showResetModal}
+		<div class="modal-overlay" transition:fade>
+			<div class="reset-modal glass-panel" in:scale={{ start: 0.9 }}>
+				<header class="reset-header">
+					<div class="alert-icon">⚠</div>
+					<h2>CRITICAL_SYSTEM_RESET</h2>
+				</header>
+				
+				<div class="reset-body">
+					<p>Warning: This operation will terminate all active sectors, purge transient memory, and restore the system to factory defaults.</p>
+					<p class="danger-text">ALL UNSAVED DATA WILL BE LOST.</p>
+					
+					<div class="confirm-box">
+						<label for="reset-input">TYPE "{RESET_KEYWORD}" TO CONFIRM:</label>
+						<input 
+							id="reset-input"
+							type="text" 
+							bind:value={resetConfirmText} 
+							placeholder="..."
+							class="glass-input"
+						/>
+					</div>
+				</div>
+
+				<div class="modal-actions">
+					<button class="lcars-btn secondary" onclick={() => { showResetModal = false; resetConfirmText = ''; }}>ABORT_OPERATION</button>
+					<button 
+						class="lcars-btn danger" 
+						disabled={resetConfirmText !== RESET_KEYWORD}
+						onclick={handleSystemReset}
+					>
+						EXECUTE_RESET
+					</button>
+				</div>
+			</div>
+		</div>
 	{/if}
 </div>
 
@@ -371,5 +427,149 @@
 		font-size: 0.75rem;
 		color: var(--color-text-dim);
 		line-height: 1.4;
+	}
+
+	.overview-actions {
+		margin-top: 40px;
+		display: flex;
+		justify-content: flex-end;
+		padding-top: 20px;
+		border-top: 1px solid rgba(255, 255, 255, 0.05);
+	}
+
+	.danger-zone-btn {
+		background: rgba(255, 51, 51, 0.1);
+		border: 1px solid rgba(255, 51, 51, 0.3);
+		color: #ff3333;
+		padding: 8px 20px;
+		border-radius: 4px;
+		font-family: var(--font-display);
+		font-weight: 700;
+		font-size: 0.75rem;
+		cursor: pointer;
+		transition: all 0.2s;
+		display: flex;
+		align-items: center;
+		gap: 10px;
+	}
+
+	.danger-zone-btn:hover {
+		background: rgba(255, 51, 51, 0.2);
+		border-color: #ff3333;
+		box-shadow: 0 0 15px rgba(255, 51, 51, 0.3);
+	}
+
+	/* Reset Modal */
+	.modal-overlay {
+		position: fixed;
+		inset: 0;
+		background: rgba(0, 0, 0, 0.9);
+		backdrop-filter: blur(10px);
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		z-index: 1000;
+	}
+
+	.reset-modal {
+		width: 500px;
+		padding: 40px;
+		border: 1px solid var(--color-danger);
+		display: flex;
+		flex-direction: column;
+		gap: 30px;
+		border-radius: 20px;
+		box-shadow: 0 0 50px rgba(255, 51, 51, 0.2);
+	}
+
+	.reset-header {
+		display: flex;
+		align-items: center;
+		gap: 20px;
+		color: var(--color-danger);
+	}
+
+	.reset-header h2 {
+		font-family: var(--font-display);
+		font-size: 1.5rem;
+		letter-spacing: 0.1em;
+		margin: 0;
+	}
+
+	.alert-icon {
+		font-size: 2rem;
+		animation: blink 1s infinite;
+	}
+
+	.reset-body p {
+		line-height: 1.5;
+		margin-bottom: 15px;
+		color: var(--color-text-dim);
+	}
+
+	.danger-text {
+		color: var(--color-danger);
+		font-weight: 800;
+		letter-spacing: 0.05em;
+	}
+
+	.confirm-box {
+		margin-top: 30px;
+		display: flex;
+		flex-direction: column;
+		gap: 10px;
+	}
+
+	.confirm-box label {
+		font-family: var(--font-mono);
+		font-size: 0.7rem;
+		opacity: 0.7;
+	}
+
+	.glass-input {
+		background: rgba(255, 255, 255, 0.05);
+		border: 1px solid rgba(255, 255, 255, 0.1);
+		padding: 12px;
+		color: white;
+		font-family: var(--font-mono);
+		border-radius: 4px;
+		outline: none;
+		text-align: center;
+		letter-spacing: 0.2em;
+	}
+
+	.glass-input:focus {
+		border-color: var(--color-danger);
+		background: rgba(255, 255, 255, 0.1);
+	}
+
+	.modal-actions {
+		display: flex;
+		gap: 20px;
+	}
+
+	.modal-actions .lcars-btn {
+		flex: 1;
+		font-size: 0.85rem;
+	}
+
+	.lcars-btn.danger {
+		background: var(--color-danger);
+		color: white !important;
+	}
+
+	.lcars-btn.danger:disabled {
+		opacity: 0.3;
+		cursor: not-allowed;
+	}
+
+	.lcars-btn.secondary {
+		background: rgba(255, 255, 255, 0.1);
+		color: white !important;
+	}
+
+	.lcars-btn:hover:not(:disabled) {
+		filter: brightness(1.2);
+		box-shadow: 0 0 15px currentColor;
 	}
 </style>

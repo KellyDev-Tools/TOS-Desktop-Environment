@@ -251,6 +251,11 @@ export async function submitCommand(cmd: string): Promise<string | null> {
     return sendCommand(`prompt_submit:${cmd}`);
 }
 
+export const systemReset = () => sendCommand('system_reset');
+
+export const processInspect = (pid: string) => sendCommand(`process_inspect:${pid}`);
+export const getBuffer = (pid: string) => sendCommand(`get_buffer:${pid}`);
+
 export async function predictCommand(partial: string): Promise<void> {
     await sendCommand(`ai_predict_command:${partial}`);
 }
@@ -295,6 +300,10 @@ export async function splitFocusDirection(dir: 'Up' | 'Down' | 'Left' | 'Right')
     await sendCommand(`split_focus_direction:${dir}`);
 }
 
+export async function splitResize(paneId: string, weight: number): Promise<void> {
+    await sendCommand(`split_resize:${paneId};${weight}`);
+}
+
 export async function splitEqualize(): Promise<void> {
     await sendCommand('split_equalize');
 }
@@ -306,6 +315,19 @@ export async function splitFullscreen(paneId?: string): Promise<void> {
 
 export async function splitFullscreenExit(): Promise<void> {
     await sendCommand('split_fullscreen_exit');
+}
+
+export async function splitSwap(paneA?: string, paneB?: string): Promise<void> {
+    const payload = (paneA && paneB) ? `${paneA};${paneB}` : '';
+    await sendCommand(`split_swap:${payload}`);
+}
+
+export async function splitDetachContext(): Promise<void> {
+    await sendCommand('split_detach:context');
+}
+
+export async function splitDetachFresh(): Promise<void> {
+    await sendCommand('split_detach:fresh');
 }
 
 // --- Onboarding Helpers ---
@@ -390,6 +412,10 @@ export async function marketplaceGetStatus(id: string): Promise<any> {
 export async function marketplaceSearchAi(query: string): Promise<any> {
     const raw = await sendCommand(`marketplace_search_ai:${query}`);
     return raw ? JSON.parse(raw) : null;
+}
+
+export async function marketplaceInstallCancel(id: string): Promise<void> {
+    await sendCommand(`marketplace_install_cancel:${id}`);
 }
 
 /**

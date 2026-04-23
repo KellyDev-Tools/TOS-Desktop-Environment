@@ -68,18 +68,18 @@
 - [x] 3.10 Implement Focus Error chip (PTY error highlighting) — Added automatic high-priority (Level 3) tagging for error-related keywords in PTY `read_loop`.
 - [x] 3.11 Implement notification display center (priority-gated) — Upgraded `PriorityStack.svelte` into a comprehensive Notification Center filtering for TACTICAL/CRITICAL events.
 
-## Stage 4 — UI Polish & Feature Completion
-- [ ] 4.1 Marketplace permission scroll-to-consent gate
-- [ ] 4.2 Marketplace download progress display + cancel
-- [ ] 4.3 Marketplace installed badge in browse cards
-- [x] 4.4 Warning chip rendering as dedicated component — Created `WarningChip.svelte` and integrated into `CommandHub.svelte` with amberPulse animation.
-- [ ] 4.5 Bezel pane management chip rendering
-- [ ] 4.6 Divider drag + snap assist
-- [ ] 4.7 Onboarding: ambient hints (per-hint dismiss)
-- [ ] 4.8 Deep Inspection: Buffer View implementation
-- [ ] 4.9 System reset confirmation dialog
-- [ ] 4.10 Global TOS Log Sector view
-- [ ] 4.11 Tactical Mini-Map depth-aware content
-- [x] 4.12 Priority visual indicators by depth (border chips, glow) — Implemented priority-based glows and status chips in `GlobalOverview.svelte`.
+## Stage 4 — UI Polish & Feature Completion (100%)
+- [x] 4.1 Marketplace permission scroll-to-consent gate
+- [x] 4.2 Marketplace download progress display + cancel
+- [x] 4.3 Marketplace installed badge in browse cards
+- [x] 4.4 Warning chip rendering as dedicated component
+- [x] 4.5 Bezel pane management chip rendering
+- [x] 4.6 Divider drag + snap assist
+- [x] 4.7 Onboarding: ambient hints (per-hint dismiss) — Implemented `AmbientHint.svelte` system with permanent dismissal via settings and initial hint registry.
+- [x] 4.8 Deep Inspection: Buffer View implementation — Implemented multi-view `DetailInspector.svelte` with structured metadata, read-only hex buffer dump, and tactical wireframe reset.
+- [x] 4.9 System reset confirmation dialog — Added a tactical "RED ALERT" confirmation modal to `GlobalOverview.svelte` with Brain-side `system_reset` IPC logic.
+- [x] 4.10 Global TOS Log Sector view — Implemented `LogView.svelte` as a full-screen sector view with filtering, categorization, and export/clear capabilities.
+- [x] 4.11 Tactical Mini-Map depth-aware content — Upgraded `Minimap.svelte` to show distinct spatial visualizations for Levels 1–4, including a projected global topology overlay.
+- [x] 4.12 Priority visual indicators by depth (border chips, glow)
 
 ## Stage 5–6 — Deferred to subsequent sessions

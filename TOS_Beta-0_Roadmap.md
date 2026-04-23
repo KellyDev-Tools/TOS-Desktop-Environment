@@ -394,18 +394,18 @@
 
 | # | Task | Priority | Spec Ref | Deps | Status |
 |---|---|---|---|---|---|
-| 4.1 | Marketplace permission scroll-to-consent gate | HIGH | Features §5.6.1 | Marketplace.svelte | 🔶 |
-| 4.2 | Marketplace download progress display + cancel | HIGH | Features §5.6 | tos-marketplaced | 🔶 |
-| 4.3 | Marketplace installed badge in browse cards | MEDIUM | Features §5.8 | Marketplace.svelte | 🔶 |
-| 4.4 | Warning chip rendering as dedicated component | HIGH | Arch §17.2.3 | Trust service, CommandHub.svelte | 🔶 |
-| 4.5 | Bezel pane management chip rendering | MEDIUM | Arch §11.8 | ExpandedBezel.svelte, SplitLayout | 🔶 |
-| 4.6 | Divider drag + snap assist | MEDIUM | Arch §11.6 | SplitLayout.svelte | 🔶 |
-| 4.7 | Onboarding: ambient hints (per-hint dismiss) | LOW | Features §3.6 | OnboardingOverlay | ❌ |
-| 4.8 | Deep Inspection: Buffer View implementation | MEDIUM | Arch §9 | DetailInspector.svelte | 🔶 |
-| 4.9 | System reset confirmation dialog | LOW | Arch §20.2 | GlobalOverview.svelte | ❌ |
-| 4.10 | Global TOS Log Sector view | MEDIUM | Arch §19.2 | tos-loggerd | ❌ |
-| 4.11 | Tactical Mini-Map depth-aware content | MEDIUM | Arch §22.2 | Minimap.svelte | 🔶 |
-| 4.12 | Priority visual indicators by depth (border chips, glow) | MEDIUM | Arch §21.3 | PriorityStack, CSS | 🔶 |
+| 4.1 | Marketplace permission scroll-to-consent gate | HIGH | Features §5.6.1 | Marketplace.svelte | ✅ |
+| 4.2 | Marketplace download progress display + cancel | HIGH | Features §5.6 | tos-marketplaced | ✅ |
+| 4.3 | Marketplace installed badge in browse cards | MEDIUM | Features §5.8 | Marketplace.svelte | ✅ |
+| 4.4 | Warning chip rendering as dedicated component | HIGH | Arch §17.2.3 | Trust service, CommandHub.svelte | ✅ |
+| 4.5 | Bezel pane management chip rendering | MEDIUM | Arch §11.8 | ExpandedBezel.svelte, SplitLayout | ✅ |
+| 4.6 | Divider drag + snap assist | MEDIUM | Arch §11.6 | SplitLayout.svelte | ✅ |
+| 4.7 | Onboarding: ambient hints (per-hint dismiss) | LOW | Features §3.6 | OnboardingOverlay | ✅ |
+| 4.8 | Deep Inspection: Buffer View implementation | MEDIUM | Arch §9 | DetailInspector.svelte | ✅ |
+| 4.9 | System reset confirmation dialog | LOW | Arch §20.2 | GlobalOverview.svelte | ✅ |
+| 4.10 | Global TOS Log Sector view | MEDIUM | Arch §19.2 | LogView.svelte | ✅ |
+| 4.11 | Tactical Mini-Map depth-aware content | MEDIUM | Arch §22.2 | Minimap.svelte | ✅ |
+| 4.12 | Priority visual indicators by depth (border chips, glow) | MEDIUM | Arch §21.3 | PriorityStack, CSS | ✅ |
 
 ---
 
@@ -471,24 +471,25 @@
 |---|---|---|---|
 | Core Architecture | 14 | 2 | 0 |
 | Sector & Command Hub | 9 | 4 | 0 |
-| Split Viewports | 5 | 3 | 0 |
+| Split Viewports | 7 | 1 | 0 |
 | Remote & Collaboration | 2 | 6 | 0 |
 | Input Abstraction | 2 | 0 | 3 |
 | Platform & Rendering | 2 | 3 | 3 |
-| Security & Trust | 7 | 2 | 1 |
+| Security & Trust | 8 | 1 | 1 |
 | Module System | 4 | 4 | 3 |
 | Service Daemons | 8 | 1 | 0 |
 | AI System | 12 | 0 | 0 |
-| Marketplace UI | 3 | 3 | 0 |
-| **Editor** | **14** | **0** | **0** |
+| Marketplace UI | 6 | 0 | 0 |
+| **Stage 4: Polish** | **49** | **0** | **0** |
 | Session Persistence | 5 | 0 | 2 |
 | Onboarding | 1 | 2 | 1 |
 | Multi-Sensory | 0 | 2 | 3 |
 | Accessibility | 0 | 2 | 3 |
 | Predictive Fillers | 4 | 0 | 2 |
-| Reset / Log / Settings | 4 | 1 | 4 |
+| Reset / Log / Settings | 5 | 0 | 4 |
 | **Kanban & Agents** | **6** | **1** | **0** |
-| **TOTAL** | **108** | **39** | **21** |
+| Priority & Visual | 1 | 2 | 0 |
+| **TOTAL** | **135** | **24** | **9** |
 
 > [!IMPORTANT]
 > The **TOS Editor** framework is now fully implemented, enabling AI-driven edit flows, multi-pane coordination, and real-time LSP integration. The critical path now shifts to **Stage 4 & 5**: Native Platform hardening (Wayland), Multi-Sensory feedback, and Collaboration infrastructure.

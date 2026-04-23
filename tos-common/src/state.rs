@@ -588,6 +588,21 @@ impl SplitNode {
             }
         }
     }
+
+    pub fn promote_pane(&mut self, id: Uuid) {
+        fn find_and_clone(node: &SplitNode, id: Uuid) -> Option<SplitPane> {
+            match node {
+                SplitNode::Leaf(p) if p.id == id => Some(p.clone()),
+                SplitNode::Leaf(_) => None,
+                SplitNode::Container { children, .. } => {
+                    children.iter().find_map(|c| find_and_clone(c, id))
+                }
+            }
+        }
+        if let Some(pane) = find_and_clone(self, id) {
+            *self = SplitNode::Leaf(pane);
+        }
+    }
 }
 
 impl SplitPane {

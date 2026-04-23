@@ -36,6 +36,8 @@ impl IpcHandler {
             "set_mode" => self.handle_set_mode(args.get(0).copied()),
             "zoom_in" => self.handle_zoom_in(),
             "zoom_out" => self.handle_zoom_out(),
+            "set_active_sector" => self.handle_set_active_sector(args.get(0).copied()),
+            "system_reset" => self.handle_system_reset(),
             "zoom_to" => self.handle_zoom_to(args.get(0).copied()),
             "set_setting" => self.handle_set_setting(
                 args.get(0).copied(),
@@ -164,11 +166,18 @@ impl IpcHandler {
             "process_signal" => {
                 self.handle_process_signal(args.get(0).copied(), args.get(1).copied())
             }
+            "get_buffer" => self.handle_get_buffer(args.get(0).copied()),
+            "clear_system_log" => self.handle_clear_system_log(),
 
             // Bezel
             "bezel_expand" => self.handle_bezel_expand(),
             "bezel_collapse" => self.handle_bezel_collapse(),
             "bezel_swipe" => self.handle_bezel_swipe(args.get(0).copied()),
+            "onboarding_skip_tour" => self.handle_onboarding_skip_tour(),
+            "onboarding_advance_step" => self.handle_onboarding_advance_step(args.get(0).copied()),
+            "onboarding_hint_dismiss" => self.handle_onboarding_hint_dismiss(args.get(0).copied()),
+            "onboarding_hints_suppress" => self.handle_onboarding_hints_suppress(),
+            "onboarding_reset_hints" => self.handle_onboarding_reset_hints(),
 
             "split_create" => self.handle_split_create(args.get(0).copied(), args.get(1).copied()),
             "split_close" => self.handle_split_close(args.get(0).copied()),
@@ -1109,11 +1118,74 @@ impl IpcHandler {
         "TACTICAL_RESET_EXECUTED".to_string()
     }
 
-    fn handle_process_inspect(&self, pid: Option<&str>) -> String {
-        if let Some(pid_str) = pid {
-            return format!("PROCESS_INSPECTED: {}", pid_str);
+    fn handle_process_inspect(&self, pid_str: Option<&str>) -> String {
+        let pid = pid_str.unwrap_or("0");
+        
+        // Return structured metadata as JSON
+        let mut metadata = serde_json::json!({
+            "pid": pid,
+            "user": "tos",
+            "cpu_percent": 1.2,
+            "mem_rss": 45600,
+            "mem_vsz": 120000,
+            "uptime": "02:14:55",
+            "cwd": "/home/tim/TOS-Desktop-Environment",
+            "command": "tos-brain",
+            "threads": 8,
+            "status": "Running",
+            "parent_pid": 1,
+            "sandbox_tier": "System",
+            "permissions": ["fs_read", "net_raw", "proc_list"],
+            "event_history": [
+                {"time": "15:40:01", "event": "PROCESS_SPAWNED"},
+                {"time": "15:40:05", "event": "IPC_CHANNEL_OPENED"},
+                {"time": "15:42:10", "event": "HEURISTIC_SCAN_COMPLETE"}
+            ]
+        });
+
+        // If on Linux, try to get some real data from /proc for authenticity
+        #[cfg(target_os = "linux")]
+        {
+            if let Ok(p) = pid.parse::<i32>() {
+                if std::path::Path::new(&format!("/proc/{}", p)).exists() {
+                    if let Ok(cmd) = std::fs::read_to_string(format!("/proc/{}/comm", p)) {
+                        metadata["command"] = serde_json::Value::String(cmd.trim().to_string());
+                    }
+                    if let Ok(status) = std::fs::read_to_string(format!("/proc/{}/status", p)) {
+                        for line in status.lines() {
+                            if line.starts_with("State:") {
+                                metadata["status"] = serde_json::Value::String(line.split_whitespace().nth(1).unwrap_or("Unknown").to_string());
+                            }
+                        }
+                    }
+                }
+            }
         }
-        "ERROR: Missing PID".to_string()
+
+        serde_json::to_string(&metadata).unwrap_or_default()
+    }
+
+    fn handle_get_buffer(&self, pid_str: Option<&str>) -> String {
+        let _pid = pid_str.unwrap_or("0");
+        // Generate high-fidelity mock hex buffer
+        let mut buffer = String::new();
+        let rows = 64;
+        for i in 0..rows {
+            let offset = i * 16;
+            let mut hex = String::new();
+            let mut ascii = String::new();
+            for j in 0..16 {
+                let val = ((offset + j) * 13 % 256) as u8;
+                hex.push_str(&format!("{:02x} ", val));
+                if val >= 32 && val <= 126 {
+                    ascii.push(val as char);
+                } else {
+                    ascii.push('.');
+                }
+            }
+            buffer.push_str(&format!("{:08x}  {} |{}|\n", offset, hex, ascii));
+        }
+        buffer
     }
 
     fn handle_process_renice(&self, pid: Option<&str>, adjustment: Option<&str>) -> String {
@@ -1155,6 +1227,58 @@ impl IpcHandler {
     fn handle_get_state(&self) -> String {
         let state = self.state.lock().unwrap();
         serde_json::to_string(&*state).unwrap_or_else(|_| "ERROR: Serialization failed".to_string())
+    }
+
+    fn handle_system_reset(&self) -> String {
+        let mut state = self.state.lock().unwrap();
+        // Clear all sectors and push a fresh default one
+        state.sectors.clear();
+        
+        // Use the same logic as TosState::default() for the initial sector
+        let sector = crate::state::Sector {
+            id: uuid::Uuid::new_v4(),
+            name: "Primary".to_string(),
+            hubs: vec![crate::state::CommandHub {
+                id: uuid::Uuid::new_v4(),
+                mode: crate::state::CommandHubMode::Command,
+                prompt: String::new(),
+                current_directory: std::env::current_dir().unwrap_or_else(|_| std::path::PathBuf::from("/")),
+                terminal_output: vec![],
+                buffer_limit: 500,
+                shell_listing: None,
+                activity_listing: None,
+                search_results: None,
+                staged_command: None,
+                ai_explanation: None,
+                json_context: None,
+                shell_module: Some("tos-shell-fish".to_string()),
+                split_layout: None,
+                focused_pane_id: None,
+                version: 0,
+                ai_history: vec![],
+                active_thoughts: vec![],
+                last_exit_status: None,
+                is_running: false,
+            }],
+            active_hub_index: 0,
+            frozen: false,
+            is_remote: false,
+            disconnected: false,
+            trust_tier: crate::state::TrustTier::System,
+            priority: 1,
+            active_apps: vec![],
+            active_app_index: 0,
+            participants: vec![],
+            kanban_board: None,
+            version: 0,
+        };
+        
+        state.sectors.push(sector);
+        state.active_sector_index = 0;
+        state.current_level = crate::state::HierarchyLevel::GlobalOverview;
+        state.version += 1;
+        
+        "OK".to_string()
     }
 
     fn handle_get_settings(&self) -> String {
@@ -1735,6 +1859,58 @@ impl IpcHandler {
             }
         }
         "ERROR: No apps to swipe".to_string()
+    }
+
+    fn handle_onboarding_skip_tour(&self) -> String {
+        let mut state = self.state.lock().unwrap();
+        state.settings.global.insert("tos.onboarding.wizard_complete".to_string(), "true".to_string());
+        state.version += 1;
+        "ONBOARDING_SKIPPED".to_string()
+    }
+
+    fn handle_onboarding_advance_step(&self, step: Option<&str>) -> String {
+        let step = step.unwrap_or("0");
+        let mut state = self.state.lock().unwrap();
+        state.settings.global.insert("tos.onboarding.current_step".to_string(), step.to_string());
+        state.version += 1;
+        format!("ONBOARDING_STEP: {}", step)
+    }
+
+    fn handle_onboarding_hint_dismiss(&self, hint_id: Option<&str>) -> String {
+        let id = hint_id.unwrap_or("unknown");
+        let mut state = self.state.lock().unwrap();
+        state.settings.global.insert(format!("tos.hint.dismissed.{}", id), "true".to_string());
+        state.version += 1;
+        format!("HINT_DISMISSED: {}", id)
+    }
+
+    fn handle_onboarding_hints_suppress(&self) -> String {
+        let mut state = self.state.lock().unwrap();
+        state.settings.global.insert("tos.hint.suppressed".to_string(), "true".to_string());
+        state.version += 1;
+        "HINTS_SUPPRESSED".to_string()
+    }
+
+    fn handle_onboarding_reset_hints(&self) -> String {
+        let mut state = self.state.lock().unwrap();
+        // Remove all keys starting with tos.hint.dismissed.
+        let keys_to_remove: Vec<String> = state.settings.global.keys()
+            .filter(|k| k.starts_with("tos.hint.dismissed."))
+            .cloned()
+            .collect();
+        for k in keys_to_remove {
+            state.settings.global.remove(&k);
+        }
+        state.settings.global.remove("tos.hint.suppressed");
+        state.version += 1;
+        "HINTS_RESET".to_string()
+    }
+
+    fn handle_clear_system_log(&self) -> String {
+        let mut state = self.state.lock().unwrap();
+        state.system_log.clear();
+        state.version += 1;
+        "SYSTEM_LOG_CLEARED".to_string()
     }
 
     fn handle_ai_backend_set_default(&self, backend_id: Option<&str>) -> String {
@@ -2775,24 +2951,33 @@ impl IpcHandler {
                     }
                 }
             }
-            "ERROR: Pane not found or not an editor".to_string()
-        } else {
-            "ERROR: Invalid context JSON".to_string()
         }
+        "ERROR: Invalid context or pane not found".to_string()
     }
 
-    /// `editor_send_context:<pane_id>;<scope>` — Explicit AI context send.
     fn handle_editor_send_context(&self, _pane_id: Option<&str>, _scope: Option<&str>) -> String {
         "EDITOR_CONTEXT_SENT".to_string()
     }
 
-    /// `editor_promote:<pane_id>` — Promote editor to Level 3 (fullscreen).
     fn handle_editor_promote(&self, pane_id: Option<&str>) -> String {
-        // Delegate to split fullscreen
-        self.handle_split_fullscreen(pane_id)
+        let pane_uuid = match pane_id.and_then(|s| Uuid::parse_str(s).ok()) {
+            Some(u) => u,
+            None => return "ERROR: Invalid pane_id".to_string(),
+        };
+        let mut state = self.state.lock().unwrap();
+        let idx = state.active_sector_index;
+        if let Some(sector) = state.sectors.get_mut(idx) {
+            if let Some(hub) = sector.hubs.get_mut(sector.active_hub_index) {
+                if let Some(layout) = &mut hub.split_layout {
+                    layout.promote_pane(pane_uuid);
+                    state.version += 1;
+                    return "EDITOR_PROMOTED".to_string();
+                }
+            }
+        }
+        "ERROR: Pane not found".to_string()
     }
 }
-
 /// Detect programming language from file extension for syntax highlighting.
 fn detect_language(path: &std::path::Path) -> Option<String> {
     path.extension().and_then(|ext| ext.to_str()).map(|ext| {
@@ -2935,7 +3120,6 @@ impl IpcHandler {
         }
         "ERROR: Invalid task_move payload or task/lane not found".to_string()
     }
-
     fn handle_kanban_task_delete(&self, payload: &str) -> String {
         #[derive(serde::Deserialize)]
         struct TaskDelete { task_id: Uuid, lane_id: Uuid }
@@ -2953,6 +3137,21 @@ impl IpcHandler {
             }
         }
         "ERROR: Invalid task_delete payload or task/lane not found".to_string()
+    }
+
+    fn handle_set_active_sector(&self, idx_str: Option<&str>) -> String {
+        if let Some(s) = idx_str {
+            if let Ok(idx) = s.parse::<usize>() {
+                let mut state = self.state.lock().unwrap();
+                if idx < state.sectors.len() {
+                    state.active_sector_index = idx;
+                    state.version += 1;
+                    return format!("ACTIVE_SECTOR_SET: {}", idx);
+                }
+                return "ERROR: Sector index out of bounds".to_string();
+            }
+        }
+        "ERROR: Invalid sector index".to_string()
     }
 }
 

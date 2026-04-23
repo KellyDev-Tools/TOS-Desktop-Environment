@@ -3,7 +3,7 @@
  * Hierarchy level, sidebar visibility, component slot configuration, etc.
  */
 
-export type ViewMode = 'global' | 'hubs' | 'sectors' | 'app' | 'marketplace' | 'detail' | 'buffer' | 'spatial';
+export type ViewMode = 'global' | 'hubs' | 'sectors' | 'app' | 'marketplace' | 'detail' | 'buffer' | 'spatial' | 'logs';
 export type SettingsTab = 'global' | 'interface' | 'security' | 'ai' | 'sessions' | 'marketplace' | 'sectors';
 export type PromptMode = 'cmd' | 'search' | 'ai';
 

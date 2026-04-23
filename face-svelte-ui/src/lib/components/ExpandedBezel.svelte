@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { fade, fly } from 'svelte/transition';
-	import { getTosState, bezelCollapse, bezelSwipe, bezelPanePromote } from '$lib/stores/ipc.svelte';
+	import { getTosState, bezelCollapse, bezelSwipe, bezelPanePromote, splitFullscreen, splitSwap, splitDetachContext } from '$lib/stores/ipc.svelte';
 
 	const tosState = $derived(getTosState());
 	const activeSector = $derived(tosState.sectors[tosState.active_sector_index]);
@@ -43,6 +43,13 @@
 						<button class="lcars-btn-sm" onclick={() => bezelPanePromote()}>⊞ PROMOTE_TO_PANE</button>
 						<button class="lcars-btn-sm">⏹ STOP (Ctrl+C)</button>
 						<button class="lcars-btn-sm">⧉ NEW_TERMINAL</button>
+					</div>
+
+					<div class="chip-group">
+						<div class="group-label">PANE_MANAGEMENT</div>
+						<button class="lcars-btn-sm" onclick={() => splitFullscreen()}>⛶ FULLSCREEN (Ctrl+F)</button>
+						<button class="lcars-btn-sm" onclick={() => splitSwap()}>⇌ SWAP_PANES (Ctrl+X)</button>
+						<button class="lcars-btn-sm" onclick={() => splitDetachContext()}>⧉ DETACH_SECTOR</button>
 					</div>
 				</div>
 			</div>

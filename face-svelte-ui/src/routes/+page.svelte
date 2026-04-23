@@ -23,6 +23,7 @@
 	import ApplicationFocus from '$lib/components/views/ApplicationFocus.svelte';
 	import Marketplace from '$lib/components/views/Marketplace.svelte';
 	import DetailInspector from '$lib/components/views/DetailInspector.svelte';
+	import LogView from '$lib/components/views/LogView.svelte';
 
 	// Module Components
 	import BrainStatus from '$lib/components/modules/BrainStatus.svelte';
@@ -59,6 +60,7 @@
 		{ label: 'CommandHub', mode: 'hubs', key: '2' },
 		{ label: 'ApplicationFocus', mode: 'sectors', key: '3' },
 		{ label: 'DetailView', mode: 'detail', key: '4' },
+		{ label: 'SystemLogs', mode: 'logs', key: 'L' },
 	];
 
 	// Prompt mode config
@@ -84,6 +86,7 @@
 
 	import OnboardingOverlay from '$lib/components/OnboardingOverlay.svelte';
 	import ExpandedBezel from '$lib/components/ExpandedBezel.svelte';
+	import AmbientHint from '$lib/components/AmbientHint.svelte';
 	import { bezelExpand } from '$lib/stores/ipc.svelte';
 
 	let cinematicActive = $state(false);
@@ -181,6 +184,7 @@
 		mode === 'detail' ? 'DETAIL INSPECTOR // LEVEL 4' :
 		mode === 'buffer' ? 'RAW DATA BUFFER // LEVEL 5' :
 		mode === 'spatial' ? 'SPATIAL TOPOLOGY // 3D SHELL' :
+		mode === 'logs' ? 'GLOBAL TOS LOG SECTOR' :
 		'TOS'
 	);
 
@@ -199,7 +203,7 @@
 
 		if (e.ctrlKey || e.metaKey) {
 			// Ctrl+1-4: Switch hierarchy levels
-			const levelMap: Record<string, ViewMode> = { '1': 'global', '2': 'hubs', '3': 'sectors', '4': 'detail', 'm': 'marketplace' };
+			const levelMap: Record<string, ViewMode> = { '1': 'global', '2': 'hubs', '3': 'sectors', '4': 'detail', 'm': 'marketplace', 'l': 'logs' };
 			if (levelMap[e.key]) {
 				e.preventDefault();
 				handleLevelClick(levelMap[e.key]);
@@ -373,6 +377,20 @@
 						<OnboardingOverlay />
 						<ExpandedBezel />
 
+						<AmbientHint 
+							id="welcome" 
+							text="Welcome to TOS Beta-0. Use the sidebar to navigate hierarchy levels 1–4." 
+						/>
+						<AmbientHint 
+							id="marketplace" 
+							text="Expand system capabilities via the Marketplace. Install AI behaviors and UI modules."
+							targetSelector=".market-btn"
+						/>
+						<AmbientHint 
+							id="split_panes" 
+							text="Need more space? Use Ctrl+\ to split any hub into recursive panes."
+						/>
+
 						{#if cinematicActive}
 							<!-- svelte-ignore a11y_click_events_have_key_events -->
 							<!-- svelte-ignore a11y_no_static_element_interactions -->
@@ -431,6 +449,8 @@
 											<div class="placeholder-title">SPATIAL TOPOLOGY</div>
 											<div class="placeholder-sub">3D Sector Shell</div>
 										</div>
+									{:else if mode === 'logs'}
+										<LogView />
 									{/if}
 								</div>
 							{/if}

@@ -14,6 +14,8 @@
     let pollingInterval = $state<any>(null);
     let isAiSearching = $state(false);
     let aiSearchResults = $state<any[]>([]);
+    let hasScrolledToBottom = $state(false);
+    let permReviewContainer = $state<HTMLDivElement | null>(null);
 
 	onMount(() => {
 		fetchHome();
@@ -85,7 +87,23 @@
     }
 
     function initiateInstall() {
+        hasScrolledToBottom = false;
         showPermissionModal = true;
+    }
+
+    function handlePermScroll(e: Event) {
+        const target = e.target as HTMLDivElement;
+        if (target.scrollHeight - target.scrollTop <= target.clientHeight + 10) {
+            hasScrolledToBottom = true;
+        }
+    }
+
+    async function cancelInstall() {
+        if (installProgress && installProgress.module_id) {
+            await marketplaceInstallCancel(installProgress.module_id);
+            clearInterval(pollingInterval);
+            installProgress = null;
+        }
     }
 
     async function confirmInstall() {
@@ -182,8 +200,8 @@
 					</div>
 					<div class="module-action">
 						{#if module.installed}
-							<div class="status-indicator">
-                                <div class="pulse-dot-small"></div>
+							<div class="status-indicator premium-badge">
+                                <div class="badge-ring"></div>
                                 <span class="status-badge installed">INSTALLED</span>
                             </div>
 						{:else}
@@ -271,6 +289,7 @@
                             <div class="install-progress-bar">
                                 <div class="progress-fill" style="width: {installProgress.progress * 100}%"></div>
                                 <div class="progress-text">{installProgress.status.toUpperCase()}... {(installProgress.progress * 100).toFixed(0)}%</div>
+                                <button class="cancel-install-btn" onclick={cancelInstall} title="Cancel Installation">✕</button>
                             </div>
                         {/if}
                     {:else if selectedModule.summary.installed}
@@ -289,13 +308,16 @@
                 <h2>REVIEW PERMISSIONS</h2>
                 <p>"{selectedModule.summary.name}" requires the following access:</p>
                 
-                <div class="perm-review">
+                <div class="perm-review" onscroll={handlePermScroll} bind:this={permReviewContainer}>
                     {#each (selectedModule.permissions || []) as perm}
                         <div class="perm-item">
                             <div class="perm-name">{perm.toUpperCase()}</div>
                             <div class="perm-desc">Required for core functionality.</div>
                         </div>
                     {/each}
+                    <div class="scroll-target-hint" class:visible={!hasScrolledToBottom}>
+                        ↓↓ SCROLL TO REVIEW ALL PERMISSIONS ↓↓
+                    </div>
                 </div>
 
                 <div class="security-meta">
@@ -305,7 +327,9 @@
 
                 <div class="modal-actions">
                     <button class="lcars-btn secondary" onclick={() => showPermissionModal = false}>DECLINE</button>
-                    <button class="lcars-btn primary" onclick={confirmInstall}>ACCEPT & INSTALL</button>
+                    <button class="lcars-btn primary" onclick={confirmInstall} disabled={!hasScrolledToBottom}>
+                        {hasScrolledToBottom ? 'ACCEPT & INSTALL' : 'LOCKED'}
+                    </button>
                 </div>
             </div>
         </div>
@@ -591,12 +615,25 @@
         gap: 8px;
     }
 
-    .pulse-dot-small {
-        width: 6px;
-        height: 6px;
-        background: #4caf50;
-        border-radius: 50%;
-        animation: pulseFade 2s infinite;
+    .premium-badge {
+        position: relative;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .badge-ring {
+        position: absolute;
+        inset: -4px;
+        border: 1px solid var(--color-success);
+        border-radius: 4px;
+        opacity: 0.3;
+        animation: rotateRing 10s linear infinite;
+    }
+
+    @keyframes rotateRing {
+        from { transform: rotate(0deg); }
+        to { transform: rotate(360deg); }
     }
 
     @keyframes pulseFade {
@@ -991,8 +1028,54 @@
         top: 0; left: 0; width: 100%; height: 100%;
         display: flex; align-items: center; justify-content: center;
         font-family: var(--font-display); font-weight: 800; font-size: 0.9rem;
-        color: black; mix-blend-mode: overlay;
+        color: white;
         letter-spacing: 0.1em;
+        text-shadow: 0 1px 4px rgba(0,0,0,0.8);
+    }
+
+    .cancel-install-btn {
+        position: absolute;
+        right: 10px;
+        top: 50%;
+        transform: translateY(-50%);
+        background: rgba(0,0,0,0.3);
+        border: 1px solid rgba(255,255,255,0.2);
+        color: white;
+        width: 24px;
+        height: 24px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 0.8rem;
+        cursor: pointer;
+        transition: all 0.2s;
+        z-index: 10;
+    }
+
+    .cancel-install-btn:hover {
+        background: #ff5252;
+        border-color: #ff5252;
+    }
+
+    .scroll-target-hint {
+        text-align: center;
+        font-size: 0.65rem;
+        font-family: var(--font-mono);
+        color: var(--color-primary);
+        padding: 20px 0;
+        opacity: 0;
+        transition: opacity 0.3s;
+    }
+
+    .scroll-target-hint.visible {
+        opacity: 0.6;
+        animation: bounceHint 2s infinite;
+    }
+
+    @keyframes bounceHint {
+        0%, 100% { transform: translateY(0); }
+        50% { transform: translateY(5px); }
     }
 </style>
 

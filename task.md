@@ -85,5 +85,6 @@
 ## Stage 5 — Native Platform & Multi-Sensory
 - [x] 5.1 Real Wayland compositor integration test — Stabilized SHM buffer attachment in `WaylandShell`, resolving `wl_shm_pool` and `wl_buffer` dispatching issues.
 - [x] 5.2 DMABUF frame buffer sharing for Level 3 apps — Implemented `linux-dmabuf-v1` path in `WaylandShell` with automatic fallback to SHM. Support for `create_immed` with DRM_FORMAT_ARGB8888.
-- [ ] 5.3 Three-layer audio model
+- [x] 5.3 Three-layer audio model (ambient/tactical/voice) — Implemented `AudioService` with independent `Sink` layers for ambient loops, tactical earcons, and voice responses, including IPC handlers for volume and layer control.
+- [x] 5.4 Alert level adaptation (Green/Yellow/Red) — Wired the Brain's background loop to automatically shift ambient audio profiles and volumes based on the highest active sector priority.
 - [ ] 5.7 Full keyboard navigation tab-stop chain

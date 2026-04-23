@@ -42,3 +42,37 @@ fn test_layer_surface_creation() {
     // If we didn't panic or crash, it's a good sign for a headless/integration test
     println!("Wayland Integration: Surface creation request dispatched.");
 }
+
+#[test]
+fn test_dmabuf_buffer_attachment() {
+    if !WaylandShell::can_connect() {
+        return;
+    }
+
+    let mut shell = WaylandShell::new().unwrap();
+    
+    // Create a surface
+    let surface = shell.create_layer_surface("DMABUF Test", 640, 480);
+    
+    // Create a dummy buffer (memfd)
+    // We use libc directly to simulate the renderer's allocation
+    unsafe {
+        let name = std::ffi::CString::new("test_buffer").unwrap();
+        let fd = libc::memfd_create(name.as_ptr(), libc::MFD_CLOEXEC);
+        assert!(fd >= 0, "Failed to create memfd for test");
+        
+        let size = 640 * 480 * 4;
+        libc::ftruncate(fd, size as libc::off_t);
+        
+        // Try to attach the buffer
+        // This will exercise the DMABUF path (or SHM fallback)
+        shell.attach_buffer(&surface, fd, 640, 480);
+        
+        // Dispatch to process protocol messages
+        shell.dispatch();
+        
+        libc::close(fd);
+    }
+    
+    println!("Wayland Integration: DMABUF/SHM buffer attachment test passed.");
+}

@@ -4,8 +4,11 @@
 > - `TOS_alpha2-to-beta0.md` (phases 1–6)
 > - `TOS_SSH_Wayland_Fix_Plan.md`
 > - All archived Alpha-2 roadmaps in `archive/alpha-2/dev_docs/`
->
-> Previous documents should be archived in `docs/archive/` and no longer updated.
+
+> [!IMPORTANT]
+> **Roadmap Maintenance Requirements:**
+> 1. **Archival**: Previous roadmap and planning documents MUST be archived in `docs/archive/` and SHALL NOT be updated once superseded.
+> 2. **Changelog Integration**: When a roadmap section is completed, items MUST be moved to `CHANGELOG.md` with a new version entry created.
 
 ---
 

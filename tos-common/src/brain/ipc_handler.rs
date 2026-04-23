@@ -1,4 +1,5 @@
 use crate::{CommandHubMode, HierarchyLevel, TosState};
+use crate::state::QueuedAiRequest;
 use crate::services::MarketplaceService;
 // use crate::*;
 use std::sync::{Arc, Mutex};
@@ -129,10 +130,15 @@ impl IpcHandler {
                 self.handle_ai_backend_clear_behavior(args.get(0).copied())
             }
             "ai_history_clear" => self.handle_ai_history_clear(),
+            "ai_pattern_set" => self.handle_ai_pattern_set(args.get(0).copied(), args.get(1).copied()),
+            "ai_pattern_get" => self.handle_ai_pattern_get(args.get(0).copied()),
             "ai_history_append" => self.handle_ai_history_append(payload, "assistant"),
             "ai_submit" => self.handle_ai_submit(payload),
             "ai_predict_command" => self.handle_ai_predict_command(payload),
             "ai_thought_stage" => self.handle_ai_thought_stage(payload),
+            "ai_queue_push" => self.handle_ai_queue_push(payload),
+            "ai_queue_get" => self.handle_ai_queue_get(),
+            "ai_queue_clear" => self.handle_ai_queue_clear(),
             "ai_plan" => self.handle_ai_plan(payload),
             "ai_roadmap_plan" => self.handle_ai_roadmap_plan(),
             "ai_dream_consolidate" => self.handle_ai_dream_consolidate(),
@@ -965,6 +971,26 @@ impl IpcHandler {
         .unwrap()
     }
 
+    fn handle_ai_queue_push(&self, payload: &str) -> String {
+        if let Ok(req) = serde_json::from_str::<QueuedAiRequest>(payload) {
+            let mut state = self.state.lock().unwrap();
+            state.ai_offline_queue.push(req);
+            return "AI_QUEUE_PUSHED".to_string();
+        }
+        "ERROR: Invalid JSON for ai_queue_push".to_string()
+    }
+
+    fn handle_ai_queue_get(&self) -> String {
+        let state = self.state.lock().unwrap();
+        serde_json::to_string(&state.ai_offline_queue).unwrap_or_else(|_| "[]".to_string())
+    }
+
+    fn handle_ai_queue_clear(&self) -> String {
+        let mut state = self.state.lock().unwrap();
+        state.ai_offline_queue.clear();
+        "AI_QUEUE_CLEARED".to_string()
+    }
+
     fn handle_ai_stage_command(&self, payload: &str) -> String {
         if let Ok(parsed) = serde_json::from_str::<serde_json::Value>(payload) {
             let mut state = self.state.lock().unwrap();
@@ -1534,6 +1560,25 @@ impl IpcHandler {
     }
 
     // ----- AIService Refactor IPC Handlers -----
+
+    fn handle_ai_pattern_set(&self, behavior_id: Option<&str>, pattern: Option<&str>) -> String {
+        if let (Some(id), Some(p)) = (behavior_id, pattern) {
+            let mut state = self.state.lock().unwrap();
+            state.settings.ai_patterns.insert(id.to_string(), p.to_string());
+            let _ = self.services.settings.save(&state.settings);
+            return "AI_PATTERN_SET".to_string();
+        }
+        "ERROR: behavior_id and pattern required".to_string()
+    }
+
+    fn handle_ai_pattern_get(&self, behavior_id: Option<&str>) -> String {
+        if let Some(id) = behavior_id {
+            let state = self.state.lock().unwrap();
+            return state.settings.ai_patterns.get(id).cloned().unwrap_or_default();
+        }
+        let state = self.state.lock().unwrap();
+        serde_json::to_string(&state.settings.ai_patterns).unwrap_or_else(|_| "{}".to_string())
+    }
 
     fn handle_ai_behavior_enable(&self, id: Option<&str>) -> String {
         if let Some(id) = id {

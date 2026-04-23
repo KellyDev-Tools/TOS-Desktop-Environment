@@ -298,6 +298,14 @@ pub struct AiThought {
     pub timestamp: chrono::DateTime<chrono::Local>,
 }
 
+/// An AI request queued while the system is offline or backend is unreachable (§4.9).
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct QueuedAiRequest {
+    pub behavior_id: String,
+    pub prompt: String,
+    pub timestamp: chrono::DateTime<chrono::Local>,
+}
+
 // ---------------------------------------------------------------------------
 // Kanban & Project Orchestration (§7.2)
 // ---------------------------------------------------------------------------
@@ -650,6 +658,7 @@ pub struct SettingsStore {
     pub global: HashMap<String, String>,
     pub sectors: HashMap<String, HashMap<String, String>>,
     pub applications: HashMap<String, HashMap<String, String>>,
+    pub ai_patterns: HashMap<String, String>,
 }
 
 impl Default for SettingsStore {
@@ -658,6 +667,7 @@ impl Default for SettingsStore {
             global: HashMap::new(),
             sectors: HashMap::new(),
             applications: HashMap::new(),
+            ai_patterns: HashMap::new(),
         }
     }
 }
@@ -719,6 +729,7 @@ pub struct TosState {
     pub active_theme: String,
     pub available_themes: Vec<ThemeModule>,
     pub device_profile: crate::ipc::FaceProfile,
+    pub ai_offline_queue: Vec<QueuedAiRequest>,
     pub version: u64,
 }
 
@@ -843,6 +854,7 @@ impl Default for TosState {
                 },
             ],
             device_profile: crate::ipc::FaceProfile::Desktop,
+            ai_offline_queue: vec![],
             version: 0,
         }
     }

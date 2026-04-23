@@ -60,12 +60,12 @@
 - [x] 3.2 Implement Command Predictor (ghost text / inline suggestions) — Added `predict_command` with AI & heuristic fallbacks, connected to `ai_predict_command` IPC and Tab-to-accept UI.
 - [x] 3.3 Implement Vibe Coder skill (multi-step chip sequence) — Added `vibe-coder` behavior with multi-step `vibe_plan` logic for complex task orchestration.
 - [x] 3.4 Implement thought bubble rendering in Face — Created `ActiveThoughts.svelte` for LCARS-style reasoning chips integrated into AI Chat.
-- [ ] 3.5 Implement offline AI queue (store, drain, 30min expiry)
-- [ ] 3.6 Context-signal automatic skill activation
-- [ ] 3.7 Skill learned patterns storage + Settings UI
-- [ ] 3.8 Implement path completion chips
-- [ ] 3.9 Implement typo correction chips
-- [ ] 3.10 Implement Focus Error chip (PTY error highlighting)
-- [ ] 3.11 Implement notification display center (priority-gated)
+- [x] 3.5 Implement offline AI queue (store, drain, 30min expiry) — Added `ai_offline_queue` to `TosState`, debounced session persistence, and 30-minute background expiration logic.
+- [x] 3.6 Context-signal automatic skill activation — Integrated `check_context_signals` into `AiService` and PTY `read_loop` to trigger skills on directory changes.
+- [x] 3.7 Skill learned patterns storage + Settings UI — Added `ai_patterns` to `SettingsStore`, implemented `ai_pattern_set` IPC, and added "LEARNED PATTERNS" management to Settings UI.
+- [x] 3.8 Implement path completion chips — Implemented in `tos-heuristicd` with `Path` source chips.
+- [x] 3.9 Implement typo correction chips — Implemented in `tos-heuristicd` using Levenshtein distance.
+- [x] 3.10 Implement Focus Error chip (PTY error highlighting) — Added automatic high-priority (Level 3) tagging for error-related keywords in PTY `read_loop`.
+- [x] 3.11 Implement notification display center (priority-gated) — Upgraded `PriorityStack.svelte` into a comprehensive Notification Center filtering for TACTICAL/CRITICAL events.
 
 ## Stage 4–6 — Deferred to subsequent sessions

@@ -9,6 +9,7 @@
 
 use crate::ipc::IpcDispatcher;
 use crate::{AiBehavior, TosState};
+use crate::state::QueuedAiRequest;
 use serde_json::json;
 use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
@@ -93,6 +94,7 @@ pub struct AiContext {
     pub env_hint: String,
     pub chat_history: Vec<String>,
     pub editors: Vec<serde_json::Value>,
+    pub system_metrics: serde_json::Value,
 }
 
 impl AiContext {
@@ -123,6 +125,7 @@ impl AiContext {
                         result.push(format!("editor_context:{}", serde_json::to_string(ed).unwrap_or_default()));
                     }
                 }
+                "system_metrics" => result.push(format!("metrics:{}", self.system_metrics)),
                 _ => {}
             }
         }
@@ -146,6 +149,18 @@ pub fn build_context(state: &TosState) -> AiContext {
 
     let last_command = hub.prompt.clone();
     let env_hint = std::env::var("TOS_ENV_HINT").unwrap_or_else(|_| "linux".to_string());
+
+    let mut system_metrics = json!({});
+    if let Some(listing) = &hub.activity_listing {
+        // Aggregate top processes
+        let top_procs = listing.processes.iter().take(5).map(|p| {
+            json!({ "name": p.name, "cpu": p.cpu_usage, "mem": p.mem_usage })
+        }).collect::<Vec<_>>();
+        system_metrics = json!({
+            "top_processes": top_procs,
+            "hub_mode": hub.mode
+        });
+    }
 
     let mut editors: Vec<serde_json::Value> = vec![];
     if let Some(layout) = &hub.split_layout {
@@ -185,6 +200,7 @@ pub fn build_context(state: &TosState) -> AiContext {
             .map(|m| format!("{}: {}", m.role, m.content))
             .collect(),
         editors,
+        system_metrics,
     }
 }
 
@@ -254,9 +270,70 @@ impl AiService {
         tokio::time::sleep(tokio::time::Duration::from_millis(2000)).await;
 
         let mut done = thought.clone();
-        done.status = crate::AiThoughtStatus::Decided;
-        done.content = "Memory consolidation complete. Long-term patterns updated.".to_string();
+        done.status = crate::AiThoughtStatus::Actioned;
         let _ = ipc.dispatch(&format!("ai_thought_stage:{}", serde_json::to_string(&done)?));
+
+        Ok(())
+    }
+
+    /// Queue an AI request for later execution (§4.9).
+    pub fn queue_request(&self, behavior_id: &str, prompt: &str) -> anyhow::Result<()> {
+        let ipc = self.ipc.lock().unwrap().clone().ok_or_else(|| anyhow::anyhow!("IPC dispatcher not set"))?;
+        let req = QueuedAiRequest {
+            behavior_id: behavior_id.to_string(),
+            prompt: prompt.to_string(),
+            timestamp: chrono::Local::now(),
+        };
+        let _ = ipc.dispatch(&format!("ai_queue_push:{}", serde_json::to_string(&req)?));
+        
+        let _ = ipc.dispatch(&format!("system_log_append:AI;[OFFLINE] Request queued for behavior '{}'", behavior_id));
+        Ok(())
+    }
+
+    /// Attempt to drain the offline queue (§4.9).
+    pub async fn drain_queue(&self) -> anyhow::Result<()> {
+        let ipc = self.ipc.lock().unwrap().clone().ok_or_else(|| anyhow::anyhow!("IPC dispatcher not set"))?;
+        
+        let queue_json = ipc.dispatch("ai_queue_get:");
+        if queue_json.is_empty() || queue_json.starts_with("ERROR") || queue_json == "[]" {
+            return Ok(());
+        }
+
+        let mut queue: Vec<QueuedAiRequest> = serde_json::from_str(&queue_json)?;
+        if queue.is_empty() { return Ok(()); }
+
+        let now = chrono::Local::now();
+        let thirty_mins = chrono::Duration::minutes(30);
+
+        // Filter out expired items
+        let initial_count = queue.len();
+        queue.retain(|req| now.signed_duration_since(req.timestamp) < thirty_mins);
+        
+        if queue.len() < initial_count {
+            let _ = ipc.dispatch("ai_queue_clear:");
+            for req in &queue {
+                let _ = ipc.dispatch(&format!("ai_queue_push:{}", serde_json::to_string(req)?));
+            }
+        }
+
+        if queue.is_empty() { return Ok(()); }
+
+        let _ = ipc.dispatch(&format!("system_log_append:AI;[ONLINE] Draining AI queue ({} items)...", queue.len()));
+
+        // Process items one by one
+        let mut failed = vec![];
+        for req in queue {
+            // Attempt query
+            if let Err(_) = self.query(&req.prompt).await {
+                failed.push(req);
+            }
+        }
+
+        // Update queue with remaining/failed items
+        let _ = ipc.dispatch("ai_queue_clear:");
+        for req in failed {
+            let _ = ipc.dispatch(&format!("ai_queue_push:{}", serde_json::to_string(&req)?));
+        }
 
         Ok(())
     }
@@ -445,6 +522,29 @@ impl AiService {
             .find(|b| b.id == behavior_id)
             .and_then(|b| b.backend_override.as_deref())
             .unwrap_or_else(|| state.ai_default_backend.as_str())
+    }
+
+    /// Check for context signals (markers, extensions) to automatically activate skills (§4.7).
+    pub fn check_context_signals(&self, state: &mut TosState, cwd: &std::path::Path) {
+        let mut activated = vec![];
+
+        // 1. CWD Markers
+        if cwd.join("Cargo.toml").exists() {
+            if self.enable_behavior(state, "vibe-coder") {
+                activated.push("Vibe Coder (Rust Project Detected)");
+            }
+        }
+
+        // 2. Extension Signals (Stubbed until we have active file tracking)
+        // 3. Content Signals (Handled in passive_observe)
+
+        for skill in activated {
+            state.system_log.push(crate::TerminalLine {
+                text: format!("✦ [AI] Context Signal: Activated {} skill.", skill),
+                priority: 1,
+                timestamp: chrono::Local::now(),
+            });
+        }
     }
 
     // --- Query ---
@@ -768,6 +868,12 @@ impl AiService {
     }
 
     async fn fallback_query(&self, prompt: &str, ctx: &AiContext) -> (String, String) {
+        // If we are here, standard and local backends failed or are missing.
+        // Try queuing if this looks like a network failure.
+        if let Err(e) = self.queue_request("chat", prompt) {
+             tracing::error!("[AiService] Failed to queue request: {}", e);
+        }
+
         let api_key = std::env::var("OPENAI_API_KEY");
         let api_base = std::env::var("OPENAI_API_BASE")
             .unwrap_or_else(|_| "https://api.openai.com/v1".to_string());

@@ -119,6 +119,7 @@ export interface TosSettings {
     global: Record<string, string>;
     sectors: Record<string, Record<string, string>>;
     applications: Record<string, Record<string, string>>;
+    ai_patterns: Record<string, string>;
 }
 
 export type FaceProfile = 'desktop' | 'handheld' | 'spatial' | 'headless';
@@ -144,6 +145,7 @@ export interface TosState {
     active_theme: string;
     available_themes: ThemeModule[];
     device_profile: FaceProfile;
+    ai_offline_queue: any[];
     version: number;
 }
 
@@ -195,7 +197,8 @@ export function getDefaultState(): TosState {
                 'tos.onboarding.wizard_complete': typeof window !== 'undefined' ? (window.localStorage.getItem('tos.onboarding.wizard_complete') || 'false') : 'false'
             },
             sectors: {},
-            applications: {}
+            applications: {},
+            ai_patterns: {}
         },
         available_modules: [],
         active_terminal_module: 'tos-standard-rect',
@@ -207,6 +210,7 @@ export function getDefaultState(): TosState {
         bezel_expanded: false,
         ai_default_backend: 'tos-ai-standard',
         device_profile: 'desktop',
+        ai_offline_queue: [],
         version: 0
     };
 }

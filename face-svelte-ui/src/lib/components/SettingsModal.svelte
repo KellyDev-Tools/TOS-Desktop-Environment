@@ -361,6 +361,23 @@
 							{/if}
 						</div>
 
+						<div class="settings-group">
+							<div class="settings-group-title">LEARNED PATTERNS (§4.10)</div>
+							{#if Object.keys(tosState.settings?.ai_patterns || {}).length > 0}
+								{#each Object.entries(tosState.settings.ai_patterns) as [id, pattern]}
+									<div class="pattern-card glass-panel">
+										<div class="pattern-header">
+											<span class="pattern-id text-mono">{id}</span>
+											<button class="lcars-btn-sm danger" onclick={() => sendCommand(`ai_pattern_set:${id};`)}>DELETE</button>
+										</div>
+										<pre class="pattern-content text-mono">{pattern}</pre>
+									</div>
+								{/each}
+							{:else}
+								<div class="settings-empty">No patterns learned yet. Corrections will appear here.</div>
+							{/if}
+						</div>
+
 					<!-- ═══ SESSIONS TAB ═══ -->
 					{:else if activeTab === 'sessions'}
 						<div class="settings-group">
@@ -859,4 +876,34 @@
 		white-space: nowrap;
 	}
 	.modal-elbow-bottom { flex: 1; }
+
+	/* Learned Patterns */
+	.pattern-card {
+		padding: var(--space-sm) var(--space-md);
+		margin-bottom: var(--space-sm);
+		border-radius: var(--radius-md);
+		border: 1px solid rgba(255,255,255,0.05);
+	}
+	.pattern-header {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		margin-bottom: var(--space-xs);
+	}
+	.pattern-id {
+		font-size: 0.65rem;
+		color: var(--color-primary);
+		font-weight: 700;
+	}
+	.pattern-content {
+		font-family: var(--font-mono);
+		font-size: 0.65rem;
+		color: var(--color-text-dim);
+		background: rgba(0,0,0,0.2);
+		padding: 0.5rem;
+		border-radius: var(--radius-sm);
+		margin: 0;
+		overflow-x: auto;
+		white-space: pre-wrap;
+	}
 </style>

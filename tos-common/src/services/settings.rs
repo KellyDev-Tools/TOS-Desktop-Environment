@@ -232,6 +232,7 @@ impl SettingsService {
             global: map,
             sectors: HashMap::new(),
             applications: HashMap::new(),
+            ai_patterns: HashMap::new(),
         }
     }
 }

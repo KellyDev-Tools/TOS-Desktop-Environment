@@ -191,7 +191,7 @@ impl PtyShell {
 fn read_loop(
     mut reader: Box<dyn Read + Send>,
     state: Arc<Mutex<TosState>>,
-    _ai: Arc<crate::services::AiService>,
+    ai: Arc<crate::services::AiService>,
     _heuristic: Arc<crate::services::HeuristicService>,
     sector_id: uuid::Uuid,
     hub_id: uuid::Uuid,
@@ -232,7 +232,9 @@ fn read_loop(
                                     if let Some(hub) =
                                         sector.hubs.iter_mut().find(|h| h.id == hub_id)
                                     {
-                                        hub.current_directory = path_buf;
+                                        hub.current_directory = path_buf.clone();
+                                        // §4.7: Automatic skill activation from CWD signals
+                                        ai.check_context_signals(&mut state_lock, &path_buf);
                                     }
                                 }
                             }
@@ -278,7 +280,15 @@ fn read_loop(
                     }
 
                     // Use line-specific priority override if present, else the persistent parser priority.
-                    let effective_priority = line_priority_override.unwrap_or(osc_parser.current_priority);
+                    let mut effective_priority = line_priority_override.unwrap_or(osc_parser.current_priority);
+
+                    // §31.4: Automatic error detection (PTY error highlighting)
+                    if line_priority_override.is_none() {
+                        let text_lower = clean_text.to_lowercase();
+                        if text_lower.contains("error:") || text_lower.contains("failed") || text_lower.contains("command not found") {
+                            effective_priority = 3; // HIGH priority
+                        }
+                    }
 
                     if !clean_text.is_empty() {
                         if let Some(sector) =

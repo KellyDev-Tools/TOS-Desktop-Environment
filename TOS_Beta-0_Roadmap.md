@@ -382,13 +382,13 @@
 | 3.2 | Implement Command Predictor (ghost text / inline suggestions) | HIGH | Features §4.4 | AiService, prompt | ✅ |
 | 3.3 | Implement Vibe Coder skill (multi-step chip sequence) | HIGH | Features §4.8 | Stage 2.5, AiService | ✅ |
 | 3.4 | Implement thought bubble rendering in Face | MEDIUM | Features §4.6 | AiChat.svelte | ✅ |
-| 3.5 | Implement offline AI queue (store, drain, 30min expiry) | MEDIUM | Features §4.9 | SessionService, tokio timers | ❌ |
-| 3.6 | Context-signal automatic skill activation | MEDIUM | Features §4.7 | Skill manifest, cwd watch | ❌ |
-| 3.7 | Skill learned patterns storage + Settings UI | LOW | Features §4.10 | tos-settingsd | ❌ |
-| 3.8 | Implement path completion chips | MEDIUM | Arch §31.1 | Prompt, filesystem | ❌ |
-| 3.9 | Implement typo correction chips | MEDIUM | Arch §31.2 | Search service, fuzzy match | ❌ |
-| 3.10 | Implement Focus Error chip (PTY error highlighting) | MEDIUM | Arch §31.4 | ShellApi, Line priority | ❌ |
-| 3.11 | Implement notification display center (priority-gated) | HIGH | Arch §31.5 | Right Bezel, PriorityService | ❌ |
+| 3.5 | Implement offline AI queue (store, drain, 30min expiry) | MEDIUM | Features §4.9 | SessionService, tokio timers | ✅ |
+| 3.6 | Context-signal automatic skill activation | MEDIUM | Features §4.7 | Skill manifest, cwd watch | ✅ |
+| 3.7 | Skill learned patterns storage + Settings UI | LOW | Features §4.10 | tos-settingsd | ✅ |
+| 3.8 | Implement path completion chips | MEDIUM | Arch §31.1 | Prompt, filesystem | ✅ |
+| 3.9 | Implement typo correction chips | MEDIUM | Arch §31.2 | Search service, fuzzy match | ✅ |
+| 3.10 | Implement Focus Error chip (PTY error highlighting) | MEDIUM | Arch §31.4 | ShellApi, Line priority | ✅ |
+| 3.11 | Implement notification display center (priority-gated) | HIGH | Arch §31.5 | Right Bezel, PriorityService | ✅ |
 
 ---
 

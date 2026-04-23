@@ -129,6 +129,16 @@ impl Brain {
                         &mut lock,
                         Some(&svc_clock.capture),
                     );
+
+                    // Drain AI Offline Queue (§4.9)
+                    if tick % 10 == 0 {
+                        let ai_svc = svc_clock.ai.clone();
+                        if let Ok(handle) = tokio::runtime::Handle::try_current() {
+                            handle.spawn(async move {
+                                let _ = ai_svc.drain_queue().await;
+                            });
+                        }
+                    }
                 }
             }
         });

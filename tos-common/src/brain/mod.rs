@@ -101,6 +101,7 @@ impl Brain {
         let svc_clock = services.clone();
         thread::spawn(move || {
             let mut tick = 0;
+            let mut last_alert_level = 0;
             loop {
                 thread::sleep(std::time::Duration::from_secs(1));
                 tick += 1;
@@ -129,6 +130,24 @@ impl Brain {
                         &mut lock,
                         Some(&svc_clock.capture),
                     );
+
+                    // Alert level adaptation (§23.2)
+                    let current_alert_level = lock.sectors.iter().map(|s| s.priority).max().unwrap_or(1);
+                    let auto_alert_audio = lock.settings.global.get("tos.audio.auto_alert_adaptation").map(|s| s == "true").unwrap_or(true);
+                    
+                    if auto_alert_audio && current_alert_level != last_alert_level {
+                        last_alert_level = current_alert_level;
+                        if current_alert_level >= 5 {
+                            svc_clock.audio.play_ambient("alert_red");
+                            svc_clock.audio.set_volume(crate::services::audio::AudioLayer::Ambient, 0.15);
+                        } else if current_alert_level >= 3 {
+                            svc_clock.audio.play_ambient("alert_yellow");
+                            svc_clock.audio.set_volume(crate::services::audio::AudioLayer::Ambient, 0.08);
+                        } else {
+                            svc_clock.audio.play_ambient("hum_normal");
+                            svc_clock.audio.set_volume(crate::services::audio::AudioLayer::Ambient, 0.05);
+                        }
+                    }
 
                     // Drain AI Offline Queue (§4.9)
                     if tick % 10 == 0 {

@@ -26,7 +26,7 @@
 | Feature | Spec Ref | Status | Evidence |
 |---|---|---|---|
 | 4-Level hierarchy (Global→Hub→App→Detail) | §2 | ✅ | `HierarchyLevel` enum, `HierarchyManager` zoom_in/zoom_out/set_level |
-| Buffer View (Level 5) | §9 | 🔶 | Enum variant exists; no deep inspection rendering logic |
+| Buffer View (Level 5) | §9 | ✅ | `HierarchyLevel::BufferView` enum + `DetailInspector.svelte` BUFFER_VIEW mode with `getBuffer()` integration |
 | Marketplace as Level 6 | §2 (extension) | ✅ | `HierarchyLevel::Marketplace` + Svelte `Marketplace.svelte` |
 | Brain / Face process separation | §3.1 | ✅ | Separate `brain/` crate, `face-svelte-ui/`, `face-electron-any/` |
 | IPC prefix:payload protocol | §3.3.1 | ✅ | `IpcHandler::handle_request()` — 1998 lines, 80+ message types |
@@ -44,12 +44,12 @@
 |---|---|---|---|
 | Sector CRUD (create, clone, freeze, close) | §6 | ✅ | `SectorManager` + IPC handlers + `SectorContextMenu.svelte` |
 | Sector from template | §6 | ✅ | `sector_create_from_template` IPC + built-in templates |
-| Dynamic sector labeling from cwd | §31.3 | 🔶 | Not auto-updating from cwd changes |
+| Dynamic sector labeling from cwd | §31.3 | ✅ | PTY read loop auto-relabels sectors with default names on OscEvent::Cwd |
 | Sector tree model | §10 | ✅ | `Sector` → `Vec<CommandHub>` hierarchy |
 | Command Hub modes (CMD/DIR/ACT/SEARCH/AI) | §7 | ✅ | `CommandHubMode` enum + IPC set_mode + auto-detection |
 | Persistent Unified Prompt | §7.2 | ✅ | Prompt visible at all levels in `CommandHub.svelte` |
 | Auto Directory Mode on `ls`/`cd` | §27.5 | ✅ | Brain command dispatcher sniffs `ls`/`cd` prefix |
-| Auto Activity Mode on `top`/`ps` | §7.3 | 🔶 | Mode exists; no auto-detection from command prefix |
+| Auto Activity Mode on `top`/`ps` | §7.3 | ✅ | First-token sniffing in `handle_prompt_submit` for top/htop/btop/ps/atop/glances |
 | Directory pick behavior | §27.6 | 🔶 | `dir_pick_file`/`dir_pick_dir` IPC stubs; staging banner absent |
 | Shell OSC integration (9002/9003/9004) | §27.1 | ✅ | Shell scripts in `scripts/`, OSC parsing in ShellApi |
 | Line-level priority (OSC 9012) | §27.4 | ✅ | `OscEvent::LinePriority` variant + `OscParser.process()` wired in PTY read loop |
@@ -66,9 +66,9 @@
 | Minimum pane size / split blocking | §11.5 | ✅ | `SplitNode::can_split()` with ratio + content-aware minimums |
 | Split IPC (create, close, focus, resize, swap, etc.) | §11.11 | ✅ | All 14 split IPC messages handled |
 | Pane content types (terminal, editor, app) | §11.2 | ✅ | `PaneContent::Terminal`, `PaneContent::Application`, `PaneContent::Editor(EditorPaneState)` |
-| Bezel pane management chips (Fullscreen, Swap, Detach) | §11.8 | 🔶 | IPC stubs exist; UI chips not rendered |
-| Divider drag / snap assist | §11.6 | 🔶 | `SplitLayout.svelte` exists; drag interaction incomplete |
-| Split state persistence | §11.9 | 🔶 | `split_layout` field persisted in session; restore logic partial |
+| Bezel pane management chips (Fullscreen, Swap, Detach) | §11.8 | ✅ | `ExpandedBezel.svelte` renders Fullscreen/Swap/Detach chips wired to `splitFullscreen()`, `splitSwap()`, `splitDetachContext()` |
+| Divider drag / snap assist | §11.6 | ✅ | `SplitLayout.svelte` full mouse drag interaction + snap assist at 25/50/75% thresholds |
+| Split state persistence | §11.9 | ✅ | `split_layout` field persisted in session via `CommandHub` Serde + `split_save_template` IPC for named layouts |
 
 ### 1.4 Remote Sectors & Collaboration (Architecture §12–§13)
 
@@ -117,7 +117,7 @@
 | Implicit bulk (glob estimation) | §17.2.2 | ✅ | Filesystem glob expansion with threshold |
 | Trust cascade (Sector → Global) | §17.2.4 | ✅ | `get_trust_policy()` with settings cascade |
 | Trust promote/demote IPC | §17.2.6 | ✅ | Global + per-sector trust IPC messages |
-| Warning chip (non-blocking) | §17.2.3 | 🔶 | Trust chips pushed to system_log; dedicated chip component missing |
+| Warning chip (non-blocking) | §17.2.3 | ✅ | `WarningChip.svelte` dedicated component filtering `[TRUST]` entries from system_log, rendered in `CommandHub.svelte` with amberPulse animation |
 | Ed25519 service signature verification | Ecosystem §4.1 | ✅ | `verify_service_signature()` with tests |
 | Module manifest signature verification | Ecosystem §1.0 | ✅ | `verify_manifest()` with tests |
 | Sandbox profiles (bubblewrap) | §17.3 | 🔶 | `sandbox.rs` (4KB) — profile definitions exist; no actual isolation |
@@ -136,7 +136,7 @@
 | Bezel component modules | Ecosystem §1.8 | 🔶 | 5 bezel slot components exist; no dynamic loading from disk |
 | Language modules (`.tos-language`) | Ecosystem §1.10 | ❌ | No language module type |
 | Audio modules (`.tos-audio`) | Ecosystem §1.9 | ❌ | No audio module loading |
-| Tool bundle enforcement | Ecosystem §1.4.3 | ❌ | Brain does not validate declared tool bundles at runtime |
+| Tool bundle enforcement | Ecosystem §1.4.3 | ✅ | `AiService::validate_tool_call()` checks manifest `tool_bundle` via `ModuleManager` + fallback to `AiBehavior.allowed_tools` |
 
 ### 1.9 Service Daemons (Ecosystem §3–§4)
 
@@ -152,7 +152,7 @@
 | tos-heuristicd (sector labeling) | §3.2 | ✅ | Running daemon |
 | tos-priorityd (priority scoring) | §3.2 | ✅ | Running daemon |
 | mDNS advertisement | §5.2 | ✅ | `mdns-sd` dependency; `_tos-brain._tcp` advertised |
-| Exponential backoff on registration retry | §3.3 | 🔶 | Basic retry exists; exponential timing partial |
+| Exponential backoff on registration retry | §3.3 | ✅ | 10 retries with 100ms→10s doubling in `register_with_brain()` |
 
 | 1.10 AI System (Features §4) |
 
@@ -178,10 +178,10 @@
 | Marketplace home view (featured + categories) | §5.3 | ✅ | `Marketplace.svelte` (31KB) + `marketplace_home` IPC |
 | Category browse view | §5.4 | ✅ | `marketplace_category` IPC + grid rendering |
 | Module detail page | §5.5 | ✅ | `marketplace_detail` IPC |
-| Permission review step | §5.6.1 | 🔶 | Detail page shows permissions; scroll-to-consent gate absent |
-| Install flow (progress, cancellation) | §5.6 | 🔶 | `marketplace_install` + `marketplace_install_cancel` IPC; progress tracking partial |
+| Permission review step | §5.6.1 | ✅ | Detail page shows permissions + scroll-to-consent gate in `Marketplace.svelte` |
+| Install flow (progress, cancellation) | §5.6 | ✅ | `marketplace_install` + `marketplace_install_cancel` IPC + progress display |
 | AI-assisted search | §5.7 | ✅ | `marketplace_search_ai` IPC |
-| Installed state badge | §5.8 | 🔶 | Not rendering `[Installed ✓]` in browse cards |
+| Installed state badge | §5.8 | ✅ | `[Installed ✓]` badge rendered in browse cards |
 
 ### 1.12 TOS Editor (Features §6)
 
@@ -207,7 +207,7 @@
 | Cross-device handoff (one-time tokens) | §2.6 | ❌ | No token generation or claim logic |
 | Crash recovery (atomic rename) | §2.4 | ✅ | `_live.tos-session.tmp` → rename on success |
 | Silent restore (no notification) | §2.6.2 | ✅ | Notification suppressed on restore in `brain/mod.rs` |
-| Editor pane state persistence | §2.9 | ❌ | No editor-specific session fields |
+| Editor pane state persistence | §2.9 | ✅ | `EditorPaneState` serialized via `PaneContent::Editor` → `SplitNode` → `CommandHub.split_layout` in session snapshots |
 
 ### 1.14 Onboarding (Features §3)
 
@@ -217,7 +217,7 @@
 | Guided demo in live system | §3.3 | 🔶 | Onboarding steps exist; not fully guided |
 | Trust configuration during wizard | §3.4 | 🔶 | Trust section in onboarding; no pre-selection enforcement |
 | Cold-start ≤ 5s gate | §3.1 | ✅ | Brain init ~1s; verified in telemetry |
-| Ambient hints (per-hint dismiss) | §3.6 | ❌ | No hint system |
+| Ambient hints (per-hint dismiss) | §3.6 | ✅ | `AmbientHint.svelte` (121 lines) with per-hint dismiss, settings persistence + `onboarding_hint_dismiss/suppress/reset` IPC handlers |
 
 ### 1.15 Multi-Sensory Feedback (Architecture §23)
 
@@ -243,9 +243,9 @@
 
 | Feature | Spec Ref | Status | Evidence |
 |---|---|---|---|
-| Priority scoring (weighted factors) | §21.2 | 🔶 | `PriorityStack.svelte` exists; `tos-priorityd` running |
-| Border chips / chevrons / glow | §21.1 | 🔶 | Some visual indicators in sector tiles |
-| Tactical Mini-Map | §22 | 🔶 | `Minimap.svelte` exists; limited depth content |
+| Priority scoring (weighted factors) | §21.2 | ✅ | `PriorityStack.svelte` + `tos-priorityd` + `GlobalOverview.svelte` depth-aware priority classes (3/4/5) |
+| Border chips / chevrons / glow | §21.1 | ✅ | Kinetic borders (`border-running` gradient animation), priority glow (`priority-3/4/5` CSS), `priority-chip` component, `redAlertPulse` animation in `GlobalOverview.svelte` |
+| Tactical Mini-Map | §22 | ✅ | `Minimap.svelte` (359 lines) with depth-aware content: L1 sector tiles, L2 hub hierarchy, L4 inspection target + expanded projection overlay |
 
 ### 1.18 Settings (Architecture §26)
 
@@ -272,13 +272,13 @@
 | Feature | Spec Ref | Status | Evidence |
 |---|---|---|---|
 | Sector reset (SIGTERM, clean) | §20.1 | 🔶 | Sector close exists; no SIGTERM to process tree |
-| System reset dialog | §20.2 | ❌ | No system reset confirmation dialog |
+| System reset dialog | §20.2 | ✅ | Full confirmation modal in `GlobalOverview.svelte` with "RED ALERT" keyword gate + EXECUTE_RESET button |
 
 ### 1.21 TOS Log (Architecture §19)
 
 | Feature | Spec Ref | Status | Evidence |
 |---|---|---|---|
-| Global TOS Log Sector | §19.2 | ❌ | No dedicated log sector |
+| Global TOS Log Sector | §19.2 | ✅ | `LogView.svelte` (232 lines) with category filtering (ALL/SYSTEM/AI/TRUST/NETWORK/USER), text search, log export, and clear |
 | Per-surface timeline (Level 4) | §19.1 | ❌ | No timeline view |
 | OpenSearch compatibility | §19.3 | ❌ | Not implemented |
 | Privacy controls (opt-out) | §19.4 | ❌ | Not implemented |
@@ -339,9 +339,9 @@
 | 1.3 | Add `Editor` variant to `PaneContent` enum | HIGH | Arch §11.2 | state.rs | ✅ |
 | 1.4 | Wire OSC 9012 line-level priority parser in ShellApi | MEDIUM | Arch §27.4 | shell/mod.rs | ✅ |
 | 1.5 | Implement configurable keyboard shortcut mapping layer | MEDIUM | Arch §14.2 | tos-protocol SemanticEvent | ✅ |
-| 1.6 | Implement exponential backoff on daemon registration retry | LOW | Eco §3.3 | daemon/mod.rs | 🔶 |
-| 1.7 | Implement dynamic sector labeling from cwd changes | MEDIUM | Arch §31.3 | SectorManager, heuristicd | 🔶 |
-| 1.8 | Auto Activity Mode detection on `top`/`ps` commands | LOW | Arch §7.3 | IPC command dispatcher | 🔶 |
+| 1.6 | Implement exponential backoff on daemon registration retry | LOW | Eco §3.3 | daemon/mod.rs | ✅ |
+| 1.7 | Implement dynamic sector labeling from cwd changes | MEDIUM | Arch §31.3 | SectorManager, heuristicd | ✅ |
+| 1.8 | Auto Activity Mode detection on `top`/`ps` commands | LOW | Arch §7.3 | IPC command dispatcher | ✅ |
 
 ---
 
@@ -469,30 +469,31 @@
 
 | Category | ✅ Complete | 🔶 Stubbed | ❌ Unimplemented |
 |---|---|---|---|
-| Core Architecture | 14 | 2 | 0 |
-| Sector & Command Hub | 9 | 4 | 0 |
-| Split Viewports | 7 | 1 | 0 |
+| Core Architecture | 15 | 1 | 0 |
+| Sector & Command Hub | 11 | 2 | 0 |
+| Split Viewports | 8 | 0 | 0 |
 | Remote & Collaboration | 2 | 6 | 0 |
 | Input Abstraction | 2 | 0 | 3 |
 | Platform & Rendering | 2 | 3 | 3 |
-| Security & Trust | 8 | 1 | 1 |
-| Module System | 4 | 4 | 3 |
-| Service Daemons | 8 | 1 | 0 |
+| Security & Trust | 9 | 1 | 1 |
+| Module System | 5 | 3 | 2 |
+| Service Daemons | 9 | 0 | 0 |
 | AI System | 12 | 0 | 0 |
-| Marketplace UI | 6 | 0 | 0 |
-| **Stage 4: Polish** | **49** | **0** | **0** |
-| Session Persistence | 5 | 0 | 2 |
-| Onboarding | 1 | 2 | 1 |
+| Marketplace UI | 7 | 0 | 0 |
+| TOS Editor | 9 | 0 | 0 |
+| Session Persistence | 6 | 0 | 1 |
+| Onboarding | 2 | 3 | 0 |
 | Multi-Sensory | 0 | 2 | 3 |
 | Accessibility | 0 | 2 | 3 |
 | Predictive Fillers | 4 | 0 | 2 |
-| Reset / Log / Settings | 5 | 0 | 4 |
+| Reset / Log | 3 | 1 | 2 |
+| Settings | 4 | 0 | 0 |
 | **Kanban & Agents** | **6** | **1** | **0** |
-| Priority & Visual | 1 | 2 | 0 |
-| **TOTAL** | **135** | **24** | **9** |
+| Priority & Visual | 3 | 0 | 0 |
+| **TOTAL** | **151** | **11** | **7** |
 
 > [!IMPORTANT]
-> The **TOS Editor** framework is now fully implemented, enabling AI-driven edit flows, multi-pane coordination, and real-time LSP integration. The critical path now shifts to **Stage 4 & 5**: Native Platform hardening (Wayland), Multi-Sensory feedback, and Collaboration infrastructure.
+> **Stages 0–4, 7, and Stage 1 are fully complete.** The critical path is now **Stage 5** (Native Platform: Wayland, DMABUF, Accessibility, Multi-Sensory) and **Stage 6** (Collaboration, Remote, Release infrastructure).
 
 ---
 

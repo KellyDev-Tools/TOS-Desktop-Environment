@@ -225,7 +225,7 @@ fn read_loop(
                                 line_priority_override = Some(p);
                             }
                             OscEvent::Cwd(path) => {
-                                let path_buf = std::path::PathBuf::from(path);
+                                let path_buf = std::path::PathBuf::from(&path);
                                 if let Some(sector) =
                                     state_lock.sectors.iter_mut().find(|s| s.id == sector_id)
                                 {
@@ -233,9 +233,32 @@ fn read_loop(
                                         sector.hubs.iter_mut().find(|h| h.id == hub_id)
                                     {
                                         hub.current_directory = path_buf.clone();
-                                        // §4.7: Automatic skill activation from CWD signals
-                                        ai.check_context_signals(&mut state_lock, &path_buf);
                                     }
+
+                                    // §31.3: Dynamic sector labeling from cwd changes.
+                                    // Only auto-relabel sectors with default/auto-generated names
+                                    // to avoid overwriting explicit user renames.
+                                    let auto_labels = [
+                                        "Primary", "New Sector", "Detached", "Untitled",
+                                    ];
+                                    let is_auto_name = auto_labels
+                                        .iter()
+                                        .any(|prefix| sector.name == *prefix || sector.name.starts_with("Detached"));
+                                    if is_auto_name {
+                                        let home = dirs::home_dir();
+                                        let label = if home.as_ref() == Some(&path_buf) {
+                                            "~".to_string()
+                                        } else {
+                                            path_buf
+                                                .file_name()
+                                                .map(|n| n.to_string_lossy().to_string())
+                                                .unwrap_or_else(|| "/".to_string())
+                                        };
+                                        sector.name = label;
+                                    }
+
+                                    // §4.7: Automatic skill activation from CWD signals
+                                    ai.check_context_signals(&mut state_lock, &path_buf);
                                 }
                             }
                             OscEvent::DirectoryListing(listing) => {

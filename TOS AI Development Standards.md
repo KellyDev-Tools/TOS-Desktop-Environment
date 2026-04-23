@@ -98,3 +98,6 @@ Do not commit code that breaks any of these gates.
 3. **Be proactive.** If a change requires a new CSS rule, a doc update, or a test fixture—do it in the same pass.
 4. **Run the gates.** After any Rust change: `make check` then `make test`. After any Svelte/TS change: `make build-face-web` then `make test`. Don't wait to be asked.
 5. **Commit when green.** Once all gates pass, immediately create a commit using the `type(scope): description` format. Do not leave passing work uncommitted.
+
+# TODOs
+- [ ] Work next item in TOS_Beta-0_Roadmap.md.

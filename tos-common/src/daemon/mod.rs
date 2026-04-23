@@ -10,14 +10,30 @@ use crate::ipc::{ServiceRegister, ServiceRegisterResponse};
 pub async fn register_with_brain(name: &str, port: u16) -> anyhow::Result<()> {
     let uds_path = "/tmp/brain.sock";
 
-    // Attempt connection with retry (daemon might start before Brain is ready)
+    // Attempt connection with exponential backoff (daemon might start before Brain is ready).
+    // Starts at 100ms, doubles each attempt, caps at 10s per interval, max 10 retries.
     let mut stream = None;
-    for _ in 0..5 {
-        if let Ok(s) = tokio::net::UnixStream::connect(uds_path).await {
-            stream = Some(s);
-            break;
+    let mut backoff_ms: u64 = 100;
+    let max_retries: u32 = 10;
+    let max_backoff_ms: u64 = 10_000;
+    for attempt in 1..=max_retries {
+        match tokio::net::UnixStream::connect(uds_path).await {
+            Ok(s) => {
+                stream = Some(s);
+                break;
+            }
+            Err(e) => {
+                tracing::warn!(
+                    "DAEMON: brain.sock connection attempt {}/{} failed ({}), retrying in {}ms",
+                    attempt,
+                    max_retries,
+                    e,
+                    backoff_ms,
+                );
+                tokio::time::sleep(tokio::time::Duration::from_millis(backoff_ms)).await;
+                backoff_ms = (backoff_ms * 2).min(max_backoff_ms);
+            }
         }
-        tokio::time::sleep(tokio::time::Duration::from_millis(200)).await;
     }
 
     let mut stream =

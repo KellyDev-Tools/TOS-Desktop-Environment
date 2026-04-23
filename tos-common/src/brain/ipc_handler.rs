@@ -387,6 +387,16 @@ impl IpcHandler {
             if let Some(sector) = state_lock.sectors.get_mut(idx) {
                 let hub_idx = sector.active_hub_index;
                 if let Some(hub) = sector.hubs.get_mut(hub_idx) {
+                    // §7.3: Auto Activity Mode detection on monitoring commands.
+                    // Extract the first token (the command binary) to avoid false
+                    // positives on arguments like `echo ps`.
+                    let first_token = cmd.split_whitespace().next().unwrap_or("");
+                    let activity_commands = ["top", "htop", "btop", "ps", "atop", "glances"];
+                    if activity_commands.contains(&first_token) {
+                        hub.mode = CommandHubMode::Activity;
+                        tracing::info!("Auto-switched to Activity mode for command: {}", first_token);
+                    }
+
                     hub.is_running = true;
                     hub.last_exit_status = None;
                     hub.json_context = None;

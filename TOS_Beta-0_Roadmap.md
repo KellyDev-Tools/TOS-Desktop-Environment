@@ -99,10 +99,10 @@
 |---|---|---|---|
 | RendererManager mode detection | §15.6 | ✅ | `renderer_manager.rs` — detect() with priority: flag > Wayland > Remote |
 | HeadlessRenderer | §15.6 | ✅ | `headless.rs` (2.7KB) |
-| WaylandRenderer stub | §15.2 | 🔶 | Trait-compliant stub; no real Wayland compositor binding |
+| WaylandRenderer | §15.2 | ✅ | `LinuxRenderer` in `lib.rs` + `WaylandShell` in `wayland.rs` with SHM/DMABUF support |
 | RemoteRenderer stub | §15.3 | 🔶 | `remote.rs` (1.7KB) — stub |
 | OpenXR / Quest renderer | §15.3, §15.7 | 🔶 | `quest.rs` (2.2KB) — stub |
-| DMABUF surface embedding | §15.2 | ❌ | No DMA-BUF code |
+| DMABUF surface embedding | §15.2 | ✅ | `create_dmabuf_buffer` using `zwp_linux_dmabuf_v1` in `wayland.rs` |
 | Frame capture / thumbnails | §16.1 | ✅ | `CaptureService` with sysinfo-based backend |
 | Depth-based render throttling | §16.1 | ❌ | No frame rate throttling by level |
 | Tactical Alert on FPS drop | §16.4 | ❌ | No FPS monitoring |
@@ -416,7 +416,7 @@
 | # | Task | Priority | Spec Ref | Deps | Status |
 |---|---|---|---|---|---|
 | 5.1 | Real Wayland compositor integration test | HIGH | Arch §15.2 | WaylandRenderer | ✅ |
-| 5.2 | DMABUF frame buffer sharing for Level 3 apps | HIGH | Arch §15.2 | WaylandRenderer | ❌ |
+| 5.2 | DMABUF frame buffer sharing for Level 3 apps | HIGH | Arch §15.2 | WaylandRenderer | ✅ |
 | 5.3 | Three-layer audio model (ambient/tactical/voice) | MEDIUM | Arch §23.1 | AudioService | ❌ |
 | 5.4 | Alert level adaptation (Green/Yellow/Red) | MEDIUM | Arch §23.2 | AudioService, SettingsStore | ❌ |
 | 5.5 | Haptic feedback patterns on Android | LOW | Arch §23.4 | HapticService | 🔶 |
@@ -474,7 +474,7 @@
 | Split Viewports | 8 | 0 | 0 |
 | Remote & Collaboration | 2 | 6 | 0 |
 | Input Abstraction | 2 | 0 | 3 |
-| Platform & Rendering | 2 | 3 | 3 |
+| Platform & Rendering | 4 | 2 | 2 |
 | Security & Trust | 9 | 1 | 1 |
 | Module System | 5 | 3 | 2 |
 | Service Daemons | 9 | 0 | 0 |
@@ -490,7 +490,7 @@
 | Settings | 4 | 0 | 0 |
 | **Kanban & Agents** | **6** | **1** | **0** |
 | Priority & Visual | 3 | 0 | 0 |
-| **TOTAL** | **151** | **11** | **7** |
+| **TOTAL** | **153** | **10** | **6** |
 
 > [!IMPORTANT]
 > **Stages 0–4, 7, and Stage 1 are fully complete.** The critical path is now **Stage 5** (Native Platform: Wayland, DMABUF, Accessibility, Multi-Sensory) and **Stage 6** (Collaboration, Remote, Release infrastructure).

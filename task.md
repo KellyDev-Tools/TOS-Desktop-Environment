@@ -84,6 +84,6 @@
 
 ## Stage 5 — Native Platform & Multi-Sensory
 - [x] 5.1 Real Wayland compositor integration test — Stabilized SHM buffer attachment in `WaylandShell`, resolving `wl_shm_pool` and `wl_buffer` dispatching issues.
-- [ ] 5.2 DMABUF frame buffer sharing for Level 3 apps — (Foundation laid via memfd/mmap zero-copy buffers)
+- [x] 5.2 DMABUF frame buffer sharing for Level 3 apps — Implemented `linux-dmabuf-v1` path in `WaylandShell` with automatic fallback to SHM. Support for `create_immed` with DRM_FORMAT_ARGB8888.
 - [ ] 5.3 Three-layer audio model
 - [ ] 5.7 Full keyboard navigation tab-stop chain

@@ -139,28 +139,17 @@ impl WaylandShell {
         
         let size = width * height * 4;
         
-        // SAFETY: The FD is owned by the WaylandBuffer in lib.rs and remains valid 
-        // for the duration of this call.
-        let borrowed_fd = unsafe { BorrowedFd::borrow_raw(fd) };
-        
-        // Create a pool from the provided memfd using the inner WlShm proxy
-        let pool = self.state.shm.wl_shm().create_pool(
-            borrowed_fd,
-            size,
-            &self.queue_handle,
-            (),
-        );
-        
-        // Create a buffer from the pool
-        let buffer = pool.create_buffer(
-            0,
-            width,
-            height,
-            width * 4,
-            wl_shm::Format::Argb8888,
-            &self.queue_handle,
-            (),
-        );
+        // Prefer DMABUF for Stage 5.2 performance requirements
+        let buffer = if let Some(dmabuf_buffer) = self.create_dmabuf_buffer(fd, width, height) {
+            tracing::debug!("Wayland: Using DMABUF for surface attachment");
+            dmabuf_buffer
+        } else {
+            // Fallback to SHM (Stage 5.1 path)
+            tracing::debug!("Wayland: DMABUF unavailable, falling back to SHM");
+            let borrowed_fd = unsafe { BorrowedFd::borrow_raw(fd) };
+            let pool = self.state.shm.wl_shm().create_pool(borrowed_fd, size, &self.queue_handle, ());
+            pool.create_buffer(0, width, height, width * 4, wl_shm::Format::Argb8888, &self.queue_handle, ())
+        };
 
         // Attach, damage, and commit
         surface.attach(Some(&buffer), 0, 0);
@@ -168,6 +157,39 @@ impl WaylandShell {
         surface.commit();
         
         tracing::debug!("Wayland: Buffer attached and committed ({}x{})", width, height);
+    }
+
+    pub fn create_dmabuf_buffer(&mut self, fd: std::os::unix::io::RawFd, width: i32, height: i32) -> Option<wl_buffer::WlBuffer> {
+        use std::os::unix::io::BorrowedFd;
+        
+        let dmabuf = self.state.dmabuf.as_ref()?;
+        let params = dmabuf.create_params(&self.queue_handle, ());
+        
+        // DRM_FORMAT_ARGB8888 = 0x34325241
+        let format = 0x34325241;
+        
+        // SAFETY: FD is managed by the caller (LinuxRenderer)
+        let borrowed_fd = unsafe { BorrowedFd::borrow_raw(fd) };
+
+        params.add(
+            borrowed_fd,
+            0, // plane 0
+            0, // offset
+            (width * 4) as u32, // stride
+            0, // modifier_hi
+            0, // modifier_lo
+        );
+        
+        let buffer = params.create_immed(
+            width,
+            height,
+            format,
+            zwp_linux_buffer_params_v1::Flags::empty(),
+            &self.queue_handle,
+            (),
+        );
+        
+        Some(buffer)
     }
 
     pub fn dispatch(&mut self) {

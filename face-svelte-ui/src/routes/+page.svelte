@@ -272,7 +272,7 @@
 
 			<!-- Left Section: Title -->
 			<div class="header-section header-left">
-				<button class="bezel-btn bezel-item" title="Toggle Left Sidebar" onclick={() => toggleSidebarLeft()}>◀</button>
+				<button class="bezel-btn bezel-item" title="Toggle Left Sidebar" aria-label="Toggle Left Sidebar" onclick={() => toggleSidebarLeft()}>◀</button>
 				<div class="lcars-title-area">
 					<span class="lcars-prefix">{tosState.sys_prefix || 'ALPHA-2.2 // INTEL-DRIVEN'}</span>
 				</div>
@@ -280,8 +280,8 @@
 				<!-- Sector Chip with Popover -->
 				{#if tosState.sectors[tosState.active_sector_index]}
 					{@const activeSec = tosState.sectors[tosState.active_sector_index]}
-					<div class="sector-chip-wrapper">
-						<button class="sector-name-chip" onclick={() => sessionPopoverOpen = !sessionPopoverOpen}>
+					<div aria-roledescription="chip" class="sector-chip-wrapper">
+						<button aria-roledescription="chip" class="sector-name-chip" onclick={() => sessionPopoverOpen = !sessionPopoverOpen}>
 							<span class="live-pulse"></span>
 							{activeSec.name.toUpperCase()}
 						</button>
@@ -312,18 +312,18 @@
 
 			<!-- Right Section: System Controls -->
 			<div class="header-section header-right">
-				<button class="bezel-btn bezel-item" title="Toggle Terminal Overlay (Ctrl+T)" onclick={() => toggleTerminalToFront()}>👁</button>
-				<button class="bezel-btn bezel-item" title="Marketplace (⊞)" onclick={() => { setCurrentMode('marketplace'); sendCommand('set_mode:marketplace'); }}>⊞</button>
+				<button class="bezel-btn bezel-item" title="Toggle Terminal Overlay (Ctrl+T)" aria-label="Toggle Terminal Overlay (Ctrl+T)" onclick={() => toggleTerminalToFront()}>👁</button>
+				<button class="bezel-btn bezel-item" title="Marketplace (⊞)" aria-label="Marketplace (⊞)" onclick={() => { setCurrentMode('marketplace'); sendCommand('set_mode:marketplace'); }}>⊞</button>
 				<button 
 					class="bezel-btn bezel-item" 
-					title="Open Web Portal" 
+					title="Open Web Portal" aria-label="Open Web Portal" 
 					onclick={() => import('$lib/stores/ui.svelte').then(m => m.openPortalModal())}
 				>
 					📡
 				</button>
-				<button class="bezel-btn bezel-item settings-btn" title="System Settings (Ctrl+,)" onclick={() => openSettings()}>⚙</button>
-				<button class="bezel-btn bezel-item help-btn" title="Help & Onboarding" onclick={() => { setSettingsTab('global'); openSettings(); }}>?</button>
-				<button class="bezel-btn bezel-item" title="Toggle Right Sidebar" onclick={() => toggleSidebarRight()}>▶</button>
+				<button class="bezel-btn bezel-item settings-btn" title="System Settings (Ctrl+,)" aria-label="System Settings (Ctrl+,)" onclick={() => openSettings()}>⚙</button>
+				<button class="bezel-btn bezel-item help-btn" title="Help & Onboarding" aria-label="Help & Onboarding" onclick={() => { setSettingsTab('global'); openSettings(); }}>?</button>
+				<button class="bezel-btn bezel-item" title="Toggle Right Sidebar" aria-label="Toggle Right Sidebar" onclick={() => toggleSidebarRight()}>▶</button>
 			</div>
 
 		</div>
@@ -367,8 +367,8 @@
 					<div class="viewport-header">
 						<div class="viewport-title">{viewTitle}</div>
 						<div class="viewport-controls">
-							<button class="bezel-btn" title="Add Sector">+</button>
-							<button class="bezel-btn" title="Close Sector">−</button>
+							<button class="bezel-btn" title="Add Sector" aria-label="Add Sector">+</button>
+							<button class="bezel-btn" title="Close Sector" aria-label="Close Sector">−</button>
 						</div>
 					</div>
 
@@ -398,7 +398,7 @@
 							<div 
 								class="cinematic-overlay {cinematicStage}" 
 								transition:fade={{ duration: 1000 }}
-								onclick={skipCinematic}
+								role="button" tabindex="0" onclick={skipCinematic}
 							>
 								{#if cinematicStage === 'sweep'}
 									<div class="sweep-grid"></div>
@@ -515,10 +515,10 @@
 						</form>
 						
 						{#if heuristicSuggestions.length > 0}
-							<div class="heuristic-chips" transition:slide={{ axis: 'y', duration: 200 }}>
+							<div aria-roledescription="chip" class="heuristic-chips" transition:slide={{ axis: 'y', duration: 200 }}>
 								{#each heuristicSuggestions as sug}
-									<button class="heuristic-chip" onclick={() => applySuggestion(sug.text)}>
-										<span class="chip-source">{sug.source}</span>
+									<button aria-roledescription="chip" class="heuristic-chip" onclick={() => applySuggestion(sug.text)}>
+										<span aria-roledescription="chip" class="chip-source">{sug.source}</span>
 										{sug.text}
 									</button>
 								{/each}

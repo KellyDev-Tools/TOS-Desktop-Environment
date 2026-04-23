@@ -129,7 +129,7 @@
 							<h3>SECURITY_CAPABILITIES</h3>
 							<div class="caps-list">
 								{#each inspectionData.permissions as perm}
-									<span class="cap-chip">{perm}</span>
+									<span aria-roledescription="chip" class="cap-chip">{perm}</span>
 								{/each}
 							</div>
 						</div>

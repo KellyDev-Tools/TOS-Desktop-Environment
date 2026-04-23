@@ -24,8 +24,8 @@
 
 <div class="thoughts-container">
 	{#each thoughts as thought (thought.id)}
-		<div class="thought-chip {thought.status.toLowerCase()}" transition:slide>
-			<div class="chip-inner glass-panel">
+		<div aria-roledescription="chip" class="thought-chip {thought.status.toLowerCase()}" transition:slide>
+			<div aria-roledescription="chip" class="chip-inner glass-panel">
 				<div class="status-bar">
 					<span class="status-marker"></span>
 					<span class="status-label">{getStatusLabel(thought.status)}</span>

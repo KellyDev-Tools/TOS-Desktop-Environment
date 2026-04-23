@@ -104,7 +104,7 @@
 				ondrop={(e: any) => handleDrop(e, i)}
 			>
 				{#if sector.priority >= 4}
-					<div class="priority-chip">PRIORITY {sector.priority}</div>
+					<div aria-roledescription="chip" class="priority-chip">PRIORITY {sector.priority}</div>
 				{/if}
 				<div class="sector-thumbnail">
 					{#if sector.hubs[0]?.activity_listing?.processes?.length}

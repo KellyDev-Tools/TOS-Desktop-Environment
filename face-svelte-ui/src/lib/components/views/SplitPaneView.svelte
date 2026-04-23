@@ -37,7 +37,7 @@
 		const pathRegex = /([a-zA-Z0-9_/\-.]+\.[a-zA-Z0-9]+):(\d+)/g;
 		
 		return escaped.replace(pathRegex, (match, path, line) => {
-			return `<span class="term-path-link" onclick="window.tos_submitCommand('!ipc editor_open:${path};${line}')" title="Hold explicitly or Click to open in Editor">${match}</span>`;
+			return `<span class="term-path-link" role="button" tabindex="0" onclick="window.tos_submitCommand('!ipc editor_open:${path};${line}')" title="Hold explicitly or Click to open in Editor">${match}</span>`;
 		});
 	}
 
@@ -60,7 +60,7 @@
 <div 
 	class="split-pane-leaf glass-panel" 
 	class:focused={isFocused}
-	onclick={handleFocus}
+	role="button" tabindex="0" onclick={handleFocus}
 >
 	<div class="pane-header">
 		<div class="pane-id text-mono">PANE // {pane.id.slice(0, 8)}</div>

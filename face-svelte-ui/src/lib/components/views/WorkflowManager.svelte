@@ -73,7 +73,7 @@
                     <div class="lane-header">
                         <span class="lane-title">{lane.title}</span>
                         <div class="lane-stats">{lane.tasks.length}</div>
-                        <button class="icon-btn amber" title="Add Task" onclick={() => addTask(lane.id)}>+</button>
+                        <button class="icon-btn amber" title="Add Task" aria-label="Add Task" onclick={() => addTask(lane.id)}>+</button>
                     </div>
                     <div class="tasks-list">
                         {#each lane.tasks as task}

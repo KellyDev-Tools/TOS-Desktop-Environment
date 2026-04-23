@@ -73,17 +73,17 @@
 			{/if}
 			{#if activeHub?.json_context}
 				{@const ctx = activeHub.json_context}
-				<div class="context-chip glass-panel" transition:slide>
-					<div class="chip-title">JSON CONTEXT // {ctx.type || 'DATA'}</div>
-					<div class="chip-row"><strong>NAME:</strong> {ctx.name || '--'}</div>
+				<div aria-roledescription="chip" class="context-chip glass-panel" transition:slide>
+					<div aria-roledescription="chip" class="chip-title">JSON CONTEXT // {ctx.type || 'DATA'}</div>
+					<div aria-roledescription="chip" class="chip-row"><strong>NAME:</strong> {ctx.name || '--'}</div>
 					{#if ctx.state}
-						<div class="chip-row"><strong>STATE:</strong> <span class="ctx-state">{ctx.state}</span></div>
+						<div aria-roledescription="chip" class="chip-row"><strong>STATE:</strong> <span class="ctx-state">{ctx.state}</span></div>
 					{/if}
 					{#if ctx.active_file}
-						<div class="chip-row"><strong>FILE:</strong> {ctx.active_file}</div>
+						<div aria-roledescription="chip" class="chip-row"><strong>FILE:</strong> {ctx.active_file}</div>
 					{/if}
 					{#if ctx.metadata}
-						<div class="chip-metadata">
+						<div aria-roledescription="chip" class="chip-metadata">
 							{#each Object.entries(ctx.metadata) as [k, v]}
 								<div><strong>{k.toUpperCase()}:</strong> {v}</div>
 							{/each}
@@ -94,8 +94,8 @@
 
 			{#if activeHub?.shell_listing}
 				{@const dir = activeHub.shell_listing}
-				<div class="context-chip glass-panel" transition:slide>
-					<div class="chip-title" style="color: var(--color-primary)">DIR PREVIEW // {dir.path}</div>
+				<div aria-roledescription="chip" class="context-chip glass-panel" transition:slide>
+					<div aria-roledescription="chip" class="chip-title" style="color: var(--color-primary)">DIR PREVIEW // {dir.path}</div>
 					<div class="directory-list">
 						{#each dir.entries as entry}
 							<div class="dir-entry">
@@ -112,8 +112,8 @@
 
 			{#if activeHub?.activity_listing}
 				{@const act = activeHub.activity_listing}
-				<div class="context-chip glass-panel activity-chip">
-					<div class="chip-title" style="color: var(--color-warning)">SYSTEM ACTIVITY // RECENT</div>
+				<div aria-roledescription="chip" class="context-chip glass-panel activity-chip">
+					<div aria-roledescription="chip" class="chip-title" style="color: var(--color-warning)">SYSTEM ACTIVITY // RECENT</div>
 					<div class="activity-list" data-testid="activity-list">
 						{#each act.processes.slice(0, 10) as proc}
 							<!-- svelte-ignore a11y_no_static_element_interactions -->
@@ -142,7 +142,7 @@
 					</div>
 				</div>
 			{:else}
-				<div class="context-chip glass-panel empty-chip">
+				<div aria-roledescription="chip" class="context-chip glass-panel empty-chip">
 					<div class="empty-text">AWAITING CONTEXT EXPORT...</div>
 				</div>
 			{/if}

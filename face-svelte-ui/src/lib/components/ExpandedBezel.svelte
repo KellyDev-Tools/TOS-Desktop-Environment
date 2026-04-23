@@ -37,15 +37,15 @@
 					<div class="value">{activeSector.name}</div>
 				</div>
 
-				<div class="action-chips">
-					<div class="chip-group">
+				<div aria-roledescription="chip" class="action-chips">
+					<div aria-roledescription="chip" class="chip-group">
 						<div class="group-label">SHELL_ACTIONS</div>
 						<button class="lcars-btn-sm" onclick={() => bezelPanePromote()}>⊞ PROMOTE_TO_PANE</button>
 						<button class="lcars-btn-sm">⏹ STOP (Ctrl+C)</button>
 						<button class="lcars-btn-sm">⧉ NEW_TERMINAL</button>
 					</div>
 
-					<div class="chip-group">
+					<div aria-roledescription="chip" class="chip-group">
 						<div class="group-label">PANE_MANAGEMENT</div>
 						<button class="lcars-btn-sm" onclick={() => splitFullscreen()}>⛶ FULLSCREEN (Ctrl+F)</button>
 						<button class="lcars-btn-sm" onclick={() => splitSwap()}>⇌ SWAP_PANES (Ctrl+X)</button>

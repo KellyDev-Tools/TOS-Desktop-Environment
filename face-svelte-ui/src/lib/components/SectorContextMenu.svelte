@@ -28,7 +28,7 @@
 	class="sector-context-menu glass-panel" 
 	style="left: {x}px; top: {y}px;" 
 	transition:fade={{ duration: 150 }} 
-	onclick={(e) => e.stopPropagation()} 
+	role="button" tabindex="0" onclick={(e) => e.stopPropagation()} 
 	oncontextmenu={(e) => { e.preventDefault(); e.stopPropagation(); }}
 >
 	<div class="menu-header">

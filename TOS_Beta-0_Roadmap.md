@@ -237,7 +237,7 @@
 | Feature | Spec Ref | Status | Evidence |
 |---|---|---|---|
 | High-contrast themes | §24.1 | 🔶 | Theme module `supports_high_contrast` flag; no forced mode |
-| Screen reader bridge (AT-SPI) | §24.1 | ❌ | No semantic role publishing |
+| Screen reader bridge (AT-SPI) | §24.1 | ✅ | Semantic roles and ARIA tags added across face-svelte-ui components |
 | Keyboard navigation (full) | §24.3 | 🔶 | Some keyboard handlers; no complete tab-stop chain |
 | Dwell clicking | §24.3 | ❌ | Not implemented |
 | Simplified mode | §24.4 | ❌ | Not implemented |
@@ -341,7 +341,7 @@
 | 5.3 | Three-layer audio model (ambient/tactical/voice) | MEDIUM | Arch §23.1 | AudioService | ✅ |
 | 5.4 | Alert level adaptation (Green/Yellow/Red) | MEDIUM | Arch §23.2 | AudioService, SettingsStore | ✅ |
 | 5.5 | Haptic feedback patterns on Android | LOW | Arch §23.4 | HapticService | 🔶 |
-| 5.6 | Screen reader bridge (AT-SPI on Linux) | HIGH | Arch §24.1 | Face components | ❌ |
+| 5.6 | Screen reader bridge (AT-SPI on Linux) | HIGH | Arch §24.1 | Face components | ✅ |
 | 5.7 | Full keyboard navigation tab-stop chain | HIGH | Arch §24.3 | All Svelte components | ✅ |
 | 5.8 | High-contrast forced mode | MEDIUM | Arch §24.1 | Theme system | ✅ |
 | 5.9 | FPS monitoring + Tactical Alert | LOW | Arch §16.4 | Renderer, alerting | ❌ |
@@ -390,13 +390,13 @@
 | Session Persistence | 6 | 0 | 1 |
 | Onboarding | 2 | 3 | 0 |
 | Multi-Sensory | 0 | 2 | 3 |
-| Accessibility | 0 | 2 | 3 |
+| Accessibility | 1 | 2 | 2 |
 | Predictive Fillers | 4 | 0 | 2 |
 | Reset / Log | 3 | 1 | 2 |
 | Settings | 4 | 0 | 0 |
 | **Kanban & Agents** | **6** | **1** | **0** |
 | Priority & Visual | 3 | 0 | 0 |
-| **TOTAL** | **153** | **10** | **6** |
+| **TOTAL** | **154** | **10** | **5** |
 
 > [!IMPORTANT]
 > **Stages 0–4, 7, and Stage 1 are fully complete.** The critical path is now **Stage 5** (Native Platform: Wayland, DMABUF, Accessibility, Multi-Sensory) and **Stage 6** (Collaboration, Remote, Release infrastructure).

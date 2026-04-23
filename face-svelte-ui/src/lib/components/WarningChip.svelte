@@ -14,9 +14,9 @@
 {#if trustWarnings.length > 0}
 	<div class="warning-container">
 		{#each trustWarnings as warning}
-			<div class="warning-chip amberPulse">
-				<span class="chip-icon">⚠</span>
-				<span class="chip-text">{warning.text.replace('[TRUST] ', '')}</span>
+			<div aria-roledescription="chip" class="warning-chip amberPulse">
+				<span aria-roledescription="chip" class="chip-icon">⚠</span>
+				<span aria-roledescription="chip" class="chip-text">{warning.text.replace('[TRUST] ', '')}</span>
 			</div>
 		{/each}
 	</div>

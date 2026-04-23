@@ -11,8 +11,8 @@
 	<div class="panel-header">
 		<span class="panel-title">AI CONTEXT</span>
 		<div class="panel-actions">
-			<button class="icon-btn" title="Refresh Context">⟳</button>
-			<button class="icon-btn" onclick={onClose} title="Close Panel">✕</button>
+			<button class="icon-btn" title="Refresh Context" aria-label="Refresh Context">⟳</button>
+			<button class="icon-btn" onclick={onClose} title="Close Panel" aria-label="Close Panel">✕</button>
 		</div>
 	</div>
 

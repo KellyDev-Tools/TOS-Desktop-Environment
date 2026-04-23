@@ -221,9 +221,9 @@
 		</span>
 		<span class="header-tools">
 			{#if pendingTrustTarget}
-				<div class="trust-chip flex items-center">
+				<div aria-roledescription="chip" class="trust-chip flex items-center">
 					<span class="error-text">⚠ OUTSIDE CWD</span>
-					<button class="pill-btn danger-chip" onclick={approveTrust}>[ALLOW PENDING WRITE]</button>
+					<button aria-roledescription="chip" class="pill-btn danger-chip" onclick={approveTrust}>[ALLOW PENDING WRITE]</button>
 					<button class="pill-btn" onclick={() => pendingTrustTarget = null}>[CANCEL]</button>
 				</div>
 			{/if}
@@ -231,7 +231,7 @@
 			<span class="pill-badge">{highlightedLines.length} lines</span>
 			<span class="pill-badge">{editorState.mode}</span>
 			<button class="pill-btn" onclick={() => showAiContext = !showAiContext}>[AI]</button>
-			<button class="pill-btn" title="Promote to Pane">[⊞]</button>
+			<button class="pill-btn" title="Promote to Pane" aria-label="Promote to Pane">[⊞]</button>
 		</span>
 	</div>
 	
@@ -287,12 +287,12 @@
 						class:pulse-amber={annotationsByLine.get(i)?.some(a => a.severity === 'error')}>
 						<!-- svelte-ignore a11y_click_events_have_key_events -->
 						<!-- svelte-ignore a11y_no_static_element_interactions -->
-						<span class="line-number" onclick={() => handleLineClick(i)} title="Send line to AI">{i + 1}</span>
+						<span class="line-number" role="button" tabindex="0" onclick={() => handleLineClick(i)} title="Send line to AI">{i + 1}</span>
 						<span class="line-text">{@html line || ' '}</span>
 						{#if annotationsByLine.has(i)}
 							<div class="inline-annotations">
 								{#each annotationsByLine.get(i)! as ann}
-									<div class="margin-chip" class:error={ann.severity === 'error'}>
+									<div aria-roledescription="chip" class="margin-chip" class:error={ann.severity === 'error'}>
 										{ann.severity === 'error' ? '⚠' : '💡'} {ann.message}
 									</div>
 								{/each}

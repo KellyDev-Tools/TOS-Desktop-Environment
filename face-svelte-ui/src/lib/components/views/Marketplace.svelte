@@ -140,7 +140,7 @@
 				class="glass-input"
                 onkeydown={(e) => e.key === 'Enter' && handleAiSearch()}
 			/>
-            <button class="ai-search-btn" class:loading={isAiSearching} onclick={handleAiSearch} title="Use AI to find matching modules">
+            <button class="ai-search-btn" class:loading={isAiSearching} onclick={handleAiSearch} title="Use AI to find matching modules" aria-label="Use AI to find matching modules">
                 ✦ {isAiSearching ? 'SCANNING...' : 'AI_FIND'}
             </button>
 		</div>
@@ -222,7 +222,7 @@
 	</main>
 
     {#if selectedModule}
-        <div class="detail-overlay" transition:fade onclick={() => selectedModule = null} role="button" tabindex="0" onkeydown={(e) => e.key === 'Escape' && (selectedModule = null)}>
+        <div class="detail-overlay" transition:fade role="button" tabindex="0" onclick={() => selectedModule = null} onkeydown={(e) => e.key === 'Escape' && (selectedModule = null)}>
             <div 
 				class="detail-card glass-panel" 
 				onclick={(e) => e.stopPropagation()} 
@@ -299,7 +299,7 @@
                             <div class="install-progress-bar">
                                 <div class="progress-fill" style="width: {installProgress.progress * 100}%"></div>
                                 <div class="progress-text">{installProgress.status.toUpperCase()}... {(installProgress.progress * 100).toFixed(0)}%</div>
-                                <button class="cancel-install-btn" onclick={cancelInstall} title="Cancel Installation">✕</button>
+                                <button class="cancel-install-btn" onclick={cancelInstall} title="Cancel Installation" aria-label="Cancel Installation">✕</button>
                             </div>
                         {/if}
                     {:else if selectedModule.summary.installed}

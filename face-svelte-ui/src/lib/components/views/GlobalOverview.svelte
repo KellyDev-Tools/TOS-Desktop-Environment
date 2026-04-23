@@ -63,14 +63,17 @@
 	}
 
 	function getBorderClass(sector: any): string {
+		const classes = [];
 		const hub = sector.hubs?.[sector.active_hub_index];
-		if (!hub) return '';
-		if (hub.is_running) return 'border-running';
-		if (hub.last_exit_status !== null && hub.last_exit_status !== undefined) {
-			if (hub.last_exit_status === 0) return 'border-success';
-			return 'border-error';
+		if (hub) {
+			if (hub.is_running) classes.push('border-running');
+			if (hub.last_exit_status !== null && hub.last_exit_status !== undefined) {
+				if (hub.last_exit_status === 0) classes.push('border-success');
+				else classes.push('border-error');
+			}
 		}
-		return '';
+		if (sector.priority >= 3) classes.push(`priority-${sector.priority}`);
+		return classes.join(' ');
 	}
 </script>
 
@@ -88,6 +91,9 @@
 				ondragleave={handleDragLeave}
 				ondrop={(e: any) => handleDrop(e, i)}
 			>
+				{#if sector.priority >= 4}
+					<div class="priority-chip">PRIORITY {sector.priority}</div>
+				{/if}
 				<div class="sector-thumbnail">
 					{#if sector.hubs[0]?.activity_listing?.processes?.length}
 						<div class="app-matrix">
@@ -219,6 +225,46 @@
 
 	.sector-tile.border-error {
 		border-color: var(--color-warning);
+	}
+
+	/* Priority Glows */
+	.sector-tile.priority-3 {
+		box-shadow: 0 0 10px rgba(102, 153, 255, 0.2);
+	}
+
+	.sector-tile.priority-4 {
+		border-color: var(--color-accent);
+		box-shadow: 0 0 15px rgba(247, 168, 51, 0.3);
+	}
+
+	.sector-tile.priority-5 {
+		border-color: var(--color-danger);
+		box-shadow: 0 0 20px rgba(255, 51, 51, 0.4);
+		animation: redAlertPulse 2s infinite;
+	}
+
+	.priority-chip {
+		position: absolute;
+		top: 0;
+		right: 0;
+		background: var(--color-accent);
+		color: black;
+		font-size: 0.55rem;
+		font-weight: 900;
+		padding: 2px 6px;
+		border-radius: 0 0 0 4px;
+		z-index: 2;
+	}
+
+	.priority-5 .priority-chip {
+		background: var(--color-danger);
+		color: white;
+	}
+
+	@keyframes redAlertPulse {
+		0% { box-shadow: 0 0 10px rgba(255, 51, 51, 0.4); }
+		50% { box-shadow: 0 0 25px rgba(255, 51, 51, 0.7); }
+		100% { box-shadow: 0 0 10px rgba(255, 51, 51, 0.4); }
 	}
 
 	@keyframes slide-gradient {

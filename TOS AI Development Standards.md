@@ -49,14 +49,27 @@ Maintain the "Unified Vision" by using traits defined in `src/platform/mod.rs`.
 
 ### 3.1 The LCARS Aesthetic
 TOS is inspired by 24th-century tactical displays but modernized for current hardware.
-- **Colors**: Use the curated palette in `variables.css` (`--lcars-orange`, `--lcars-blue`, `--lcars-gold`, `--lcars-red`).
-- **Glassmorphism**: Use semi-transparent backgrounds with `backdrop-filter: blur()` for overlays.
-- **Layout**: Prefer high-density grids and "Elbow" paths over traditional window borders.
+- **Color Palette**: Use deep blacks, muted purples (#443366), tactical ambers (#FF9900), and LCARS blues (#6699FF).
+- **Geometry**: Use large, bold corner radii (20px+) for major containers, contrasting with sharp 2px borders for internal widgets.
+- **Typography**: Strictly use "Outfit" or "Inter" for UI labels, and "JetBrains Mono" or similar for tactical data.
 
-### 3.2 Premium Micro-Animations
-Interfaces must feel "alive."
-- Any state change (mode switch, zoom) must be accompanied by a subtle transition or animation.
-- Use the `recursive-zoom` keyframes for level transitions.
+### 3.2 Premium Materiality
+- **Glassmorphism**: Use `backdrop-filter: blur(12px)` and semi-transparent backgrounds (`rgba(0,0,0,0.4)`) to create depth.
+- **Tactical Micro-interactions**: Every click must feel substantial. Use `0.1s ease-out` transitions for hover states and `0.05s` for active states.
+- **Layered Depth**: Use subtle box-shadows and inner glows to separate hierarchy levels.
+
+### 3.3 The "Tactical Chip" System
+- **Status Indicators**: Chips (like trust warnings or AI thoughts) must use high-contrast text on solid backgrounds.
+- **Color Coding**: 
+  - `var(--color-primary)` (Blue): Information / Hub Mode.
+  - `var(--color-success)` (Green): Active Operation / Success.
+  - `var(--color-warning)` (Amber): Tactical Alert / Trust Warning.
+  - `var(--color-danger)` (Red): System Failure / Red Alert.
+
+### 3.4 Animation Philosophy
+- **Entrance**: Use `scaleIn` or `slideFade` for new panes.
+- **Feedback**: Use subtle pulses (e.g., "amberPulse") for active AI reasoning or pending confirmations.
+- **Efficiency**: Animations must never delay user input. They are visual feedback, not blocking transitions.
 
 ---
 
@@ -104,10 +117,15 @@ Test-Driven Development is strictly required. No feature code should be written 
 4. **Verify Success:** Run the test again to prove it correctly simulates the rendering.
 5. *Rule:* Native faces must provide a testing stub or string-buffer renderer so that visual states, dimensions, and text rendering logic can be validated headlessly in CI without requiring an active Compositor or XR runtime.
 
-### 4.3 Pipeline Verification
-- AI Agents must run `cargo check` and `cargo test` after any Rust file changes.
-- AI Agents must run `cd svelte_ui && npm run build` after any Svelte/TS file changes to ensure the SPA statically yields.
-- Do not commit code that breaks the compilation pipeline.
+### 4.3 Pipeline Verification & Commit Standards
+- **Commit Messages**: Must follow the `type(scope): description` format (e.g., `feat(brain): add sentiment analysis`).
+- **Atomic Commits**: Each commit must represent a single logical unit of change.
+- **Pipeline Compliance**: 
+  - AI Agents must run `cargo check` and `cargo test` after any Rust file changes.
+  - AI Agents must run `cd svelte_ui && npm run build` after any Svelte/TS file changes to ensure the SPA statically yields.
+  - Do not commit code that breaks the compilation or testing pipeline.
+  - All commits are gated by the `scripts/pre-commit.sh` hook, which runs workspace-wide checks and tests.
+- **Automatic Commit on Task Completion**: Upon marking a task as complete in `task.md`, the AI Agent must automatically perform a commit of all relevant changes using the standardized commit format, provided the workspace is in a "Green" state.
 
 ---
 
@@ -117,6 +135,6 @@ Test-Driven Development is strictly required. No feature code should be written 
 2. **Be Aesthetic**: If generating UI, ensure it looks "Tactical" and "Premium." Avoid generic layouts.
 3. **Be Structured**: Use headers and bold text in responses to make technical details easy to parse.
 
-## 5 AI Agent will not use Documentation name's and reff's in the code comments or doc comments.
+## 6 AI Agent will not use Documentation name's and reff's in the code comments or doc comments.
 1. Using "Phase 10" Is non-descriptive and confusing. Instead use the name of the feature or module for ease of understanding.
 2. Using "TOS AI Development Standards" in code comments or doc comments. Is confusing and not needed.

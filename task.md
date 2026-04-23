@@ -68,4 +68,18 @@
 - [x] 3.10 Implement Focus Error chip (PTY error highlighting) — Added automatic high-priority (Level 3) tagging for error-related keywords in PTY `read_loop`.
 - [x] 3.11 Implement notification display center (priority-gated) — Upgraded `PriorityStack.svelte` into a comprehensive Notification Center filtering for TACTICAL/CRITICAL events.
 
-## Stage 4–6 — Deferred to subsequent sessions
+## Stage 4 — UI Polish & Feature Completion
+- [ ] 4.1 Marketplace permission scroll-to-consent gate
+- [ ] 4.2 Marketplace download progress display + cancel
+- [ ] 4.3 Marketplace installed badge in browse cards
+- [x] 4.4 Warning chip rendering as dedicated component — Created `WarningChip.svelte` and integrated into `CommandHub.svelte` with amberPulse animation.
+- [ ] 4.5 Bezel pane management chip rendering
+- [ ] 4.6 Divider drag + snap assist
+- [ ] 4.7 Onboarding: ambient hints (per-hint dismiss)
+- [ ] 4.8 Deep Inspection: Buffer View implementation
+- [ ] 4.9 System reset confirmation dialog
+- [ ] 4.10 Global TOS Log Sector view
+- [ ] 4.11 Tactical Mini-Map depth-aware content
+- [x] 4.12 Priority visual indicators by depth (border chips, glow) — Implemented priority-based glows and status chips in `GlobalOverview.svelte`.
+
+## Stage 5–6 — Deferred to subsequent sessions

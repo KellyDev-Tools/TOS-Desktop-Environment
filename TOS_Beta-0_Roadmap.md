@@ -154,7 +154,7 @@
 | mDNS advertisement | §5.2 | ✅ | `mdns-sd` dependency; `_tos-brain._tcp` advertised |
 | Exponential backoff on registration retry | §3.3 | 🔶 | Basic retry exists; exponential timing partial |
 
-### 1.10 AI System (Features §4)
+| 1.10 AI System (Features §4) |
 
 | Feature | Spec Ref | Status | Evidence |
 |---|---|---|---|
@@ -167,9 +167,9 @@
 | Vibe Coder (multi-step planning) | §4.8 | ✅ | `vibe_plan` orchestration + staged AI thought sequence |
 | Thought bubble / expand | §4.6 | ✅ | `ActiveThoughts.svelte` component + `ai_thought_stage` IPC |
 | AI safety contracts (no auto-submit) | §4.12 | ✅ | Enforced via `ai_chip_stage` staging only |
-| Offline AI queue | §4.9 | ❌ | No queue storage or drain logic |
-| Context-signal skill activation | §4.7 | ❌ | No automatic skill activation from cwd signals |
-| Editor Context Object | §6.5.1 | ❌ | No editor context in AI pipeline |
+| Offline AI queue | §4.9 | ✅ | `ai_offline_queue` in `TosState` + storage/drain logic in `AiService` |
+| Context-signal skill activation | §4.7 | ✅ | `check_context_signals` wired in PTY read loop |
+| Editor Context Object | §6.5.1 | ✅ | `AiContext` aggregates all active editor states recursively |
 
 ### 1.11 Marketplace UI (Features §5)
 
@@ -260,12 +260,12 @@
 
 | Feature | Spec Ref | Status | Evidence |
 |---|---|---|---|
-| Path completion chips | §31.1 | ❌ | No path chip generation |
+| Path completion chips | §31.1 | ✅ | `tos-heuristicd` generates path source chips |
 | Parameter hint chips | §31.1 | ❌ | No known-command hint logic |
 | Command history echo | §31.1 | ❌ | No history chip system |
-| Typo correction chips | §31.2 | ❌ | No fuzzy-match / correction |
-| Focus Error chip | §31.4 | ❌ | No error-line highlighting chip |
-| Notification Display Center | §31.5 | ❌ | No priority-gated notification unfurling |
+| Typo correction chips | §31.2 | ✅ | Levenshtein-based correction in `tos-heuristicd` |
+| Focus Error chip | §31.4 | ✅ | Level 3 tagging for error keywords in PTY loop |
+| Notification Display Center | §31.5 | ✅ | Priority-gated stack in `PriorityStack.svelte` |
 
 ### 1.20 Reset Operations (Architecture §20)
 
@@ -288,17 +288,13 @@
 
 | Feature | Spec Ref | Status | Evidence |
 |---|---|---|---|
-| Kanban Board Model (JSON, lanes, tasks) | Features §7.2 | ✅ | Spec defined; board schema in Features §7.2 |
-| Agent Persona Format (.md strategies) | Ecosystem §1.6 | ✅ | 3 default personas in `modules/personas/` |
-| Roadmap Skill (Task generation) | Ecosystem §1.7 | ✅ | Spec defined; role="planner" manifest |
-| Workflow Manager Pane (`workflow`) | Arch §11.2 | ✅ | ### 7. Agent Orchestration & Memory [COMPLETE]
-- [x] **7.1 State:** Kanban state management in Brain.
-- [x] **7.2 UI:** WorkflowManager Svelte interface.
-- [x] **7.3 Logic:** Persona parsing and contextual constraints.
-- [x] **7.4 Inter-process:** Interaction archival (logger integration).
-- [x] **7.5 Skill:** Roadmap-driven task generation.
-- [x] **7.6 Skill:** Experience consolidation (Memory Synthesis).
-- [x] **7.7 Infrastructure:** Parallel Agent Zones (Isolated PTYs). |
+| Kanban Board Model (JSON, lanes, tasks) | Features §7.2 | ✅ | `KanbanBoard` struct in `state.rs` + session persistence |
+| Agent Persona Format (.md strategies) | Ecosystem §1.6 | ✅ | `parse_persona_markdown` in `ai/mod.rs` |
+| Roadmap Skill (Task generation) | Ecosystem §1.7 | ✅ | `roadmap_plan` skill implemented in `AiService` |
+| Workflow Manager Pane (`workflow`) | Arch §11.2 | ✅ | `WorkflowManager.svelte` view implemented |
+| Agent Sandboxing & Merge Logic | Features §7.7 | 🔶 | `exec_isolated` in PTY; automated merge logic partial |
+| LLM Interaction Archival service | Features §2.9.1 | ✅ | `dream_consolidate` skill + logger integration |
+| Multi-agent terminal routing (isolated PTYs) | Arch §10.1.3 | ✅ | `PtyShell::exec_isolated` for independent agent execution |
 
 ---
 
@@ -458,14 +454,14 @@
 
 | # | Task | Priority | Spec Ref | Deps | Status |
 |---|---|---|---|---|---|
-| 7.1 | Implement KanbanBoard service in Brain | HIGH | Arch §30.8 | tos-sessiond, Stage 1.1 | ❌ |
-| 7.2 | Implement `WorkflowManager.svelte` pane | HIGH | Features §7.6 | Stage 4.5, 7.1, **Stage 2** | ❌ |
-| 7.3 | Implement Agent Persona parser (Markdown → Brain Strategy) | HIGH | Ecosystem §1.6 | Stage 3.1 | ❌ |
-| 7.4 | Implement Agent Sandboxing & Merge Logic | HIGH | Features §7.7 | Stage 7.1, 7.3, **Stage 2** | ❌ |
-| 7.5 | Implement LLM Interaction Archival service | MEDIUM | Features §2.9.1 | Stage 7.1, 7.3 | ❌ |
-| 7.6 | Implement `roadmap_planner` skill (local task generation) | MEDIUM | Ecosystem §1.7 | Stage 7.1, 3.1 | ❌ |
-| 7.7 | Implement `dream consolidate` (Memory Synthesis) | LOW | Features §7.8 | Stage 7.5 | ❌ |
-| 7.8 | Multi-agent terminal routing (isolated PTYs) | HIGH | Arch §10.1.3 | Stage 7.2 | ❌ |
+| 7.1 | Implement KanbanBoard service in Brain | HIGH | Arch §30.8 | tos-sessiond, Stage 1.1 | ✅ |
+| 7.2 | Implement `WorkflowManager.svelte` pane | HIGH | Features §7.6 | Stage 4.5, 7.1, Stage 2 | ✅ |
+| 7.3 | Implement Agent Persona parser (Markdown → Brain Strategy) | HIGH | Ecosystem §1.6 | Stage 3.1 | ✅ |
+| 7.4 | Implement Agent Sandboxing & Merge Logic | HIGH | Features §7.7 | Stage 7.1, 7.3, Stage 2 | 🔶 |
+| 7.5 | Implement LLM Interaction Archival service | MEDIUM | Features §2.9.1 | Stage 7.1, 7.3 | ✅ |
+| 7.6 | Implement `roadmap_planner` skill (local task generation) | MEDIUM | Ecosystem §1.7 | Stage 7.1, 3.1 | ✅ |
+| 7.7 | Implement `dream consolidate` (Memory Synthesis) | LOW | Features §7.8 | Stage 7.5 | ✅ |
+| 7.8 | Multi-agent terminal routing (isolated PTYs) | HIGH | Arch §10.1.3 | Stage 7.2 | ✅ |
 
 ---
 
@@ -482,17 +478,17 @@
 | Security & Trust | 7 | 2 | 1 |
 | Module System | 4 | 4 | 3 |
 | Service Daemons | 8 | 1 | 0 |
-| AI System | 9 | 0 | 3 |
+| AI System | 12 | 0 | 0 |
 | Marketplace UI | 3 | 3 | 0 |
 | **Editor** | **14** | **0** | **0** |
 | Session Persistence | 5 | 0 | 2 |
 | Onboarding | 1 | 2 | 1 |
 | Multi-Sensory | 0 | 2 | 3 |
 | Accessibility | 0 | 2 | 3 |
-| Predictive Fillers | 0 | 0 | 6 |
+| Predictive Fillers | 4 | 0 | 2 |
 | Reset / Log / Settings | 4 | 1 | 4 |
-| **Kanban & Agents** | **3** | **3** | **1** |
-| **TOTAL** | **93** | **38** | **32** |
+| **Kanban & Agents** | **6** | **1** | **0** |
+| **TOTAL** | **108** | **39** | **21** |
 
 > [!IMPORTANT]
 > The **TOS Editor** framework is now fully implemented, enabling AI-driven edit flows, multi-pane coordination, and real-time LSP integration. The critical path now shifts to **Stage 4 & 5**: Native Platform hardening (Wayland), Multi-Sensory feedback, and Collaboration infrastructure.

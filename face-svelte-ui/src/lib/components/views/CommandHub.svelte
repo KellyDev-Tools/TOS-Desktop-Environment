@@ -3,6 +3,7 @@
 
 	import SplitLayout from './SplitLayout.svelte';
 	import AiChat from './AiChat.svelte';
+	import WarningChip from '../WarningChip.svelte';
 	import TacticalContextMenu from '../TacticalContextMenu.svelte';
 	import { getPromptMode } from '$lib/stores/ui.svelte';
 	import { longpress } from '$lib/actions/longpress';
@@ -59,6 +60,8 @@
 </script>
 
 <div class="command-hub">
+	<WarningChip />
+
 	{#if splitLayout}
 		<SplitLayout node={splitLayout} {activeHub} />
 	{:else}
@@ -94,7 +97,7 @@
 						{#each dir.entries as entry}
 							<div class="dir-entry">
 								<span class="dir-type" class:is-dir={entry.is_dir}>{entry.is_dir ? '[DIR]' : ''}</span>
-								<span class="dir-name" class:is-dir={entry.is_dir}>{entry.name}</span>
+								<span class="dir-name" class:is-dir={entry.is_dir}>{entry.is_dir ? '[DIR]' : ''}</span>
 								{#if !entry.is_dir}
 									<span class="dir-size">{entry.size} B</span>
 								{/if}
@@ -165,6 +168,7 @@
 
 <style>
 	.command-hub {
+		position: relative;
 		display: grid;
 		grid-template-columns: 1fr 1.5fr;
 		gap: var(--space-md);

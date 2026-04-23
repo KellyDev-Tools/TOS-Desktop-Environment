@@ -307,108 +307,26 @@
 
 | Document | Status |
 |---|---|
-| `TOS_alpha2-to-beta0.md` | ✅ Phases 1–4 COMPLETE. Phase 5–6 🚧 items absorbed below. Archive it. |
-| `TOS_SSH_Wayland_Fix_Plan.md` | ✅ RendererManager COMPLETE. Remaining items (real Wayland, WebRTC) absorbed below. Archive it. |
+| `TOS_alpha2-to-beta0.md` | ✅ Archived in `docs/archive/`. |
+| `TOS_SSH_Wayland_Fix_Plan.md` | ✅ Archived in `docs/archive/`. |
+| `TOS_SPECIFICATION_PATCH_kanban_agents_dream.md` | ✅ Archived in `docs/archive/`. |
 | `archive/alpha-2/dev_docs/TOS_alpha-2.2_Production-Roadmap.md` | ✅ Already archived. No remaining items. |
 | `archive/alpha-2/dev_docs/TOS_alpha-2.1_*-Roadmap.md` (6 files) | ✅ Already archived. All superseded by Beta-0 spec. |
 
 ---
 
-### Stage 0 — Hard Gate Blockers (Must-Fix Before Any Feature Work)
+### Completed Stages (Integrated into v0.2.0-beta.0)
 
-> [!CAUTION]
-> These items from the Beta-0 Hard Gates table are either incomplete or need verification.
-
-| # | Task | Priority | Spec Ref | Deps | Status |
-|---|---|---|---|---|---|
-| 0.1 | Brain Tool Registry: enforce `tool_bundle` permissions at runtime for all skills | **CRITICAL** | Eco §1.4.3 | Brain IPC, ModuleManager | ✅ |
-| 0.2 | Verify `.tos-skill` accepted / `.tos-aibehavior` rejected by Marketplace daemon | **CRITICAL** | Eco §1.4 | tos-marketplaced | ✅ |
-| 0.3 | Silent restore — no notification or prompt on session launch | **HIGH** | Features §2.6.2 | SessionService | ✅ |
-| 0.4 | Profile diversity — Brain adapts layout to `handheld`/`spatial` face_register profiles | **HIGH** | Arch §3.3.5 | face_register IPC | ✅ (verify) |
-| 0.5 | All errors routed through `tracing` — zero stray `eprintln!`/`println!` | **HIGH** | Standards §2.1 | Codebase sweep | ✅ (verify) |
-| 0.6 | IPC round-trip < 16ms verified in local testing | **HIGH** | Dev §4.5 | IPC handler | ✅ (latency warning exists) |
-| 0.7 | Vibe Coder proposals never auto-apply — require [Apply] in Diff Mode | **CRITICAL** | Features §6.6.2 | Editor system | N/A (editor unimplemented) |
+> [!NOTE]
+> The following stages have been fully implemented, verified, and migrated to the [CHANGELOG.md](./CHANGELOG.md#020-beta0---2026-04-23):
+> - **Stage 0**: Hard Gate Blockers (Brain Tool Registry, Security Verification, Latency optimization).
+> - **Stage 1**: Core Runtime Hardening (1Hz Heartbeat, OSC Parsers, Semantic Mapping).
+> - **Stage 2**: Editor System (Viewer/Editor/Diff modes, LSP integration, Persistence).
+> - **Stage 3**: AI Skills & Predictive Intelligence (Vibe Coder, Command Predictor, Offline Queue).
+> - **Stage 4**: UI Polish & Feature Completion (Marketplace gates, Mini-map, Priority indicators).
+> - **Stage 7**: Kanban & Agent Orchestration (Workflow Manager, Persona parser, multi-agent PTYs).
 
 ---
-
-### Stage 1 — Core Runtime Hardening
-
-*Foundation work that other stages depend on.*
-
-| # | Task | Priority | Spec Ref | Deps | Status |
-|---|---|---|---|---|---|
-| 1.1 | Implement 1Hz `state_delta` push from Brain to all connected Faces | HIGH | Arch §3.4.2 | RemoteServer | ✅ |
-| 1.2 | Implement Face heartbeat detection (5 missed ticks → Disconnected) | HIGH | Arch §3.4 | DisconnectOverlay | ✅ |
-| 1.3 | Add `Editor` variant to `PaneContent` enum | HIGH | Arch §11.2 | state.rs | ✅ |
-| 1.4 | Wire OSC 9012 line-level priority parser in ShellApi | MEDIUM | Arch §27.4 | shell/mod.rs | ✅ |
-| 1.5 | Implement configurable keyboard shortcut mapping layer | MEDIUM | Arch §14.2 | tos-protocol SemanticEvent | ✅ |
-| 1.6 | Implement exponential backoff on daemon registration retry | LOW | Eco §3.3 | daemon/mod.rs | ✅ |
-| 1.7 | Implement dynamic sector labeling from cwd changes | MEDIUM | Arch §31.3 | SectorManager, heuristicd | ✅ |
-| 1.8 | Auto Activity Mode detection on `top`/`ps` commands | LOW | Arch §7.3 | IPC command dispatcher | ✅ |
-
----
-
-### Stage 2 — Editor System (Greenfield, High Dependency)
-
-*The TOS Editor is the largest unimplemented spec area. All AI edit flows depend on it.*
-
-| # | Task | Priority | Spec Ref | Deps | Status |
-|---|---|---|---|---|---|
-| 2.1 | Design editor pane data model (Viewer/Editor/Diff states) | HIGH | Features §6.2 | Stage 1.3 | ✅ |
-| 2.2 | Implement Brain-side editor IPC messages (§30.3–§30.4) | HIGH | Arch §30 | 2.1 | ✅ |
-| 2.3 | Implement Svelte `EditorPane.svelte` component (Viewer Mode) | HIGH | Features §6.3 | 2.1, 2.2 | ✅ |
-| 2.4 | Implement Editor Mode (keyboard input, syntax highlighting) | HIGH | Features §6.2 | 2.3, Tree-sitter WASM | ✅ |
-| 2.5 | Implement Diff Mode (side-by-side, Apply/Reject) | HIGH | Features §6.6.2 | 2.3 | ✅ |
-| 2.6 | Select-to-open on build error (PTY surface file:line parser) | HIGH | Features §6.3.2 | 2.3, ShellApi | ✅ |
-| 2.7 | Editor Context Object integrated into AI pipeline | HIGH | Features §6.5.1 | 2.3, AiService | ✅ |
-| 2.8 | AI Context Panel (Right Bezel slot) | MEDIUM | Features §6.5.2 | 2.7 | ✅ |
-| 2.9 | Inline AI annotations in editor margin | MEDIUM | Features §6.5.4 | 2.3, 2.7 | ✅ |
-| 2.10 | Editor pane state persistence in session | HIGH | Features §2.9 | 2.1, SessionService | ✅ |
-| 2.11 | Save (`Ctrl+S`) and Save As (`Ctrl+Shift+S`) | HIGH | Features §6.8 | 2.4 | ✅ |
-| 2.12 | Trust chip for writes outside sector cwd | HIGH | Features §6.8 | 2.11, TrustService | ✅ |
-| 2.13 | LSP client integration (diagnostics, hover, completion) | MEDIUM | Features §6.9 | 2.4 | ✅ |
-| 2.14 | Mobile: tap line number sends to AI | LOW | Features §6.6 | 2.3 | ✅ |
-
----
-
-### Stage 3 — AI Skills & Predictive Intelligence
-
-*Depends on Editor (Stage 2) for Vibe Coder and edit flows.*
-
-| # | Task | Priority | Spec Ref | Deps | Status |
-|---|---|---|---|---|---|
-| 3.1 | Tool bundle enforcement in Brain | **CRITICAL** | Eco §1.4.3 | ModuleManager | ✅ |
-| 3.2 | Implement Command Predictor (ghost text / inline suggestions) | HIGH | Features §4.4 | AiService, prompt | ✅ |
-| 3.3 | Implement Vibe Coder skill (multi-step chip sequence) | HIGH | Features §4.8 | Stage 2.5, AiService | ✅ |
-| 3.4 | Implement thought bubble rendering in Face | MEDIUM | Features §4.6 | AiChat.svelte | ✅ |
-| 3.5 | Implement offline AI queue (store, drain, 30min expiry) | MEDIUM | Features §4.9 | SessionService, tokio timers | ✅ |
-| 3.6 | Context-signal automatic skill activation | MEDIUM | Features §4.7 | Skill manifest, cwd watch | ✅ |
-| 3.7 | Skill learned patterns storage + Settings UI | LOW | Features §4.10 | tos-settingsd | ✅ |
-| 3.8 | Implement path completion chips | MEDIUM | Arch §31.1 | Prompt, filesystem | ✅ |
-| 3.9 | Implement typo correction chips | MEDIUM | Arch §31.2 | Search service, fuzzy match | ✅ |
-| 3.10 | Implement Focus Error chip (PTY error highlighting) | MEDIUM | Arch §31.4 | ShellApi, Line priority | ✅ |
-| 3.11 | Implement notification display center (priority-gated) | HIGH | Arch §31.5 | Right Bezel, PriorityService | ✅ |
-
----
-
-### Stage 4 — UI Polish & Feature Completion
-
-*Non-blocking features that complete the Beta-0 spec.*
-
-| # | Task | Priority | Spec Ref | Deps | Status |
-|---|---|---|---|---|---|
-| 4.1 | Marketplace permission scroll-to-consent gate | HIGH | Features §5.6.1 | Marketplace.svelte | ✅ |
-| 4.2 | Marketplace download progress display + cancel | HIGH | Features §5.6 | tos-marketplaced | ✅ |
-| 4.3 | Marketplace installed badge in browse cards | MEDIUM | Features §5.8 | Marketplace.svelte | ✅ |
-| 4.4 | Warning chip rendering as dedicated component | HIGH | Arch §17.2.3 | Trust service, CommandHub.svelte | ✅ |
-| 4.5 | Bezel pane management chip rendering | MEDIUM | Arch §11.8 | ExpandedBezel.svelte, SplitLayout | ✅ |
-| 4.6 | Divider drag + snap assist | MEDIUM | Arch §11.6 | SplitLayout.svelte | ✅ |
-| 4.7 | Onboarding: ambient hints (per-hint dismiss) | LOW | Features §3.6 | OnboardingOverlay | ✅ |
-| 4.8 | Deep Inspection: Buffer View implementation | MEDIUM | Arch §9 | DetailInspector.svelte | ✅ |
-| 4.9 | System reset confirmation dialog | LOW | Arch §20.2 | GlobalOverview.svelte | ✅ |
-| 4.10 | Global TOS Log Sector view | MEDIUM | Arch §19.2 | LogView.svelte | ✅ |
-| 4.11 | Tactical Mini-Map depth-aware content | MEDIUM | Arch §22.2 | Minimap.svelte | ✅ |
-| 4.12 | Priority visual indicators by depth (border chips, glow) | MEDIUM | Arch §21.3 | PriorityStack, CSS | ✅ |
 
 ---
 
@@ -451,21 +369,6 @@
 
 ---
 
-### Stage 7 — Kanban & Agent Orchestration
-
-*Project-level planning and multi-agent concurrency.*
-
-| # | Task | Priority | Spec Ref | Deps | Status |
-|---|---|---|---|---|---|
-| 7.1 | Implement KanbanBoard service in Brain | HIGH | Arch §30.8 | tos-sessiond, Stage 1.1 | ✅ |
-| 7.2 | Implement `WorkflowManager.svelte` pane | HIGH | Features §7.6 | Stage 4.5, 7.1, Stage 2 | ✅ |
-| 7.3 | Implement Agent Persona parser (Markdown → Brain Strategy) | HIGH | Ecosystem §1.6 | Stage 3.1 | ✅ |
-| 7.4 | Implement Agent Sandboxing & Merge Logic | HIGH | Features §7.7 | Stage 7.1, 7.3, Stage 2 | 🔶 |
-| 7.5 | Implement LLM Interaction Archival service | MEDIUM | Features §2.9.1 | Stage 7.1, 7.3 | ✅ |
-| 7.6 | Implement `roadmap_planner` skill (local task generation) | MEDIUM | Ecosystem §1.7 | Stage 7.1, 3.1 | ✅ |
-| 7.7 | Implement `dream consolidate` (Memory Synthesis) | LOW | Features §7.8 | Stage 7.5 | ✅ |
-| 7.8 | Multi-agent terminal routing (isolated PTYs) | HIGH | Arch §10.1.3 | Stage 7.2 | ✅ |
-
 ---
 
 ## Summary Statistics
@@ -504,23 +407,13 @@
 
 ```mermaid
 graph TD
-    S0["Stage 0: Hard Gate Fixes"] --> S1["Stage 1: Core Runtime"]
-    S1 --> S2["Stage 2: Editor System"]
-    S1 --> S4["Stage 4: UI Polish"]
-    S2 --> S3["Stage 3: AI Skills"]
-    S3 --> S6["Stage 6: Release"]
-    S4 --> S6
-    S5["Stage 5: Native Platform"] --> S6
-    S1 --> S5
+    COMPLETED["Stages 0–4 & 7 (COMPLETE)"] --> S5["Stage 5: Native Platform"]
+    COMPLETED --> S6["Stage 6: Release"]
+    S5 --> S6
 ```
 
 **Estimated effort (working days):**
-- Stage 0: 2–3 days
-- Stage 1: 3–5 days  
-- Stage 2: 15–20 days (largest block)
-- Stage 3: 10–15 days
-- Stage 4: 5–8 days
 - Stage 5: 8–12 days (parallel track)
 - Stage 6: 5–8 days
 
-**Total: ~50–70 working days to full Beta-0 spec compliance.**
+**Total: ~15–20 working days to full Beta-0 spec compliance.**

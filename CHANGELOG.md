@@ -5,6 +5,24 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.2.0-beta.0] - 2026-04-23
+
+### Added
+- **TOS Editor System**: Full-featured editor pane with Viewer, Editor, and Diff modes. Includes PrismJS syntax highlighting, auto-open on build error, and LSP integration (§6.2).
+- **Vibe Coder**: Multi-step AI planning and execution engine with staging and individual approval of diffs (§4.8).
+- **Kanban & Agent Orchestration**: Integrated Kanban Board service, Workflow Manager UI, and persona-driven agent execution (§7, Eco §1.6).
+- **Predictive Intelligence**: Command predictor (ghost text), path completion chips, and typo correction via `tos-heuristicd` (§4.4, §31).
+- **AI Contextual Awareness**: Rolling context aggregator and context-signal skill activation for passive observation (§4.7).
+- **Tactical UI Polish**: Kinetic borders, depth-aware priority indicators, and a tactical mini-map with projection overlays (§21, §22).
+- **Offline AI Support**: Request queue with auto-drain logic for intermittent connectivity (§4.9).
+- **Roadmap Maintenance Standards**: Formalized requirements for documentation archival and changelog integration.
+
+### Fixed
+- **Security Hardening**: Enforced `tool_bundle` permissions at runtime and verified module manifest signatures.
+- **IPC Performance**: Optimized handler logic to ensure round-trip latency < 16ms.
+- **Session Stability**: Implemented silent restore and atomic session persistence to prevent state corruption (§2.6.2).
+- **Daemon Resilience**: Added exponential backoff for service registration retries.
+
 ## [0.1.0-beta.0] - 2026-03-27
 
 ### Added

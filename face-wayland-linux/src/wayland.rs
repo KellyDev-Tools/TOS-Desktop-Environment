@@ -12,6 +12,7 @@ use smithay_client_toolkit::{
     },
     shm::{Shm, ShmHandler},
 };
+use wayland_protocols::wp::linux_dmabuf::zv1::client::{zwp_linux_dmabuf_v1, zwp_linux_buffer_params_v1};
 use wayland_client::{protocol::{wl_surface, wl_shm_pool, wl_buffer}, Connection, QueueHandle};
 
 pub struct WaylandShell {
@@ -27,6 +28,7 @@ pub struct WaylandState {
     pub shm: Shm,
     pub layer_shell: Option<LayerShell>,
     pub xdg_shell: Option<XdgShell>,
+    pub dmabuf: Option<zwp_linux_dmabuf_v1::ZwpLinuxDmabufV1>,
     pub output_state: OutputState,
 }
 
@@ -77,6 +79,7 @@ impl WaylandShell {
         };
         let layer_shell = LayerShell::bind(&globals, &qh).ok();
         let xdg_shell = XdgShell::bind(&globals, &qh).ok();
+        let dmabuf = globals.bind::<zwp_linux_dmabuf_v1::ZwpLinuxDmabufV1, _, _>(&qh, 1..=4, ()).ok();
 
         if layer_shell.is_none() && xdg_shell.is_none() {
             tracing::warn!("Neither LayerShell nor XdgShell supported on this compositor.");
@@ -91,6 +94,7 @@ impl WaylandShell {
             shm,
             layer_shell,
             xdg_shell,
+            dmabuf,
             output_state,
         };
 
@@ -233,6 +237,32 @@ impl wayland_client::Dispatch<wl_buffer::WlBuffer, ()> for WaylandState {
         _qh: &QueueHandle<Self>,
     ) {
         // In a production renderer, we'd handle the Release event to recycle buffers.
+    }
+}
+
+impl wayland_client::Dispatch<zwp_linux_dmabuf_v1::ZwpLinuxDmabufV1, ()> for WaylandState {
+    fn event(
+        _state: &mut Self,
+        _proxy: &zwp_linux_dmabuf_v1::ZwpLinuxDmabufV1,
+        _event: zwp_linux_dmabuf_v1::Event,
+        _data: &(),
+        _conn: &Connection,
+        _qh: &QueueHandle<Self>,
+    ) {
+        // We'd receive modifiers and formats here
+    }
+}
+
+impl wayland_client::Dispatch<zwp_linux_buffer_params_v1::ZwpLinuxBufferParamsV1, ()> for WaylandState {
+    fn event(
+        _state: &mut Self,
+        _proxy: &zwp_linux_buffer_params_v1::ZwpLinuxBufferParamsV1,
+        _event: zwp_linux_buffer_params_v1::Event,
+        _data: &(),
+        _conn: &Connection,
+        _qh: &QueueHandle<Self>,
+    ) {
+        // We'd receive created/failed events here
     }
 }
 

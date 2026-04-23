@@ -1,140 +1,100 @@
-# TOS AI Development Standards & Tactical Guidelines
+# TOS AI Development Standards
 
-This document dictates the standards, coding philosophy, and aesthetic requirements for AI-assisted development of the Tactical Operating System (TOS). Any AI agent working on this codebase must adhere to these principles to maintain architectural integrity and visual excellence.
-
----
-
-## 1. Architectural Philosophy
-
-### 1.1 The Recursive Hierarchy
-Code must respect the vertical depth model. Navigation is never lateral; it is always **Zoom In** or **Zoom Out**.
-- **Level 1 (Global)**: Sector Management & Configuration.
-- **Level 2 (Hub)**: Tactical Command & Unified Prompt.
-- **Level 3 (Focus)**: Active Application Surface.
-- **Level 4 (Detail)**: Metadata & Inspection.
-- **Level 5 (Buffer)**: Raw memory/privileged access.
-
-### 1.2 Input Abstraction
-**Never** bind logic directly to physical input (keyboard keys, mouse buttons).
-- All physical input must translate to a `SemanticEvent`.
-- Logic must respond to `SemanticEvent` (e.g., `AiSubmit`, `ZoomIn`, `StopOperation`).
-
-### 1.3 Platform Abstraction
-Maintain the "Unified Vision" by using traits defined in `src/platform/mod.rs`.
-- Do not use platform-specific types (like `std::os::unix::...`) in core logic. Use `Renderer`, `InputSource`, and `SystemServices` abstractions.
+Rules for any AI agent working in this codebase. This document covers **how** to develop—not **what** to develop. Feature specs, roadmaps, and architectural details live in `docs/`, `TOS_Beta-0_Roadmap.md`, and `task.md`.
 
 ---
 
-## 2. Coding Standards (Rust)
+## 1. Use the Makefile
 
-### 2.1 Type Safety & Correctness
-- Use custom enums for state management instead of strings or booleans (e.g., `CommandHubMode`).
-- Favor `Result` and `Option` over `unwrap()`. Errors in tactical systems must be handled gracefully.
-- **Never** disable compiler protections (e.g., do not use `#[allow(warnings)]` or `unsafe` blocks unless absolutely necessary, documented and explicitly approved).
-- **Never** use `#[allow(unused_imports)]`. Instead, comment out the imports and document why they are unused or explain why they are needed.
-- **Error Reporting**: All errors must be reported via the centralized log system (`src/system/log.rs`). Use `LogManager` to record errors with the appropriate log type (i.e. `LogType::System` or `LogType::Security`) events with appropriate region context.
+The top-level `Makefile` is the single source of truth for building, testing, and running TOS. AI agents must use it instead of running raw `cargo`, `npm`, or `npx` commands directly.
 
-### 2.2 Modularity
-- Systems (AI, Search, Reset) belong in `src/system/`.
-- UI rendering logic belongs in `src/ui/render/`.
-- Features described in the Specification must be cross-referenced using section markers (e.g., `// See §3.4`).
+**Key targets:**
 
-### 2.3 Documentation
-- Every public function and struct must have a doc comment explaining its role in the tactical environment.
-- Use the `§` symbol when referencing sections from the Architectural Specification.
+| Action | Command |
+|---|---|
+| Full workspace syntax check | `make check` |
+| Build everything | `make build-all` |
+| Run all tests | `make test` |
+| Run Brain core tests only | `make test-core` |
+| Run shell integration tests | `make test-shell` |
+| Run system-level test | `make test-system` |
+| Run E2E (Playwright) | `make test-e2e` |
+| Run UI component tests | `make test-ui-component` |
+| Run orchestration health check | `make test-health` |
+| Launch Brain + Web Face (dev) | `make run-web-dev` |
+| Format code | `make fmt` |
+| Lint (Clippy) | `make lint` |
 
----
-
-## 3. Visual Excellence & UI Standards
-
-### 3.1 The LCARS Aesthetic
-TOS is inspired by 24th-century tactical displays but modernized for current hardware.
-- **Color Palette**: Use deep blacks, muted purples (#443366), tactical ambers (#FF9900), and LCARS blues (#6699FF).
-- **Geometry**: Use large, bold corner radii (20px+) for major containers, contrasting with sharp 2px borders for internal widgets.
-- **Typography**: Strictly use "Outfit" or "Inter" for UI labels, and "JetBrains Mono" or similar for tactical data.
-
-### 3.2 Premium Materiality
-- **Glassmorphism**: Use `backdrop-filter: blur(12px)` and semi-transparent backgrounds (`rgba(0,0,0,0.4)`) to create depth.
-- **Tactical Micro-interactions**: Every click must feel substantial. Use `0.1s ease-out` transitions for hover states and `0.05s` for active states.
-- **Layered Depth**: Use subtle box-shadows and inner glows to separate hierarchy levels.
-
-### 3.3 The "Tactical Chip" System
-- **Status Indicators**: Chips (like trust warnings or AI thoughts) must use high-contrast text on solid backgrounds.
-- **Color Coding**: 
-  - `var(--color-primary)` (Blue): Information / Hub Mode.
-  - `var(--color-success)` (Green): Active Operation / Success.
-  - `var(--color-warning)` (Amber): Tactical Alert / Trust Warning.
-  - `var(--color-danger)` (Red): System Failure / Red Alert.
-
-### 3.4 Animation Philosophy
-- **Entrance**: Use `scaleIn` or `slideFade` for new panes.
-- **Feedback**: Use subtle pulses (e.g., "amberPulse") for active AI reasoning or pending confirmations.
-- **Efficiency**: Animations must never delay user input. They are visual feedback, not blocking transitions.
+Run `make help` for the full list.
 
 ---
 
-## 4. Testing & Validation
+## 2. Testing Requirements
 
-### 4.1 Test Taxonomy & Definitions
-To maintain velocity and reliability, testing in TOS is strictly categorized:
+Every task must include tests at **all applicable tiers** before it is considered complete.
 
-1. **Unit Tests:** 
-   - *Definition:* Validates a single, isolated function, struct, or pure logic sequence. No side effects, no file-system access, no network, no global state.
-   - *Location:* Inline alongside the code within `#[cfg(test)]` modules (Rust) or adjacent `.spec.ts` files (Svelte logic).
-   - *Execution:* Must execute in microseconds.
+### 2.1 Test Tiers
 
-2. **Integration Tests:** 
-   - *Definition:* Validates the interaction between multiple subsystems natively. Uses realistic but headless state (e.g., verifying an IPC string mutates the Brain and generates the correct JSON delta).
-   - *Location:* The `tests/` directory at the workspace root (e.g., `tests/headless_brain.rs`).
-   - *Execution:* Spins up local memory structures, completely bypassing UI/renderers.
+1. **Unit Tests** — Validate a single function or struct in isolation. No I/O, no state, no side effects.
+   - Rust: inline `#[cfg(test)]` modules.
+   - Svelte/TS: adjacent `.spec.ts` files.
 
-3. **Component Tests:** 
-   - *Definition:* Validates an individual sub-system, daemon, or UI module completely in isolation, independent of the rest of the system. Given input/state X, it must produce output/state Y. Essential for debugging the distributed TOS architecture.
-   - *Location:* `svelte_ui/tests/` (for UI components), `tests/` (for isolated Brain modules like the `TrustService`), or standalone service tests (e.g., verifying `tos-marketplaced` without a Brain connection).
-   - *Execution:* Fast execution using mocks for any external dependency (e.g., mocking the `brain.sock` or `SystemServices` trait).
+2. **Integration Tests** — Validate interactions between subsystems headlessly (e.g., IPC command → state mutation → JSON delta).
+   - Location: `tests/` at the workspace root, or `<crate>/tests/`.
 
-### 4.2 Test-Driven Development (TDD) Protocols
-Test-Driven Development is strictly required. No feature code should be written without a failing test being written and executed first.
+3. **System / E2E Tests** — Validate the full stack end-to-end.
+   - Brain system test: `make test-system`
+   - Playwright E2E: `make test-e2e`
+   - Orchestration health: `make test-health`
 
-**For Brain/Core (Rust):**
-1. **Write the Test:** Add a test case to `tests/` (e.g., `tests/headless_brain.rs` or `tests/settings_schema.rs`). 
-2. **Verify Failure:** Run the test using `cargo test --test <name>` to prove it fails exactly as expected.
-3. **Implement Subsystem:** Write the minimal Rust code required to pass the test.
-4. **Verify Success:** Run the test again to prove it passes.
-5. *Rule:* Never use the Face (UI) to manually verify Brain state. Always use Headless testing bypassing the IPC socket or explicitly checking state JSON.
+### 2.2 Definition of Done
 
-**For Web Face/Frontend (Svelte):**
-1. **Write the Test:** Add a Playwright component/E2E test in `svelte_ui/tests/`.
-2. **Verify Failure:** Run the test using `cd svelte_ui && npx playwright test` to observe failure.
-3. **Implement UI:** Build the Svelte component or logic.
-4. **Verify Success:** Run the Playwright test again.
-5. *Rule:* Playwright tests must assert visual state, DOM presence, and CSS classes, not just logic.
+A task is **not complete** until:
 
-**For Native Faces (Wayland/OpenXR/Android):**
-1. **Write the Test:** Add a test case to the visual states suite (e.g., `tests/face_visual_states.rs`).
-2. **Verify Failure:** Run the test using `cargo test --test face_visual_states` to observe failure.
-3. **Implement Render Logic:** Update the platform-specific drawing or layout code (e.g., `src/platform/linux/wayland.rs` or common UI layout code).
-4. **Verify Success:** Run the test again to prove it correctly simulates the rendering.
-5. *Rule:* Native faces must provide a testing stub or string-buffer renderer so that visual states, dimensions, and text rendering logic can be validated headlessly in CI without requiring an active Compositor or XR runtime.
+1. Tests for the new behavior exist at every applicable tier.
+2. **Registration testing passes**: run `make test` (all unit + integration tests) and confirm zero failures.
+3. `make check` passes with no errors.
+4. If Svelte/TS files were changed: `make build-face-web` succeeds.
 
-### 4.3 Pipeline Verification & Commit Standards
-- **Commit Messages**: Must follow the `type(scope): description` format (e.g., `feat(brain): add sentiment analysis`).
-- **Atomic Commits**: Each commit must represent a single logical unit of change.
-- **Pipeline Compliance**: 
-  - AI Agents must run `cargo check` and `cargo test` after any Rust file changes.
-  - AI Agents must run `cd svelte_ui && npm run build` after any Svelte/TS file changes to ensure the SPA statically yields.
-  - Do not commit code that breaks the compilation or testing pipeline.
-  - All commits are gated by the `scripts/pre-commit.sh` hook, which runs workspace-wide checks and tests.
-- **Automatic Commit on Task Completion**: Upon marking a task as complete in `task.md`, the AI Agent must automatically perform a commit of all relevant changes using the standardized commit format, provided the workspace is in a "Green" state.
+Do not commit code that breaks any of these gates.
 
 ---
 
-## 5. Interaction Etiquette for AI Agents
+## 3. Coding Standards
 
-1. **Be Proactive**: If a change requires a new CSS rule or a documentation update, do it immediately.
-2. **Be Aesthetic**: If generating UI, ensure it looks "Tactical" and "Premium." Avoid generic layouts.
-3. **Be Structured**: Use headers and bold text in responses to make technical details easy to parse.
+### 3.1 Rust
 
-## 6 AI Agent will not use Documentation name's and reff's in the code comments or doc comments.
-1. Using "Phase 10" Is non-descriptive and confusing. Instead use the name of the feature or module for ease of understanding.
-2. Using "TOS AI Development Standards" in code comments or doc comments. Is confusing and not needed.
+- Use enums for state, not strings or booleans.
+- Use `Result` / `Option`. Do not use `unwrap()` in production paths.
+- Do not use `#[allow(warnings)]` or blanket `unsafe` without explicit approval.
+- Report errors through `LogManager` with appropriate `LogType` and region context.
+- Every public function and struct must have a doc comment.
+
+### 3.2 Svelte / TypeScript
+
+- Component logic that can be tested independently should be extracted into `.ts` files with corresponding `.spec.ts` tests.
+- UI components must use the project's CSS custom properties (`var(--color-primary)`, etc.)—do not hardcode colors or spacing.
+
+### 3.3 Cross-Cutting
+
+- All physical input must translate to a `SemanticEvent`. Never bind logic directly to raw key/mouse events.
+- Platform-specific code stays behind the `Renderer`, `InputSource`, and `SystemServices` traits. Do not leak platform types into core logic.
+
+---
+
+## 4. Commit Standards
+
+- **Format**: `type(scope): description` (e.g., `feat(brain): add offline AI queue`).
+- **Atomic**: One logical change per commit.
+- **Green state only**: All commits are gated by `scripts/pre-commit.sh`. If `make check` or `make test` fails, the commit is rejected.
+- **Auto-commit on task completion**: When a task in `task.md` is marked complete and the workspace is green, commit immediately using the standard format.
+
+---
+
+## 5. AI Agent Conduct
+
+1. **Don't reference this document in code.** No comments like `// per TOS AI Development Standards`. Comments should describe *what* and *why*, not cite process docs.
+2. **Don't reference roadmap phase names in code.** Use descriptive feature/module names, not "Phase 10" or "Stage 4."
+3. **Be proactive.** If a change requires a new CSS rule, a doc update, or a test fixture—do it in the same pass.
+4. **Run the gates.** After any Rust change: `make check` then `make test`. After any Svelte/TS change: `make build-face-web` then `make test`. Don't wait to be asked.
+5. **Commit when green.** Once all gates pass, immediately create a commit using the `type(scope): description` format. Do not leave passing work uncommitted.

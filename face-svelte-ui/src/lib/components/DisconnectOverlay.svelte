@@ -105,7 +105,6 @@
 		background: rgba(10, 10, 20, 0.85);
 		backdrop-filter: blur(8px);
 		z-index: var(--z-overlay);
-		animation: fadeIn 0.5s ease;
 	}
 
 	.disconnect-card {

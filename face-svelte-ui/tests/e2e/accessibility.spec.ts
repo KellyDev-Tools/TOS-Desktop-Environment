@@ -12,6 +12,8 @@ test.describe('TOS Accessibility & Keyboard Navigation', () => {
         // Clear storage to reset onboarding and settings
         await page.addInitScript(() => {
             window.localStorage.clear();
+            window.localStorage.setItem('tos.onboarding.first_run_complete', 'true');
+            window.localStorage.setItem('tos.onboarding.wizard_complete', 'true');
         });
         
         await page.goto('/');
@@ -23,34 +25,27 @@ test.describe('TOS Accessibility & Keyboard Navigation', () => {
         const connectedStatus = page.locator('.status-badge', { hasText: /CONNECTED|BRAIN/i });
         await expect(connectedStatus).toBeVisible({ timeout: 20000 });
 
-        // 3. Skip onboarding tour if visible
-        const skipTourBtn = page.locator('button:has-text("SKIP TOUR")');
-        try {
-            await expect(skipTourBtn).toBeVisible({ timeout: 5000 });
-            await skipTourBtn.click({ force: true });
-        } catch (e) {
-            console.log("Onboarding skip button not found or already dismissed.");
-        }
-
-        // Wait for main UI to be ready
+        // 3. Wait for main UI to be ready
         await expect(page.locator('.level-btn').first()).toBeVisible({ timeout: 10000 });
     });
 
     test('should maintain focus within Settings Modal (Focus Trap)', async ({ page }) => {
         // 1. Open Settings Modal via gear icon
-        // We look for the second bezel-item which is the settings gear
-        const settingsBtn = page.locator('.bezel-item').filter({ hasText: '⚙' }).first();
-        if (!(await settingsBtn.isVisible())) {
-            await page.keyboard.press('Control+,');
-        } else {
-            await settingsBtn.click();
-        }
+        const settingsBtn = page.locator('.settings-btn');
+        await expect(settingsBtn).toBeVisible({ timeout: 10000 });
+        await settingsBtn.click();
         
         // 2. Wait for modal to appear
-        const modal = page.locator('.modal-card');
+        const modal = page.locator('[data-testid="settings-modal"]');
         await expect(modal).toBeVisible({ timeout: 10000 });
 
-        // 3. Tab many times and ensure focus never leaves the modal card
+        // 3. Wait for focus to enter the modal (our focusTrap action does this)
+        await expect(async () => {
+            const isInside = await modal.evaluate((node) => node.contains(document.activeElement));
+            expect(isInside).toBeTruthy();
+        }).toPass({ timeout: 5000 });
+
+        // 4. Tab many times and ensure focus never leaves the modal card
         for (let i = 0; i < 20; i++) {
             await page.keyboard.press('Tab');
             const isInside = await modal.evaluate((node) => node.contains(document.activeElement));

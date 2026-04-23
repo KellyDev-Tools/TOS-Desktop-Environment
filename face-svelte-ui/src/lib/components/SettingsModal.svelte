@@ -95,7 +95,8 @@
 	<!-- svelte-ignore a11y_no_static_element_interactions -->
 	<div class="modal-overlay" onclick={handleOverlayClick} role="button" tabindex="0">
 		<div 
-			class="modal-container glass-panel" 
+			class="modal-card glass-panel" 
+			data-testid="settings-modal"
 			role="dialog" 
 			aria-modal="true" 
 			tabindex="-1" 
@@ -497,16 +498,14 @@
 		display: flex;
 		align-items: center;
 		justify-content: center;
-		animation: fadeIn 0.2s ease;
 	}
 
-	.modal-container {
+	.modal-card {
 		width: 54rem;
 		max-width: 94vw;
 		max-height: 85vh;
 		display: flex;
 		flex-direction: column;
-		animation: scaleIn 0.3s cubic-bezier(0.16, 1, 0.3, 1);
 		overflow: hidden;
 	}
 

@@ -114,12 +114,24 @@ export function sendCommand(cmd: string): Promise<string | null> {
 
     const runCommand = (): Promise<string | null> => {
         return new Promise((resolve) => {
+            const id = Math.random().toString(36).substring(7);
             const handler = (event: MessageEvent) => {
-                activeWs.removeEventListener('message', handler);
-                resolve(event.data);
+                if (typeof event.data === 'string' && event.data.startsWith(`res:${id}:`)) {
+                    activeWs.removeEventListener('message', handler);
+                    const response = event.data.substring(id.length + 5);
+                    
+                    if (response === 'CONFIRMATION_REQUIRED') {
+                        sendCommand('get_state_delta:' + tosState.version).then(res => {
+                            if (res && res !== 'NO_CHANGE') {
+                                handleStateDelta(res);
+                            }
+                        });
+                    }
+                    resolve(response);
+                }
             };
             activeWs.addEventListener('message', handler);
-            activeWs.send(cmd);
+            activeWs.send(`cmd:${id}:${cmd}`);
 
             // Timeout after 5s
             setTimeout(() => {
@@ -145,11 +157,11 @@ const HEARTBEAT_TIMEOUT_MS = 5000;
 function handleStateDelta(payload: string) {
     try {
         const parsed = JSON.parse(payload) as TosState;
-        tosState = parsed;
+        Object.assign(tosState, parsed);
         lastSyncTime = Date.now();
         resetHeartbeat();
     } catch (e) {
-        console.error('[IPC] Failed to parse state_delta:', e);
+        console.error('[IPC] Failed to parse state:', e);
     }
 }
 
@@ -265,7 +277,7 @@ export async function setMode(mode: string): Promise<void> {
 }
 
 export async function switchSector(index: number): Promise<void> {
-    await sendCommand(`switch_sector:${index}`);
+    await sendCommand(`set_active_sector:${index}`);
 }
 
 export async function setSetting(key: string, value: string): Promise<void> {
@@ -416,6 +428,16 @@ export async function marketplaceSearchAi(query: string): Promise<any> {
 
 export async function marketplaceInstallCancel(id: string): Promise<void> {
     await sendCommand(`marketplace_install_cancel:${id}`);
+}
+
+// --- Trust Confirmation Helpers ---
+
+export async function confirmationAccept(id: string): Promise<void> {
+    await sendCommand(`confirmation_accept:${id}`);
+}
+
+export async function confirmationReject(id: string): Promise<void> {
+    await sendCommand(`confirmation_reject:${id}`);
 }
 
 /**

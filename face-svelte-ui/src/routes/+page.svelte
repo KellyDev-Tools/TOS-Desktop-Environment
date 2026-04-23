@@ -37,6 +37,7 @@
 	import DisconnectOverlay from '$lib/components/DisconnectOverlay.svelte';
 	import SettingsModal from '$lib/components/SettingsModal.svelte';
 	import PortalModal from '$lib/components/PortalModal.svelte';
+	import ConfirmationOverlay from '$lib/components/ConfirmationOverlay.svelte';
 
 	const tosState = $derived(getTosState());
 	const connState = $derived(getConnectionState());
@@ -271,7 +272,7 @@
 
 			<!-- Left Section: Title -->
 			<div class="header-section header-left">
-				<button class="bezel-btn" title="Toggle Left Sidebar" onclick={() => toggleSidebarLeft()}>◀</button>
+				<button class="bezel-btn bezel-item" title="Toggle Left Sidebar" onclick={() => toggleSidebarLeft()}>◀</button>
 				<div class="lcars-title-area">
 					<span class="lcars-prefix">{tosState.sys_prefix || 'ALPHA-2.2 // INTEL-DRIVEN'}</span>
 				</div>
@@ -311,18 +312,18 @@
 
 			<!-- Right Section: System Controls -->
 			<div class="header-section header-right">
-				<button class="bezel-btn" title="Toggle Terminal Overlay (Ctrl+T)" onclick={() => toggleTerminalToFront()}>👁</button>
-				<button class="bezel-btn" title="Marketplace (⊞)" onclick={() => { setCurrentMode('marketplace'); sendCommand('set_mode:marketplace'); }}>⊞</button>
+				<button class="bezel-btn bezel-item" title="Toggle Terminal Overlay (Ctrl+T)" onclick={() => toggleTerminalToFront()}>👁</button>
+				<button class="bezel-btn bezel-item" title="Marketplace (⊞)" onclick={() => { setCurrentMode('marketplace'); sendCommand('set_mode:marketplace'); }}>⊞</button>
 				<button 
-					class="bezel-btn" 
+					class="bezel-btn bezel-item" 
 					title="Open Web Portal" 
 					onclick={() => import('$lib/stores/ui.svelte').then(m => m.openPortalModal())}
 				>
 					📡
 				</button>
-				<button class="bezel-btn settings-btn" title="System Settings (Ctrl+,)" onclick={() => openSettings()}>⚙</button>
-				<button class="bezel-btn help-btn" title="Help & Onboarding" onclick={() => { setSettingsTab('global'); openSettings(); }}>?</button>
-				<button class="bezel-btn" title="Toggle Right Sidebar" onclick={() => toggleSidebarRight()}>▶</button>
+				<button class="bezel-btn bezel-item settings-btn" title="System Settings (Ctrl+,)" onclick={() => openSettings()}>⚙</button>
+				<button class="bezel-btn bezel-item help-btn" title="Help & Onboarding" onclick={() => { setSettingsTab('global'); openSettings(); }}>?</button>
+				<button class="bezel-btn bezel-item" title="Toggle Right Sidebar" onclick={() => toggleSidebarRight()}>▶</button>
 			</div>
 
 		</div>
@@ -541,6 +542,7 @@
 
 <SettingsModal />
 <PortalModal />
+<ConfirmationOverlay />
 
 <style>
 	/* Heuristic Chips */

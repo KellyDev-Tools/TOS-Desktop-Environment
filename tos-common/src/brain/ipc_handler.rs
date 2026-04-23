@@ -3196,6 +3196,7 @@ impl IpcHandler {
                 let mut state = self.state.lock().unwrap();
                 if idx < state.sectors.len() {
                     state.active_sector_index = idx;
+                    crate::brain::sector::SectorManager::refresh_activity_listing(&mut state, None);
                     state.version += 1;
                     return format!("ACTIVE_SECTOR_SET: {}", idx);
                 }

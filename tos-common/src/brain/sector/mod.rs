@@ -246,16 +246,26 @@ impl SectorManager {
         state: &mut TosState,
         capture_svc: Option<&crate::services::CaptureService>,
     ) {
-        use sysinfo::System;
+        use std::sync::{Mutex, OnceLock};
+        static SYS: OnceLock<Mutex<(sysinfo::System, std::time::Instant)>> = OnceLock::new();
+        let sys_mutex = SYS.get_or_init(|| {
+            let mut sys = sysinfo::System::new_all();
+            sys.refresh_all();
+            Mutex::new((sys, std::time::Instant::now()))
+        });
+
         let idx = state.active_sector_index;
         if let Some(sector) = state.sectors.get_mut(idx) {
             let hub = &mut sector.hubs[sector.active_hub_index];
-            if hub.mode != crate::CommandHubMode::Activity {
-                return;
-            }
+            
+            let mut guard = sys_mutex.lock().unwrap();
+            let (ref mut sys, ref mut last_refresh) = *guard;
 
-            let mut sys = System::new_all();
-            sys.refresh_all();
+            // Only refresh if 500ms have passed to keep IPC snappy
+            if last_refresh.elapsed() > std::time::Duration::from_millis(500) {
+                sys.refresh_processes();
+                *last_refresh = std::time::Instant::now();
+            }
 
             let mut processes = Vec::new();
             for (pid_type, process) in sys.processes() {

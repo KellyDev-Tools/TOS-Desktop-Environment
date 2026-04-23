@@ -7,7 +7,14 @@
 	import { focusTrap } from '$lib/actions/focusTrap';
 
 	const tosState = $derived(getTosState());
-	const isFirstRun = $derived(tosState.settings.global['tos.onboarding.first_run_complete'] !== 'true');
+	let isFirstRun = $state(false);
+
+	import { onMount } from 'svelte';
+	onMount(() => {
+		const local = localStorage.getItem('tos.onboarding.first_run_complete');
+		const remote = tosState.settings.global['tos.onboarding.first_run_complete'];
+		isFirstRun = local !== 'true' && remote !== 'true';
+	});
 
 	let currentStep = $state(0);
 	let visible = $state(true);
@@ -84,8 +91,8 @@
 </script>
 
 {#if visible && isFirstRun}
-	<div class="onboarding-modal-overlay" transition:fade={{ duration: 400 }}>
-		<div class="onboarding-card glass-panel" in:scale={{ duration: 600, start: 0.9 }} use:focusTrap>
+	<div class="onboarding-modal-overlay">
+		<div class="onboarding-card glass-panel" use:focusTrap>
 			<div class="card-bezel top">
 				<div class="lcars-pill-info">{steps[currentStep].action}</div>
 				<div class="lcars-title">TOS // ONBOARDING_SEQUENCER</div>

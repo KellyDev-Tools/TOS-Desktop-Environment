@@ -30,13 +30,15 @@ export function focusTrap(node: HTMLElement) {
 		}
 	}
 
-	// Auto-focus first element
+	// §5.7: Ensure focus starts inside the trap
 	setTimeout(() => {
-		const elements = getFocusable();
-		if (elements.length > 0) {
-			elements[0].focus();
+		const focusable = getFocusable();
+		if (focusable.length > 0) {
+			focusable[0].focus();
+		} else {
+			node.focus();
 		}
-	}, 100);
+	}, 0);
 
 	node.addEventListener('keydown', handleKeydown);
 

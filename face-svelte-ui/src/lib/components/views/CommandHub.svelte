@@ -59,7 +59,7 @@
 	}
 </script>
 
-<div class="command-hub">
+<div class="command-hub command-hub-view">
 	<WarningChip />
 
 	{#if splitLayout}
@@ -70,9 +70,10 @@
 		<div class="left-column">
 			{#if getPromptMode() === 'ai'}
 				<AiChat />
-			{:else if activeHub?.json_context}
+			{/if}
+			{#if activeHub?.json_context}
 				{@const ctx = activeHub.json_context}
-				<div class="context-chip glass-panel">
+				<div class="context-chip glass-panel" transition:slide>
 					<div class="chip-title">JSON CONTEXT // {ctx.type || 'DATA'}</div>
 					<div class="chip-row"><strong>NAME:</strong> {ctx.name || '--'}</div>
 					{#if ctx.state}
@@ -89,15 +90,17 @@
 						</div>
 					{/if}
 				</div>
-			{:else if activeHub?.shell_listing}
+			{/if}
+
+			{#if activeHub?.shell_listing}
 				{@const dir = activeHub.shell_listing}
-				<div class="context-chip glass-panel">
+				<div class="context-chip glass-panel" transition:slide>
 					<div class="chip-title" style="color: var(--color-primary)">DIR PREVIEW // {dir.path}</div>
 					<div class="directory-list">
 						{#each dir.entries as entry}
 							<div class="dir-entry">
 								<span class="dir-type" class:is-dir={entry.is_dir}>{entry.is_dir ? '[DIR]' : ''}</span>
-								<span class="dir-name" class:is-dir={entry.is_dir}>{entry.is_dir ? '[DIR]' : ''}</span>
+								<span class="dir-name" class:is-dir={entry.is_dir}>{entry.name}</span>
 								{#if !entry.is_dir}
 									<span class="dir-size">{entry.size} B</span>
 								{/if}
@@ -105,11 +108,13 @@
 						{/each}
 					</div>
 				</div>
-			{:else if activeHub?.activity_listing}
+			{/if}
+
+			{#if activeHub?.activity_listing}
 				{@const act = activeHub.activity_listing}
-				<div class="context-chip glass-panel">
+				<div class="context-chip glass-panel activity-chip">
 					<div class="chip-title" style="color: var(--color-warning)">SYSTEM ACTIVITY // RECENT</div>
-					<div class="activity-list">
+					<div class="activity-list" data-testid="activity-list">
 						{#each act.processes.slice(0, 10) as proc}
 							<!-- svelte-ignore a11y_no_static_element_interactions -->
 							<button 

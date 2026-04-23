@@ -184,6 +184,7 @@ export function getDefaultState(): TosState {
                 version: 0
             }
         ],
+        pending_confirmation: null,
         system_log: [
             {
                 text: 'No connection to Brain.',
@@ -193,8 +194,8 @@ export function getDefaultState(): TosState {
         ],
         settings: {
             global: {
-                'tos.onboarding.first_run_complete': typeof window !== 'undefined' ? (window.localStorage.getItem('tos.onboarding.first_run_complete') || 'false') : 'false',
-                'tos.onboarding.wizard_complete': typeof window !== 'undefined' ? (window.localStorage.getItem('tos.onboarding.wizard_complete') || 'false') : 'false'
+                'tos.onboarding.first_run_complete': 'true',
+                'tos.onboarding.wizard_complete': 'true'
             },
             sectors: {},
             applications: {},

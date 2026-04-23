@@ -36,6 +36,23 @@
             "text_muted": "rgba(224, 224, 232, 0.35)",
             "border": "rgba(255, 255, 255, 0.08)",
             "border_active": "rgba(247, 168, 51, 0.4)"
+        },
+        "high_contrast": {
+            "bg": "#000000",
+            "surface": "#000000",
+            "surface_raised": "#000000",
+            "surface_overlay": "rgba(0, 0, 0, 0.98)",
+            "primary": "#ffff00",
+            "secondary": "#00ffff",
+            "accent": "#00ffff",
+            "success": "#00ff00",
+            "warning": "#ff8800",
+            "danger": "#ff0000",
+            "text": "#ffffff",
+            "text_dim": "#ffffff",
+            "text_muted": "#dddddd",
+            "border": "#ffffff",
+            "border_active": "#ffff00"
         }
     }
 }

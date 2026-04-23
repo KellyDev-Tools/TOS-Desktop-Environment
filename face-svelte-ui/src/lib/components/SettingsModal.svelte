@@ -149,6 +149,13 @@
 									<option value="classic">Classic Terminal</option>
 								</select>
 							</div>
+							<div class="settings-row">
+								<span class="settings-label">High Contrast Mode</span>
+								<label class="toggle">
+									<input type="checkbox" checked={tosState.settings?.global?.['tos.interface.high_contrast'] === 'true'} onchange={(e) => setSetting('tos.interface.high_contrast', (e.target as HTMLInputElement).checked.toString())} />
+									<span class="toggle-slider"></span>
+								</label>
+							</div>
 						</div>
 
 						<div class="settings-group">

@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { getConnectionState, connect, getActiveWsUrl } from '$lib/stores/ipc.svelte';
+	import { focusTrap } from '$lib/actions/focusTrap';
 
 	const connState = $derived(getConnectionState());
 
@@ -47,7 +48,7 @@
 
 {#if connState !== 'connected'}
 	<div class="disconnect-overlay">
-		<div class="disconnect-card glass-panel">
+		<div class="disconnect-card glass-panel" use:focusTrap>
 			<div class="pulse-ring" style="--ring-color: {msg.color}"></div>
 			<div class="disconnect-icon" style="color: {msg.color}">⬡</div>
 			<div class="disconnect-title" style="color: {msg.color}">{msg.title}</div>

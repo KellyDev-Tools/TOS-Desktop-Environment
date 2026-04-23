@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { isPortalModalOpen, closePortalModal } from '$lib/stores/ui.svelte';
 	import { createPortal, revokePortal } from '$lib/stores/ipc.svelte';
+	import { focusTrap } from '$lib/actions/focusTrap';
 
 	const open = $derived(isPortalModalOpen());
 
@@ -72,7 +73,14 @@
 	<!-- svelte-ignore a11y_click_events_have_key_events -->
 	<!-- svelte-ignore a11y_no_static_element_interactions -->
 	<div class="modal-overlay" onclick={handleOverlayClick} role="button" tabindex="0">
-		<div class="portal-container glass-panel" role="dialog" aria-modal="true" tabindex="-1" onclick={(e) => e.stopPropagation()}>
+		<div 
+			class="portal-container glass-panel" 
+			role="dialog" 
+			aria-modal="true" 
+			tabindex="-1" 
+			onclick={(e) => e.stopPropagation()}
+			use:focusTrap
+		>
 			<!-- Header -->
 			<div class="portal-header">
 				<div class="portal-elbow"></div>

@@ -2,6 +2,7 @@
 	import { onMount, onDestroy } from 'svelte';
 	import { fade, fly, scale, slide } from 'svelte/transition';
 	import { getTosState, marketplaceGetHome, marketplaceGetCategory, marketplaceGetDetail, marketplaceInstall, marketplaceGetStatus, sendCommand, marketplaceSearchAi } from '$lib/stores/ipc.svelte';
+	import { focusTrap } from '$lib/actions/focusTrap';
 
 	const tosState = $derived(getTosState());
 	
@@ -222,7 +223,16 @@
 
     {#if selectedModule}
         <div class="detail-overlay" transition:fade onclick={() => selectedModule = null} role="button" tabindex="0" onkeydown={(e) => e.key === 'Escape' && (selectedModule = null)}>
-            <div class="detail-card glass-panel" onclick={(e) => e.stopPropagation()} onkeydown={(e) => e.key === 'Enter' && e.stopPropagation()} in:fly={{ y: 100, duration: 500 }} role="dialog" aria-modal="true" tabindex="-1">
+            <div 
+				class="detail-card glass-panel" 
+				onclick={(e) => e.stopPropagation()} 
+				onkeydown={(e) => e.key === 'Enter' && e.stopPropagation()} 
+				in:fly={{ y: 100, duration: 500 }} 
+				role="dialog" 
+				aria-modal="true" 
+				tabindex="-1"
+				use:focusTrap
+			>
                 <header class="detail-header">
                     <div class="detail-icon">{selectedModule.summary.icon || '⊞'}</div>
                     <div class="detail-meta">
@@ -304,7 +314,7 @@
 
     {#if showPermissionModal}
         <div class="modal-overlay" transition:fade>
-            <div class="modal-card glass-panel" in:scale={{ start: 0.9 }}>
+            <div class="modal-card glass-panel" in:scale={{ start: 0.9 }} use:focusTrap>
                 <h2>REVIEW PERMISSIONS</h2>
                 <p>"{selectedModule.summary.name}" requires the following access:</p>
                 

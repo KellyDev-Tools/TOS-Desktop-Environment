@@ -39,6 +39,9 @@ thumbs.db
 /beta-0/*.tar.gz
 
 # UI & E2E Web related
+*.pid
+test_results.log
+*.webm
 **/node_modules/
 **/.svelte-kit/
 face-svelte-ui/build/

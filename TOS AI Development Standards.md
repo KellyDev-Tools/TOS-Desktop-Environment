@@ -47,6 +47,8 @@ Every task must include tests at **all applicable tiers** before it is considere
    - Playwright E2E: `make test-e2e`
    - Orchestration health: `make test-health`
 
+**Don't ask me if you should make a new test, the answer is always yes.**
+
 ### 2.2 Definition of Done
 
 A task is **not complete** until:

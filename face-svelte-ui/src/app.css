@@ -376,3 +376,20 @@ body {
 .text-danger {
 	color: var(--color-danger);
 }
+/* --- 8. Accessibility & Keyboard Navigation --- */
+:focus-visible {
+outline: 2px solid var(--color-primary);
+outline-offset: 2px;
+box-shadow: 0 0 0 4px rgba(247, 168, 51, 0.2);
+}
+
+/* Specific focus styles for LCARS elements */
+.lcars-btn:focus-visible,
+.bezel-btn:focus-visible,
+.level-btn:focus-visible,
+.sector-tile:focus-visible,
+.lcars-btn-sm:focus-visible,
+.swipe-btn:focus-visible {
+border-color: var(--color-primary);
+filter: brightness(1.2);
+}

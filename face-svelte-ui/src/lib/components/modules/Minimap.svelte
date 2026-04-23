@@ -22,10 +22,15 @@
 
 <!-- svelte-ignore a11y_click_events_have_key_events -->
 <!-- svelte-ignore a11y_no_static_element_interactions -->
+<!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
 <div 
 	class="minimap-container" 
-	class:projected={isProjected}
+	class:projected={isProjected} 
 	onclick={toggleProjected}
+	onkeydown={(e) => (e.key === 'Enter' || e.key === ' ') && toggleProjected()}
+	role="button"
+	tabindex="0"
+	aria-label="Tactical Minimap"
 >
 	<div class="minimap-header">
 		<span>TACTICAL_MAP</span>

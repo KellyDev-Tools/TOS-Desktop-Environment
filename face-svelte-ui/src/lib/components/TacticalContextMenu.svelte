@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { fade } from 'svelte/transition';
 	import { sendCommand } from '$lib/stores/ipc.svelte';
+	import { focusTrap } from '$lib/actions/focusTrap';
 	
 	let { x = 0, y = 0, processName = '', processPid = 0, onClose }: {
 		x: number;
@@ -37,6 +38,7 @@
 	transition:fade={{ duration: 150 }} 
 	onclick={(e) => e.stopPropagation()} 
 	oncontextmenu={(e) => e.stopPropagation()}
+	use:focusTrap
 >
 	<div class="menu-header">
 		TARGET // {processName.toUpperCase()} [PID {processPid}]

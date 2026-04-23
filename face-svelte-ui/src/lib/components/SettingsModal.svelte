@@ -5,6 +5,7 @@
 		getSettingsTab, setSettingsTab,
 		type SettingsTab
 	} from '$lib/stores/ui.svelte';
+	import { focusTrap } from '$lib/actions/focusTrap';
 
 	const open = $derived(isSettingsOpen());
 	const activeTab = $derived(getSettingsTab());
@@ -93,7 +94,14 @@
 	<!-- svelte-ignore a11y_click_events_have_key_events -->
 	<!-- svelte-ignore a11y_no_static_element_interactions -->
 	<div class="modal-overlay" onclick={handleOverlayClick} role="button" tabindex="0">
-		<div class="modal-container glass-panel" role="dialog" aria-modal="true" tabindex="-1" onclick={(e) => e.stopPropagation()}>
+		<div 
+			class="modal-container glass-panel" 
+			role="dialog" 
+			aria-modal="true" 
+			tabindex="-1" 
+			onclick={(e) => e.stopPropagation()}
+			use:focusTrap
+		>
 			<!-- Header -->
 			<div class="modal-header">
 				<div class="modal-elbow"></div>

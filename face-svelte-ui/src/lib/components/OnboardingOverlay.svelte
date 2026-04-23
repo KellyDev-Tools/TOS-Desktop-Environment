@@ -4,6 +4,7 @@
 		getTosState, setSetting, 
 		onboardingSkipTour, onboardingAdvanceStep 
 	} from '$lib/stores/ipc.svelte';
+	import { focusTrap } from '$lib/actions/focusTrap';
 
 	const tosState = $derived(getTosState());
 	const isFirstRun = $derived(tosState.settings.global['tos.onboarding.first_run_complete'] !== 'true');
@@ -84,7 +85,7 @@
 
 {#if visible && isFirstRun}
 	<div class="onboarding-modal-overlay" transition:fade={{ duration: 400 }}>
-		<div class="onboarding-card glass-panel" in:scale={{ duration: 600, start: 0.9 }}>
+		<div class="onboarding-card glass-panel" in:scale={{ duration: 600, start: 0.9 }} use:focusTrap>
 			<div class="card-bezel top">
 				<div class="lcars-pill-info">{steps[currentStep].action}</div>
 				<div class="lcars-title">TOS // ONBOARDING_SEQUENCER</div>

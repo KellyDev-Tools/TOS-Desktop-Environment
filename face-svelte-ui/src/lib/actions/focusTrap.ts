@@ -1,0 +1,48 @@
+/**
+ * Svelte action to trap focus within an element.
+ */
+export function focusTrap(node: HTMLElement) {
+	const focusableElements = 'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])';
+	
+	function getFocusable() {
+		return Array.from(node.querySelectorAll(focusableElements)) as HTMLElement[];
+	}
+
+	function handleKeydown(e: KeyboardEvent) {
+		if (e.key !== 'Tab') return;
+
+		const elements = getFocusable();
+		if (elements.length === 0) return;
+
+		const first = elements[0];
+		const last = elements[elements.length - 1];
+
+		if (e.shiftKey) {
+			if (document.activeElement === first) {
+				last.focus();
+				e.preventDefault();
+			}
+		} else {
+			if (document.activeElement === last) {
+				first.focus();
+				e.preventDefault();
+			}
+		}
+	}
+
+	// Auto-focus first element
+	setTimeout(() => {
+		const elements = getFocusable();
+		if (elements.length > 0) {
+			elements[0].focus();
+		}
+	}, 100);
+
+	node.addEventListener('keydown', handleKeydown);
+
+	return {
+		destroy() {
+			node.removeEventListener('keydown', handleKeydown);
+		}
+	};
+}

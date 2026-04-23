@@ -112,7 +112,7 @@
 					<div class="activity-list">
 						{#each act.processes.slice(0, 10) as proc}
 							<!-- svelte-ignore a11y_no_static_element_interactions -->
-							<div 
+							<button 
 								class="activity-item" 
 								class:stopped={proc.status === 'stopped' || proc.status === 'sleeping'} 
 								use:longpress={{ onLongPress: (e) => handleContextMenu(e as CustomEvent, proc) }}
@@ -132,7 +132,7 @@
 										CPU: {proc.cpu_usage.toFixed(1)}% | MEM: {(proc.mem_usage / 1024 / 1024).toFixed(1)} MB
 									</div>
 								</div>
-							</div>
+							</button>
 						{/each}
 					</div>
 				</div>

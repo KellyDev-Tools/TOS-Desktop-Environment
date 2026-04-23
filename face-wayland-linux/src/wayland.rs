@@ -12,7 +12,7 @@ use smithay_client_toolkit::{
     },
     shm::{Shm, ShmHandler},
 };
-use wayland_client::{protocol::wl_surface, Connection, QueueHandle};
+use wayland_client::{protocol::{wl_surface, wl_shm_pool, wl_buffer}, Connection, QueueHandle};
 
 pub struct WaylandShell {
     pub connection: Connection,
@@ -129,10 +129,41 @@ impl WaylandShell {
         surface
     }
 
-    pub fn attach_buffer(&mut self, _surface: &wl_surface::WlSurface, _fd: std::os::unix::io::RawFd, _width: i32, _height: i32) {
-        // Stub for now to maintain green build. Real implementation requires resolving 
-        // ambiguous Wayland-client 0.31 / SCTK 0.18 API signatures for buffer attachment.
-        tracing::debug!("Wayland: attach_buffer stub called");
+    pub fn attach_buffer(&mut self, surface: &wl_surface::WlSurface, fd: std::os::unix::io::RawFd, width: i32, height: i32) {
+        use wayland_client::protocol::wl_shm;
+        use std::os::unix::io::BorrowedFd;
+        
+        let size = width * height * 4;
+        
+        // SAFETY: The FD is owned by the WaylandBuffer in lib.rs and remains valid 
+        // for the duration of this call.
+        let borrowed_fd = unsafe { BorrowedFd::borrow_raw(fd) };
+        
+        // Create a pool from the provided memfd using the inner WlShm proxy
+        let pool = self.state.shm.wl_shm().create_pool(
+            borrowed_fd,
+            size,
+            &self.queue_handle,
+            (),
+        );
+        
+        // Create a buffer from the pool
+        let buffer = pool.create_buffer(
+            0,
+            width,
+            height,
+            width * 4,
+            wl_shm::Format::Argb8888,
+            &self.queue_handle,
+            (),
+        );
+
+        // Attach, damage, and commit
+        surface.attach(Some(&buffer), 0, 0);
+        surface.damage(0, 0, width, height);
+        surface.commit();
+        
+        tracing::debug!("Wayland: Buffer attached and committed ({}x{})", width, height);
     }
 
     pub fn dispatch(&mut self) {
@@ -178,6 +209,31 @@ impl OutputHandler for WaylandState {
 impl LayerShellHandler for WaylandState {
     fn configure(&mut self, _conn: &Connection, _qh: &QueueHandle<Self>, _layer_surface: &LayerSurface, _configure: LayerSurfaceConfigure, _serial: u32) {}
     fn closed(&mut self, _conn: &Connection, _qh: &QueueHandle<Self>, _layer_surface: &LayerSurface) {}
+}
+
+impl wayland_client::Dispatch<wl_shm_pool::WlShmPool, ()> for WaylandState {
+    fn event(
+        _state: &mut Self,
+        _proxy: &wl_shm_pool::WlShmPool,
+        _event: wl_shm_pool::Event,
+        _data: &(),
+        _conn: &Connection,
+        _qh: &QueueHandle<Self>,
+    ) {
+    }
+}
+
+impl wayland_client::Dispatch<wl_buffer::WlBuffer, ()> for WaylandState {
+    fn event(
+        _state: &mut Self,
+        _proxy: &wl_buffer::WlBuffer,
+        _event: wl_buffer::Event,
+        _data: &(),
+        _conn: &Connection,
+        _qh: &QueueHandle<Self>,
+    ) {
+        // In a production renderer, we'd handle the Release event to recycle buffers.
+    }
 }
 
 impl XdgWindowHandler for WaylandState {

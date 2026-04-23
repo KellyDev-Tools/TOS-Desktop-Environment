@@ -82,4 +82,8 @@
 - [x] 4.11 Tactical Mini-Map depth-aware content — Upgraded `Minimap.svelte` to show distinct spatial visualizations for Levels 1–4, including a projected global topology overlay.
 - [x] 4.12 Priority visual indicators by depth (border chips, glow)
 
-## Stage 5–6 — Deferred to subsequent sessions
+## Stage 5 — Native Platform & Multi-Sensory
+- [x] 5.1 Real Wayland compositor integration test — Stabilized SHM buffer attachment in `WaylandShell`, resolving `wl_shm_pool` and `wl_buffer` dispatching issues.
+- [ ] 5.2 DMABUF frame buffer sharing for Level 3 apps — (Foundation laid via memfd/mmap zero-copy buffers)
+- [ ] 5.3 Three-layer audio model
+- [ ] 5.7 Full keyboard navigation tab-stop chain

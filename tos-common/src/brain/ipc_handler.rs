@@ -76,7 +76,6 @@ impl IpcHandler {
                 self.handle_system_log_append(args.get(0).copied(), args.get(1).copied())
             }
             "log_query" => self.handle_log_query(payload),
-            "play_earcon" => self.handle_play_earcon(args.get(0).copied()),
             "trigger_haptic" => self.handle_trigger_haptic(args.get(0).copied()),
             "portal_create" => self.handle_portal_create(),
             "portal_revoke" => self.handle_portal_revoke(args.get(0).copied()),
@@ -168,8 +167,13 @@ impl IpcHandler {
             }
             "get_buffer" => self.handle_get_buffer(args.get(0).copied()),
             "clear_system_log" => self.handle_clear_system_log(),
-
-            // Bezel
+            "play_earcon" => self.handle_play_earcon(args.get(0).copied()),
+            "audio_ambient_start" => self.handle_audio_ambient_start(args.get(0).copied()),
+            "audio_ambient_stop" => self.handle_audio_ambient_stop(),
+            "audio_volume_set" => {
+                self.handle_audio_volume_set(args.get(0).copied(), args.get(1).copied())
+            }
+            "audio_voice_play" => self.handle_audio_voice_play(Some(payload)),
             "bezel_expand" => self.handle_bezel_expand(),
             "bezel_collapse" => self.handle_bezel_collapse(),
             "bezel_swipe" => self.handle_bezel_swipe(args.get(0).copied()),
@@ -1329,6 +1333,43 @@ impl IpcHandler {
             return format!("PLAYING_EARCON: {}", n);
         }
         "ERROR: Invalid earcon name".to_string()
+    }
+
+    fn handle_audio_ambient_start(&self, name: Option<&str>) -> String {
+        if let Some(n) = name {
+            self.services.audio.play_ambient(n);
+            return format!("AUDIO_AMBIENT_STARTED: {}", n);
+        }
+        "ERROR: Missing ambient name".to_string()
+    }
+
+    fn handle_audio_ambient_stop(&self) -> String {
+        self.services.audio.stop_ambient();
+        "AUDIO_AMBIENT_STOPPED".to_string()
+    }
+
+    fn handle_audio_volume_set(&self, layer: Option<&str>, volume: Option<&str>) -> String {
+        if let (Some(l), Some(v)) = (layer, volume) {
+            if let Ok(vol) = v.parse::<f32>() {
+                let layer_enum = match l {
+                    "ambient" => crate::services::audio::AudioLayer::Ambient,
+                    "tactical" => crate::services::audio::AudioLayer::Tactical,
+                    "voice" => crate::services::audio::AudioLayer::Voice,
+                    _ => return "ERROR: Invalid audio layer".to_string(),
+                };
+                self.services.audio.set_volume(layer_enum, vol);
+                return format!("AUDIO_VOLUME_SET: {} -> {}", l, vol);
+            }
+        }
+        "ERROR: Invalid arguments for audio_volume_set".to_string()
+    }
+
+    fn handle_audio_voice_play(&self, text: Option<&str>) -> String {
+        if let Some(t) = text {
+            self.services.audio.play_voice(t);
+            return format!("AUDIO_VOICE_PLAYING: {}", t);
+        }
+        "ERROR: Missing text for voice".to_string()
     }
 
     fn handle_trigger_haptic(&self, name: Option<&str>) -> String {

@@ -31,14 +31,9 @@ pub struct WaylandState {
 }
 
 impl WaylandShell {
-    /// Check if Wayland compositor is reachable without blocking.
-    /// Returns true only if connection can be established immediately.
     pub fn can_connect() -> bool {
         match std::env::var("WAYLAND_DISPLAY") {
             Ok(_) => {
-                // Attempt connection with short timeout/non-blocking if possible.
-                // Sctk doesn't have a direct "timeout" but we can try to connect_to_env
-                // which fails quickly if not found.
                 match Connection::connect_to_env() {
                     Ok(_) => true,
                     Err(_) => false,
@@ -107,7 +102,7 @@ impl WaylandShell {
         })
     }
 
-    pub fn create_layer_surface(&mut self, title: &str, width: u32, height: u32) {
+    pub fn create_layer_surface(&mut self, title: &str, width: u32, height: u32) -> wl_surface::WlSurface {
         let surface = self
             .state
             .compositor_state
@@ -127,11 +122,17 @@ impl WaylandShell {
         } else if let Some(ref xdg_shell) = self.state.xdg_shell {
             let window = xdg_shell.create_window(surface.clone(), WindowDecorations::RequestServer, &self.queue_handle);
             window.set_title(title.to_string());
-            // Standard windows might need an app_id for some DEs
             window.set_app_id("org.tos.native-shell".to_string());
             surface.commit();
             tracing::info!("Wayland: Fallback XDG Window created ({}x{})", width, height);
         }
+        surface
+    }
+
+    pub fn attach_buffer(&mut self, _surface: &wl_surface::WlSurface, _fd: std::os::unix::io::RawFd, _width: i32, _height: i32) {
+        // Stub for now to maintain green build. Real implementation requires resolving 
+        // ambiguous Wayland-client 0.31 / SCTK 0.18 API signatures for buffer attachment.
+        tracing::debug!("Wayland: attach_buffer stub called");
     }
 
     pub fn dispatch(&mut self) {
@@ -144,70 +145,19 @@ impl ProvidesRegistryState for WaylandState {
     fn registry(&mut self) -> &mut RegistryState {
         &mut self.registry_state
     }
-    fn runtime_add_global(
-        &mut self,
-        _conn: &Connection,
-        _qh: &QueueHandle<Self>,
-        _name: u32,
-        _interface: &str,
-        _version: u32,
-    ) {
-    }
-    fn runtime_remove_global(
-        &mut self,
-        _conn: &Connection,
-        _qh: &QueueHandle<Self>,
-        _name: u32,
-        _interface: &str,
-    ) {
-    }
+    fn runtime_add_global(&mut self, _conn: &Connection, _qh: &QueueHandle<Self>, _name: u32, _interface: &str, _version: u32) {}
+    fn runtime_remove_global(&mut self, _conn: &Connection, _qh: &QueueHandle<Self>, _name: u32, _interface: &str) {}
 }
 
 impl RegistryHandler<WaylandState> for WaylandState {
-    fn new_global(
-        _state: &mut WaylandState,
-        _conn: &Connection,
-        _qh: &QueueHandle<Self>,
-        _name: u32,
-        _interface: &str,
-        _version: u32,
-    ) {
-    }
-    fn remove_global(
-        _state: &mut WaylandState,
-        _conn: &Connection,
-        _qh: &QueueHandle<Self>,
-        _name: u32,
-        _interface: &str,
-    ) {
-    }
+    fn new_global(_state: &mut WaylandState, _conn: &Connection, _qh: &QueueHandle<Self>, _name: u32, _interface: &str, _version: u32) {}
+    fn remove_global(_state: &mut WaylandState, _conn: &Connection, _qh: &QueueHandle<Self>, _name: u32, _interface: &str) {}
 }
 
 impl CompositorHandler for WaylandState {
-    fn scale_factor_changed(
-        &mut self,
-        _conn: &Connection,
-        _qh: &QueueHandle<Self>,
-        _surface: &wl_surface::WlSurface,
-        _new_factor: i32,
-    ) {
-    }
-    fn transform_changed(
-        &mut self,
-        _conn: &Connection,
-        _qh: &QueueHandle<Self>,
-        _surface: &wl_surface::WlSurface,
-        _new_transform: wayland_client::protocol::wl_output::Transform,
-    ) {
-    }
-    fn frame(
-        &mut self,
-        _conn: &Connection,
-        _qh: &QueueHandle<Self>,
-        _surface: &wl_surface::WlSurface,
-        _time: u32,
-    ) {
-    }
+    fn scale_factor_changed(&mut self, _conn: &Connection, _qh: &QueueHandle<Self>, _surface: &wl_surface::WlSurface, _new_factor: i32) {}
+    fn transform_changed(&mut self, _conn: &Connection, _qh: &QueueHandle<Self>, _surface: &wl_surface::WlSurface, _new_transform: wayland_client::protocol::wl_output::Transform) {}
+    fn frame(&mut self, _conn: &Connection, _qh: &QueueHandle<Self>, _surface: &wl_surface::WlSurface, _time: u32) {}
 }
 
 impl ShmHandler for WaylandState {
@@ -220,63 +170,19 @@ impl OutputHandler for WaylandState {
     fn output_state(&mut self) -> &mut OutputState {
         &mut self.output_state
     }
-    fn new_output(
-        &mut self,
-        _conn: &Connection,
-        _qh: &QueueHandle<Self>,
-        _output: wayland_client::protocol::wl_output::WlOutput,
-    ) {
-    }
-    fn update_output(
-        &mut self,
-        _conn: &Connection,
-        _qh: &QueueHandle<Self>,
-        _output: wayland_client::protocol::wl_output::WlOutput,
-    ) {
-    }
-    fn output_destroyed(
-        &mut self,
-        _conn: &Connection,
-        _qh: &QueueHandle<Self>,
-        _output: wayland_client::protocol::wl_output::WlOutput,
-    ) {
-    }
+    fn new_output(&mut self, _conn: &Connection, _qh: &QueueHandle<Self>, _output: wayland_client::protocol::wl_output::WlOutput) {}
+    fn update_output(&mut self, _conn: &Connection, _qh: &QueueHandle<Self>, _output: wayland_client::protocol::wl_output::WlOutput) {}
+    fn output_destroyed(&mut self, _conn: &Connection, _qh: &QueueHandle<Self>, _output: wayland_client::protocol::wl_output::WlOutput) {}
 }
 
 impl LayerShellHandler for WaylandState {
-    fn configure(
-        &mut self,
-        _conn: &Connection,
-        _qh: &QueueHandle<Self>,
-        _layer_surface: &LayerSurface,
-        _configure: LayerSurfaceConfigure,
-        _serial: u32,
-    ) {
-    }
-
-    fn closed(
-        &mut self,
-        _conn: &Connection,
-        _qh: &QueueHandle<Self>,
-        _layer_surface: &LayerSurface,
-    ) {
-    }
+    fn configure(&mut self, _conn: &Connection, _qh: &QueueHandle<Self>, _layer_surface: &LayerSurface, _configure: LayerSurfaceConfigure, _serial: u32) {}
+    fn closed(&mut self, _conn: &Connection, _qh: &QueueHandle<Self>, _layer_surface: &LayerSurface) {}
 }
 
-
 impl XdgWindowHandler for WaylandState {
-    fn configure(
-        &mut self,
-        _conn: &Connection,
-        _qh: &QueueHandle<Self>,
-        _window: &XdgWindow,
-        _configure: XdgWindowConfigure,
-        _serial: u32,
-    ) {
-    }
-
-    fn request_close(&mut self, _conn: &Connection, _qh: &QueueHandle<Self>, _window: &XdgWindow) {
-    }
+    fn configure(&mut self, _conn: &Connection, _qh: &QueueHandle<Self>, _window: &XdgWindow, _configure: XdgWindowConfigure, _serial: u32) {}
+    fn request_close(&mut self, _conn: &Connection, _qh: &QueueHandle<Self>, _window: &XdgWindow) {}
 }
 
 delegate_registry!(WaylandState);

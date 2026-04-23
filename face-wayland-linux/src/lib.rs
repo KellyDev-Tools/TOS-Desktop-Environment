@@ -16,11 +16,16 @@ use ab_glyph::{Font, FontArc, PxScale, ScaleFont};
 use tiny_skia::{Color, Paint, PixmapMut, Rect, Transform};
 
 pub struct LinuxRenderer {
-    pub surfaces: std::sync::Arc<std::sync::Mutex<std::collections::HashMap<u32, WaylandBuffer>>>,
+    pub surfaces: std::sync::Arc<std::sync::Mutex<std::collections::HashMap<u32, SurfaceState>>>,
     pub pid_map: std::sync::Arc<std::sync::Mutex<std::collections::HashMap<u32, u32>>>,
     next_handle: u32,
     shell: Option<wayland::WaylandShell>,
     font: Option<FontArc>,
+}
+
+pub struct SurfaceState {
+    pub buffer: WaylandBuffer,
+    pub wl_surface: Option<wayland_client::protocol::wl_surface::WlSurface>,
 }
 
 pub struct WaylandBuffer {
@@ -192,14 +197,17 @@ impl Renderer for LinuxRenderer {
         let handle_id = self.next_handle;
         self.next_handle += 1;
 
-        // Wayland Layer Shell Integration
+        let mut wl_surface = None;
         if let Some(ref mut shell) = self.shell {
-            shell.create_layer_surface("TOS Native Layer", config.width, config.height);
+            wl_surface = Some(shell.create_layer_surface("TOS Native Layer", config.width, config.height));
         }
 
         match Self::allocate_dmabuf_shm(config.width, config.height) {
             Ok(buffer) => {
-                self.surfaces.lock().unwrap().insert(handle_id, buffer);
+                self.surfaces.lock().unwrap().insert(handle_id, SurfaceState {
+                    buffer,
+                    wl_surface,
+                });
             }
             Err(e) => {
                 tracing::error!("Wayland allocation failed: {}", e);
@@ -211,7 +219,8 @@ impl Renderer for LinuxRenderer {
 
     fn update_surface(&mut self, handle: SurfaceHandle, content: &dyn SurfaceContent) {
         let mut surfaces = self.surfaces.lock().unwrap();
-        if let Some(buf) = surfaces.get_mut(&handle.0) {
+        if let Some(state) = surfaces.get_mut(&handle.0) {
+            let buf = &mut state.buffer;
             tracing::debug!("Synchronizing Wayland Buffer FD: {}", buf.fd);
 
             if let Some(text) = content.text_data() {
@@ -219,7 +228,6 @@ impl Renderer for LinuxRenderer {
             } else {
                 let data = content.pixel_data();
                 if !data.is_empty() && data.len() <= buf.size {
-                    // SAFETY: Source and destination bounds are checked above.
                     unsafe {
                         std::ptr::copy_nonoverlapping(
                             data.as_ptr(),
@@ -231,8 +239,9 @@ impl Renderer for LinuxRenderer {
                 }
             }
 
-            // Wayland Compositor attachment simulation (will be replaced by SCTK commits)
-            tracing::debug!("wl_surface_commit(surface)");
+            if let (Some(ref mut shell), Some(ref surface)) = (self.shell.as_mut(), state.wl_surface.as_ref()) {
+                shell.attach_buffer(surface, buf.fd, buf.width as i32, buf.height as i32);
+            }
         }
     }
 
@@ -260,7 +269,8 @@ impl Renderer for LinuxRenderer {
             surface_count
         );
 
-        for (handle, buf) in surfaces.iter() {
+        for (handle, state) in surfaces.iter() {
+            let buf = &state.buffer;
             // Simulated GL render pass
             tracing::debug!(
                 "   [PASS 1] Sampler2D(surface_handle={}) -> Texture0",
@@ -384,9 +394,10 @@ mod tests {
         assert!(handle.0 > 0, "Invalid handle ID returned");
 
         let buffer_lock = renderer.surfaces.lock().unwrap();
-        let buffer = buffer_lock
+        let state = buffer_lock
             .get(&handle.0)
             .expect("Surface buffer missing from tracking map");
+        let buffer = &state.buffer;
 
         let expected_size = 1920 * 1080 * 4;
         assert_eq!(buffer.size, expected_size, "Memfd map size incorrect");
@@ -398,7 +409,7 @@ mod tests {
 
 /// CaptureBackend implementation for Linux, leveraging the Wayland/DMABUF surfaces.
 pub struct LinuxCaptureBackend {
-    surfaces: std::sync::Arc<std::sync::Mutex<std::collections::HashMap<u32, WaylandBuffer>>>,
+    surfaces: std::sync::Arc<std::sync::Mutex<std::collections::HashMap<u32, SurfaceState>>>,
     pid_map: std::sync::Arc<std::sync::Mutex<std::collections::HashMap<u32, u32>>>,
 }
 
@@ -419,7 +430,8 @@ impl CaptureBackend for LinuxCaptureBackend {
         };
 
         let surfaces = self.surfaces.lock().unwrap();
-        let buffer = surfaces.get(&handle)?;
+        let state = surfaces.get(&handle)?;
+        let buffer = &state.buffer;
 
         // For Alpha-2.2, we convert the raw SHM/DMABUF data to a Base64 PNG.
         // In the future, we could pass the FD directly for zero-copy.

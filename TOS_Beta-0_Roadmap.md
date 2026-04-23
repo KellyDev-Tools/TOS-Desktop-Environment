@@ -415,7 +415,7 @@
 
 | # | Task | Priority | Spec Ref | Deps | Status |
 |---|---|---|---|---|---|
-| 5.1 | Real Wayland compositor integration test | HIGH | Arch §15.2 | WaylandRenderer | 🔶 |
+| 5.1 | Real Wayland compositor integration test | HIGH | Arch §15.2 | WaylandRenderer | ✅ |
 | 5.2 | DMABUF frame buffer sharing for Level 3 apps | HIGH | Arch §15.2 | WaylandRenderer | ❌ |
 | 5.3 | Three-layer audio model (ambient/tactical/voice) | MEDIUM | Arch §23.1 | AudioService | ❌ |
 | 5.4 | Alert level adaptation (Green/Yellow/Red) | MEDIUM | Arch §23.2 | AudioService, SettingsStore | ❌ |

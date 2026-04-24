@@ -1,8 +1,10 @@
 <script lang="ts">
 	import { getTosState, getSyncLatency } from '$lib/stores/ipc.svelte';
+	import { getCurrentFps } from '$lib/stores/ui.svelte';
 
 	const tosState = $derived(getTosState());
 	const latency = $derived(getSyncLatency());
+	const fps = $derived(getCurrentFps());
 
 	// TODO: Pull real telemetry from Brain state when available
 	const cpu = '12%';
@@ -13,6 +15,8 @@
 <div class="telemetry">
 	<span class="telemetry-label">SYSTEM TELEMETRY</span>
 	<div class="telemetry-metrics">
+		<span class="metric" class:warning={fps < 55}>FPS: {fps}</span>
+		<span class="sep">|</span>
 		<span class="metric">CPU: {cpu}</span>
 		<span class="sep">|</span>
 		<span class="metric">MEM: {mem}</span>
@@ -49,5 +53,9 @@
 
 	.sep {
 		opacity: 0.3;
+	}
+
+	.warning {
+		color: var(--color-warning);
 	}
 </style>

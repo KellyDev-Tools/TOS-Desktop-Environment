@@ -13,7 +13,7 @@
 		toggleSidebarLeft, toggleSidebarRight,
 		isSettingsOpen, isPortalModalOpen,
 		openSettings, setSettingsTab, toggleTerminalToFront,
-		getPromptMode, setPromptMode,
+		getPromptMode, setPromptMode, setCurrentFps,
 		type ViewMode, type PromptMode
 	} from '$lib/stores/ui.svelte';
 
@@ -95,6 +95,35 @@
 	let sessionPopoverOpen = $state(false);
 	let heuristicSuggestions = $state<{ text: string, score: number, source: string }[]>([]);
 
+	let frameCount = 0;
+	let lastFpsTime = 0;
+	let fpsDropSeconds = 0;
+	let animFrameId: number;
+
+	function measureFps(now: number) {
+		if (lastFpsTime === 0) lastFpsTime = now;
+		frameCount++;
+		
+		if (now - lastFpsTime >= 1000) {
+			const fps = Math.round((frameCount * 1000) / (now - lastFpsTime));
+			frameCount = 0;
+			lastFpsTime = now;
+			setCurrentFps(fps);
+
+			// Target is 60 FPS, alert if < 55 for > 2s
+			if (fps < 55) {
+				fpsDropSeconds++;
+				if (fpsDropSeconds >= 2) {
+					sendCommand(`system_log_append:3:TACTICAL ALERT: Frame rate dropped to ${fps} FPS. Suggest closing background sectors or disabling blur.`);
+					fpsDropSeconds = 0;
+				}
+			} else {
+				fpsDropSeconds = 0;
+			}
+		}
+		animFrameId = requestAnimationFrame(measureFps);
+	}
+
 	onMount(() => {
 		connect();
 		
@@ -104,7 +133,12 @@
 			startCinematic();
 		}
 
-		return () => disconnect();
+		animFrameId = requestAnimationFrame(measureFps);
+
+		return () => {
+			disconnect();
+			cancelAnimationFrame(animFrameId);
+		};
 	});
 
 	function startCinematic() {

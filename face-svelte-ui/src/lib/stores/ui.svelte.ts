@@ -17,6 +17,7 @@ let settingsTab = $state<SettingsTab>('global');
 let portalModalOpen = $state(false);
 let promptMode = $state<PromptMode>('cmd');
 let followingId = $state<string | null>(null);
+let currentFps = $state<number>(60);
 
 // --- Getters ---
 export function getCurrentMode(): ViewMode { return currentMode; }
@@ -28,6 +29,7 @@ export function getSettingsTab(): SettingsTab { return settingsTab; }
 export function isPortalModalOpen(): boolean { return portalModalOpen; }
 export function getPromptMode(): PromptMode { return promptMode; }
 export function getFollowingId(): string | null { return followingId; }
+export function getCurrentFps(): number { return currentFps; }
 
 // --- Actions ---
 export function setCurrentMode(mode: ViewMode): void {
@@ -73,4 +75,8 @@ export function setPromptMode(mode: PromptMode): void {
 
 export function toggleFollow(id: string): void {
     followingId = followingId === id ? null : id;
+}
+
+export function setCurrentFps(fps: number): void {
+    currentFps = fps;
 }

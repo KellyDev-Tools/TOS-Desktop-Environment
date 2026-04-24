@@ -108,7 +108,7 @@
 | DMABUF surface embedding | §15.2 | ✅ | `create_dmabuf_buffer` using `zwp_linux_dmabuf_v1` in `wayland.rs` |
 | Frame capture / thumbnails | §16.1 | ✅ | `CaptureService` with sysinfo-based backend |
 | Depth-based render throttling | §16.1 | ❌ | No frame rate throttling by level |
-| Tactical Alert on FPS drop | §16.4 | ❌ | No FPS monitoring |
+| Tactical Alert on FPS drop | §16.4 | ✅ | measureFps in +page.svelte + system_log alert |
 
 ### 1.7 Security & Trust (Architecture §17)
 
@@ -344,7 +344,7 @@
 | 5.6 | Screen reader bridge (AT-SPI on Linux) | HIGH | Arch §24.1 | Face components | ✅ |
 | 5.7 | Full keyboard navigation tab-stop chain | HIGH | Arch §24.3 | All Svelte components | ✅ |
 | 5.8 | High-contrast forced mode | MEDIUM | Arch §24.1 | Theme system | ✅ |
-| 5.9 | FPS monitoring + Tactical Alert | LOW | Arch §16.4 | Renderer, alerting | ❌ |
+| 5.9 | FPS monitoring + Tactical Alert | LOW | Arch §16.4 | Renderer, alerting | ✅ |
 | 5.10 | Voice command input pipeline | LOW | Arch §14.3 | Input hub | ❌ |
 | 5.11 | Depth-based render throttling | LOW | Arch §16.1 | Renderer | ❌ |
 
@@ -380,7 +380,7 @@
 | Split Viewports | 8 | 0 | 0 |
 | Remote & Collaboration | 2 | 6 | 0 |
 | Input Abstraction | 2 | 0 | 3 |
-| Platform & Rendering | 4 | 2 | 2 |
+| Platform & Rendering | 5 | 2 | 1 |
 | Security & Trust | 9 | 1 | 1 |
 | Module System | 5 | 3 | 2 |
 | Service Daemons | 9 | 0 | 0 |
@@ -396,7 +396,7 @@
 | Settings | 4 | 0 | 0 |
 | **Kanban & Agents** | **6** | **1** | **0** |
 | Priority & Visual | 3 | 0 | 0 |
-| **TOTAL** | **155** | **9** | **5** |
+| **TOTAL** | **156** | **9** | **4** |
 
 > [!IMPORTANT]
 > **Stages 0–4, 7, and Stage 1 are fully complete.** The critical path is now **Stage 5** (Native Platform: Wayland, DMABUF, Accessibility, Multi-Sensory) and **Stage 6** (Collaboration, Remote, Release infrastructure).

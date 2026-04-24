@@ -106,6 +106,8 @@ impl IpcHandler {
             "session_import" => {
                 self.handle_session_import(args.get(0).copied(), args.get(1).copied())
             }
+            "session_handoff_prepare" => self.handle_session_handoff_prepare(),
+            "session_handoff_claim" => self.handle_session_handoff_claim(args.get(0).copied()),
             "trust_promote" => self.handle_trust_promote(args.get(0).copied()),
             "trust_demote" => self.handle_trust_demote(args.get(0).copied()),
             "ai_behavior_enable" => self.handle_ai_behavior_enable(args.get(0).copied()),
@@ -1752,6 +1754,35 @@ impl IpcHandler {
             }
         }
         "ERROR: Missing name or json payload".to_string()
+    }
+
+    fn handle_session_handoff_prepare(&self) -> String {
+        let state = self.state.lock().unwrap();
+        match self.services.session.prepare_handoff(&state) {
+            Ok(token) => format!("SESSION_HANDOFF_TOKEN: {}", token),
+            Err(e) => format!("ERROR: {}", e),
+        }
+    }
+
+    fn handle_session_handoff_claim(&self, token: Option<&str>) -> String {
+        if let Some(t) = token {
+            match self.services.session.claim_handoff(t) {
+                Ok(json) => {
+                    match serde_json::from_str(&json) {
+                        Ok(new_state) => {
+                            let mut state = self.state.lock().unwrap();
+                            *state = new_state;
+                            state.version += 1;
+                            "SESSION_HANDOFF_CLAIMED".to_string()
+                        }
+                        Err(e) => format!("ERROR: Claimed session schema invalid: {}", e),
+                    }
+                }
+                Err(e) => format!("ERROR: {}", e),
+            }
+        } else {
+            "ERROR: Missing handoff token".to_string()
+        }
     }
 
     // ----- Trust IPC Handlers -----

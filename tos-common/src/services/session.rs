@@ -310,4 +310,53 @@ impl SessionService {
         }
         Err(anyhow::anyhow!("no persistence path available"))
     }
+
+    /// Prepare a session handoff by generating a one-time token in tos-sessiond.
+    pub fn prepare_handoff(&self, state: &TosState) -> anyhow::Result<String> {
+        if let Some(addr) = self.get_daemon_address() {
+            if let Ok(mut stream) = TcpStream::connect_timeout(
+                &addr.parse().unwrap(),
+                std::time::Duration::from_millis(100),
+            ) {
+                let json = serde_json::to_string(state)?;
+                let _ = stream.write_all(format!("session_handoff_prepare:{}\n", json).as_bytes());
+                let mut reader = BufReader::new(&stream);
+                let mut response = String::new();
+                if reader.read_line(&mut response).is_ok() {
+                    let trimmed = response.trim();
+                    if trimmed.starts_with("ERROR") {
+                        return Err(anyhow::anyhow!("{}", trimmed));
+                    }
+                    return Ok(trimmed.to_string());
+                }
+            }
+        }
+        Err(anyhow::anyhow!(
+            "tos-sessiond not found or handoff preparation failed"
+        ))
+    }
+
+    /// Claim a session handoff using a one-time token.
+    pub fn claim_handoff(&self, token: &str) -> anyhow::Result<String> {
+        if let Some(addr) = self.get_daemon_address() {
+            if let Ok(mut stream) = TcpStream::connect_timeout(
+                &addr.parse().unwrap(),
+                std::time::Duration::from_millis(100),
+            ) {
+                let _ = stream.write_all(format!("session_handoff_claim:{}\n", token).as_bytes());
+                let mut reader = BufReader::new(&stream);
+                let mut response = String::new();
+                if reader.read_line(&mut response).is_ok() {
+                    let trimmed = response.trim();
+                    if trimmed.starts_with("ERROR") {
+                        return Err(anyhow::anyhow!("{}", trimmed));
+                    }
+                    return Ok(trimmed.to_string());
+                }
+            }
+        }
+        Err(anyhow::anyhow!(
+            "tos-sessiond not found or handoff claim failed"
+        ))
+    }
 }

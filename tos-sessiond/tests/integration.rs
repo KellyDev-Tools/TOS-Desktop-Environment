@@ -22,3 +22,47 @@ async fn test_sessiond_integration() -> anyhow::Result<()> {
     child.kill().await?;
     Ok(())
 }
+
+#[tokio::test]
+async fn test_session_handoff() -> anyhow::Result<()> {
+    let mock_brain: MockBrain = MockBrain::new().await?;
+    let bin_path = env!("CARGO_BIN_EXE_tos-sessiond");
+    let mut child = Command::new(bin_path).spawn()?;
+    
+    let (_, port) = mock_brain.handle_one_registration().await?;
+    let mut stream = TcpStream::connect(format!("127.0.0.1:{}", port)).await?;
+    let mut reader = BufReader::new(stream);
+    
+    // 1. Prepare Handoff
+    let mock_json = "{\"version\":1, \"sectors\":[]}";
+    let msg = format!("session_handoff_prepare:{}\n", mock_json);
+    let (mut reader_stream, mut writer_stream) = TcpStream::connect(format!("127.0.0.1:{}", port)).await?.into_split();
+    writer_stream.write_all(msg.as_bytes()).await?;
+    
+    let mut reader = BufReader::new(reader_stream);
+    let mut token = String::new();
+    reader.read_line(&mut token).await?;
+    let token = token.trim();
+    assert_eq!(token.len(), 6);
+    
+    // 2. Claim Handoff
+    let (mut reader_stream, mut writer_stream) = TcpStream::connect(format!("127.0.0.1:{}", port)).await?.into_split();
+    writer_stream.write_all(format!("session_handoff_claim:{}\n", token).as_bytes()).await?;
+    
+    let mut reader = BufReader::new(reader_stream);
+    let mut claimed_data = String::new();
+    reader.read_line(&mut claimed_data).await?;
+    assert_eq!(claimed_data.trim(), mock_json);
+    
+    // 3. Claim again (should fail)
+    let (mut reader_stream, mut writer_stream) = TcpStream::connect(format!("127.0.0.1:{}", port)).await?.into_split();
+    writer_stream.write_all(format!("session_handoff_claim:{}\n", token).as_bytes()).await?;
+    
+    let mut reader = BufReader::new(reader_stream);
+    let mut error_msg = String::new();
+    reader.read_line(&mut error_msg).await?;
+    assert!(error_msg.contains("ERROR: Invalid token"));
+    
+    child.kill().await?;
+    Ok(())
+}

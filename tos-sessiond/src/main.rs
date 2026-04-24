@@ -5,8 +5,10 @@
 //! temp-file writes. It registers with the Brain's service registry on
 //! startup using an ephemeral TCP port.
 
+use std::collections::HashMap;
 use std::path::PathBuf;
 use std::sync::{Arc, Mutex};
+use std::time::{Duration, Instant};
 use tokio::io::{AsyncBufReadExt, AsyncWriteExt, BufReader};
 use tokio::net::{TcpListener, TcpStream};
 
@@ -17,6 +19,9 @@ struct SessionState {
     /// Whether a live state write is currently debounced.
     #[allow(dead_code)]
     write_pending: bool,
+    /// In-memory storage for session handoff tokens.
+    /// Maps `token -> (session_json, expiry_instant)`.
+    handoff_tokens: HashMap<String, (String, Instant)>,
 }
 
 impl SessionState {
@@ -27,6 +32,7 @@ impl SessionState {
         Self {
             sessions_dir: dir,
             write_pending: false,
+            handoff_tokens: HashMap::new(),
         }
     }
 
@@ -55,6 +61,26 @@ async fn main() -> anyhow::Result<()> {
             tracing::warn!("TOS-SESSIOND WARNING: Could not create sessions dir: {}", e);
         }
     }
+
+    // Start background cleanup task for expired handoff tokens.
+    let cleanup_state = session_state.clone();
+    tokio::spawn(async move {
+        let mut interval = tokio::time::interval(Duration::from_secs(60));
+        loop {
+            interval.tick().await;
+            let mut lock = cleanup_state.lock().unwrap();
+            let now = Instant::now();
+            let before_count = lock.handoff_tokens.len();
+            lock.handoff_tokens.retain(|_, (_, expiry)| *expiry > now);
+            let after_count = lock.handoff_tokens.len();
+            if before_count != after_count {
+                tracing::debug!(
+                    "[SESSIOND] Pruned {} expired handoff tokens",
+                    before_count - after_count
+                );
+            }
+        }
+    });
 
     // §4.1: Dynamic Port Registration Gate
     tos_common::register_with_brain("tos-sessiond", port).await?;
@@ -206,6 +232,37 @@ async fn handle_client(
                         Ok(_) => "OK".to_string(),
                         Err(e) => format!("ERROR: {}", e),
                     }
+                }
+            }
+            "session_handoff_prepare" => {
+                // Generate a 6-character one-time token for session data.
+                use rand::{distributions::Alphanumeric, thread_rng, Rng};
+                let token: String = thread_rng()
+                    .sample_iter(&Alphanumeric)
+                    .take(6)
+                    .map(char::from)
+                    .collect::<String>()
+                    .to_uppercase();
+
+                let mut lock = session_state.lock().unwrap();
+                let expiry = Instant::now() + Duration::from_secs(600); // 10 minutes
+                lock.handoff_tokens
+                    .insert(token.clone(), (payload.to_string(), expiry));
+                tracing::info!("[SESSIOND] Handoff token generated: {}", token);
+                token
+            }
+            "session_handoff_claim" => {
+                // Claim session data using a token (one-time use).
+                let token = payload.trim().to_uppercase();
+                let mut lock = session_state.lock().unwrap();
+                if let Some((data, expiry)) = lock.handoff_tokens.remove(&token) {
+                    if Instant::now() < expiry {
+                        data
+                    } else {
+                        "ERROR: Token expired".to_string()
+                    }
+                } else {
+                    "ERROR: Invalid token".to_string()
                 }
             }
             _ => "ERROR: Unknown command".to_string(),

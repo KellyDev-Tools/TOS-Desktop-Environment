@@ -96,3 +96,4 @@
 ## Stage 6 — Collaboration, Remote & Release
 - [x] 6.1 TLS handshake in Remote Server protocol — Migrated `remote_server.rs` to `rustls` with dynamic self-signed certificate generation using `rcgen`.
 - [x] 6.2 WebRTC signalling + video stream — Extended `remote_server.rs` with `webrtc-rs` integration, SDP/ICE signalling via WebSocket, and a mock media stream track.
+- [x] 6.3 Session handoff (one-time tokens, 10min expiry) — Implemented `session_handoff_prepare` and `session_handoff_claim` IPC handlers, one-time 6-char token generation in `tos-sessiond`, and background token expiration logic.

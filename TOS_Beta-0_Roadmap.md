@@ -358,7 +358,7 @@
 |---|---|---|---|---|---|
 | 6.1 | TLS handshake in Remote Server protocol | HIGH | Arch §12.1 | remote_server.rs | ✅ |
 | 6.2 | WebRTC signalling + video stream | HIGH | Arch §12.1 | remote_server.rs | ✅ |
-| 6.3 | Session handoff (one-time tokens, 10min expiry) | HIGH | Features §2.6 | SessionService | ❌ |
+| 6.3 | Session handoff (one-time tokens, 10min expiry) | HIGH | Features §2.6 | SessionService | ✅ |
 | 6.4 | Collaboration role enforcement (Viewer→Operator) | MEDIUM | Arch §13.2 | collaboration.rs | 🔶 |
 | 6.5 | SSH fallback for non-TOS remotes | MEDIUM | Arch §27.3 | ssh_fallback.rs | 🔶 |
 | 6.6 | mDNS discovery test in real network | MEDIUM | Eco §5.2 | mdns-sd | ✅ (verify) |
@@ -387,7 +387,7 @@
 | AI System | 12 | 0 | 0 |
 | Marketplace UI | 7 | 0 | 0 |
 | TOS Editor | 9 | 0 | 0 |
-| Session Persistence | 6 | 0 | 1 |
+| Session Persistence | 7 | 0 | 0 |
 | Onboarding | 2 | 3 | 0 |
 | Multi-Sensory | 1 | 1 | 3 |
 | Accessibility | 1 | 2 | 2 |
@@ -396,7 +396,7 @@
 | Settings | 4 | 0 | 0 |
 | **Kanban & Agents** | **6** | **1** | **0** |
 | Priority & Visual | 3 | 0 | 0 |
-| **TOTAL** | **157** | **8** | **4** |
+| **TOTAL** | **158** | **8** | **3** |
 
 > [!IMPORTANT]
 > **Stages 0–4, 7, and Stage 1 are fully complete.** The critical path is now **Stage 5** (Native Platform: Wayland, DMABUF, Accessibility, Multi-Sensory) and **Stage 6** (Collaboration, Remote, Release infrastructure).

@@ -4,6 +4,10 @@ use std::sync::Arc;
 use tokio::io::{AsyncBufReadExt, AsyncWriteExt, BufReader};
 use tokio::net::{TcpListener, TcpStream};
 use tokio_tungstenite::accept_async;
+use rustls::pki_types::{CertificateDer, PrivateKeyDer};
+use rustls::ServerConfig;
+use tokio_rustls::TlsAcceptor;
+use rcgen::generate_simple_self_signed;
 
 pub struct RemoteServer {
     ipc: Arc<IpcHandler>,
@@ -39,15 +43,24 @@ impl RemoteServer {
 
         let ipc_clone = self.ipc.clone();
 
+        let tls_config = Self::generate_tls_config().expect("Failed to generate TLS cert");
+        let tls_acceptor = TlsAcceptor::from(Arc::new(tls_config));
+
         // Spawn TCP daemon
         let tcp_ipc = ipc_clone.clone();
+        let tcp_tls = tls_acceptor.clone();
         tokio::spawn(async move {
             loop {
                 if let Ok((socket, _)) = tcp_listener.accept().await {
                     let h_ipc = tcp_ipc.clone();
+                    let h_tls = tcp_tls.clone();
                     tokio::spawn(async move {
-                        if let Err(e) = Self::handle_tcp_client(socket, h_ipc).await {
-                            tracing::error!("[REMOTE_SERVER] TCP Client error: {}", e);
+                        if let Ok(tls_stream) = h_tls.accept(socket).await {
+                            if let Err(e) = Self::handle_tcp_client(tls_stream, h_ipc).await {
+                                tracing::error!("[REMOTE_SERVER] TCP Client error: {}", e);
+                            }
+                        } else {
+                            tracing::error!("[REMOTE_SERVER] TCP TLS handshake failed");
                         }
                     });
                 }
@@ -56,14 +69,20 @@ impl RemoteServer {
 
         // Spawn WebSocket daemon
         let ws_ipc = ipc_clone.clone();
+        let ws_tls = tls_acceptor.clone();
         tokio::spawn(async move {
             loop {
                 if let Ok((socket, addr)) = ws_listener.accept().await {
                     tracing::info!("[REMOTE_SERVER] WS Client connecting from {}", addr);
                     let h_ipc = ws_ipc.clone();
+                    let h_tls = ws_tls.clone();
                     tokio::spawn(async move {
-                        if let Err(e) = Self::handle_ws_client(socket, h_ipc).await {
-                            tracing::error!("[REMOTE_SERVER] WS Client error ({}): {}", addr, e);
+                        if let Ok(tls_stream) = h_tls.accept(socket).await {
+                            if let Err(e) = Self::handle_ws_client(tls_stream, h_ipc).await {
+                                tracing::error!("[REMOTE_SERVER] WS Client error ({}): {}", addr, e);
+                            }
+                        } else {
+                            tracing::error!("[REMOTE_SERVER] WS TLS handshake failed ({})", addr);
                         }
                     });
                 }
@@ -112,6 +131,21 @@ impl RemoteServer {
         unreachable!()
     }
 
+    fn generate_tls_config() -> anyhow::Result<ServerConfig> {
+        let cert = generate_simple_self_signed(vec![
+            "localhost".into(),
+            "127.0.0.1".into(),
+            "tos-brain.local".into(),
+        ])?;
+        let key = PrivateKeyDer::Pkcs8(cert.signing_key.serialize_der().into());
+        let cert_der = CertificateDer::from(cert.cert.der().to_vec());
+        let mut config = ServerConfig::builder()
+            .with_no_client_auth()
+            .with_single_cert(vec![cert_der], key)?;
+        config.alpn_protocols = vec![b"h2".to_vec(), b"http/1.1".to_vec()];
+        Ok(config)
+    }
+
     async fn handle_uds_client(
         mut socket: tokio::net::UnixStream,
         ipc: Arc<IpcHandler>,
@@ -139,8 +173,8 @@ impl RemoteServer {
         Ok(())
     }
 
-    async fn handle_tcp_client(mut socket: TcpStream, ipc: Arc<IpcHandler>) -> anyhow::Result<()> {
-        let (reader, mut writer) = socket.split();
+    async fn handle_tcp_client(socket: tokio_rustls::server::TlsStream<TcpStream>, ipc: Arc<IpcHandler>) -> anyhow::Result<()> {
+        let (reader, mut writer) = tokio::io::split(socket);
         let mut reader = BufReader::new(reader);
         let mut line = String::new();
 
@@ -163,7 +197,7 @@ impl RemoteServer {
         Ok(())
     }
 
-    async fn handle_ws_client(socket: TcpStream, ipc: Arc<IpcHandler>) -> anyhow::Result<()> {
+    async fn handle_ws_client(socket: tokio_rustls::server::TlsStream<TcpStream>, ipc: Arc<IpcHandler>) -> anyhow::Result<()> {
         let ws_stream = accept_async(socket).await?;
         let (mut ws_tx, mut ws_rx) = ws_stream.split();
         let (mpsc_tx, mut mpsc_rx) = tokio::sync::mpsc::unbounded_channel::<String>();

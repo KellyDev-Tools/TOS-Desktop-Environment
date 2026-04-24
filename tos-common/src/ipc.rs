@@ -100,6 +100,10 @@ pub enum SemanticEvent {
     AiStop,
     AiSuggestionAccept,
 
+    // Voice
+    VoiceCommandStart,
+    VoiceTranscription(String),
+
     // System
     SectorCreate(String),
     TacticalResetSector(uuid::Uuid),

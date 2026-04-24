@@ -183,6 +183,9 @@ impl IpcHandler {
             "onboarding_hints_suppress" => self.handle_onboarding_hints_suppress(),
             "onboarding_reset_hints" => self.handle_onboarding_reset_hints(),
 
+            "voice_command_start" => self.handle_voice_command_start(),
+            "voice_transcription" => self.handle_voice_transcription(payload),
+
             "split_create" => self.handle_split_create(args.get(0).copied(), args.get(1).copied()),
             "split_close" => self.handle_split_close(args.get(0).copied()),
             "split_focus" => self.handle_split_focus(args.get(0).copied()),
@@ -301,6 +304,78 @@ impl IpcHandler {
         }
 
         result
+    }
+
+    fn handle_voice_command_start(&self) -> String {
+        tracing::info!("Voice command started listening...");
+        "VOICE_COMMAND_STARTED".to_string()
+    }
+
+    fn handle_voice_transcription(&self, payload: &str) -> String {
+        let text_lower = payload.to_lowercase();
+        let text_lower = text_lower.trim();
+
+        // 1. Focus [Sector]
+        if text_lower.starts_with("focus ") {
+            let target = text_lower[6..].trim();
+            let state = self.state.lock().unwrap();
+            let mut found_idx = None;
+            for (i, sector) in state.sectors.iter().enumerate() {
+                if sector.name.to_lowercase() == target {
+                    found_idx = Some(i);
+                    break;
+                }
+            }
+            drop(state);
+            if let Some(idx) = found_idx {
+                return self.handle_set_active_sector(Some(&idx.to_string()));
+            } else {
+                return format!("ERROR: Sector '{}' not found", target);
+            }
+        }
+
+        // 2. Run [Command]
+        if text_lower.starts_with("run ") {
+            let cmd = text_lower[4..].trim();
+            return self.handle_prompt_submit(cmd, false);
+        }
+
+        // 3. Inspect [Target]
+        if text_lower.starts_with("inspect ") {
+            // "Inspect browser" -> simplified to zoom into DetailView for now
+            return self.handle_zoom_to(Some("detail"));
+        }
+
+        // 4. Alert Status
+        if text_lower == "report alert status" || text_lower == "alert status" {
+            let state = self.state.lock().unwrap();
+            let mut critical = 0;
+            let mut warning = 0;
+            for log in &state.system_log {
+                if log.priority >= 4 {
+                    critical += 1;
+                } else if log.priority == 3 {
+                    warning += 1;
+                }
+            }
+            let msg = if critical > 0 {
+                format!("You have {} critical alerts and {} warnings.", critical, warning)
+            } else if warning > 0 {
+                format!("You have {} warnings. All clear on critical.", warning)
+            } else {
+                "All systems nominal. No alerts.".to_string()
+            };
+            drop(state);
+            return self.handle_audio_voice_play(Some(&msg));
+        }
+
+        // 5. Stop everything
+        if text_lower == "stop everything" {
+            return self.handle_tactical_kill_switch();
+        }
+
+        // Fallback
+        self.handle_ai_submit(payload)
     }
 
     fn handle_prompt_submit(&self, command: &str, force: bool) -> String {

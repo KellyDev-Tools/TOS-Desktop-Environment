@@ -49,6 +49,15 @@ cd targets
 tar -czvf "$TAR_NAME" "release_$VERSION"
 cd ..
 
+# HSM Release Signing (§6.8)
+if [ -n "$TOS_HSM_MODULE" ] && [ -n "$TOS_HSM_PIN" ]; then
+    echo "[RELEASE] Signing Release Assets (HSM: $TOS_HSM_MODULE)..."
+    # Ensure tos-signer is built
+    cargo build --release -p tos-signer
+    ./target/release/tos-signer sign --label tos-release "targets/$TAR_NAME"
+    echo "[RELEASE] Signature verified for targets/$TAR_NAME"
+fi
+
 echo "[RELEASE] SUCCESS. Artifact available at: targets/$TAR_NAME"
 
 # --- Advanced Distribution Formats (§4.2) ---

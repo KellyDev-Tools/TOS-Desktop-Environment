@@ -160,6 +160,7 @@ check: $(PRE_COMMIT_HOOK)
 	cd tos-searchd && cargo check
 	cd face-wayland-linux && cargo check
 	cd face-android-handheld && cargo check
+	cd scripts/tos-signer && cargo check
 
 check-brain:
 	cd brain && cargo check --bin tos-brain
@@ -169,18 +170,21 @@ fmt:
 	cd brain && cargo fmt
 	cd face-wayland-linux && cargo fmt
 	cd face-android-handheld && cargo fmt
+	cd scripts/tos-signer && cargo fmt
 
 lint:
 	cd tos-common && cargo clippy -- -D warnings
 	cd brain && cargo clippy -- -D warnings
 	cd face-wayland-linux && cargo clippy -- -D warnings
 	cd face-android-handheld && cargo clippy -- -D warnings
+	cd scripts/tos-signer && cargo clippy -- -D warnings
 
 docs:
 	cd tos-common && cargo doc --no-deps
 	cd brain && cargo doc --no-deps
 	cd face-wayland-linux && cargo doc --no-deps
 	cd face-android-handheld && cargo doc --no-deps
+	cd scripts/tos-signer && cargo doc --no-deps
 
 # -----------------------------------------------------------------------------
 # 3. TEST SUITE

@@ -29,6 +29,10 @@ impl Renderer for QuestRenderer {
         tracing::debug!("xrReleaseSwapchainImage for handle {}", handle.0);
     }
 
+    fn set_surface_depth(&mut self, _handle: SurfaceHandle, _depth: u8) {
+        tracing::debug!("QuestRenderer: Setting depth for throttle logic");
+    }
+
     fn register_pid(&mut self, _pid: u32, _handle: SurfaceHandle) {}
 
     fn composite(&mut self) {

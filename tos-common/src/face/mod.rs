@@ -45,6 +45,7 @@ impl Face {
                     let config = crate::platform::SurfaceConfig {
                         width: 1920,
                         height: 1080,
+                        depth: self.state.lock().unwrap().current_level.clone() as u8,
                     };
                     let h = renderer.create_surface(config);
                     self.surface_handle = Some(h);
@@ -60,6 +61,9 @@ impl Face {
                     Some(self.text)
                 }
             }
+
+            let current_depth = self.state.lock().unwrap().current_level.clone() as u8;
+            renderer.set_surface_depth(handle, current_depth);
 
             renderer.update_surface(handle, &NativeFrame { text: &frame });
             renderer.composite();

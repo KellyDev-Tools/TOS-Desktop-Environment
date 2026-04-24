@@ -51,6 +51,12 @@ impl Renderer for HeadlessRenderer {
         }
     }
 
+    fn set_surface_depth(&mut self, handle: SurfaceHandle, depth: u8) {
+        if let Some(surface) = self.surfaces.get_mut(&handle.0) {
+            surface.config.depth = depth;
+        }
+    }
+
     fn register_pid(&mut self, _pid: u32, _handle: SurfaceHandle) {
         // No-op in headless
     }

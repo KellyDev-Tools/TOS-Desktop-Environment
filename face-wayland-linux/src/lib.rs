@@ -26,6 +26,7 @@ pub struct LinuxRenderer {
 pub struct SurfaceState {
     pub buffer: WaylandBuffer,
     pub wl_surface: Option<wayland_client::protocol::wl_surface::WlSurface>,
+    pub depth: u8,
 }
 
 pub struct WaylandBuffer {
@@ -207,6 +208,7 @@ impl Renderer for LinuxRenderer {
                 self.surfaces.lock().unwrap().insert(handle_id, SurfaceState {
                     buffer,
                     wl_surface,
+                    depth: config.depth,
                 });
             }
             Err(e) => {
@@ -245,6 +247,14 @@ impl Renderer for LinuxRenderer {
         }
     }
 
+    fn set_surface_depth(&mut self, handle: SurfaceHandle, depth: u8) {
+        let mut surfaces = self.surfaces.lock().unwrap();
+        if let Some(state) = surfaces.get_mut(&handle.0) {
+            state.depth = depth;
+            tracing::debug!("Wayland: Set surface {} depth to {}", handle.0, depth);
+        }
+    }
+
     fn register_pid(&mut self, pid: u32, handle: SurfaceHandle) {
         let mut pid_map = self.pid_map.lock().unwrap();
         pid_map.insert(pid, handle.0);
@@ -271,6 +281,13 @@ impl Renderer for LinuxRenderer {
 
         for (handle, state) in surfaces.iter() {
             let buf = &state.buffer;
+            
+            // §16.1 Depth-based render throttling
+            if state.depth > 2 {
+                tracing::debug!("   [THROTTLED] Skipping full composition for background surface {} (depth: {})", handle, state.depth);
+                continue; // Background levels are throttled/static
+            }
+
             // Simulated GL render pass
             tracing::debug!(
                 "   [PASS 1] Sampler2D(surface_handle={}) -> Texture0",

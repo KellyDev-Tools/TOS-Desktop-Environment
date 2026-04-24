@@ -7,6 +7,7 @@ use std::sync::Arc;
 pub struct SurfaceConfig {
     pub width: u32,
     pub height: u32,
+    pub depth: u8,
 }
 
 #[derive(Debug, Clone, Copy, Serialize, Deserialize)]
@@ -44,6 +45,7 @@ pub trait SurfaceContent {
 pub trait Renderer: Send {
     fn create_surface(&mut self, config: SurfaceConfig) -> SurfaceHandle;
     fn update_surface(&mut self, handle: SurfaceHandle, content: &dyn SurfaceContent);
+    fn set_surface_depth(&mut self, handle: SurfaceHandle, depth: u8);
     fn register_pid(&mut self, pid: u32, handle: SurfaceHandle);
     fn composite(&mut self);
     fn get_capture_backend(&self) -> Arc<dyn CaptureBackend> {

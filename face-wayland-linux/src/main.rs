@@ -14,6 +14,7 @@ async fn main() -> anyhow::Result<()> {
     let surface_config = tos_common::platform::SurfaceConfig {
         width: 1280,
         height: 720,
+        depth: 1,
     };
 
     let _handle = renderer.create_surface(surface_config);

@@ -48,6 +48,8 @@ impl Renderer for AndroidServices {
 
     fn update_surface(&mut self, _handle: SurfaceHandle, _content: &dyn SurfaceContent) {}
 
+    fn set_surface_depth(&mut self, _handle: SurfaceHandle, _depth: u8) {}
+
     fn register_pid(&mut self, _pid: u32, _handle: SurfaceHandle) {}
 
     fn composite(&mut self) {}

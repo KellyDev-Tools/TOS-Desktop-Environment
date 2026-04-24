@@ -346,7 +346,7 @@
 | 5.8 | High-contrast forced mode | MEDIUM | Arch §24.1 | Theme system | ✅ |
 | 5.9 | FPS monitoring + Tactical Alert | LOW | Arch §16.4 | Renderer, alerting | ✅ |
 | 5.10 | Voice command input pipeline | LOW | Arch §14.3 | Input hub | ✅ |
-| 5.11 | Depth-based render throttling | LOW | Arch §16.1 | Renderer | ❌ |
+| 5.11 | Depth-based render throttling | LOW | Arch §16.1 | Renderer | ✅ |
 
 ---
 

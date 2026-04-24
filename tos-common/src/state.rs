@@ -120,6 +120,7 @@ pub enum CommandHubMode {
     Activity,
     Search,
     Ai,
+    Ssh,
 }
 
 /// Defines the security trust level for operations.

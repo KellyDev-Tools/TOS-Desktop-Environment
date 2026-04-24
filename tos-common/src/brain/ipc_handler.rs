@@ -55,6 +55,8 @@ impl IpcHandler {
                 args.get(1).copied(),
                 args.get(2).copied(),
             ),
+            "remote_ssh_connect" => self.handle_remote_ssh_connect(args.get(0).copied()),
+            "remote_ssh_disconnect" => self.handle_remote_ssh_disconnect(),
             "sector_create" => self.handle_sector_create(args.get(0).copied()),
             "sector_create_from_template" => self.handle_sector_create_from_template(payload),
             "sector_clone" => self.handle_sector_clone(args.get(0).copied()),
@@ -497,20 +499,26 @@ impl IpcHandler {
             }
         }
 
+        let mut hub_mode = CommandHubMode::Command;
+        let mut hub_id = Uuid::nil();
         {
             let mut state_lock = self.state.lock().unwrap();
             let idx = state_lock.active_sector_index;
             if let Some(sector) = state_lock.sectors.get_mut(idx) {
                 let hub_idx = sector.active_hub_index;
                 if let Some(hub) = sector.hubs.get_mut(hub_idx) {
+                    hub_mode = hub.mode;
+                    hub_id = hub.id;
+
                     // §7.3: Auto Activity Mode detection on monitoring commands.
-                    // Extract the first token (the command binary) to avoid false
-                    // positives on arguments like `echo ps`.
                     let first_token = cmd.split_whitespace().next().unwrap_or("");
                     let activity_commands = ["top", "htop", "btop", "ps", "atop", "glances"];
-                    if activity_commands.contains(&first_token) {
+                    if hub_mode == CommandHubMode::Command && activity_commands.contains(&first_token) {
                         hub.mode = CommandHubMode::Activity;
-                        tracing::info!("Auto-switched to Activity mode for command: {}", first_token);
+                        tracing::info!(
+                            "Auto-switched to Activity mode for command: {}",
+                            first_token
+                        );
                     }
 
                     hub.is_running = true;
@@ -519,6 +527,13 @@ impl IpcHandler {
                     state_lock.version += 1;
                 }
             }
+        }
+
+        if hub_mode == CommandHubMode::Ssh {
+            if let Err(e) = self.services.ssh.write(&hub_id, &format!("{}\n", command)) {
+                return format!("ERROR: SSH write failed: {}", e);
+            }
+            return "SSH_SUBMITTED".to_string();
         }
 
         let mut shell = self.shell.lock().unwrap();
@@ -1903,6 +1918,61 @@ impl IpcHandler {
             }
         }
         "ERROR: Invalid arguments for participant remove".to_string()
+    }
+
+    // ----- Remote SSH Fallback IPC Handlers -----
+
+    fn handle_remote_ssh_connect(&self, host: Option<&str>) -> String {
+        if let Some(h) = host {
+            let mut state = self.state.lock().unwrap();
+            let s_idx = state.active_sector_index;
+            let sector_id = state.sectors[s_idx].id;
+            let hub_id = state.sectors[s_idx].hubs[state.sectors[s_idx].active_hub_index].id;
+
+            drop(state); // Drop lock before connecting (spawns thread)
+
+            if let Err(e) = self
+                .services
+                .ssh
+                .connect(h, self.state.clone(), sector_id, hub_id)
+            {
+                return format!("ERROR: SSH connection failed: {}", e);
+            }
+
+            let mut state = self.state.lock().unwrap();
+            let h_idx = state.sectors[s_idx].active_hub_index;
+            let hub = &mut state.sectors[s_idx].hubs[h_idx];
+            hub.mode = crate::CommandHubMode::Ssh;
+            hub.terminal_output.push(crate::TerminalLine {
+                text: format!("SSH CONNECTED: {}", h),
+                priority: 2,
+                timestamp: chrono::Local::now(),
+            });
+            state.version += 1;
+            return format!("SSH_CONNECT_OK: {}", h);
+        }
+        "ERROR: Missing SSH host".to_string()
+    }
+
+    fn handle_remote_ssh_disconnect(&self) -> String {
+        let mut state = self.state.lock().unwrap();
+        let s_idx = state.active_sector_index;
+        let h_idx = state.sectors[s_idx].active_hub_index;
+        let hub_id = state.sectors[s_idx].hubs[h_idx].id;
+        let hub = &mut state.sectors[s_idx].hubs[h_idx];
+
+        if hub.mode == crate::CommandHubMode::Ssh {
+            self.services.ssh.disconnect(&hub_id);
+            hub.mode = crate::CommandHubMode::Command;
+            hub.terminal_output.push(crate::TerminalLine {
+                text: "SSH DISCONNECTED".to_string(),
+                priority: 2,
+                timestamp: chrono::Local::now(),
+            });
+            state.version += 1;
+            return "SSH_DISCONNECT_OK".to_string();
+        }
+        "ERROR: Hub is not in SSH mode".to_string()
     }
 
     // ----- Trust IPC Handlers -----

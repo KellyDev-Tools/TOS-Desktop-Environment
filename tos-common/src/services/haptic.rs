@@ -1,5 +1,7 @@
 use std::thread;
 use std::time::Duration;
+#[cfg(target_os = "android")]
+use std::fs;
 
 pub struct HapticService {
     sender: std::sync::mpsc::Sender<String>,
@@ -11,25 +13,31 @@ impl HapticService {
 
         thread::spawn(move || {
             while let Ok(cue) = rx.recv() {
-                // In production, this would communicate with /sys/class/timed_output/vibrator/enable
-                // or a specialized VR haptic controller via OpenXR.
-                // For Alpha-2, we log the tactical trigger.
-
-                let (intensity, duration) = match cue.as_str() {
-                    "click" => (50, 20),
-                    "success" => (100, 100),
-                    "error" => (255, 300),
-                    "long_press" => (80, 200),
-                    _ => (50, 50),
+                // Define haptic patterns as a sequence of (vibrate_duration, pause_after) in ms
+                let pattern: Vec<(u64, u64)> = match cue.as_str() {
+                    "click" => vec![(20, 0)],
+                    "success" => vec![(30, 50), (40, 0)],
+                    "error" => vec![(50, 50), (50, 50), (100, 0)],
+                    "long_press" => vec![(80, 0)],
+                    _ => vec![(50, 0)],
                 };
 
-                tracing::debug!(
-                    "[HAPTIC TRIGGER] Intensity: {}, Duration: {}ms",
-                    intensity, duration
-                );
+                tracing::debug!("[HAPTIC TRIGGER] Cue: {}, Pattern: {:?}", cue, pattern);
 
-                // Simulate physical processing delay
-                thread::sleep(Duration::from_millis(duration as u64));
+                for (duration, pause) in pattern {
+                    // Write directly to the sysfs vibrator node on Android
+                    #[cfg(target_os = "android")]
+                    {
+                        let _ = fs::write("/sys/class/timed_output/vibrator/enable", format!("{}", duration));
+                    }
+
+                    // Simulated or fallback physical delay
+                    thread::sleep(Duration::from_millis(duration));
+
+                    if pause > 0 {
+                        thread::sleep(Duration::from_millis(pause));
+                    }
+                }
             }
         });
 

@@ -41,6 +41,21 @@ pub enum WebRtcPayload {
         new_role: ParticipantRole,
         admin: Uuid,
     },
+    /// WebRTC SDP Offer for signalling (§12.1).
+    SdpOffer {
+        user: Uuid,
+        sdp: String,
+    },
+    /// WebRTC SDP Answer for signalling (§12.1).
+    SdpAnswer {
+        user: Uuid,
+        sdp: String,
+    },
+    /// WebRTC ICE Candidate for signalling (§12.1).
+    IceCandidate {
+        user: Uuid,
+        candidate: String,
+    },
 }
 
 /// Connection status for a collaboration participant.

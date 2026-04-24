@@ -357,7 +357,7 @@
 | # | Task | Priority | Spec Ref | Deps | Status |
 |---|---|---|---|---|---|
 | 6.1 | TLS handshake in Remote Server protocol | HIGH | Arch §12.1 | remote_server.rs | ✅ |
-| 6.2 | WebRTC signalling + video stream | HIGH | Arch §12.1 | remote_server.rs | 🔶 |
+| 6.2 | WebRTC signalling + video stream | HIGH | Arch §12.1 | remote_server.rs | ✅ |
 | 6.3 | Session handoff (one-time tokens, 10min expiry) | HIGH | Features §2.6 | SessionService | ❌ |
 | 6.4 | Collaboration role enforcement (Viewer→Operator) | MEDIUM | Arch §13.2 | collaboration.rs | 🔶 |
 | 6.5 | SSH fallback for non-TOS remotes | MEDIUM | Arch §27.3 | ssh_fallback.rs | 🔶 |

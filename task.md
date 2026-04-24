@@ -88,4 +88,11 @@
 - [x] 5.3 Three-layer audio model (ambient/tactical/voice) — Implemented `AudioService` with independent `Sink` layers for ambient loops, tactical earcons, and voice responses, including IPC handlers for volume and layer control.
 - [x] 5.4 Alert level adaptation (Green/Yellow/Red) — Wired the Brain's background loop to automatically shift ambient audio profiles and volumes based on the highest active sector priority.
 - [x] 5.7 Full keyboard navigation tab-stop chain
+- [x] 5.8 High-contrast forced mode — Implemented theme-based high-contrast overrides and accessibility mode toggle.
+- [x] 5.9 FPS monitoring + Tactical Alert — Added FPS tracking to Renderer and tactical alerts on frame drops.
 - [x] 5.10 Voice command input pipeline — Implemented VoiceCommandStart and VoiceTranscription SemanticEvents, mapped to IPC handlers for focus, inspect, and alert status voice queries.
+- [x] 5.11 Depth-based render throttling — Implemented depth-aware surface composition skipping in LinuxRenderer.
+
+## Stage 6 — Collaboration, Remote & Release
+- [x] 6.1 TLS handshake in Remote Server protocol — Migrated `remote_server.rs` to `rustls` with dynamic self-signed certificate generation using `rcgen`.
+- [x] 6.2 WebRTC signalling + video stream — Extended `remote_server.rs` with `webrtc-rs` integration, SDP/ICE signalling via WebSocket, and a mock media stream track.

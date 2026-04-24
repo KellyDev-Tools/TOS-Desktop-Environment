@@ -1593,6 +1593,19 @@ impl IpcHandler {
                             changed = true;
                         }
                     }
+                    crate::collaboration::WebRtcPayload::SdpOffer { user, sdp } => {
+                        tracing::info!("[WEBRTC] Received SDP Offer from {}: {}...", user, &sdp[..sdp.len().min(20)]);
+                        // In a full implementation, this would be routed to the target peer or handled by a media server.
+                        changed = false; 
+                    }
+                    crate::collaboration::WebRtcPayload::SdpAnswer { user, sdp } => {
+                        tracing::info!("[WEBRTC] Received SDP Answer from {}: {}...", user, &sdp[..sdp.len().min(20)]);
+                        changed = false;
+                    }
+                    crate::collaboration::WebRtcPayload::IceCandidate { user, candidate } => {
+                        tracing::info!("[WEBRTC] Received ICE Candidate from {}: {}...", user, &candidate[..candidate.len().min(20)]);
+                        changed = false;
+                    }
                     _ => {} // Other presence events unhandled in this exact route
                 }
 

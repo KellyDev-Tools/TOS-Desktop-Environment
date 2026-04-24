@@ -8,6 +8,14 @@ use rustls::pki_types::{CertificateDer, PrivateKeyDer};
 use rustls::ServerConfig;
 use tokio_rustls::TlsAcceptor;
 use rcgen::generate_simple_self_signed;
+use webrtc::api::APIBuilder;
+use webrtc::api::interceptor_registry::register_default_interceptors;
+use webrtc::api::media_engine::MediaEngine;
+use webrtc::ice_transport::ice_server::RTCIceServer;
+use webrtc::peer_connection::configuration::RTCConfiguration;
+use webrtc::peer_connection::peer_connection_state::RTCPeerConnectionState;
+use webrtc::peer_connection::sdp::session_description::RTCSessionDescription;
+use webrtc::interceptor::registry::Registry;
 
 /// The Remote Server manages TCP, WebSocket, and UDS connections to the Brain.
 /// 
@@ -15,12 +23,16 @@ use rcgen::generate_simple_self_signed;
 /// via mDNS as specified in §12.1 and §5.2.
 pub struct RemoteServer {
     ipc: Arc<IpcHandler>,
+    webrtc_sessions: Arc<tokio::sync::Mutex<std::collections::HashMap<uuid::Uuid, Arc<webrtc::peer_connection::RTCPeerConnection>>>>,
 }
 
 impl RemoteServer {
     /// Creates a new RemoteServer instance with the provided IPC handler.
     pub fn new(ipc: Arc<IpcHandler>) -> Self {
-        Self { ipc }
+        Self { 
+            ipc,
+            webrtc_sessions: Arc::new(tokio::sync::Mutex::new(std::collections::HashMap::new())),
+        }
     }
 
     /// §12.1: Start the Remote Server daemons
@@ -49,19 +61,19 @@ impl RemoteServer {
         let ipc_clone = self.ipc.clone();
 
         let tls_config = Self::generate_tls_config()?;
-        let tls_acceptor = TlsAcceptor::from(Arc::new(tls_config));
+        let _tls_acceptor = TlsAcceptor::from(Arc::new(tls_config));
 
+        let server = Arc::new(Self::new(self.ipc.clone()));
+        
         // Spawn TCP daemon
-        let tcp_ipc = ipc_clone.clone();
-        let tcp_tls = tls_acceptor.clone();
+        let tcp_server = server.clone();
         tokio::spawn(async move {
             loop {
                 if let Ok((socket, _)) = tcp_listener.accept().await {
-                    let h_ipc = tcp_ipc.clone();
-                    let h_tls = tcp_tls.clone();
+                    let h_server = tcp_server.clone();
                     tokio::spawn(async move {
-                        if let Ok(tls_stream) = h_tls.accept(socket).await {
-                            if let Err(e) = Self::handle_tcp_client(tls_stream, h_ipc).await {
+                        if let Ok(tls_stream) = h_server.tls_acceptor().accept(socket).await {
+                            if let Err(e) = h_server.handle_tcp_client(tls_stream).await {
                                 tracing::error!("[REMOTE_SERVER] TCP Client error: {}", e);
                             }
                         } else {
@@ -73,17 +85,15 @@ impl RemoteServer {
         });
 
         // Spawn WebSocket daemon
-        let ws_ipc = ipc_clone.clone();
-        let ws_tls = tls_acceptor.clone();
+        let ws_server = server.clone();
         tokio::spawn(async move {
             loop {
                 if let Ok((socket, addr)) = ws_listener.accept().await {
                     tracing::info!("[REMOTE_SERVER] WS Client connecting from {}", addr);
-                    let h_ipc = ws_ipc.clone();
-                    let h_tls = ws_tls.clone();
+                    let h_server = ws_server.clone();
                     tokio::spawn(async move {
-                        if let Ok(tls_stream) = h_tls.accept(socket).await {
-                            if let Err(e) = Self::handle_ws_client(tls_stream, h_ipc).await {
+                        if let Ok(tls_stream) = h_server.tls_acceptor().accept(socket).await {
+                            if let Err(e) = h_server.handle_ws_client(tls_stream, addr).await {
                                 tracing::error!("[REMOTE_SERVER] WS Client error ({}): {}", addr, e);
                             }
                         } else {
@@ -178,7 +188,12 @@ impl RemoteServer {
         Ok(())
     }
 
-    async fn handle_tcp_client(socket: tokio_rustls::server::TlsStream<TcpStream>, ipc: Arc<IpcHandler>) -> anyhow::Result<()> {
+    fn tls_acceptor(&self) -> TlsAcceptor {
+        let tls_config = Self::generate_tls_config().expect("Failed to generate TLS config");
+        TlsAcceptor::from(Arc::new(tls_config))
+    }
+
+    async fn handle_tcp_client(&self, socket: tokio_rustls::server::TlsStream<TcpStream>) -> anyhow::Result<()> {
         let (reader, mut writer) = tokio::io::split(socket);
         let mut reader = BufReader::new(reader);
         let mut line = String::new();
@@ -192,7 +207,7 @@ impl RemoteServer {
 
             let command = line.trim();
             if !command.is_empty() {
-                let response = ipc.handle_request(command);
+                let response = self.ipc.handle_request(command);
                 writer
                     .write_all(format!("{}\n", response).as_bytes())
                     .await?;
@@ -202,12 +217,12 @@ impl RemoteServer {
         Ok(())
     }
 
-    async fn handle_ws_client(socket: tokio_rustls::server::TlsStream<TcpStream>, ipc: Arc<IpcHandler>) -> anyhow::Result<()> {
+    async fn handle_ws_client(&self, socket: tokio_rustls::server::TlsStream<TcpStream>, _addr: std::net::SocketAddr) -> anyhow::Result<()> {
         let ws_stream = accept_async(socket).await?;
         let (mut ws_tx, mut ws_rx) = ws_stream.split();
         let (mpsc_tx, mut mpsc_rx) = tokio::sync::mpsc::unbounded_channel::<String>();
 
-        let push_ipc = ipc.clone();
+        let push_ipc = self.ipc.clone();
         let push_tx = mpsc_tx.clone();
         
         let push_task = tokio::spawn(async move {
@@ -239,7 +254,15 @@ impl RemoteServer {
                     };
                     if msg.is_text() {
                         if let Ok(command) = msg.to_text() {
-                            let response = ipc.handle_request(command);
+                            let response = if command.starts_with("webrtc_signalling:") {
+                                match self.handle_webrtc_signalling(command).await {
+                                    Ok(res) => res,
+                                    Err(e) => format!("ERROR: WebRTC Signalling failed: {}", e),
+                                }
+                            } else {
+                                self.ipc.handle_request(command)
+                            };
+                            
                             if mpsc_tx.send(response).is_err() {
                                 break;
                             }
@@ -311,5 +334,90 @@ impl RemoteServer {
                 None
             }
         }
+    }
+
+    /// Handles WebRTC signalling messages (SDP/ICE) from the Face.
+    async fn handle_webrtc_signalling(&self, command: &str) -> anyhow::Result<String> {
+        let payload = &command["webrtc_signalling:".len()..];
+        let msg: crate::collaboration::WebRtcPayload = serde_json::from_str(payload)?;
+        
+        match msg {
+            crate::collaboration::WebRtcPayload::SdpOffer { user, sdp } => {
+                let pc = self.get_or_create_peer(user).await?;
+                pc.set_remote_description(RTCSessionDescription::offer(sdp)?).await?;
+                let answer = pc.create_answer(None).await?;
+                let mut gather_complete: tokio::sync::mpsc::Receiver<()> = pc.gathering_complete_promise().await;
+                pc.set_local_description(answer).await?;
+                let _ = gather_complete.recv().await;
+
+                if let Some(local_desc) = pc.local_description().await {
+                    let response = crate::collaboration::WebRtcPayload::SdpAnswer {
+                        user: uuid::Uuid::nil(),
+                        sdp: local_desc.sdp,
+                    };
+                    return Ok(format!("webrtc_signalling:{}", serde_json::to_string(&response)?));
+                }
+                Err(anyhow::anyhow!("Failed to generate local description"))
+            }
+            crate::collaboration::WebRtcPayload::IceCandidate { user, candidate } => {
+                let pc = self.get_or_create_peer(user).await?;
+                pc.add_ice_candidate(webrtc::ice_transport::ice_candidate::RTCIceCandidateInit {
+                    candidate,
+                    ..Default::default()
+                }).await?;
+                Ok("OK".to_string())
+            }
+            _ => Ok("ERROR: Unsupported signalling variant".to_string()),
+        }
+    }
+
+    /// Retrieves an existing PeerConnection or creates a new one for a participant.
+    async fn get_or_create_peer(&self, user_id: uuid::Uuid) -> anyhow::Result<Arc<webrtc::peer_connection::RTCPeerConnection>> {
+        let mut sessions = self.webrtc_sessions.lock().await;
+        if let Some(pc) = sessions.get(&user_id) {
+            return Ok(pc.clone());
+        }
+
+        let mut m = MediaEngine::default();
+        m.register_default_codecs()?;
+        
+        let mut registry = Registry::new();
+        registry = register_default_interceptors(registry, &mut m)?;
+
+        let api = APIBuilder::new()
+            .with_media_engine(m)
+            .with_interceptor_registry(registry)
+            .build();
+
+        let config = RTCConfiguration {
+            ice_servers: vec![RTCIceServer {
+                urls: vec!["stun:stun.l.google.com:19302".to_owned()],
+                ..Default::default()
+            }],
+            ..Default::default()
+        };
+
+        let pc = Arc::new(api.new_peer_connection(config).await?);
+        
+        // §12.1: Add video track for streaming the Face UI
+        let video_track = Arc::new(webrtc::track::track_local::track_local_static_sample::TrackLocalStaticSample::new(
+            webrtc::rtp_transceiver::rtp_codec::RTCRtpCodecCapability {
+                mime_type: webrtc::api::media_engine::MIME_TYPE_VP8.to_owned(),
+                ..Default::default()
+            },
+            "video".to_owned(),
+            "tos-stream".to_owned(),
+        ));
+        
+        pc.add_track(video_track.clone()).await?;
+
+        // Handle connection state changes
+        pc.on_peer_connection_state_change(Box::new(move |s: RTCPeerConnectionState| {
+            tracing::info!("[WEBRTC] Peer {} state changed: {}", user_id, s);
+            Box::pin(async {})
+        }));
+
+        sessions.insert(user_id, pc.clone());
+        Ok(pc)
     }
 }

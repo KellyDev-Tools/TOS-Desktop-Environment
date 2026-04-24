@@ -25,13 +25,13 @@ fn test_presence_payload_serde() {
 fn test_role_change_payload_serde() {
     let payload = WebRtcPayload::RoleChange {
         target: Uuid::new_v4(),
-        new_role: ParticipantRole::Admin,
+        new_role: ParticipantRole::CoOwner,
         admin: Uuid::new_v4(),
     };
     let serialized = serde_json::to_string(&payload).unwrap();
     let deserialized: WebRtcPayload = serde_json::from_str(&serialized).unwrap();
     if let WebRtcPayload::RoleChange { new_role, .. } = deserialized {
-        assert_eq!(new_role, ParticipantRole::Admin);
+        assert_eq!(new_role, ParticipantRole::CoOwner);
     } else {
         panic!("Wrong variant");
     }

@@ -56,6 +56,11 @@ pub enum WebRtcPayload {
         user: Uuid,
         candidate: String,
     },
+    /// A command request from a remote participant (§13.2).
+    Command {
+        user: Uuid,
+        request: String,
+    },
 }
 
 /// Connection status for a collaboration participant.
@@ -67,13 +72,18 @@ pub enum PresenceStatus {
     Offline,
 }
 
-/// Permission role for a collaboration participant.
+/// Permission role for a collaboration participant (§13.2).
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "lowercase")]
 pub enum ParticipantRole {
-    Observer,
+    /// Read-only access to state and cursors.
+    Viewer,
+    /// Can add annotations and comments.
+    Commenter,
+    /// Can interact with PTYs, launch apps, and modify state.
     Operator,
-    Admin,
+    /// Full administrative control, including role changes.
+    CoOwner,
 }
 
 /// An active guest connected to a sector via WebRTC.

@@ -108,6 +108,14 @@ impl IpcHandler {
             }
             "session_handoff_prepare" => self.handle_session_handoff_prepare(),
             "session_handoff_claim" => self.handle_session_handoff_claim(args.get(0).copied()),
+            "collaboration_role_set" => self.handle_collaboration_role_set(
+                args.get(0).copied(),
+                args.get(1).copied(),
+                args.get(2).copied(),
+            ),
+            "collaboration_participant_remove" => {
+                self.handle_collaboration_participant_remove(args.get(0).copied(), args.get(1).copied())
+            }
             "trust_promote" => self.handle_trust_promote(args.get(0).copied()),
             "trust_demote" => self.handle_trust_demote(args.get(0).copied()),
             "ai_behavior_enable" => self.handle_ai_behavior_enable(args.get(0).copied()),
@@ -306,6 +314,33 @@ impl IpcHandler {
         }
 
         result
+    }
+
+    fn check_permission(
+        &self,
+        role: crate::collaboration::ParticipantRole,
+        prefix: &str,
+    ) -> bool {
+        use crate::collaboration::ParticipantRole::*;
+        match role {
+            CoOwner => true,
+            Operator => {
+                // Operators can do almost everything except admin tasks
+                !prefix.starts_with("collaboration_role_set")
+                    && !prefix.starts_with("collaboration_participant_remove")
+                    && prefix != "system_reset"
+            }
+            Commenter => {
+                // Commenters can only add annotations or read state
+                prefix.starts_with("editor_annotate")
+                    || prefix.starts_with("get_")
+                    || prefix == "tos_ports"
+            }
+            Viewer => {
+                // Viewers are read-only
+                prefix.starts_with("get_") || prefix == "tos_ports"
+            }
+        }
     }
 
     fn handle_voice_command_start(&self) -> String {
@@ -1570,7 +1605,7 @@ impl IpcHandler {
                                     id: user,
                                     alias: format!("Guest {}", user.to_string()[..4].to_string()),
                                     status,
-                                    role: crate::collaboration::ParticipantRole::Observer,
+                                    role: crate::collaboration::ParticipantRole::Viewer,
                                     current_level: level,
                                     viewport_title: active_viewport_title,
                                     left_chip_state,
@@ -1582,6 +1617,39 @@ impl IpcHandler {
                                 });
                         }
                         changed = true;
+                    }
+                    crate::collaboration::WebRtcPayload::Command { user, request } => {
+                        // Role Enforcement for Remote Commands (§13.2)
+                        let mut participant_role = None;
+                        if let Some(participant) =
+                            sector.participants.iter().find(|p| p.id == user)
+                        {
+                            participant_role = Some(participant.role);
+                        }
+
+                        if let Some(role) = participant_role {
+                            let (prefix, _) = request.split_once(':').unwrap_or((&request, ""));
+                            if self.check_permission(role, prefix) {
+                                drop(state); // Drop lock before recursive call
+                                let result = self.handle_request(&request);
+                                state = self.state.lock().unwrap();
+                                tracing::info!(
+                                    "REMOTE_COMMAND: {} by {} (role={:?}) -> {}",
+                                    request,
+                                    user,
+                                    role,
+                                    result
+                                );
+                                changed = true;
+                            } else {
+                                tracing::warn!(
+                                    "PERMISSION_DENIED: {} by {} (role={:?})",
+                                    request,
+                                    user,
+                                    role
+                                );
+                            }
+                        }
                     }
                     crate::collaboration::WebRtcPayload::Following {
                         follower,
@@ -1783,6 +1851,58 @@ impl IpcHandler {
         } else {
             "ERROR: Missing handoff token".to_string()
         }
+    }
+
+    // ----- Collaboration IPC Handlers -----
+
+    fn handle_collaboration_role_set(
+        &self,
+        sector_id: Option<&str>,
+        user_id: Option<&str>,
+        role_str: Option<&str>,
+    ) -> String {
+        if let (Some(sid_str), Some(uid_str), Some(r_str)) = (sector_id, user_id, role_str) {
+            if let (Ok(sid), Ok(uid)) = (Uuid::parse_str(sid_str), Uuid::parse_str(uid_str)) {
+                let role = match r_str {
+                    "viewer" => crate::collaboration::ParticipantRole::Viewer,
+                    "commenter" => crate::collaboration::ParticipantRole::Commenter,
+                    "operator" => crate::collaboration::ParticipantRole::Operator,
+                    "coowner" => crate::collaboration::ParticipantRole::CoOwner,
+                    _ => return "ERROR: Invalid role".to_string(),
+                };
+
+                let mut state = self.state.lock().unwrap();
+                if let Some(sector) = state.sectors.iter_mut().find(|s| s.id == sid) {
+                    if let Some(participant) = sector.participants.iter_mut().find(|p| p.id == uid) {
+                        participant.role = role;
+                        state.version += 1;
+                        return format!("ROLE_SET: {} -> {:?}", uid, role);
+                    }
+                }
+            }
+        }
+        "ERROR: Invalid arguments for role set".to_string()
+    }
+
+    fn handle_collaboration_participant_remove(
+        &self,
+        sector_id: Option<&str>,
+        user_id: Option<&str>,
+    ) -> String {
+        if let (Some(sid_str), Some(uid_str)) = (sector_id, user_id) {
+            if let (Ok(sid), Ok(uid)) = (Uuid::parse_str(sid_str), Uuid::parse_str(uid_str)) {
+                let mut state = self.state.lock().unwrap();
+                if let Some(sector) = state.sectors.iter_mut().find(|s| s.id == sid) {
+                    let len_before = sector.participants.len();
+                    sector.participants.retain(|p| p.id != uid);
+                    if sector.participants.len() < len_before {
+                        state.version += 1;
+                        return format!("PARTICIPANT_REMOVED: {}", uid);
+                    }
+                }
+            }
+        }
+        "ERROR: Invalid arguments for participant remove".to_string()
     }
 
     // ----- Trust IPC Handlers -----

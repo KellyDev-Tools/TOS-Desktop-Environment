@@ -359,7 +359,7 @@
 | 6.1 | TLS handshake in Remote Server protocol | HIGH | Arch §12.1 | remote_server.rs | ✅ |
 | 6.2 | WebRTC signalling + video stream | HIGH | Arch §12.1 | remote_server.rs | ✅ |
 | 6.3 | Session handoff (one-time tokens, 10min expiry) | HIGH | Features §2.6 | SessionService | ✅ |
-| 6.4 | Collaboration role enforcement (Viewer→Operator) | MEDIUM | Arch §13.2 | collaboration.rs | 🔶 |
+| 6.4 | Collaboration role enforcement (Viewer→Operator) | MEDIUM | Arch §13.2 | collaboration.rs | ✅ |
 | 6.5 | SSH fallback for non-TOS remotes | MEDIUM | Arch §27.3 | ssh_fallback.rs | 🔶 |
 | 6.6 | mDNS discovery test in real network | MEDIUM | Eco §5.2 | mdns-sd | ✅ (verify) |
 | 6.7 | HSM key provisioning for release signing | HIGH | — | CI infrastructure | ❌ |
@@ -378,7 +378,7 @@
 | Core Architecture | 15 | 1 | 0 |
 | Sector & Command Hub | 11 | 2 | 0 |
 | Split Viewports | 8 | 0 | 0 |
-| Remote & Collaboration | 3 | 5 | 0 |
+| **Remote / Collaboration** | **5** | **1** | **2** |
 | Input Abstraction | 2 | 0 | 3 |
 | Platform & Rendering | 5 | 2 | 1 |
 | Security & Trust | 9 | 1 | 1 |
@@ -396,7 +396,7 @@
 | Settings | 4 | 0 | 0 |
 | **Kanban & Agents** | **6** | **1** | **0** |
 | Priority & Visual | 3 | 0 | 0 |
-| **TOTAL** | **158** | **8** | **3** |
+| **TOTAL** | **159** | **7** | **3** |
 
 > [!IMPORTANT]
 > **Stages 0–4, 7, and Stage 1 are fully complete.** The critical path is now **Stage 5** (Native Platform: Wayland, DMABUF, Accessibility, Multi-Sensory) and **Stage 6** (Collaboration, Remote, Release infrastructure).

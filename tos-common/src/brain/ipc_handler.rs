@@ -1924,7 +1924,7 @@ impl IpcHandler {
 
     fn handle_remote_ssh_connect(&self, host: Option<&str>) -> String {
         if let Some(h) = host {
-            let mut state = self.state.lock().unwrap();
+            let state = self.state.lock().unwrap();
             let s_idx = state.active_sector_index;
             let sector_id = state.sectors[s_idx].id;
             let hub_id = state.sectors[s_idx].hubs[state.sectors[s_idx].active_hub_index].id;

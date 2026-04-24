@@ -448,3 +448,10 @@ release:
 release-all:
 	@echo "[TOS] Orchestrating Multi-Platform Release (Tar, Deb, Arch, Android)..."
 	bash scripts/release.sh --all
+
+release-sign:
+	@echo "[TOS] Building tos-signer utility (§6.7 HSM key provisioning)..."
+	cargo build --release -p tos-signer
+	@echo "[TOS] tos-signer built at: target/release/tos-signer"
+	@echo "[TOS] To provision a key:  TOS_HSM_MODULE=/usr/lib/softhsm/libsofthsm2.so ./target/release/tos-signer provision --slot 0 --pin <pin> --label tos-release"
+	@echo "[TOS] To sign an artifact: TOS_HSM_MODULE=/usr/lib/softhsm/libsofthsm2.so ./target/release/tos-signer sign --slot 0 --pin <pin> --label tos-release <file>"

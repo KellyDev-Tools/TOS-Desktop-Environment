@@ -192,7 +192,7 @@ docs:
 
 test: test-all
 
-test-all: $(PRE_COMMIT_HOOK) test-common test-core test-shell test-search
+test-all: $(PRE_COMMIT_HOOK) test-common test-core test-shell test-ai test-sec test-services test-signer
 
 test-common:
 	cd tos-common && cargo test
@@ -205,6 +205,23 @@ test-shell:
 
 test-search:
 	cd tos-searchd && cargo test --test search_integration
+
+test-ai:
+	cd tos-common && cargo test --lib services::ai
+
+test-sec:
+	cd tos-common && cargo test --lib services::trust
+
+test-services: test-search
+	cd tos-settingsd && cargo test -- --test-threads=1
+	cd tos-loggerd && cargo test -- --test-threads=1
+	cd tos-marketplaced && cargo test -- --test-threads=1
+	cd tos-priorityd && cargo test -- --test-threads=1
+	cd tos-sessiond && cargo test -- --test-threads=1
+	cd tos-heuristicd && cargo test -- --test-threads=1
+
+test-signer:
+	cd scripts/tos-signer && cargo test -- --test-threads=1
 
 test-system:
 	@mkdir -p logs

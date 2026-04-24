@@ -671,9 +671,13 @@ pub struct TerminalLine {
 /// Persisted by the Settings Daemon to `~/.config/tos/settings.json`.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct SettingsStore {
+    #[serde(default)]
     pub global: HashMap<String, String>,
+    #[serde(default)]
     pub sectors: HashMap<String, HashMap<String, String>>,
+    #[serde(default)]
     pub applications: HashMap<String, HashMap<String, String>>,
+    #[serde(default)]
     pub ai_patterns: HashMap<String, String>,
 }
 

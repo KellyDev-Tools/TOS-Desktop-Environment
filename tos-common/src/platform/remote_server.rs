@@ -9,11 +9,16 @@ use rustls::ServerConfig;
 use tokio_rustls::TlsAcceptor;
 use rcgen::generate_simple_self_signed;
 
+/// The Remote Server manages TCP, WebSocket, and UDS connections to the Brain.
+/// 
+/// It handles TLS encryption for network transport and provides discovery 
+/// via mDNS as specified in §12.1 and §5.2.
 pub struct RemoteServer {
     ipc: Arc<IpcHandler>,
 }
 
 impl RemoteServer {
+    /// Creates a new RemoteServer instance with the provided IPC handler.
     pub fn new(ipc: Arc<IpcHandler>) -> Self {
         Self { ipc }
     }
@@ -43,7 +48,7 @@ impl RemoteServer {
 
         let ipc_clone = self.ipc.clone();
 
-        let tls_config = Self::generate_tls_config().expect("Failed to generate TLS cert");
+        let tls_config = Self::generate_tls_config()?;
         let tls_acceptor = TlsAcceptor::from(Arc::new(tls_config));
 
         // Spawn TCP daemon
@@ -275,7 +280,7 @@ impl RemoteServer {
         let instance_name = "TOS-Brain";
         let host_name = "tos-brain.local.";
         let mut properties = HashMap::new();
-        properties.insert("version".to_string(), "0.1.0-beta.0".to_string());
+        properties.insert("version".to_string(), "0.2.0-beta.0".to_string());
         properties.insert("vendor".to_string(), "TOS-Foundation".to_string());
 
         let my_service = ServiceInfo::new(
@@ -286,7 +291,11 @@ impl RemoteServer {
             port,
             Some(properties),
         )
-        .expect("Failed to create mDNS service info");
+        .map_err(|e| {
+            tracing::error!("[MDNS] Failed to create service info: {}", e);
+            e
+        })
+        .ok()?;
 
         match mdns.register(my_service) {
             Ok(_) => {

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'dart:ui';
 import 'src/rust/api.dart';
 import 'src/rust/frb_generated.dart';
+import 'src/theme.dart';
 
 Future<void> main() async {
   // Initialize Rust library
@@ -17,16 +18,7 @@ class TOSFaceApp extends StatelessWidget {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
       title: 'TOS Face',
-      theme: ThemeData(
-        brightness: Brightness.dark,
-        scaffoldBackgroundColor: const Color(0xFF030508),
-        colorScheme: ColorScheme.fromSeed(
-          seedColor: const Color(0xFF00D4FF),
-          brightness: Brightness.dark,
-        ),
-        useMaterial3: true,
-        fontFamily: 'Inter',
-      ),
+      theme: TOSTheme.darkTheme,
       home: const TOSHomeScreen(),
     );
   }
@@ -134,8 +126,8 @@ class _TOSHomeScreenState extends State<TOSHomeScreen> with SingleTickerProvider
                   center: Alignment(0, -0.5),
                   radius: 1.5,
                   colors: [
-                    Color(0xFF00384D),
-                    Color(0xFF030508),
+                    Color(0xFF1A1A2E),
+                    TOSTheme.background,
                   ],
                 ),
               ),
@@ -151,7 +143,7 @@ class _TOSHomeScreenState extends State<TOSHomeScreen> with SingleTickerProvider
               height: 400,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                color: const Color(0xFF00D4FF).withOpacity(0.05),
+                color: TOSTheme.primary.withOpacity(0.05),
               ),
               child: BackdropFilter(
                 filter: ImageFilter.blur(sigmaX: 100, sigmaY: 100),
@@ -217,25 +209,25 @@ class _TOSHomeScreenState extends State<TOSHomeScreen> with SingleTickerProvider
         shape: BoxShape.circle,
         boxShadow: [
           BoxShadow(
-            color: const Color(0xFF00D4FF).withOpacity(0.2),
+            color: TOSTheme.primary.withOpacity(0.2),
             blurRadius: 20,
             spreadRadius: 5,
           ),
         ],
         gradient: const LinearGradient(
-          colors: [Color(0xFF00D4FF), Color(0xFF00FFC2)],
+          colors: [TOSTheme.primary, TOSTheme.warning],
         ),
       ),
       child: CircleAvatar(
         radius: 45,
-        backgroundColor: const Color(0xFF030508),
+        backgroundColor: TOSTheme.background,
         child: const Text(
           "T",
           style: TextStyle(
             fontSize: 48,
             fontFamily: 'Outfit',
             fontWeight: FontWeight.w900,
-            color: Color(0xFF00D4FF),
+            color: TOSTheme.primary,
             letterSpacing: -2,
           ),
         ),
@@ -251,19 +243,19 @@ class _TOSHomeScreenState extends State<TOSHomeScreen> with SingleTickerProvider
     bool isMonospace = false,
   }) {
     return ClipRRect(
-      borderRadius: BorderRadius.circular(20),
+      borderRadius: BorderRadius.circular(TOSTheme.radiusLg),
       child: BackdropFilter(
-        filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
+        filter: ImageFilter.blur(sigmaX: TOSTheme.glassBlur, sigmaY: TOSTheme.glassBlur),
         child: AnimatedContainer(
           duration: const Duration(milliseconds: 500),
           width: width,
           height: height,
           padding: const EdgeInsets.all(20),
           decoration: BoxDecoration(
-            color: Colors.white.withOpacity(0.03),
-            borderRadius: BorderRadius.circular(20),
+            color: TOSTheme.glassBg,
+            borderRadius: BorderRadius.circular(TOSTheme.radiusLg),
             border: Border.all(
-              color: Colors.white.withOpacity(0.08),
+              color: TOSTheme.glassBorder,
               width: 1,
             ),
             boxShadow: [
@@ -283,7 +275,7 @@ class _TOSHomeScreenState extends State<TOSHomeScreen> with SingleTickerProvider
                   Container(
                     width: 4,
                     height: 12,
-                    color: const Color(0xFF00D4FF),
+                    color: TOSTheme.primary,
                   ),
                   const SizedBox(width: 8),
                   Text(
@@ -291,7 +283,7 @@ class _TOSHomeScreenState extends State<TOSHomeScreen> with SingleTickerProvider
                     style: TextStyle(
                       fontSize: 10,
                       fontWeight: FontWeight.w900,
-                      color: const Color(0xFF00D4FF).withOpacity(0.7),
+                      color: TOSTheme.primary.withOpacity(0.7),
                       letterSpacing: 2,
                     ),
                   ),
@@ -304,7 +296,7 @@ class _TOSHomeScreenState extends State<TOSHomeScreen> with SingleTickerProvider
                   fontSize: 13,
                   height: 1.5,
                   fontFamily: isMonospace ? 'Courier' : null,
-                  color: Colors.white.withOpacity(0.9),
+                  color: TOSTheme.text.withOpacity(0.9),
                 ),
                 maxLines: height != null ? 5 : null,
                 overflow: height != null ? TextOverflow.ellipsis : null,
@@ -320,9 +312,9 @@ class _TOSHomeScreenState extends State<TOSHomeScreen> with SingleTickerProvider
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.05),
-        borderRadius: BorderRadius.circular(30),
-        border: Border.all(color: Colors.white.withOpacity(0.1)),
+        color: TOSTheme.surface.withOpacity(0.5),
+        borderRadius: BorderRadius.circular(TOSTheme.radiusPill),
+        border: Border.all(color: TOSTheme.border),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
@@ -336,7 +328,7 @@ class _TOSHomeScreenState extends State<TOSHomeScreen> with SingleTickerProvider
                 width: 40,
                 height: 40,
                 alignment: Alignment.center,
-                decoration: BoxDecoration(
+                decoration: const BoxDecoration(
                   shape: BoxShape.circle,
                   color: Colors.transparent,
                 ),
@@ -345,7 +337,7 @@ class _TOSHomeScreenState extends State<TOSHomeScreen> with SingleTickerProvider
                   style: const TextStyle(
                     fontSize: 12,
                     fontWeight: FontWeight.bold,
-                    color: Colors.white54,
+                    color: TOSTheme.textDim,
                   ),
                 ),
               ),
@@ -370,16 +362,16 @@ class _TOSHomeScreenState extends State<TOSHomeScreen> with SingleTickerProvider
           }
         },
         child: ClipRRect(
-          borderRadius: const BorderRadius.horizontal(left: Radius.circular(40)),
+          borderRadius: const BorderRadius.horizontal(left: Radius.circular(TOSTheme.radiusElbow)),
           child: BackdropFilter(
             filter: ImageFilter.blur(sigmaX: 25, sigmaY: 25),
             child: Container(
               width: 320,
               decoration: BoxDecoration(
-                color: const Color(0xFF001F29).withOpacity(0.85),
-                borderRadius: const BorderRadius.horizontal(left: Radius.circular(40)),
+                color: TOSTheme.surfaceOverlay,
+                borderRadius: const BorderRadius.horizontal(left: Radius.circular(TOSTheme.radiusElbow)),
                 border: Border.all(
-                  color: const Color(0xFF00D4FF).withOpacity(0.2),
+                  color: TOSTheme.primary.withOpacity(0.2),
                   width: 1.5,
                 ),
               ),
@@ -392,7 +384,7 @@ class _TOSHomeScreenState extends State<TOSHomeScreen> with SingleTickerProvider
                       fontSize: 12,
                       fontWeight: FontWeight.w900,
                       letterSpacing: 4,
-                      color: Color(0xFF00D4FF),
+                      color: TOSTheme.primary,
                     ),
                   ),
                   const SizedBox(height: 30),
@@ -406,7 +398,7 @@ class _TOSHomeScreenState extends State<TOSHomeScreen> with SingleTickerProvider
                         const SizedBox(height: 20),
                         const Text(
                           "ACTIVE MODULES",
-                          style: TextStyle(fontSize: 10, color: Colors.white24, letterSpacing: 2),
+                          style: TextStyle(fontSize: 10, color: TOSTheme.textMuted, letterSpacing: 2),
                         ),
                         const SizedBox(height: 10),
                         _buildModuleItem("AI-CORE", "ACTIVE"),
@@ -438,15 +430,15 @@ class _TOSHomeScreenState extends State<TOSHomeScreen> with SingleTickerProvider
           height: 50,
           decoration: BoxDecoration(
             shape: BoxShape.circle,
-            color: _isBezelExpanded ? const Color(0xFF00D4FF) : Colors.white10,
+            color: _isBezelExpanded ? TOSTheme.primary : TOSTheme.surface.withOpacity(0.5),
             boxShadow: [
               if (_isBezelExpanded)
-                BoxShadow(color: const Color(0xFF00D4FF).withOpacity(0.3), blurRadius: 15),
+                BoxShadow(color: TOSTheme.primary.withOpacity(0.3), blurRadius: 15),
             ],
           ),
           child: Icon(
             _isBezelExpanded ? Icons.close : Icons.radar,
-            color: _isBezelExpanded ? Colors.black : const Color(0xFF00D4FF),
+            color: _isBezelExpanded ? Colors.black : TOSTheme.primary,
             size: 20,
           ),
         ),
@@ -459,10 +451,10 @@ class _TOSHomeScreenState extends State<TOSHomeScreen> with SingleTickerProvider
       margin: const EdgeInsets.only(bottom: 16),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: active ? const Color(0xFF00D4FF).withOpacity(0.05) : Colors.transparent,
-        borderRadius: BorderRadius.circular(16),
+        color: active ? TOSTheme.primary.withOpacity(0.05) : Colors.transparent,
+        borderRadius: BorderRadius.circular(TOSTheme.radiusLg),
         border: Border.all(
-          color: active ? const Color(0xFF00D4FF).withOpacity(0.3) : Colors.white.withOpacity(0.05),
+          color: active ? TOSTheme.primary.withOpacity(0.3) : TOSTheme.border,
         ),
       ),
       child: Row(
@@ -471,14 +463,14 @@ class _TOSHomeScreenState extends State<TOSHomeScreen> with SingleTickerProvider
             child: Text(
               name,
               style: TextStyle(
-                color: active ? Colors.white : Colors.white38,
+                color: active ? TOSTheme.text : TOSTheme.textMuted,
                 fontWeight: active ? FontWeight.bold : FontWeight.normal,
                 fontSize: 14,
               ),
             ),
           ),
           if (active)
-            const Icon(Icons.circle, color: Color(0xFF00D4FF), size: 8),
+            const Icon(Icons.circle, color: TOSTheme.primary, size: 8),
         ],
       ),
     );
@@ -489,12 +481,12 @@ class _TOSHomeScreenState extends State<TOSHomeScreen> with SingleTickerProvider
       padding: const EdgeInsets.symmetric(vertical: 8),
       child: Row(
         children: [
-          Text(name, style: const TextStyle(color: Colors.white60, fontSize: 12)),
+          Text(name, style: const TextStyle(color: TOSTheme.textDim, fontSize: 12)),
           const Spacer(),
           Text(
             status,
             style: TextStyle(
-              color: status == "ACTIVE" ? const Color(0xFF00FFC2) : Colors.white24,
+              color: status == "ACTIVE" ? TOSTheme.success : TOSTheme.textMuted,
               fontSize: 10,
               fontWeight: FontWeight.bold,
             ),
@@ -509,11 +501,11 @@ class _TOSHomeScreenState extends State<TOSHomeScreen> with SingleTickerProvider
       padding: const EdgeInsets.all(24),
       child: Row(
         children: [
-          const Icon(Icons.shield_outlined, color: Colors.white24, size: 16),
+          const Icon(Icons.shield_outlined, color: TOSTheme.textMuted, size: 16),
           const SizedBox(width: 8),
-          const Text("SECURE_LINK", style: TextStyle(color: Colors.white24, fontSize: 10)),
+          const Text("SECURE_LINK", style: TextStyle(color: TOSTheme.textMuted, fontSize: 10)),
           const Spacer(),
-          Text("v1.0-BETA", style: TextStyle(color: const Color(0xFF00D4FF).withOpacity(0.5), fontSize: 10)),
+          Text("v1.0-BETA", style: TextStyle(color: TOSTheme.primary.withOpacity(0.5), fontSize: 10)),
         ],
       ),
     );

@@ -77,14 +77,14 @@
 
 | Feature | Spec Ref | Status | Evidence |
 |---|---|---|---|
-| Remote Server protocol (TLS, WebSocket) | §12.1 | 🔶 | `remote_server.rs` (8KB), `remote_session.rs`; no TLS handshake |
-| WebRTC signalling | §12.1 | 🔶 | `webrtc_presence` IPC handler; actual WebRTC stack absent |
-| SSH fallback | §27.3 | 🔶 | `ssh_fallback.rs` (1.3KB) — stub only |
+| Remote Server protocol (TLS, WebSocket) | §12.1 | ✅ | `remote_server.rs` — `rustls` integration + self-signed cert gen |
+| WebRTC signalling | §12.1 | ✅ | `remote_server.rs` — `webrtc-rs` stack + SDP/ICE handlers |
+| SSH fallback | §27.3 | ✅ | `ssh_fallback.rs` — PTY bridge for legacy host control |
 | Remote disconnect (5s auto-close) | §27.3 | ✅ | `handle_remote_disconnect` with tokio timer |
-| Collaboration roles (Viewer/Commenter/Operator/Co-owner) | §13.2 | 🔶 | `Participant` struct in `collaboration.rs`; role enforcement absent |
-| Following mode & cursor sync | §13.4 | 🔶 | `collaboration_sync.rs` test validates basic sync |
-| Web Portal (sector sharing URL) | §12.2 | 🔶 | `PortalModal.svelte` + `portal_create` IPC; token gen is placeholder |
-| Audit logging for guest actions | §13.6 | 🔶 | Participant tracking exists; audit log tags partial |
+| Collaboration roles (Viewer/Commenter/Operator/Co-owner) | §13.2 | ✅ | `collaboration.rs` roles + `IpcHandler::check_permission` enforcement |
+| Following mode & cursor sync | §13.4 | ✅ | `WebRtcPayload::Following` + `CursorSync` handled in `IpcHandler` |
+| Web Portal (sector sharing URL) | §12.2 | ✅ | `PortalService` — secure token generation + expiry logic |
+| Audit logging for guest actions | §13.6 | ✅ | `IpcHandler` logs remote commands with participant ID and role context |
 
 ### 1.5 Input Abstraction (Architecture §14)
 

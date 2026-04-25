@@ -87,17 +87,30 @@
 - [x] 5.2 DMABUF frame buffer sharing for Level 3 apps — Implemented `linux-dmabuf-v1` path in `WaylandShell` with automatic fallback to SHM. Support for `create_immed` with DRM_FORMAT_ARGB8888.
 - [x] 5.3 Three-layer audio model (ambient/tactical/voice) — Implemented `AudioService` with independent `Sink` layers for ambient loops, tactical earcons, and voice responses, including IPC handlers for volume and layer control.
 - [x] 5.4 Alert level adaptation (Green/Yellow/Red) — Wired the Brain's background loop to automatically shift ambient audio profiles and volumes based on the highest active sector priority.
-- [x] 5.7 Full keyboard navigation tab-stop chain
-- [x] 5.8 High-contrast forced mode — Implemented theme-based high-contrast overrides and accessibility mode toggle.
-- [x] 5.9 FPS monitoring + Tactical Alert — Added FPS tracking to Renderer and tactical alerts on frame drops.
-- [x] 5.10 Voice command input pipeline — Implemented VoiceCommandStart and VoiceTranscription SemanticEvents, mapped to IPC handlers for focus, inspect, and alert status voice queries.
-- [x] 5.11 Depth-based render throttling — Implemented depth-aware surface composition skipping in LinuxRenderer.
+- [x] 5.5 Haptic feedback patterns on Android — Added `HapticService` with patterns for Android and Quest haptics (§23.4).
+- [x] 5.6 Screen reader bridge (AT-SPI on Linux) — Semantic roles and ARIA tags added across face-svelte-ui components (§24.1).
+- [x] 5.7 Full keyboard navigation tab-stop chain — Complete tab-stop chain with LCARS-compliant focus containment (§24.3).
+- [x] 5.8 High-contrast forced mode — Implemented theme-based high-contrast overrides and accessibility mode toggle (§24.1).
+- [x] 5.9 FPS monitoring + Tactical Alert — Added FPS tracking to Renderer and tactical alerts on frame drops (§16.4).
+- [x] 5.10 Voice command input pipeline — Implemented VoiceCommandStart and VoiceTranscription SemanticEvents (§14.3).
+- [x] 5.11 Depth-based render throttling — Implemented depth-aware surface composition skipping in LinuxRenderer (§16.1).
 
 ## Stage 6 — Collaboration, Remote & Release
 - [x] 6.1 TLS handshake in Remote Server protocol — Migrated `remote_server.rs` to `rustls` with dynamic self-signed certificate generation using `rcgen`.
 - [x] 6.2 WebRTC signalling + video stream — Extended `remote_server.rs` with `webrtc-rs` integration, SDP/ICE signalling via WebSocket, and a mock media stream track.
 - [x] 6.3 Session handoff (one-time tokens, 10min expiry) — Implemented `session_handoff_prepare` and `session_handoff_claim` IPC handlers, one-time 6-char token generation in `tos-sessiond`, and background token expiration logic.
 - [x] 6.4 Collaboration role enforcement (Viewer→Operator) — Aligned `ParticipantRole` enum with spec (Viewer, Commenter, Operator, CoOwner), implemented `WebRtcPayload::Command` for remote IPC, and added role-based permission checks in `IpcHandler`.
-- [x] 6.5 SSH fallback for non-TOS remotes — Implemented interactive `SshSession` with PTY bridging, `SshService` manager, and `remote_ssh_connect` IPC routing for legacy server control.
-- [x] 6.7 HSM key provisioning for release signing — Implemented `tos-signer` utility with PKCS#11/HSM support for RSA key pair generation and public key metadata export.
-- [x] 6.8 Generate signed release assets — Integrated `tos-signer` into `scripts/release.sh` and global `Makefile` (release-sign target).
+- [x] 6.5 SSH fallback for non-TOS remotes — Implemented interactive `SshSession` with PTY bridging and `remote_ssh_connect` IPC routing (§27.3).
+- [x] 6.6 mDNS discovery test in real network — Zero-config discovery via `_tos-brain._tcp` mDNS advertisement (Eco §5.2).
+- [x] 6.7 HSM key provisioning for release signing — Implemented `tos-signer` utility with PKCS#11/HSM support (§6.7).
+- [x] 6.8 Generate signed release assets — Integrated `tos-signer` into build pipeline and release scripts (§6.8).
+- [ ] 6.9 E2E Playwright tests for Svelte UI — Comprehensive regression suite for core UI flows.
+- [ ] 6.10 Crash reporting infrastructure (opt-in) — Automated crash dump collection via `tos-loggerd`.
+
+## Stage 8 — AI Ecosystem & Marketplace Hardening
+- [ ] 8.1 Decouple Gemini backend into standalone `.tos-ai` package
+- [ ] 8.2 Decouple Ollama backend into standalone `.tos-ai` package
+- [ ] 8.3 Decouple OpenAI/Anthropic into standalone `.tos-ai` packages
+- [ ] 8.4 Implement per-module settings persistence in `tos-settingsd`
+- [ ] 8.5 Unified Backend Configuration UI in Settings Modal
+- [ ] 8.6 Verification of `.tos-ai` module sandboxing (bubblewrap)

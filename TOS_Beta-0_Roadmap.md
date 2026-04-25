@@ -92,7 +92,7 @@
 |---|---|---|---|
 | SemanticEvent enum defined | §14.1 | ✅ | Defined in `tos-protocol` |
 | Default keyboard shortcuts mapped | §14.2 | ✅ | `KeybindingMap` with 29 default bindings, `keybindings_get/set/reset` IPC, `keybindings.svelte.ts` store |
-| Voice command grammar | §14.3 | ❌ | No voice processing code |
+| Voice command grammar | §14.3 | ✅ | `handle_voice_command_start/transcription` IPC + context-aware grammar matching |
 | Game controller / VR input mapping | §14.4 | ❌ | No controller mapping code |
 | Accessibility switch scanning | §14.5 | ❌ | No switch scan implementation |
 
@@ -103,11 +103,11 @@
 | RendererManager mode detection | §15.6 | ✅ | `renderer_manager.rs` — detect() with priority: flag > Wayland > Remote |
 | HeadlessRenderer | §15.6 | ✅ | `headless.rs` (2.7KB) |
 | WaylandRenderer | §15.2 | ✅ | `LinuxRenderer` in `lib.rs` + `WaylandShell` in `wayland.rs` with SHM/DMABUF support |
-| RemoteRenderer stub | §15.3 | 🔶 | `remote.rs` (1.7KB) — stub |
+| RemoteRenderer stub | §15.3 | ✅ | `RemoteServer` integration + WebRTC video stream orchestration |
 | OpenXR / Quest renderer | §15.3, §15.7 | 🔶 | `quest.rs` (2.2KB) — stub |
 | DMABUF surface embedding | §15.2 | ✅ | `create_dmabuf_buffer` using `zwp_linux_dmabuf_v1` in `wayland.rs` |
 | Frame capture / thumbnails | §16.1 | ✅ | `CaptureService` with sysinfo-based backend |
-| Depth-based render throttling | §16.1 | ❌ | No frame rate throttling by level |
+| Depth-based render throttling | §16.1 | ✅ | Throttling logic in `LinuxRenderer` + alert escalation in Brain |
 | Tactical Alert on FPS drop | §16.4 | ✅ | measureFps in +page.svelte + system_log alert |
 
 ### 1.7 Security & Trust (Architecture §17)
@@ -207,7 +207,7 @@
 | Live auto-save (debounced) | §2.1 | ✅ | `debounced_save_live()` with 1s debounce |
 | Named session save/load/delete | §2.3 | ✅ | Full CRUD via daemon or local disk |
 | Session export / import | §2.5 | ✅ | `session_export` / `session_import` IPC |
-| Cross-device handoff (one-time tokens) | §2.6 | ❌ | No token generation or claim logic |
+| Cross-device handoff (one-time tokens) | §2.6 | ✅ | `session_handoff_prepare/claim` IPC + `tos-sessiond` token registry |
 | Crash recovery (atomic rename) | §2.4 | ✅ | `_live.tos-session.tmp` → rename on success |
 | Silent restore (no notification) | §2.6.2 | ✅ | Notification suppressed on restore in `brain/mod.rs` |
 | Editor pane state persistence | §2.9 | ✅ | `EditorPaneState` serialized via `PaneContent::Editor` → `SplitNode` → `CommandHub.split_layout` in session snapshots |
@@ -216,9 +216,9 @@
 
 | Feature | Spec Ref | Status | Evidence |
 |---|---|---|---|
-| Cinematic intro (skippable) | §3.2 | 🔶 | `OnboardingOverlay.svelte` (10KB) — basic flow exists |
-| Guided demo in live system | §3.3 | 🔶 | Onboarding steps exist; not fully guided |
-| Trust configuration during wizard | §3.4 | 🔶 | Trust section in onboarding; no pre-selection enforcement |
+| Cinematic intro (skippable) | §3.2 | ✅ | `OnboardingOverlay.svelte` full cinematic flow with skippable logic |
+| Guided demo in live system | §3.3 | ✅ | Onboarding sequence with integrated tactical demo |
+| Trust configuration during wizard | §3.4 | ✅ | Initial trust tier selection and class promotion in wizard |
 | Cold-start ≤ 5s gate | §3.1 | ✅ | Brain init ~1s; verified in telemetry |
 | Ambient hints (per-hint dismiss) | §3.6 | ✅ | `AmbientHint.svelte` (121 lines) with per-hint dismiss, settings persistence + `onboarding_hint_dismiss/suppress/reset` IPC handlers |
 
@@ -226,19 +226,19 @@
 
 | Feature | Spec Ref | Status | Evidence |
 |---|---|---|---|
-| Audio service (earcons) | §23 | 🔶 | `audio.rs` + `rodio` dependency; basic playback |
-| Haptic service | §23.4 | 🔶 | `haptic.rs` — stub event forwarding |
-| Three-layer audio (ambient/tactical/voice) | §23.1 | ❌ | No layer separation |
-| Alert level adaptation (Green/Yellow/Red) | §23.2 | ❌ | No alert escalation logic |
+| Audio service (earcons) | §23 | ✅ | `AudioService` with multi-layer `rodio` backend; 14 earcons defined |
+| Haptic service | §23.4 | ✅ | `HapticService` with patterns for Android and Quest haptics |
+| Three-layer audio (ambient/tactical/voice) | §23.1 | ✅ | Independent volume control and mixing for Ambient/Tactical/Voice layers |
+| Alert level adaptation (Green/Yellow/Red) | §23.2 | ✅ | 1Hz brain loop escalates ambient audio based on sector priority |
 | Spatial audio (VR/AR) | §23.3 | ❌ | No spatial audio |
 
 ### 1.16 Accessibility (Architecture §24)
 
 | Feature | Spec Ref | Status | Evidence |
 |---|---|---|---|
-| High-contrast themes | §24.1 | 🔶 | Theme module `supports_high_contrast` flag; no forced mode |
+| High-contrast themes | §24.1 | ✅ | Theme module `supports_high_contrast` flag + `tos.ui.high_contrast` forced mode |
 | Screen reader bridge (AT-SPI) | §24.1 | ✅ | Semantic roles and ARIA tags added across face-svelte-ui components |
-| Keyboard navigation (full) | §24.3 | 🔶 | Some keyboard handlers; no complete tab-stop chain |
+| Keyboard navigation (full) | §24.3 | ✅ | Complete tab-stop chain with LCARS-compliant focus containment |
 | Dwell clicking | §24.3 | ❌ | Not implemented |
 | Simplified mode | §24.4 | ❌ | Not implemented |
 
@@ -318,12 +318,13 @@
 ### Completed Stages (Integrated into v0.2.0-beta.0)
 
 > [!NOTE]
-> The following stages have been fully implemented, verified, and migrated to the [CHANGELOG.md](./CHANGELOG.md#020-beta0---2026-04-23):
+> The following stages have been fully implemented, verified, and migrated to the [CHANGELOG.md](./CHANGELOG.md#021-beta0---2026-04-24):
 > - **Stage 0**: Hard Gate Blockers (Brain Tool Registry, Security Verification, Latency optimization).
 > - **Stage 1**: Core Runtime Hardening (1Hz Heartbeat, OSC Parsers, Semantic Mapping).
 > - **Stage 2**: Editor System (Viewer/Editor/Diff modes, LSP integration, Persistence).
 > - **Stage 3**: AI Skills & Predictive Intelligence (Vibe Coder, Command Predictor, Offline Queue).
 > - **Stage 4**: UI Polish & Feature Completion (Marketplace gates, Mini-map, Priority indicators).
+> - **Stage 5**: Native Platform & Multi-Sensory (Audio layers, Haptics, Accessibility, FPS throttling).
 > - **Stage 7**: Kanban & Agent Orchestration (Workflow Manager, Persona parser, multi-agent PTYs).
 
 ---
@@ -390,31 +391,32 @@
 
 | Category | ✅ Complete | 🔶 Stubbed | ❌ Unimplemented |
 |---|---|---|---|
-| Core Architecture | 15 | 1 | 0 |
-| Sector & Command Hub | 11 | 2 | 0 |
-| Split Viewports | 8 | 0 | 0 |
+| Core Architecture | 12 | 0 | 0 |
+| Sector & Command Hub | 15 | 0 | 0 |
+| Split Viewports | 9 | 0 | 0 |
 | **Remote / Collaboration** | **8** | **0** | **0** |
-| Input Abstraction | 2 | 0 | 3 |
-| Platform & Rendering | 5 | 2 | 1 |
+| Input Abstraction | 3 | 0 | 2 |
+| Platform & Rendering | 8 | 1 | 0 |
 | Security & Trust | 9 | 1 | 1 |
 | Module System | 5 | 3 | 2 |
-| Service Daemons | 9 | 0 | 0 |
-| AI System | 12 | 0 | 0 |
-| Marketplace UI | 7 | 0 | 0 |
+| Service Daemons | 12 | 0 | 0 |
+| AI System | 16 | 0 | 0 |
+| Marketplace UI | 8 | 0 | 0 |
 | TOS Editor | 9 | 0 | 0 |
 | Session Persistence | 7 | 0 | 0 |
-| Onboarding | 2 | 3 | 0 |
-| Multi-Sensory | 1 | 1 | 3 |
-| Accessibility | 1 | 2 | 2 |
+| Onboarding | 5 | 0 | 0 |
+| Multi-Sensory | 4 | 0 | 1 |
+| Accessibility | 3 | 0 | 2 |
 | Predictive Fillers | 4 | 0 | 2 |
-| Reset / Log | 3 | 1 | 2 |
+| Reset Operations | 1 | 1 | 0 |
+| TOS Log | 2 | 0 | 3 |
 | Settings | 4 | 0 | 0 |
 | **Kanban & Agents** | **6** | **1** | **0** |
 | Priority & Visual | 3 | 0 | 0 |
-| **TOTAL** | **160** | **7** | **7** |
+| **TOTAL** | **153** | **7** | **15** |
 
 > [!IMPORTANT]
-> **Stages 0–4, 7, and Stage 1 are fully complete.** The critical path includes **Stage 5** (Native Platform), **Stage 6** (Release), and the newly added **Stage 8** (Ecosystem Decoupling).
+> **Stages 0–5, 7, and Stage 1 are fully complete.** The critical path includes the finalization of **Stage 6** (E2E/Crash Reporting) and the newly added **Stage 8** (Ecosystem Decoupling).
 
 ---
 
@@ -422,8 +424,6 @@
 
 ```mermaid
 graph TD
-    COMPLETED["Stages 0–4 & 7 (COMPLETE)"] --> S5["Stage 5: Native Platform"]
-    COMPLETED --> S6["Stage 6: Release"]
-    S5 --> S6
+    COMPLETED["Stages 0–5 & 7 (COMPLETE)"] --> S6["Stage 6: Release"]
     S6 --> S8["Stage 8: AI Ecosystem"]
 ```

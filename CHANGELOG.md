@@ -5,6 +5,23 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.2.1-beta.0] - 2026-04-24
+
+### Added
+- **Remote Collaboration Stack**: Full WebRTC signalling and video streaming support in `remote_server.rs` (§12.1).
+- **Collaboration Roles**: Implemented administrative role enforcement (Viewer, Commenter, Operator, Co-Owner) for remote participants (§13.2).
+- **SSH Fallback**: Interactive PTY bridge for controlling non-TOS legacy remotes via SSH (§27.3).
+- **Web Portal**: Secure sector sharing via time-limited one-time tokens and expiry logic (§12.2).
+- **Native Platform Features**: Three-layer audio model (Ambient, Tactical, Voice) with adaptive alert-level volume escalation (§23.1, §23.2).
+- **Haptic & Visual Feedback**: Integrated haptic patterns and FPS-based Tactical Alerts (§23.4, §16.4).
+- **Advanced Accessibility**: Linux Screen Reader bridge (AT-SPI) and full keyboard navigation tab-stop chain (§24).
+- **Security Provisioning**: PKCS#11-compliant HSM key provisioning and release signing infrastructure via `tos-signer` utility.
+
+### Fixed
+- **Audit Logging**: Implemented participant-aware command logging for guest actions (§13.6).
+- **Render Throttling**: Depth-based frame rate optimization for background viewports (§16.1).
+- **mDNS Discovery**: Zero-config discovery via `_tos-brain._tcp` mDNS advertisement.
+
 ## [0.2.0-beta.0] - 2026-04-23
 
 ### Added

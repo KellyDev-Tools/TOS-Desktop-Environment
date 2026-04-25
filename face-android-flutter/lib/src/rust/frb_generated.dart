@@ -70,7 +70,7 @@ class RustLib extends BaseEntrypoint<RustLibApi, RustLibApiImpl, RustLibWire> {
   String get codegenVersion => '2.12.0';
 
   @override
-  int get rustContentHash => 1967705098;
+  int get rustContentHash => -695309438;
 
   static const kDefaultExternalLibraryLoaderConfig =
       ExternalLibraryLoaderConfig(
@@ -93,10 +93,10 @@ abstract class RustLibApi extends BaseApi {
 
   Future<String> crateApiGreet({required String name});
 
-  Future<void> crateApiInitApp();
+  Future<void> crateApiHandleSemanticEvent(
+      {required TosState state, required AndroidSemanticEvent event});
 
-  Future<void> crateApiSetHierarchyLevel(
-      {required TosState state, required int level});
+  Future<void> crateApiInitApp();
 
   RustArcIncrementStrongCountFnType
       get rust_arc_increment_strong_count_TosState;
@@ -239,12 +239,40 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       );
 
   @override
+  Future<void> crateApiHandleSemanticEvent(
+      {required TosState state, required AndroidSemanticEvent event}) {
+    return handler.executeNormal(NormalTask(
+      callFfi: (port_) {
+        final serializer = SseSerializer(generalizedFrbRustBinding);
+        sse_encode_Auto_RefMut_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerTosState(
+            state, serializer);
+        sse_encode_box_autoadd_android_semantic_event(event, serializer);
+        pdeCallFfi(generalizedFrbRustBinding, serializer,
+            funcId: 6, port: port_);
+      },
+      codec: SseCodec(
+        decodeSuccessData: sse_decode_unit,
+        decodeErrorData: null,
+      ),
+      constMeta: kCrateApiHandleSemanticEventConstMeta,
+      argValues: [state, event],
+      apiImpl: this,
+    ));
+  }
+
+  TaskConstMeta get kCrateApiHandleSemanticEventConstMeta =>
+      const TaskConstMeta(
+        debugName: "handle_semantic_event",
+        argNames: ["state", "event"],
+      );
+
+  @override
   Future<void> crateApiInitApp() {
     return handler.executeNormal(NormalTask(
       callFfi: (port_) {
         final serializer = SseSerializer(generalizedFrbRustBinding);
         pdeCallFfi(generalizedFrbRustBinding, serializer,
-            funcId: 6, port: port_);
+            funcId: 7, port: port_);
       },
       codec: SseCodec(
         decodeSuccessData: sse_decode_unit,
@@ -259,33 +287,6 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   TaskConstMeta get kCrateApiInitAppConstMeta => const TaskConstMeta(
         debugName: "init_app",
         argNames: [],
-      );
-
-  @override
-  Future<void> crateApiSetHierarchyLevel(
-      {required TosState state, required int level}) {
-    return handler.executeNormal(NormalTask(
-      callFfi: (port_) {
-        final serializer = SseSerializer(generalizedFrbRustBinding);
-        sse_encode_Auto_RefMut_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerTosState(
-            state, serializer);
-        sse_encode_i_32(level, serializer);
-        pdeCallFfi(generalizedFrbRustBinding, serializer,
-            funcId: 7, port: port_);
-      },
-      codec: SseCodec(
-        decodeSuccessData: sse_decode_unit,
-        decodeErrorData: null,
-      ),
-      constMeta: kCrateApiSetHierarchyLevelConstMeta,
-      argValues: [state, level],
-      apiImpl: this,
-    ));
-  }
-
-  TaskConstMeta get kCrateApiSetHierarchyLevelConstMeta => const TaskConstMeta(
-        debugName: "set_hierarchy_level",
-        argNames: ["state", "level"],
       );
 
   RustArcIncrementStrongCountFnType
@@ -332,6 +333,36 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   String dco_decode_String(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     return raw as String;
+  }
+
+  @protected
+  AndroidSemanticEvent dco_decode_android_semantic_event(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    switch (raw[0]) {
+      case 0:
+        return const AndroidSemanticEvent_Home();
+      case 1:
+        return const AndroidSemanticEvent_CommandHub();
+      case 2:
+        return const AndroidSemanticEvent_ZoomIn();
+      case 3:
+        return const AndroidSemanticEvent_ZoomOut();
+      case 4:
+        return const AndroidSemanticEvent_ToggleBezel();
+      case 5:
+        return AndroidSemanticEvent_SetHierarchy(
+          dco_decode_i_32(raw[1]),
+        );
+      default:
+        throw Exception("unreachable");
+    }
+  }
+
+  @protected
+  AndroidSemanticEvent dco_decode_box_autoadd_android_semantic_event(
+      dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return dco_decode_android_semantic_event(raw);
   }
 
   @protected
@@ -411,6 +442,38 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     // Codec=Sse (Serialization based), see doc to use other codecs
     var inner = sse_decode_list_prim_u_8_strict(deserializer);
     return utf8.decoder.convert(inner);
+  }
+
+  @protected
+  AndroidSemanticEvent sse_decode_android_semantic_event(
+      SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+
+    var tag_ = sse_decode_i_32(deserializer);
+    switch (tag_) {
+      case 0:
+        return const AndroidSemanticEvent_Home();
+      case 1:
+        return const AndroidSemanticEvent_CommandHub();
+      case 2:
+        return const AndroidSemanticEvent_ZoomIn();
+      case 3:
+        return const AndroidSemanticEvent_ZoomOut();
+      case 4:
+        return const AndroidSemanticEvent_ToggleBezel();
+      case 5:
+        var var_field0 = sse_decode_i_32(deserializer);
+        return AndroidSemanticEvent_SetHierarchy(var_field0);
+      default:
+        throw UnimplementedError('');
+    }
+  }
+
+  @protected
+  AndroidSemanticEvent sse_decode_box_autoadd_android_semantic_event(
+      SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    return (sse_decode_android_semantic_event(deserializer));
   }
 
   @protected
@@ -501,6 +564,34 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   void sse_encode_String(String self, SseSerializer serializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     sse_encode_list_prim_u_8_strict(utf8.encoder.convert(self), serializer);
+  }
+
+  @protected
+  void sse_encode_android_semantic_event(
+      AndroidSemanticEvent self, SseSerializer serializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    switch (self) {
+      case AndroidSemanticEvent_Home():
+        sse_encode_i_32(0, serializer);
+      case AndroidSemanticEvent_CommandHub():
+        sse_encode_i_32(1, serializer);
+      case AndroidSemanticEvent_ZoomIn():
+        sse_encode_i_32(2, serializer);
+      case AndroidSemanticEvent_ZoomOut():
+        sse_encode_i_32(3, serializer);
+      case AndroidSemanticEvent_ToggleBezel():
+        sse_encode_i_32(4, serializer);
+      case AndroidSemanticEvent_SetHierarchy(field0: final field0):
+        sse_encode_i_32(5, serializer);
+        sse_encode_i_32(field0, serializer);
+    }
+  }
+
+  @protected
+  void sse_encode_box_autoadd_android_semantic_event(
+      AndroidSemanticEvent self, SseSerializer serializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_android_semantic_event(self, serializer);
   }
 
   @protected

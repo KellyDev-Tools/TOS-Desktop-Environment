@@ -90,16 +90,18 @@ class _TOSHomeScreenState extends State<TOSHomeScreen> with SingleTickerProvider
     }
   }
 
-  void _onExpandBezel() {
+  void _onExpandBezel() async {
     setState(() {
       _isBezelExpanded = !_isBezelExpanded;
     });
+    if (_tosState != null) {
+      await handleSemanticEvent(state: _tosState!, event: const AndroidSemanticEvent.toggleBezel());
+    }
   }
 
   Future<void> _changeLevel(int level) async {
     if (_tosState != null) {
-      await setHierarchyLevel(state: _tosState!, level: level);
-      await addLogEntry(state: _tosState!, text: "UI_ACTION: Hierarchy shifted to Level $level");
+      await handleSemanticEvent(state: _tosState!, event: AndroidSemanticEvent.setHierarchy(level));
       final logs = await getSystemLogs(state: _tosState!);
       setState(() {
         _logs = logs;

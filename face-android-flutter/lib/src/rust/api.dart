@@ -5,6 +5,8 @@
 
 import 'frb_generated.dart';
 import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart';
+import 'package:freezed_annotation/freezed_annotation.dart' hide protected;
+part 'api.freezed.dart';
 
 Future<String> greet({required String name}) =>
     RustLib.instance.api.crateApiGreet(name: name);
@@ -14,8 +16,11 @@ Future<String> getTosStatus() => RustLib.instance.api.crateApiGetTosStatus();
 Future<TosState> getInitialState() =>
     RustLib.instance.api.crateApiGetInitialState();
 
-Future<void> setHierarchyLevel({required TosState state, required int level}) =>
-    RustLib.instance.api.crateApiSetHierarchyLevel(state: state, level: level);
+/// §14.1: Handle a SemanticEvent in the Face.
+Future<void> handleSemanticEvent(
+        {required TosState state, required AndroidSemanticEvent event}) =>
+    RustLib.instance.api
+        .crateApiHandleSemanticEvent(state: state, event: event);
 
 Future<List<String>> getSystemLogs({required TosState state}) =>
     RustLib.instance.api.crateApiGetSystemLogs(state: state);
@@ -25,3 +30,19 @@ Future<void> addLogEntry({required TosState state, required String text}) =>
 
 // Rust type: RustOpaqueMoi<flutter_rust_bridge::for_generated::RustAutoOpaqueInner<TosState>>
 abstract class TosState implements RustOpaqueInterface {}
+
+@freezed
+sealed class AndroidSemanticEvent with _$AndroidSemanticEvent {
+  const AndroidSemanticEvent._();
+
+  const factory AndroidSemanticEvent.home() = AndroidSemanticEvent_Home;
+  const factory AndroidSemanticEvent.commandHub() =
+      AndroidSemanticEvent_CommandHub;
+  const factory AndroidSemanticEvent.zoomIn() = AndroidSemanticEvent_ZoomIn;
+  const factory AndroidSemanticEvent.zoomOut() = AndroidSemanticEvent_ZoomOut;
+  const factory AndroidSemanticEvent.toggleBezel() =
+      AndroidSemanticEvent_ToggleBezel;
+  const factory AndroidSemanticEvent.setHierarchy(
+    int field0,
+  ) = AndroidSemanticEvent_SetHierarchy;
+}

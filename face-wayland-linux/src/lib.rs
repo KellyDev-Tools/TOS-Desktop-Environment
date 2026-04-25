@@ -56,6 +56,12 @@ impl Drop for WaylandBuffer {
     }
 }
 
+impl Default for LinuxRenderer {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl LinuxRenderer {
     pub fn new() -> Self {
         let tokens_json = include_str!("../../assets/design_tokens.json");
@@ -241,7 +247,7 @@ impl Renderer for LinuxRenderer {
                 }
             }
 
-            if let (Some(ref mut shell), Some(ref surface)) = (self.shell.as_mut(), state.wl_surface.as_ref()) {
+            if let (Some(ref mut shell), Some(surface)) = (self.shell.as_mut(), state.wl_surface.as_ref()) {
                 shell.attach_buffer(surface, buf.fd, buf.width as i32, buf.height as i32);
             }
         }

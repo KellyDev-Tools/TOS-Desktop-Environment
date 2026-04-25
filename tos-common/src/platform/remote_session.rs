@@ -12,6 +12,12 @@ pub struct RemoteSession {
     pub status: String,
 }
 
+impl Default for RemoteSessionManager {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl RemoteSessionManager {
     pub fn new() -> Self {
         Self {

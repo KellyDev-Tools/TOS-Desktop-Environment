@@ -7,12 +7,6 @@ async fn test_shell_cwd_osc_update() {
     let _ = tracing_subscriber::fmt().with_env_filter("debug").try_init();
     let brain = Brain::new().expect("Failed to initialize Brain");
     
-    // Initial CWD
-    let initial_cwd = {
-        let state = brain.state.lock().unwrap();
-        state.sectors[0].hubs[0].current_directory.clone()
-    };
-    
     // Wait for shell to stabilize
     sleep(Duration::from_millis(500)).await;
     

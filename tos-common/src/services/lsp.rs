@@ -22,6 +22,12 @@ pub struct LspService {
     state: Arc<Mutex<Option<Arc<Mutex<TosState>>>>>,
 }
 
+impl Default for LspService {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl LspService {
     pub fn new() -> Self {
         Self {

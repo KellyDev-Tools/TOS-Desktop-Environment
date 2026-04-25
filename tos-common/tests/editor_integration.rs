@@ -1,6 +1,5 @@
 use tos_common::*;
 use std::path::PathBuf;
-use uuid::Uuid;
 
 #[test]
 fn test_editor_open_integration() {
@@ -30,7 +29,6 @@ fn test_editor_open_integration() {
 
 #[test]
 fn test_editor_save_flow() {
-    let mut state = TosState::default();
     let path = PathBuf::from("/tmp/save_test.rs");
     let initial_content = "initial".to_string();
     

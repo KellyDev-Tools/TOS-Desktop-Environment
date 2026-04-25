@@ -2,8 +2,6 @@ use tokio::io::{AsyncBufReadExt, AsyncWriteExt, BufReader};
 use tokio::net::TcpStream;
 use tokio::process::Command;
 use tos_common::MockBrain;
-use std::time::Duration;
-use tokio::time::sleep;
 
 #[tokio::test]
 async fn test_settingsd_integration() -> anyhow::Result<()> {

@@ -180,7 +180,7 @@ impl KeybindingMap {
             combo_map.entry(&b.combo).or_default().push(&b.action);
         }
         let mut conflicts = Vec::new();
-        for (_combo, actions) in &combo_map {
+        for actions in combo_map.values() {
             if actions.len() > 1 {
                 for i in 0..actions.len() {
                     for j in (i + 1)..actions.len() {

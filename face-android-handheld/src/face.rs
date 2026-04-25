@@ -51,7 +51,7 @@ impl Default for AndroidFace {
             state: Arc::new(Mutex::new(TosState::default())),
             window: None,
             input: AndroidInput::default(),
-            services: AndroidServices::default(),
+            services: AndroidServices,
             activity_state: api::ActivityState::default(),
             last_event: None,
         }
@@ -69,7 +69,7 @@ impl AndroidFace {
             state,
             window: None,
             input: AndroidInput::default(),
-            services: AndroidServices::default(),
+            services: AndroidServices,
             activity_state: api::ActivityState::default(),
             last_event: None,
         }

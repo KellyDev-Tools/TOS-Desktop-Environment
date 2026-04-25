@@ -15,6 +15,12 @@ pub struct PortalService {
     ttl_ms: u64,
 }
 
+impl Default for PortalService {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl PortalService {
     pub fn new() -> Self {
         Self {

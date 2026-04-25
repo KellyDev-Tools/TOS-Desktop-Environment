@@ -35,12 +35,7 @@ pub struct WaylandState {
 impl WaylandShell {
     pub fn can_connect() -> bool {
         match std::env::var("WAYLAND_DISPLAY") {
-            Ok(_) => {
-                match Connection::connect_to_env() {
-                    Ok(_) => true,
-                    Err(_) => false,
-                }
-            }
+            Ok(_) => Connection::connect_to_env().is_ok(),
             Err(_) => false,
         }
     }

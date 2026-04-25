@@ -1,5 +1,4 @@
 use tos_common::collaboration::{WebRtcPayload, PresenceStatus, ParticipantRole};
-use tos_common::TosState;
 use uuid::Uuid;
 
 #[tokio::test]

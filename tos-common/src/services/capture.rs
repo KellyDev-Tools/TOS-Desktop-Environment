@@ -13,6 +13,12 @@ pub struct CaptureService {
     cache: Mutex<HashMap<u32, FrameCapture>>,
 }
 
+impl Default for CaptureService {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl CaptureService {
     pub fn new() -> Self {
         Self {

@@ -7,6 +7,12 @@ pub struct HapticService {
     sender: std::sync::mpsc::Sender<String>,
 }
 
+impl Default for HapticService {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl HapticService {
     pub fn new() -> Self {
         let (tx, rx) = std::sync::mpsc::channel::<String>();

@@ -3,7 +3,6 @@ use std::path::Path;
 use std::sync::Arc;
 
 /// §15.1: Core Platform Traits
-
 pub struct SurfaceConfig {
     pub width: u32,
     pub height: u32,

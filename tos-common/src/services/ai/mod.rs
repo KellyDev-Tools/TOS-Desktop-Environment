@@ -213,6 +213,12 @@ pub struct AiService {
     modules: Arc<Mutex<Option<Arc<crate::brain::module_manager::ModuleManager>>>>,
 }
 
+impl Default for AiService {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl AiService {
     pub fn new() -> Self {
         Self {
@@ -324,7 +330,7 @@ impl AiService {
         let mut failed = vec![];
         for req in queue {
             // Attempt query
-            if let Err(_) = self.query(&req.prompt).await {
+            if self.query(&req.prompt).await.is_err() {
                 failed.push(req);
             }
         }
@@ -521,7 +527,7 @@ impl AiService {
             .iter()
             .find(|b| b.id == behavior_id)
             .and_then(|b| b.backend_override.as_deref())
-            .unwrap_or_else(|| state.ai_default_backend.as_str())
+            .unwrap_or(state.ai_default_backend.as_str())
     }
 
     /// Check for context signals (markers, extensions) to automatically activate skills (§4.7).
@@ -529,10 +535,8 @@ impl AiService {
         let mut activated = vec![];
 
         // 1. CWD Markers
-        if cwd.join("Cargo.toml").exists() {
-            if self.enable_behavior(state, "vibe-coder") {
-                activated.push("Vibe Coder (Rust Project Detected)");
-            }
+        if cwd.join("Cargo.toml").exists() && self.enable_behavior(state, "vibe-coder") {
+            activated.push("Vibe Coder (Rust Project Detected)");
         }
 
         // 2. Extension Signals (Stubbed until we have active file tracking)

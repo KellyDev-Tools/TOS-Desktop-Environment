@@ -54,6 +54,12 @@ pub struct ServiceManager {
     pub ssh: Arc<SshService>,
 }
 
+impl Default for ServiceManager {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl ServiceManager {
     pub fn new() -> Self {
         Self::with_config(&TosConfig::default())

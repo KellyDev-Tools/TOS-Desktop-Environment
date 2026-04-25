@@ -160,6 +160,7 @@ check: $(PRE_COMMIT_HOOK)
 	cd tos-searchd && cargo check
 	cd face-wayland-linux && cargo check
 	cd face-android-handheld && cargo check
+	cd face-android-flutter/rust && cargo check
 	cd scripts/tos-signer && cargo check
 
 check-brain:
@@ -170,6 +171,7 @@ fmt:
 	cd brain && cargo fmt
 	cd face-wayland-linux && cargo fmt
 	cd face-android-handheld && cargo fmt
+	cd face-android-flutter/rust && cargo fmt
 	cd scripts/tos-signer && cargo fmt
 
 lint:
@@ -177,6 +179,7 @@ lint:
 	cd brain && cargo clippy -- -D warnings
 	cd face-wayland-linux && cargo clippy -- -D warnings
 	cd face-android-handheld && cargo clippy -- -D warnings
+	cd face-android-flutter/rust && cargo clippy -- -D warnings
 	cd scripts/tos-signer && cargo clippy -- -D warnings
 
 docs:
@@ -184,6 +187,7 @@ docs:
 	cd brain && cargo doc --no-deps
 	cd face-wayland-linux && cargo doc --no-deps
 	cd face-android-handheld && cargo doc --no-deps
+	cd face-android-flutter/rust && cargo doc --no-deps
 	cd scripts/tos-signer && cargo doc --no-deps
 
 # -----------------------------------------------------------------------------
@@ -404,6 +408,12 @@ android-test:
 	@echo "[TOS] Running Android Face tests (host target)..."
 	cd $(ANDROID_CRATE) && cargo test
 	@echo "[TOS] Android Face: TESTS PASSED"
+
+android-flutter-test:
+	@echo "[TOS] Running Flutter Android Face tests (host target)..."
+	cd face-android-flutter/rust && cargo test
+	cd face-android-flutter && flutter test
+	@echo "[TOS] Flutter Android Face: TESTS PASSED"
 
 # -----------------------------------------------------------------------------
 # 6.1 ANDROID FLUTTER BUILD (New face-android-flutter/)

@@ -33,40 +33,40 @@ impl IpcHandler {
 
         let result = match prefix {
             "get_state" => self.handle_get_state(),
-            "set_mode" => self.handle_set_mode(args.get(0).copied()),
+            "set_mode" => self.handle_set_mode(args.first().copied()),
             "zoom_in" => self.handle_zoom_in(),
             "zoom_out" => self.handle_zoom_out(),
-            "set_active_sector" => self.handle_set_active_sector(args.get(0).copied()),
+            "set_active_sector" => self.handle_set_active_sector(args.first().copied()),
             "system_reset" => self.handle_system_reset(),
-            "zoom_to" => self.handle_zoom_to(args.get(0).copied()),
+            "zoom_to" => self.handle_zoom_to(args.first().copied()),
             "set_setting" => self.handle_set_setting(
-                args.get(0).copied(),
+                args.first().copied(),
                 args.get(1).copied(),
                 args.get(2).copied(),
             ),
             "sector_set_setting" => self.handle_set_sector_setting(
-                args.get(0).copied(),
+                args.first().copied(),
                 args.get(1).copied(),
                 args.get(2).copied(),
             ),
             "get_settings" => self.handle_get_settings(),
             "set_sector_setting" => self.handle_set_sector_setting(
-                args.get(0).copied(),
+                args.first().copied(),
                 args.get(1).copied(),
                 args.get(2).copied(),
             ),
-            "remote_ssh_connect" => self.handle_remote_ssh_connect(args.get(0).copied()),
+            "remote_ssh_connect" => self.handle_remote_ssh_connect(args.first().copied()),
             "remote_ssh_disconnect" => self.handle_remote_ssh_disconnect(),
-            "sector_create" => self.handle_sector_create(args.get(0).copied()),
+            "sector_create" => self.handle_sector_create(args.first().copied()),
             "sector_create_from_template" => self.handle_sector_create_from_template(payload),
-            "sector_clone" => self.handle_sector_clone(args.get(0).copied()),
-            "sector_close" => self.handle_sector_close(args.get(0).copied()),
-            "sector_freeze" => self.handle_sector_freeze(args.get(0).copied()),
-            "remote_disconnect" => self.handle_remote_disconnect(args.get(0).copied()),
+            "sector_clone" => self.handle_sector_clone(args.first().copied()),
+            "sector_close" => self.handle_sector_close(args.first().copied()),
+            "sector_freeze" => self.handle_sector_freeze(args.first().copied()),
+            "remote_disconnect" => self.handle_remote_disconnect(args.first().copied()),
             "click" => self.handle_click(payload),
             "app_launch" => self.handle_app_launch(payload),
-            "app_close" => self.handle_app_close(args.get(0).copied(), args.get(1).copied()),
-            "signal_app" => self.handle_signal_app(args.get(0).copied(), args.get(1).copied()),
+            "app_close" => self.handle_app_close(args.first().copied(), args.get(1).copied()),
+            "signal_app" => self.handle_signal_app(args.first().copied(), args.get(1).copied()),
             "search" => self.handle_search(payload),
             "semantic_search" => self.handle_semantic_search(payload),
             "prompt_submit" => self.handle_prompt_submit(payload, false),
@@ -75,83 +75,83 @@ impl IpcHandler {
             "ai_stage_command" => self.handle_ai_stage_command(payload),
             "ai_tool_call" => self.handle_ai_tool_call(payload),
             "system_log_append" => {
-                self.handle_system_log_append(args.get(0).copied(), args.get(1).copied())
+                self.handle_system_log_append(args.first().copied(), args.get(1).copied())
             }
             "log_query" => self.handle_log_query(payload),
-            "trigger_haptic" => self.handle_trigger_haptic(args.get(0).copied()),
+            "trigger_haptic" => self.handle_trigger_haptic(args.first().copied()),
             "portal_create" => self.handle_portal_create(),
-            "portal_revoke" => self.handle_portal_revoke(args.get(0).copied()),
+            "portal_revoke" => self.handle_portal_revoke(args.first().copied()),
             "get_sector_templates" => self.handle_get_sector_templates(),
-            "get_state_delta" => self.handle_get_state_delta(args.get(0).copied()),
+            "get_state_delta" => self.handle_get_state_delta(args.first().copied()),
             "webrtc_presence" => self.handle_webrtc_presence(payload),
-            "set_terminal_module" => self.handle_set_terminal_module(args.get(0).copied()),
-            "set_theme" => self.handle_set_theme(args.get(0).copied()),
+            "set_terminal_module" => self.handle_set_terminal_module(args.first().copied()),
+            "set_theme" => self.handle_set_theme(args.first().copied()),
             "face_register" => self.handle_face_register(payload),
             "service_register" => self.handle_service_register(payload),
             "market" => self.handle_market_command(payload),
             "terminal_resize" => {
-                self.handle_terminal_resize(args.get(0).copied(), args.get(1).copied())
+                self.handle_terminal_resize(args.first().copied(), args.get(1).copied())
             }
-            "terminal_signal" => self.handle_terminal_signal(args.get(0).copied()),
+            "terminal_signal" => self.handle_terminal_signal(args.first().copied()),
             "tos_ports" => self.handle_tos_ports(),
-            "service_deregister" => self.handle_service_deregister(args.get(0).copied()),
-            "session_list" => self.handle_session_list(args.get(0).copied()),
-            "session_save" => self.handle_session_save(args.get(0).copied(), args.get(1).copied()),
-            "session_load" => self.handle_session_load(args.get(0).copied(), args.get(1).copied()),
+            "service_deregister" => self.handle_service_deregister(args.first().copied()),
+            "session_list" => self.handle_session_list(args.first().copied()),
+            "session_save" => self.handle_session_save(args.first().copied(), args.get(1).copied()),
+            "session_load" => self.handle_session_load(args.first().copied(), args.get(1).copied()),
             "session_delete" => {
-                self.handle_session_delete(args.get(0).copied(), args.get(1).copied())
+                self.handle_session_delete(args.first().copied(), args.get(1).copied())
             }
             "session_live_write" => self.handle_session_live_write(),
             "session_export" => {
-                self.handle_session_export(args.get(0).copied(), args.get(1).copied())
+                self.handle_session_export(args.first().copied(), args.get(1).copied())
             }
             "session_import" => {
-                self.handle_session_import(args.get(0).copied(), args.get(1).copied())
+                self.handle_session_import(args.first().copied(), args.get(1).copied())
             }
             "session_handoff_prepare" => self.handle_session_handoff_prepare(),
-            "session_handoff_claim" => self.handle_session_handoff_claim(args.get(0).copied()),
+            "session_handoff_claim" => self.handle_session_handoff_claim(args.first().copied()),
             "collaboration_role_set" => self.handle_collaboration_role_set(
-                args.get(0).copied(),
+                args.first().copied(),
                 args.get(1).copied(),
                 args.get(2).copied(),
             ),
             "collaboration_participant_remove" => {
-                self.handle_collaboration_participant_remove(args.get(0).copied(), args.get(1).copied())
+                self.handle_collaboration_participant_remove(args.first().copied(), args.get(1).copied())
             }
-            "trust_promote" => self.handle_trust_promote(args.get(0).copied()),
-            "trust_demote" => self.handle_trust_demote(args.get(0).copied()),
-            "ai_behavior_enable" => self.handle_ai_behavior_enable(args.get(0).copied()),
-            "ai_behavior_disable" => self.handle_ai_behavior_disable(args.get(0).copied()),
+            "trust_promote" => self.handle_trust_promote(args.first().copied()),
+            "trust_demote" => self.handle_trust_demote(args.first().copied()),
+            "ai_behavior_enable" => self.handle_ai_behavior_enable(args.first().copied()),
+            "ai_behavior_disable" => self.handle_ai_behavior_disable(args.first().copied()),
             "ai_behavior_configure" => self.handle_ai_behavior_configure(
-                args.get(0).copied(),
+                args.first().copied(),
                 args.get(1).copied(),
                 args.get(2).copied(),
             ),
             "ai_chip_stage" => self.handle_ai_chip_stage(payload),
-            "ai_chip_dismiss" => self.handle_ai_chip_dismiss(args.get(0).copied()),
-            "ai_thought_expand" => self.handle_ai_thought_expand(args.get(0).copied()),
-            "ai_thought_dismiss" => self.handle_ai_thought_dismiss(args.get(0).copied()),
+            "ai_chip_dismiss" => self.handle_ai_chip_dismiss(args.first().copied()),
+            "ai_thought_expand" => self.handle_ai_thought_expand(args.first().copied()),
+            "ai_thought_dismiss" => self.handle_ai_thought_dismiss(args.first().copied()),
             "ai_thought_dismiss_permanent" => {
-                self.handle_ai_thought_dismiss_permanent(args.get(0).copied())
+                self.handle_ai_thought_dismiss_permanent(args.first().copied())
             }
-            "ai_context_request" => self.handle_ai_context_request(args.get(0).copied()),
-            "ai_backend_set_default" => self.handle_ai_backend_set_default(args.get(0).copied()),
+            "ai_context_request" => self.handle_ai_context_request(args.first().copied()),
+            "ai_backend_set_default" => self.handle_ai_backend_set_default(args.first().copied()),
             "ai_backend_set_behavior" => {
-                self.handle_ai_backend_set_behavior(args.get(0).copied(), args.get(1).copied())
+                self.handle_ai_backend_set_behavior(args.first().copied(), args.get(1).copied())
             }
             "ai_backend_clear_behavior" => {
-                self.handle_ai_backend_clear_behavior(args.get(0).copied())
+                self.handle_ai_backend_clear_behavior(args.first().copied())
             }
             "ai_history_clear" => self.handle_ai_history_clear(),
-            "ai_pattern_set" => self.handle_ai_pattern_set(args.get(0).copied(), args.get(1).copied()),
-            "ai_pattern_get" => self.handle_ai_pattern_get(args.get(0).copied()),
+            "ai_pattern_set" => self.handle_ai_pattern_set(args.first().copied(), args.get(1).copied()),
+            "ai_pattern_get" => self.handle_ai_pattern_get(args.first().copied()),
             "ai_history_append" => self.handle_ai_history_append(payload, "assistant"),
             "ai_submit" => self.handle_ai_submit(payload),
 
             // §27.6: Directory Pick Behavior
-            "dir_pick_file" => self.handle_dir_pick(args.get(0).copied()),
-            "dir_pick_dir" => self.handle_dir_pick(args.get(0).copied()),
-            "dir_navigate" => self.handle_dir_navigate(args.get(0).copied()),
+            "dir_pick_file" => self.handle_dir_pick(args.first().copied()),
+            "dir_pick_dir" => self.handle_dir_pick(args.first().copied()),
+            "dir_navigate" => self.handle_dir_navigate(args.first().copied()),
             "ai_predict_command" => self.handle_ai_predict_command(payload),
             "ai_thought_stage" => self.handle_ai_thought_stage(payload),
             "ai_queue_push" => self.handle_ai_queue_push(payload),
@@ -175,121 +175,121 @@ impl IpcHandler {
             "kanban_task_move" => self.handle_kanban_task_move(payload),
             "kanban_task_delete" => self.handle_kanban_task_delete(payload),
             "tactical_kill_switch" => self.handle_tactical_kill_switch(),
-            "process_inspect" => self.handle_process_inspect(args.get(0).copied()),
+            "process_inspect" => self.handle_process_inspect(args.first().copied()),
             "process_renice" => {
-                self.handle_process_renice(args.get(0).copied(), args.get(1).copied())
+                self.handle_process_renice(args.first().copied(), args.get(1).copied())
             }
             "process_signal" => {
-                self.handle_process_signal(args.get(0).copied(), args.get(1).copied())
+                self.handle_process_signal(args.first().copied(), args.get(1).copied())
             }
-            "get_buffer" => self.handle_get_buffer(args.get(0).copied()),
+            "get_buffer" => self.handle_get_buffer(args.first().copied()),
             "clear_system_log" => self.handle_clear_system_log(),
-            "play_earcon" => self.handle_play_earcon(args.get(0).copied()),
-            "audio_ambient_start" => self.handle_audio_ambient_start(args.get(0).copied()),
+            "play_earcon" => self.handle_play_earcon(args.first().copied()),
+            "audio_ambient_start" => self.handle_audio_ambient_start(args.first().copied()),
             "audio_ambient_stop" => self.handle_audio_ambient_stop(),
             "audio_volume_set" => {
-                self.handle_audio_volume_set(args.get(0).copied(), args.get(1).copied())
+                self.handle_audio_volume_set(args.first().copied(), args.get(1).copied())
             }
             "audio_voice_play" => self.handle_audio_voice_play(Some(payload)),
             "bezel_expand" => self.handle_bezel_expand(),
             "bezel_collapse" => self.handle_bezel_collapse(),
-            "bezel_swipe" => self.handle_bezel_swipe(args.get(0).copied()),
+            "bezel_swipe" => self.handle_bezel_swipe(args.first().copied()),
             "onboarding_skip_tour" => self.handle_onboarding_skip_tour(),
-            "onboarding_advance_step" => self.handle_onboarding_advance_step(args.get(0).copied()),
-            "onboarding_hint_dismiss" => self.handle_onboarding_hint_dismiss(args.get(0).copied()),
+            "onboarding_advance_step" => self.handle_onboarding_advance_step(args.first().copied()),
+            "onboarding_hint_dismiss" => self.handle_onboarding_hint_dismiss(args.first().copied()),
             "onboarding_hints_suppress" => self.handle_onboarding_hints_suppress(),
             "onboarding_reset_hints" => self.handle_onboarding_reset_hints(),
 
             "voice_command_start" => self.handle_voice_command_start(),
             "voice_transcription" => self.handle_voice_transcription(payload),
 
-            "split_create" => self.handle_split_create(args.get(0).copied(), args.get(1).copied()),
-            "split_close" => self.handle_split_close(args.get(0).copied()),
-            "split_focus" => self.handle_split_focus(args.get(0).copied()),
-            "split_focus_direction" => self.handle_split_focus_direction(args.get(0).copied()),
-            "split_resize" => self.handle_split_resize(args.get(0).copied(), args.get(1).copied()),
+            "split_create" => self.handle_split_create(args.first().copied(), args.get(1).copied()),
+            "split_close" => self.handle_split_close(args.first().copied()),
+            "split_focus" => self.handle_split_focus(args.first().copied()),
+            "split_focus_direction" => self.handle_split_focus_direction(args.first().copied()),
+            "split_resize" => self.handle_split_resize(args.first().copied(), args.get(1).copied()),
             "split_equalize" => self.handle_split_equalize(),
-            "split_fullscreen" => self.handle_split_fullscreen(args.get(0).copied()),
+            "split_fullscreen" => self.handle_split_fullscreen(args.first().copied()),
             "split_fullscreen_exit" => self.handle_split_fullscreen_exit(),
-            "split_swap" => self.handle_split_swap(args.get(0).copied(), args.get(1).copied()),
+            "split_swap" => self.handle_split_swap(args.first().copied(), args.get(1).copied()),
             "split_detach:context" => self.handle_split_detach_context(),
             "split_detach:fresh" => self.handle_split_detach_fresh(),
-            "split_save_template" => self.handle_split_save_template(args.get(0).copied()),
+            "split_save_template" => self.handle_split_save_template(args.first().copied()),
             "trust_promote_sector" => {
-                self.handle_trust_promote_sector(args.get(0).copied(), args.get(1).copied())
+                self.handle_trust_promote_sector(args.first().copied(), args.get(1).copied())
             }
             "trust_demote_sector" => {
-                self.handle_trust_demote_sector(args.get(0).copied(), args.get(1).copied())
+                self.handle_trust_demote_sector(args.first().copied(), args.get(1).copied())
             }
-            "trust_clear_sector" => self.handle_trust_clear_sector(args.get(0).copied()),
+            "trust_clear_sector" => self.handle_trust_clear_sector(args.first().copied()),
             "trust_get_config" => self.handle_trust_get_config(),
-            "heuristic_query" => self.handle_heuristic_query(args.get(0).copied()),
-            "confirmation_accept" => self.handle_confirmation_accept(args.get(0).copied()),
-            "confirmation_reject" => self.handle_confirmation_reject(args.get(0).copied()),
+            "heuristic_query" => self.handle_heuristic_query(args.first().copied()),
+            "confirmation_accept" => self.handle_confirmation_accept(args.first().copied()),
+            "confirmation_reject" => self.handle_confirmation_reject(args.first().copied()),
             "update_confirmation_progress" => {
-                self.handle_update_confirmation_progress(args.get(0).copied(), args.get(1).copied())
+                self.handle_update_confirmation_progress(args.first().copied(), args.get(1).copied())
             }
             "marketplace_home" => self.handle_marketplace_home(),
-            "marketplace_category" => self.handle_marketplace_category(args.get(0).copied()),
-            "marketplace_detail" => self.handle_marketplace_detail(args.get(0).copied()),
-            "marketplace_install" => self.handle_marketplace_install(args.get(0).copied()),
-            "marketplace_status" => self.handle_marketplace_status(args.get(0).copied()),
+            "marketplace_category" => self.handle_marketplace_category(args.first().copied()),
+            "marketplace_detail" => self.handle_marketplace_detail(args.first().copied()),
+            "marketplace_install" => self.handle_marketplace_install(args.first().copied()),
+            "marketplace_status" => self.handle_marketplace_status(args.first().copied()),
             "marketplace_search_ai" => self.handle_marketplace_search_ai(payload),
             "marketplace_install_cancel" => {
-                self.handle_marketplace_install_cancel(args.get(0).copied())
+                self.handle_marketplace_install_cancel(args.first().copied())
             }
             // §14.2: Configurable Keyboard Shortcuts
             "keybindings_get" => self.handle_keybindings_get(),
             "keybindings_set" => {
-                self.handle_keybindings_set(args.get(0).copied(), args.get(1).copied(), args.get(2).copied())
+                self.handle_keybindings_set(args.first().copied(), args.get(1).copied(), args.get(2).copied())
             }
             "keybindings_reset" => self.handle_keybindings_reset(),
 
             // §30.3–30.4: Editor Pane IPC
             "editor_open" => {
-                self.handle_editor_open(args.get(0).copied(), args.get(1).copied())
+                self.handle_editor_open(args.first().copied(), args.get(1).copied())
             }
-            "editor_save" => self.handle_editor_save(args.get(0).copied()),
+            "editor_save" => self.handle_editor_save(args.first().copied()),
             "editor_save_as" => {
-                self.handle_editor_save_as(args.get(0).copied(), args.get(1).copied())
+                self.handle_editor_save_as(args.first().copied(), args.get(1).copied())
             }
-            "editor_activate" => self.handle_editor_activate(args.get(0).copied()),
+            "editor_activate" => self.handle_editor_activate(args.first().copied()),
             "editor_mode_switch" => {
-                self.handle_editor_mode_switch(args.get(0).copied(), args.get(1).copied())
+                self.handle_editor_mode_switch(args.first().copied(), args.get(1).copied())
             }
             "editor_scroll" => {
-                self.handle_editor_scroll(args.get(0).copied(), args.get(1).copied())
+                self.handle_editor_scroll(args.first().copied(), args.get(1).copied())
             }
             "editor_open_ai" => {
                 self.handle_editor_open_ai(
-                    args.get(0).copied(),
+                    args.first().copied(),
                     args.get(1).copied(),
                     args.get(2).copied(),
                 )
             }
             "editor_diff" => {
-                self.handle_editor_diff(args.get(0).copied(), args.get(1).copied())
+                self.handle_editor_diff(args.first().copied(), args.get(1).copied())
             }
             "editor_annotate" => self.handle_editor_annotate(payload),
             "editor_clear_annotations" => {
-                self.handle_editor_clear_annotations(args.get(0).copied())
+                self.handle_editor_clear_annotations(args.first().copied())
             }
             "editor_edit_proposal" => {
-                self.handle_editor_edit_proposal(args.get(0).copied(), args.get(1).copied())
+                self.handle_editor_edit_proposal(args.first().copied(), args.get(1).copied())
             }
             "editor_edit_apply" => {
-                self.handle_editor_edit_apply(args.get(0).copied(), args.get(1).copied())
+                self.handle_editor_edit_apply(args.first().copied(), args.get(1).copied())
             }
             "editor_edit_reject" => {
-                self.handle_editor_edit_reject(args.get(0).copied(), args.get(1).copied())
+                self.handle_editor_edit_reject(args.first().copied(), args.get(1).copied())
             }
             "editor_context_update" => {
-                self.handle_editor_context_update(args.get(0).copied(), args.get(1).copied())
+                self.handle_editor_context_update(args.first().copied(), args.get(1).copied())
             }
             "editor_send_context" => {
-                self.handle_editor_send_context(args.get(0).copied(), args.get(1).copied())
+                self.handle_editor_send_context(args.first().copied(), args.get(1).copied())
             }
-            "editor_promote" => self.handle_editor_promote(args.get(0).copied()),
+            "editor_promote" => self.handle_editor_promote(args.first().copied()),
             _ => "ERROR: Unknown prefix".to_string(),
         };
 
@@ -360,8 +360,8 @@ impl IpcHandler {
         let text_lower = text_lower.trim();
 
         // 1. Focus [Sector]
-        if text_lower.starts_with("focus ") {
-            let target = text_lower[6..].trim();
+        if let Some(target) = text_lower.strip_prefix("focus ") {
+            let target = target.trim();
             let state = self.state.lock().unwrap();
             let mut found_idx = None;
             for (i, sector) in state.sectors.iter().enumerate() {
@@ -379,8 +379,8 @@ impl IpcHandler {
         }
 
         // 2. Run [Command]
-        if text_lower.starts_with("run ") {
-            let cmd = text_lower[4..].trim();
+        if let Some(cmd) = text_lower.strip_prefix("run ") {
+            let cmd = cmd.trim();
             return self.handle_prompt_submit(cmd, false);
         }
 
@@ -777,7 +777,7 @@ impl IpcHandler {
                 .settings
                 .sectors
                 .entry(sec.to_string())
-                .or_insert_with(std::collections::HashMap::new);
+                .or_default();
             entry.insert(k.to_string(), v.to_string());
             let _ = self.services.settings.save(&state.settings);
             return format!("SECTOR_SETTING_UPDATE: [{}] {}={}", sec, k, v);
@@ -1151,7 +1151,7 @@ impl IpcHandler {
             }
         }
 
-        format!("SEMANTIC_SEARCH_COMPLETED")
+        "SEMANTIC_SEARCH_COMPLETED".to_string()
     }
 
     fn handle_ai_submit(&self, query: &str) -> String {
@@ -1434,7 +1434,7 @@ impl IpcHandler {
             for j in 0..16 {
                 let val = ((offset + j) * 13 % 256) as u8;
                 hex.push_str(&format!("{:02x} ", val));
-                if val >= 32 && val <= 126 {
+                if (32..=126).contains(&val) {
                     ascii.push(val as char);
                 } else {
                     ascii.push('.');
@@ -1467,7 +1467,7 @@ impl IpcHandler {
     fn handle_process_signal(&self, pid: Option<&str>, signal: Option<&str>) -> String {
         if let (Some(pid_str), Some(sig_str)) = (pid, signal) {
             let output = std::process::Command::new("kill")
-                .arg(format!("-s"))
+                .arg("-s")
                 .arg(sig_str)
                 .arg(pid_str)
                 .output();
@@ -1734,7 +1734,7 @@ impl IpcHandler {
                                 .participants
                                 .push(crate::collaboration::Participant {
                                     id: user,
-                                    alias: format!("Guest {}", user.to_string()[..4].to_string()),
+                                    alias: format!("Guest {}", &user.to_string()[..4]),
                                     status,
                                     role: crate::collaboration::ParticipantRole::Viewer,
                                     current_level: level,
@@ -2444,7 +2444,7 @@ impl IpcHandler {
                     timestamp: chrono::Local::now(),
                 });
                 // Also play earcon hint for the user
-                let _ = self.services.audio.play_earcon("warning");
+                self.services.audio.play_earcon("warning");
                 e
             }
         }
@@ -3325,7 +3325,7 @@ impl IpcHandler {
                                 let new_lines: Vec<&str> = hunk.content
                                     .lines()
                                     .filter(|l| !l.starts_with('-')) // Remove old lines
-                                    .map(|l| if l.starts_with('+') { &l[1..] } else if l.starts_with(' ') { &l[1..] } else { l })
+                                    .map(|l| l.strip_prefix('+').or_else(|| l.strip_prefix(' ')).unwrap_or(l))
                                     .collect();
                                 
                                 lines.splice(start..end, new_lines);

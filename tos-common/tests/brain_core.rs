@@ -1,7 +1,5 @@
 use tos_common::brain::Brain;
 use tos_common::{HierarchyLevel, CommandHubMode};
-use tokio::time::sleep;
-use std::time::Duration;
 
 #[tokio::test]
 async fn test_brain_initialization() {

@@ -19,6 +19,12 @@ pub struct OscParser {
     pub current_priority: u8,
 }
 
+impl Default for OscParser {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl OscParser {
     pub fn new() -> Self {
         Self {
@@ -56,9 +62,9 @@ impl OscParser {
             if let Some(end) = line[pos..].find('\x07') {
                 let actual_end = pos + end;
                 let url = &line[pos + 4..actual_end];
-                if url.starts_with("file://") {
-                    if let Some(path_start) = url[7..].find('/') {
-                        let path = &url[7 + path_start..];
+                if let Some(stripped) = url.strip_prefix("file://") {
+                    if let Some(path_start) = stripped.find('/') {
+                        let path = &stripped[path_start..];
                         events.push(OscEvent::Cwd(path.to_string()));
                     } else {
                         // case file://host (root)

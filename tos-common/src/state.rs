@@ -669,7 +669,7 @@ pub struct TerminalLine {
 ///
 /// Settings cascade: Application → Sector → Global. The first match wins.
 /// Persisted by the Settings Daemon to `~/.config/tos/settings.json`.
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct SettingsStore {
     #[serde(default)]
     pub global: HashMap<String, String>,
@@ -681,16 +681,6 @@ pub struct SettingsStore {
     pub ai_patterns: HashMap<String, String>,
 }
 
-impl Default for SettingsStore {
-    fn default() -> Self {
-        Self {
-            global: HashMap::new(),
-            sectors: HashMap::new(),
-            applications: HashMap::new(),
-            ai_patterns: HashMap::new(),
-        }
-    }
-}
 
 impl SettingsStore {
     /// Cascading resolution engine: Application → Sector → Global.

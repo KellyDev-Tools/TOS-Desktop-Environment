@@ -11,6 +11,12 @@ pub enum CommandClass {
 
 pub struct TrustService {}
 
+impl Default for TrustService {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl TrustService {
     pub fn new() -> Self {
         Self {}

@@ -20,7 +20,7 @@ use std::path::PathBuf;
 
 /// Platform-specific base directories.
 /// Empty strings mean "auto-detect from the runtime environment".
-#[derive(Debug, Clone, serde::Deserialize)]
+#[derive(Debug, Clone, serde::Deserialize, Default)]
 pub struct PlatformConfig {
     /// Base config dir (settings, tos.toml copy).
     #[serde(default)]
@@ -33,15 +33,6 @@ pub struct PlatformConfig {
     pub runtime_dir: String,
 }
 
-impl Default for PlatformConfig {
-    fn default() -> Self {
-        Self {
-            config_dir: String::new(),
-            data_dir: String::new(),
-            runtime_dir: String::new(),
-        }
-    }
-}
 
 impl PlatformConfig {
     /// Resolve config_dir to an absolute path.
@@ -341,7 +332,7 @@ impl Default for FaceConfig {
 // ──────────────────────────────────────────────────────────────────────────
 
 /// Top-level configuration, deserialized from `tos.toml`.
-#[derive(Debug, Clone, serde::Deserialize)]
+#[derive(Debug, Clone, serde::Deserialize, Default)]
 pub struct TosConfig {
     #[serde(default)]
     pub brain: BrainConfig,
@@ -359,19 +350,6 @@ pub struct TosConfig {
     pub settings: SettingsConfig,
 }
 
-impl Default for TosConfig {
-    fn default() -> Self {
-        Self {
-            brain: BrainConfig::default(),
-            face: FaceConfig::default(),
-            platform: PlatformConfig::default(),
-            local: LocalConfig::default(),
-            remote: RemoteConfig::default(),
-            session: SessionConfig::default(),
-            settings: SettingsConfig::default(),
-        }
-    }
-}
 
 impl TosConfig {
     /// Load config from the first available source.

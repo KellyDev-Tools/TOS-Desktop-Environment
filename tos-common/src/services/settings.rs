@@ -15,6 +15,12 @@ pub struct SettingsService {
     local_persistence: bool,
 }
 
+impl Default for SettingsService {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl SettingsService {
     /// Construct with default config (platform-detected paths).
     pub fn new() -> Self {

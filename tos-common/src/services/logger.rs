@@ -10,6 +10,12 @@ pub struct LoggerService {
     registry: Option<Arc<Mutex<crate::services::registry::ServiceRegistry>>>,
 }
 
+impl Default for LoggerService {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl LoggerService {
     pub fn new() -> Self {
         Self {
@@ -141,7 +147,7 @@ impl LoggerService {
                 "response": response
             });
             let _ =
-                stream.write_all(format!("archive_ai:{}\n", payload.to_string()).as_bytes());
+                stream.write_all(format!("archive_ai:{}\n", payload).as_bytes());
         }
     }
 }

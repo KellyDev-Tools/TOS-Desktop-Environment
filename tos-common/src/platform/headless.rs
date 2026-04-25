@@ -16,6 +16,12 @@ pub struct HeadlessSurface {
     pub buffer: Vec<u8>, // RGBA or similar format
 }
 
+impl Default for HeadlessRenderer {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl HeadlessRenderer {
     pub fn new() -> Self {
         Self {

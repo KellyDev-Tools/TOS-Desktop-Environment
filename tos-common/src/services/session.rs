@@ -115,15 +115,14 @@ impl SessionService {
                 let path = e.path();
                 if path.extension().unwrap_or_default() == "tos-session" {
                     if let Some(stem) = path.file_stem().and_then(|s| s.to_str()) {
-                        if stem != "_live" {
-                            if sector_id.is_empty()
+                        if stem != "_live"
+                            && (sector_id.is_empty()
                                 || sector_id == "global"
-                                || stem.starts_with(&format!("{}_", sector_id))
-                            {
-                                let parts: Vec<&str> = stem.splitn(2, '_').collect();
-                                if parts.len() == 2 {
-                                    return Some(parts[1].to_string());
-                                }
+                                || stem.starts_with(&format!("{}_", sector_id)))
+                        {
+                            let parts: Vec<&str> = stem.splitn(2, '_').collect();
+                            if parts.len() == 2 {
+                                return Some(parts[1].to_string());
                             }
                         }
                     }

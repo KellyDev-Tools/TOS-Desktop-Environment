@@ -78,7 +78,7 @@ impl MarketplaceService {
             let _ = stream.write_all(format!("discover:{}\n", path_str).as_bytes());
             let mut reader = BufReader::new(&stream);
             let mut response = String::new();
-            if let Ok(_) = reader.read_line(&mut response) {
+            if reader.read_line(&mut response).is_ok() {
                 if let Ok(m) = serde_json::from_str(&response) {
                     return Ok(m);
                 }
@@ -117,7 +117,7 @@ impl MarketplaceService {
             let _ = stream.write_all(format!("verify:{}\n", manifest_json).as_bytes());
             let mut reader = BufReader::new(&stream);
             let mut response = String::new();
-            if let Ok(_) = reader.read_line(&mut response) {
+            if reader.read_line(&mut response).is_ok() {
                 if response.trim() == "VALID" {
                     return true;
                 }

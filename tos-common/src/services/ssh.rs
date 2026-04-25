@@ -7,6 +7,12 @@ pub struct SshService {
     sessions: Mutex<HashMap<Uuid, SshSession>>,
 }
 
+impl Default for SshService {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl SshService {
     pub fn new() -> Self {
         Self {

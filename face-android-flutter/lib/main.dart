@@ -1,7 +1,11 @@
 import 'package:flutter/material.dart';
 import 'dart:ui';
+import 'src/rust/api.dart';
+import 'src/rust/frb_generated.dart';
 
-void main() {
+Future<void> main() async {
+  // Initialize Rust library
+  await RustLib.init();
   runApp(const TOSFaceApp());
 }
 
@@ -21,6 +25,7 @@ class TOSFaceApp extends StatelessWidget {
           brightness: Brightness.dark,
         ),
         useMaterial3: true,
+        fontFamily: 'Inter',
       ),
       home: const TOSHomeScreen(),
     );
@@ -37,13 +42,16 @@ class TOSHomeScreen extends StatefulWidget {
 class _TOSHomeScreenState extends State<TOSHomeScreen> with SingleTickerProviderStateMixin {
   late AnimationController _controller;
   late Animation<double> _fadeAnimation;
-  String _status = "Initializing...";
+  String _status = "INITIALIZING CORE...";
+  TosState? _tosState;
+  List<String> _logs = [];
+  bool _isBezelExpanded = false;
 
   @override
   void initState() {
     super.initState();
     _controller = AnimationController(
-      duration: const Duration(seconds: 3),
+      duration: const Duration(seconds: 2),
       vsync: this,
     )..forward();
 
@@ -52,12 +60,42 @@ class _TOSHomeScreenState extends State<TOSHomeScreen> with SingleTickerProvider
       curve: Curves.easeIn,
     );
     
-    // Simulated state transition
-    Future.delayed(const Duration(seconds: 2), () {
+    _initTOS();
+  }
+
+  Future<void> _initTOS() async {
+    try {
+      final status = await getTosStatus();
+      final initialState = await getInitialState();
+      final logs = await getSystemLogs(state: initialState);
+      
       setState(() {
-        _status = "TOS System: ONLINE\nProtocol: Flutter/Rust Bridge\nUI: Premium Glassmorphism\nActive Sector: Primary";
+        _status = status;
+        _tosState = initialState;
+        _logs = logs;
       });
-    });
+
+      // Periodic log refresh simulation or actual poll
+      _pollLogs();
+    } catch (e) {
+      setState(() {
+        _status = "ERROR: LINK FAILURE\n$e";
+      });
+    }
+  }
+
+  void _pollLogs() async {
+    while (mounted) {
+      await Future.delayed(const Duration(seconds: 3));
+      if (_tosState != null) {
+        final logs = await getSystemLogs(state: _tosState!);
+        if (logs.length != _logs.length) {
+          setState(() {
+            _logs = logs;
+          });
+        }
+      }
+    }
   }
 
   void _onExpandBezel() {
@@ -66,7 +104,16 @@ class _TOSHomeScreenState extends State<TOSHomeScreen> with SingleTickerProvider
     });
   }
 
-  bool _isBezelExpanded = false;
+  Future<void> _changeLevel(int level) async {
+    if (_tosState != null) {
+      await setHierarchyLevel(state: _tosState!, level: level);
+      await addLogEntry(state: _tosState!, text: "UI_ACTION: Hierarchy shifted to Level $level");
+      final logs = await getSystemLogs(state: _tosState!);
+      setState(() {
+        _logs = logs;
+      });
+    }
+  }
 
   @override
   void dispose() {
@@ -100,14 +147,14 @@ class _TOSHomeScreenState extends State<TOSHomeScreen> with SingleTickerProvider
             top: -100,
             left: -100,
             child: Container(
-              width: 300,
-              height: 300,
+              width: 400,
+              height: 400,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                color: const Color(0xFF00D4FF).withOpacity(0.1),
+                color: const Color(0xFF00D4FF).withOpacity(0.05),
               ),
               child: BackdropFilter(
-                filter: ImageFilter.blur(sigmaX: 80, sigmaY: 80),
+                filter: ImageFilter.blur(sigmaX: 100, sigmaY: 100),
                 child: Container(),
               ),
             ),
@@ -121,189 +168,335 @@ class _TOSHomeScreenState extends State<TOSHomeScreen> with SingleTickerProvider
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    // TOS Logo Concept
-                    Container(
-                      padding: const EdgeInsets.all(2),
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        gradient: const LinearGradient(
-                          colors: [Color(0xFF00D4FF), Color(0xFF00FFC2)],
-                        ),
-                      ),
-                      child: CircleAvatar(
-                        radius: 50,
-                        backgroundColor: const Color(0xFF030508),
-                        child: const Text(
-                          "T",
-                          style: TextStyle(
-                            fontSize: 40,
-                            fontWeight: FontWeight.w900,
-                            color: Color(0xFF00D4FF),
-                          ),
-                        ),
-                      ),
-                    ),
+                    // TOS Logo Concept with pulse effect
+                    _buildAnimatedLogo(),
                     const SizedBox(height: 40),
                     
                     // Glassmorphic Status Box
-                    ClipRRect(
-                      borderRadius: BorderRadius.circular(20),
-                      child: BackdropFilter(
-                        filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
-                        child: Container(
-                          width: 320,
-                          padding: const EdgeInsets.all(24),
-                          decoration: BoxDecoration(
-                            color: Colors.white.withOpacity(0.05),
-                            borderRadius: BorderRadius.circular(20),
-                            border: Border.all(
-                              color: Colors.white.withOpacity(0.1),
-                              width: 1,
-                            ),
-                          ),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                "BOOT SEQUENCE",
-                                style: TextStyle(
-                                  fontSize: 12,
-                                  fontWeight: FontWeight.bold,
-                                  color: const Color(0xFF00D4FF).withOpacity(0.8),
-                                  letterSpacing: 2,
-                                ),
-                              ),
-                              const SizedBox(height: 16),
-                              Text(
-                                _status,
-                                style: const TextStyle(
-                                  fontSize: 14,
-                                  height: 1.6,
-                                  fontFamily: 'Courier',
-                                  color: Colors.white,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
+                    _buildGlassBox(
+                      title: "CORE STATUS",
+                      content: _status,
+                      width: 340,
                     ),
                     
-                    const SizedBox(height: 60),
+                    const SizedBox(height: 20),
                     
-                    // Loading indicator
-                    const SizedBox(
-                      width: 200,
-                      child: LinearProgressIndicator(
-                        backgroundColor: Colors.white10,
-                        color: Color(0xFF00D4FF),
-                        minHeight: 2,
-                      ),
+                    // System Logs Box
+                    _buildGlassBox(
+                      title: "SYSTEM LOG",
+                      content: _logs.isEmpty ? "NO LOG ENTRIES" : _logs.reversed.take(5).join("\n"),
+                      width: 340,
+                      height: 140,
+                      isMonospace: true,
                     ),
+                    
+                    const SizedBox(height: 40),
+                    
+                    // Level Control Bar
+                    _buildLevelBar(),
                   ],
                 ),
               ),
             ),
           ),
+
           // Tactical Side Bezel
-          AnimatedPositioned(
-            duration: const Duration(milliseconds: 300),
-            curve: Curves.easeInOut,
-            right: _isBezelExpanded ? 0 : -280,
-            top: 100,
-            bottom: 100,
-            child: GestureDetector(
-              onHorizontalDragEnd: (details) {
-                if (details.primaryVelocity! < 0) {
-                  setState(() => _isBezelExpanded = true);
-                } else if (details.primaryVelocity! > 0) {
-                  setState(() => _isBezelExpanded = false);
-                }
-              },
-              child: ClipRRect(
-                borderRadius: const BorderRadius.horizontal(left: Radius.circular(30)),
-                child: BackdropFilter(
-                  filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
-                  child: Container(
-                    width: 300,
-                    decoration: BoxDecoration(
-                      color: const Color(0xFF001F29).withOpacity(0.8),
-                      borderRadius: const BorderRadius.horizontal(left: Radius.circular(30)),
-                      border: Border.all(
-                        color: const Color(0xFF00D4FF).withOpacity(0.3),
-                        width: 1.5,
-                      ),
+          _buildTacticalBezel(),
+
+          // Bezel Control Button
+          _buildBezelToggle(),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildAnimatedLogo() {
+    return Container(
+      padding: const EdgeInsets.all(4),
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        boxShadow: [
+          BoxShadow(
+            color: const Color(0xFF00D4FF).withOpacity(0.2),
+            blurRadius: 20,
+            spreadRadius: 5,
+          ),
+        ],
+        gradient: const LinearGradient(
+          colors: [Color(0xFF00D4FF), Color(0xFF00FFC2)],
+        ),
+      ),
+      child: CircleAvatar(
+        radius: 45,
+        backgroundColor: const Color(0xFF030508),
+        child: const Text(
+          "T",
+          style: TextStyle(
+            fontSize: 48,
+            fontFamily: 'Outfit',
+            fontWeight: FontWeight.w900,
+            color: Color(0xFF00D4FF),
+            letterSpacing: -2,
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildGlassBox({
+    required String title,
+    required String content,
+    double width = 320,
+    double? height,
+    bool isMonospace = false,
+  }) {
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(20),
+      child: BackdropFilter(
+        filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 500),
+          width: width,
+          height: height,
+          padding: const EdgeInsets.all(20),
+          decoration: BoxDecoration(
+            color: Colors.white.withOpacity(0.03),
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(
+              color: Colors.white.withOpacity(0.08),
+              width: 1,
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.3),
+                blurRadius: 10,
+                offset: const Offset(0, 4),
+              ),
+            ],
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Row(
+                children: [
+                  Container(
+                    width: 4,
+                    height: 12,
+                    color: const Color(0xFF00D4FF),
+                  ),
+                  const SizedBox(width: 8),
+                  Text(
+                    title,
+                    style: TextStyle(
+                      fontSize: 10,
+                      fontWeight: FontWeight.w900,
+                      color: const Color(0xFF00D4FF).withOpacity(0.7),
+                      letterSpacing: 2,
                     ),
-                    child: Column(
-                      children: [
-                        const SizedBox(height: 30),
-                        const Text(
-                          "TACTICAL SECTORS",
-                          style: TextStyle(
-                            fontSize: 14,
-                            fontWeight: FontWeight.bold,
-                            letterSpacing: 3,
-                            color: Color(0xFF00D4FF),
-                          ),
-                        ),
-                        const SizedBox(height: 20),
-                        const Divider(color: Colors.white10),
-                        Expanded(
-                          child: ListView(
-                            padding: const EdgeInsets.symmetric(horizontal: 20),
-                            children: [
-                              _buildSectorTile("Primary", true),
-                              _buildSectorTile("Intel-Core", false),
-                              _buildSectorTile("Network-Ops", false),
-                            ],
-                          ),
-                        ),
-                        // Bezel handle
-                        Padding(
-                          padding: const EdgeInsets.all(20),
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              IconButton(
-                                icon: const Icon(Icons.settings_outlined, color: Colors.white54),
-                                onPressed: () {},
-                              ),
-                              const Spacer(),
-                              const Text("TOS v1.0", style: TextStyle(color: Colors.white24, fontSize: 10)),
-                            ],
-                          ),
-                        ),
-                      ],
-                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 12),
+              Text(
+                content,
+                style: TextStyle(
+                  fontSize: 13,
+                  height: 1.5,
+                  fontFamily: isMonospace ? 'Courier' : null,
+                  color: Colors.white.withOpacity(0.9),
+                ),
+                maxLines: height != null ? 5 : null,
+                overflow: height != null ? TextOverflow.ellipsis : null,
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildLevelBar() {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      decoration: BoxDecoration(
+        color: Colors.white.withOpacity(0.05),
+        borderRadius: BorderRadius.circular(30),
+        border: Border.all(color: Colors.white.withOpacity(0.1)),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [1, 2, 3, 4].map((l) {
+          return Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 4),
+            child: InkWell(
+              onTap: () => _changeLevel(l),
+              borderRadius: BorderRadius.circular(20),
+              child: Container(
+                width: 40,
+                height: 40,
+                alignment: Alignment.center,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: Colors.transparent,
+                ),
+                child: Text(
+                  "L$l",
+                  style: const TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.white54,
                   ),
                 ),
               ),
             ),
-          ),
+          );
+        }).toList(),
+      ),
+    );
+  }
 
-          // Bezel Control Button
-          Positioned(
-            right: 20,
-            top: 20,
-            child: InkWell(
-              onTap: _onExpandBezel,
-              child: AnimatedRotation(
-                turns: _isBezelExpanded ? 0.5 : 0,
-                duration: const Duration(milliseconds: 300),
-                child: Container(
-                  width: 50,
-                  height: 50,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    color: _isBezelExpanded ? const Color(0xFF00D4FF) : Colors.white10,
-                    border: Border.all(color: const Color(0xFF00D4FF).withOpacity(0.5)),
-                  ),
-                  child: Icon(
-                    _isBezelExpanded ? Icons.close : Icons.menu_open,
-                    color: _isBezelExpanded ? Colors.black : const Color(0xFF00D4FF),
-                  ),
+  Widget _buildTacticalBezel() {
+    return AnimatedPositioned(
+      duration: const Duration(milliseconds: 400),
+      curve: Curves.easeOutCubic,
+      right: _isBezelExpanded ? 0 : -300,
+      top: 60,
+      bottom: 60,
+      child: GestureDetector(
+        onHorizontalDragEnd: (details) {
+          if (details.primaryVelocity! > 0) {
+            setState(() => _isBezelExpanded = false);
+          }
+        },
+        child: ClipRRect(
+          borderRadius: const BorderRadius.horizontal(left: Radius.circular(40)),
+          child: BackdropFilter(
+            filter: ImageFilter.blur(sigmaX: 25, sigmaY: 25),
+            child: Container(
+              width: 320,
+              decoration: BoxDecoration(
+                color: const Color(0xFF001F29).withOpacity(0.85),
+                borderRadius: const BorderRadius.horizontal(left: Radius.circular(40)),
+                border: Border.all(
+                  color: const Color(0xFF00D4FF).withOpacity(0.2),
+                  width: 1.5,
                 ),
               ),
+              child: Column(
+                children: [
+                  const SizedBox(height: 40),
+                  const Text(
+                    "TACTICAL OVERVIEW",
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w900,
+                      letterSpacing: 4,
+                      color: Color(0xFF00D4FF),
+                    ),
+                  ),
+                  const SizedBox(height: 30),
+                  Expanded(
+                    child: ListView(
+                      padding: const EdgeInsets.symmetric(horizontal: 24),
+                      children: [
+                        _buildSectorTile("GLOBAL-ALPHA", true),
+                        _buildSectorTile("LOCAL-BETA", false),
+                        _buildSectorTile("SECURE-GATE", false),
+                        const SizedBox(height: 20),
+                        const Text(
+                          "ACTIVE MODULES",
+                          style: TextStyle(fontSize: 10, color: Colors.white24, letterSpacing: 2),
+                        ),
+                        const SizedBox(height: 10),
+                        _buildModuleItem("AI-CORE", "ACTIVE"),
+                        _buildModuleItem("NET-STACK", "IDLE"),
+                        _buildModuleItem("SANDBOX", "LOCKED"),
+                      ],
+                    ),
+                  ),
+                  _buildBezelFooter(),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildBezelToggle() {
+    return Positioned(
+      right: 20,
+      top: 20,
+      child: InkWell(
+        onTap: _onExpandBezel,
+        borderRadius: BorderRadius.circular(25),
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 300),
+          width: 50,
+          height: 50,
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            color: _isBezelExpanded ? const Color(0xFF00D4FF) : Colors.white10,
+            boxShadow: [
+              if (_isBezelExpanded)
+                BoxShadow(color: const Color(0xFF00D4FF).withOpacity(0.3), blurRadius: 15),
+            ],
+          ),
+          child: Icon(
+            _isBezelExpanded ? Icons.close : Icons.radar,
+            color: _isBezelExpanded ? Colors.black : const Color(0xFF00D4FF),
+            size: 20,
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSectorTile(String name, bool active) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 16),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: active ? const Color(0xFF00D4FF).withOpacity(0.05) : Colors.transparent,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: active ? const Color(0xFF00D4FF).withOpacity(0.3) : Colors.white.withOpacity(0.05),
+        ),
+      ),
+      child: Row(
+        children: [
+          Expanded(
+            child: Text(
+              name,
+              style: TextStyle(
+                color: active ? Colors.white : Colors.white38,
+                fontWeight: active ? FontWeight.bold : FontWeight.normal,
+                fontSize: 14,
+              ),
+            ),
+          ),
+          if (active)
+            const Icon(Icons.circle, color: Color(0xFF00D4FF), size: 8),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildModuleItem(String name, String status) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 8),
+      child: Row(
+        children: [
+          Text(name, style: const TextStyle(color: Colors.white60, fontSize: 12)),
+          const Spacer(),
+          Text(
+            status,
+            style: TextStyle(
+              color: status == "ACTIVE" ? const Color(0xFF00FFC2) : Colors.white24,
+              fontSize: 10,
+              fontWeight: FontWeight.bold,
             ),
           ),
         ],
@@ -311,27 +504,17 @@ class _TOSHomeScreenState extends State<TOSHomeScreen> with SingleTickerProvider
     );
   }
 
-  Widget _buildSectorTile(String name, bool active) {
+  Widget _buildBezelFooter() {
     return Container(
-      margin: const EdgeInsets.only(bottom: 12),
-      decoration: BoxDecoration(
-        color: active ? const Color(0xFF00D4FF).withOpacity(0.1) : Colors.transparent,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(
-          color: active ? const Color(0xFF00D4FF).withOpacity(0.4) : Colors.white10,
-        ),
-      ),
-      child: ListTile(
-        title: Text(
-          name,
-          style: TextStyle(
-            color: active ? Colors.white : Colors.white54,
-            fontWeight: active ? FontWeight.bold : FontWeight.normal,
-          ),
-        ),
-        trailing: active 
-          ? const Icon(Icons.radar, color: Color(0xFF00D4FF), size: 18)
-          : null,
+      padding: const EdgeInsets.all(24),
+      child: Row(
+        children: [
+          const Icon(Icons.shield_outlined, color: Colors.white24, size: 16),
+          const SizedBox(width: 8),
+          const Text("SECURE_LINK", style: TextStyle(color: Colors.white24, fontSize: 10)),
+          const Spacer(),
+          Text("v1.0-BETA", style: TextStyle(color: const Color(0xFF00D4FF).withOpacity(0.5), fontSize: 10)),
+        ],
       ),
     );
   }

@@ -46,8 +46,8 @@ async fn main() -> anyhow::Result<()> {
             };
 
             println!(
-                "{:<22} {:<8} {:<15} {}",
-                "SERVICE", "PORT", "HOST", "STATUS"
+                "{:<22} {:<8} {:<15} STATUS",
+                "SERVICE", "PORT", "HOST"
             );
             println!("{}", "-".repeat(56));
             for e in entries {

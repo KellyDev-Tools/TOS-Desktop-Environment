@@ -164,7 +164,7 @@ impl PtyShell {
         })?;
 
         let mut cmd = CommandBuilder::new("sh");
-        cmd.args(&["-c", command]);
+        cmd.args(["-c", command]);
         cmd.cwd(cwd);
         let _child = pair.slave.spawn_command(cmd)?;
 

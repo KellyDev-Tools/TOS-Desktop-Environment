@@ -37,7 +37,7 @@ impl PriorityService {
             let _ = stream.write_all(format!("get_priority:{}\n", sector_id).as_bytes());
             let mut reader = BufReader::new(&stream);
             let mut response = String::new();
-            if let Ok(_) = reader.read_line(&mut response) {
+            if reader.read_line(&mut response).is_ok() {
                 if let Ok(score) = serde_json::from_str(&response) {
                     return Ok(score);
                 }

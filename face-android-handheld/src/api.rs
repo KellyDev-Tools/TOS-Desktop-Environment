@@ -24,22 +24,13 @@ pub struct Config;
 // ---------------------------------------------------------------------------
 
 /// Mirrors the minimal activity state needed by AndroidFace.
-#[derive(Debug)]
+#[derive(Debug, Default)]
 pub struct ActivityState {
     pub window: Option<Window>,
     pub display: Option<Display>,
     pub config: Option<Config>,
 }
 
-impl Default for ActivityState {
-    fn default() -> Self {
-        Self {
-            window: None,
-            display: None,
-            config: None,
-        }
-    }
-}
 
 // ---------------------------------------------------------------------------
 // Lifecycle & Commands

@@ -53,7 +53,7 @@
 | Persistent Unified Prompt | §7.2 | ✅ | Prompt visible at all levels in `CommandHub.svelte` |
 | Auto Directory Mode on `ls`/`cd` | §27.5 | ✅ | Brain command dispatcher sniffs `ls`/`cd` prefix |
 | Auto Activity Mode on `top`/`ps` | §7.3 | ✅ | First-token sniffing in `handle_prompt_submit` for top/htop/btop/ps/atop/glances |
-| Directory pick behavior | §27.6 | 🔶 | `dir_pick_file`/`dir_pick_dir` IPC stubs; staging banner absent |
+| Directory pick behavior | §27.6 | ✅ | `dir_pick_file`/`dir_pick_dir` handlers implemented; staging banner added |
 | Shell OSC integration (9002/9003/9004) | §27.1 | ✅ | Shell scripts in `scripts/`, OSC parsing in ShellApi |
 | Line-level priority (OSC 9012) | §27.4 | ✅ | `OscEvent::LinePriority` variant + `OscParser.process()` wired in PTY read loop |
 | Command auto-detection (no false positives) | §27.5 | ✅ | Tested — `rls`, `echo cd` don't trigger |
@@ -369,6 +369,21 @@
 
 ---
 
+### Stage 8 — AI Ecosystem & Marketplace Hardening
+
+*Focuses on decoupling hardcoded backends into pluggable modules.*
+
+| # | Task | Priority | Spec Ref | Deps | Status |
+|---|---|---|---|---|---|
+| 8.1 | Decouple Gemini backend into standalone `.tos-ai` package | HIGH | Eco §1.3.4 | ModuleManager | ❌ |
+| 8.2 | Decouple Ollama backend into standalone `.tos-ai` package | HIGH | Eco §1.3.5 | ModuleManager | ❌ |
+| 8.3 | Decouple OpenAI/Anthropic into standalone `.tos-ai` packages | MEDIUM | Eco §1.3.6 | ModuleManager | ❌ |
+| 8.4 | Implement per-module settings persistence in `tos-settingsd` | HIGH | Eco §1.3.1 | SettingsStore | ❌ |
+| 8.5 | Unified Backend Configuration UI in Settings Modal | MEDIUM | Features §4.3 | SettingsModal | ❌ |
+| 8.6 | Verification of `.tos-ai` module sandboxing (bubblewrap) | HIGH | Arch §17.3 | SandboxManager | 🔶 |
+
+---
+
 ---
 
 ## Summary Statistics
@@ -396,10 +411,10 @@
 | Settings | 4 | 0 | 0 |
 | **Kanban & Agents** | **6** | **1** | **0** |
 | Priority & Visual | 3 | 0 | 0 |
-| **TOTAL** | **160** | **6** | **2** |
+| **TOTAL** | **160** | **7** | **7** |
 
 > [!IMPORTANT]
-> **Stages 0–4, 7, and Stage 1 are fully complete.** The critical path is now **Stage 5** (Native Platform: Wayland, DMABUF, Accessibility, Multi-Sensory) and **Stage 6** (Collaboration, Remote, Release infrastructure).
+> **Stages 0–4, 7, and Stage 1 are fully complete.** The critical path includes **Stage 5** (Native Platform), **Stage 6** (Release), and the newly added **Stage 8** (Ecosystem Decoupling).
 
 ---
 
@@ -410,10 +425,5 @@ graph TD
     COMPLETED["Stages 0–4 & 7 (COMPLETE)"] --> S5["Stage 5: Native Platform"]
     COMPLETED --> S6["Stage 6: Release"]
     S5 --> S6
+    S6 --> S8["Stage 8: AI Ecosystem"]
 ```
-
-**Estimated effort (working days):**
-- Stage 5: 8–12 days (parallel track)
-- Stage 6: 5–8 days
-
-**Total: ~15–20 working days to full Beta-0 spec compliance.**

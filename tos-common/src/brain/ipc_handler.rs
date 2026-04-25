@@ -147,6 +147,11 @@ impl IpcHandler {
             "ai_pattern_get" => self.handle_ai_pattern_get(args.get(0).copied()),
             "ai_history_append" => self.handle_ai_history_append(payload, "assistant"),
             "ai_submit" => self.handle_ai_submit(payload),
+
+            // §27.6: Directory Pick Behavior
+            "dir_pick_file" => self.handle_dir_pick(args.get(0).copied()),
+            "dir_pick_dir" => self.handle_dir_pick(args.get(0).copied()),
+            "dir_navigate" => self.handle_dir_navigate(args.get(0).copied()),
             "ai_predict_command" => self.handle_ai_predict_command(payload),
             "ai_thought_stage" => self.handle_ai_thought_stage(payload),
             "ai_queue_push" => self.handle_ai_queue_push(payload),
@@ -607,6 +612,99 @@ impl IpcHandler {
         }
 
         "ERROR: Unknown mode or level".to_string()
+    }
+
+    fn handle_dir_navigate(&self, path_str: Option<&str>) -> String {
+        let path = match path_str {
+            Some(p) => std::path::PathBuf::from(p),
+            None => return "ERROR: Missing path".to_string(),
+        };
+
+        let mut state = self.state.lock().unwrap();
+        let idx = state.active_sector_index;
+        let mut navigated_path = None;
+
+        if let Some(sector) = state.sectors.get_mut(idx) {
+            let hub_idx = sector.active_hub_index;
+            if let Some(hub) = sector.hubs.get_mut(hub_idx) {
+                hub.current_directory = path;
+                navigated_path = Some(hub.current_directory.display().to_string());
+            }
+        }
+
+        if let Some(p) = navigated_path {
+            crate::brain::sector::SectorManager::refresh_directory_listing(&mut state);
+            state.version += 1;
+            return format!("DIR_NAVIGATED: {}", p);
+        }
+
+        "ERROR: No active hub".to_string()
+    }
+
+    fn handle_dir_pick(&self, index_str: Option<&str>) -> String {
+        let index: usize = match index_str.and_then(|i| i.parse().ok()) {
+            Some(idx) => idx,
+            None => return "ERROR: Missing or invalid index".to_string(),
+        };
+
+        let mut state = self.state.lock().unwrap();
+        let active_idx = state.active_sector_index;
+
+        let (full_path, is_dir_entry) = {
+            let hub = state.sectors.get(active_idx)
+                .and_then(|s| s.hubs.get(s.active_hub_index));
+
+            if let Some(hub) = hub {
+                if let Some(ref listing) = hub.shell_listing {
+                    if let Some(entry) = listing.entries.get(index) {
+                        let path = std::path::PathBuf::from(&listing.path).join(&entry.name);
+                        (Some(path), entry.is_dir)
+                    } else {
+                        (None, false)
+                    }
+                } else {
+                    (None, false)
+                }
+            } else {
+                (None, false)
+            }
+        };
+
+        if let Some(path) = full_path {
+            let path_str = path.to_string_lossy().to_string();
+            let mut refreshed = false;
+            {
+                let sector = &mut state.sectors[active_idx];
+                let hub_idx = sector.active_hub_index;
+                let hub = &mut sector.hubs[hub_idx];
+
+                if let Some(ref mut staged) = hub.staged_command {
+                    // Requirement 3: Append absolute path as argument
+                    if !staged.ends_with(' ') && !staged.is_empty() {
+                        staged.push(' ');
+                    }
+                    staged.push_str(&path_str);
+                } else if hub.prompt.is_empty() {
+                    if is_dir_entry {
+                        // Requirement 2: Navigate
+                        hub.current_directory = path;
+                        refreshed = true;
+                    } else {
+                        // Requirement 1: Insert
+                        hub.prompt = path_str;
+                    }
+                }
+            }
+
+            if refreshed {
+                crate::brain::sector::SectorManager::refresh_directory_listing(&mut state);
+            }
+
+            state.version += 1;
+            return "DIR_PICKED".to_string();
+        }
+
+        "ERROR: Entry not found".to_string()
     }
 
     fn handle_zoom_to(&self, level_str: Option<&str>) -> String {

@@ -50,9 +50,11 @@ Defines a sector's default behaviour: command favourites, interesting directorie
 
 ### 1.3 AI Backend Modules (`.tos-ai`)
 
-Package type `.tos-ai`. Manifest includes: capabilities (chat, function_calling, vision, streaming), connection details (protocol, endpoint, auth_type), permissions, and configuration options (model, temperature, etc.).
+AI Backend Modules provide the underlying inference engine. They manage model selection, endpoint authentication, and protocol translation (e.g., to OpenAI or Gemini APIs).
 
-**Capabilities declaration (extended):**
+#### 1.3.1 Manifest & Capabilities
+
+The `module.toml` manifest for an AI backend includes a `[capabilities]` block and a `latency_profile` hint.
 
 ```toml
 [capabilities]
@@ -63,27 +65,16 @@ streaming        = true
 latency_profile  = "local"   # local | fast_remote | slow_remote
 ```
 
-The `latency_profile` hint allows behavior modules to decide whether to show a loading state or fire-and-forget. Backends without this field are treated as `latency_profile = "fast_remote"`.
+The `latency_profile` allows Skill modules to adapt their UI behavior (e.g., showing a loading spinner immediately or waiting for the first token).
 
-#### 1.3.1 AI Module API (JSON-RPC over IPC)
+#### 1.3.2 Execution Model & Protocol
 
-The Brain invokes the AI module using these message formats:
+AI modules run in one of two modes:
+1. **Local Subprocess:** The Brain executes the module binary as a child process in a restricted sandbox.
+2. **Remote Provider:** The Brain handles direct HTTP communication for recognized providers (OpenAI, Anthropic, Ollama, Google AI Studio).
 
-- **Prompt:** `ai_query:{"prompt": "string", "context": [...], "stream": true}`
-- **Function Calling:** `ai_tool_call:{"name": "exec_cmd", "args": {"cmd": "ls"}}`
-- **Response Format:**
-```json
-{
-  "id": "msg_uuid",
-  "choice": {"role": "assistant", "content": "delta_text"},
-  "usage": {"tokens": 15},
-  "status": "streaming|complete|error"
-}
-```
-
-**AI Boundary (JSON over Stdin/Stdout):**
-
-AI modules are executed as child processes. The Brain communicates via strict JSON over standard I/O.
+**Standard I/O Boundary (Local Modules):**
+The Brain communicates with sandboxed modules via **strict JSON over Stdin/Stdout**. No prefixes or headers are used.
 
 *Input (Stdin):*
 ```json
@@ -102,15 +93,78 @@ AI modules are executed as child processes. The Brain communicates via strict JS
     "role": "assistant",
     "content": "{\"command\": \"ls -la\", \"explanation\": \"Listing files in long format.\"}"
   },
+  "usage": { "tokens": 42 },
   "status": "complete"
 }
 ```
 
+#### 1.3.3 Service IPC (Brain <-> AI Service)
+
+Within the TOS constellation, requests to the AI Service use tagged IPC messages:
+- **Query Request:** `ai_query:{"prompt": "...", "context": [...], "stream": true}`
+- **Tool Execution:** `ai_tool_call:{"name": "exec_cmd", "args": {"cmd": "ls"}}`
+
+#### 1.3.4 Google AI Studio (Gemini API) Mapping
+
+To facilitate integration with [Google AI Studio (Gemini API)](https://ai.google.dev/gemini-api/docs/), `.tos-ai` modules should implement the following protocol mapping:
+
+| TOS AI Protocol | Gemini API Equivalent | Notes |
+|:---|:---|:---|
+| `prompt` | `contents.parts.text` | Maps to the most recent user message. |
+| `context` | `contents` | Historical messages/system state passed in the array. |
+| `system_prompt` | `systemInstruction` | Set at session initialization. |
+| `tool_call` | `functionCall` | Model-generated tool requests. |
+| `stream: true` | `streamGenerateContent` | Server-Sent Events (SSE) mapped to response chunks. |
+
+#### 1.3.5 Ollama API Mapping
+
+For local inference via [Ollama](https://ollama.com/), modules should target the `/api/chat` endpoint to maintain stateful conversations and tool-calling support.
+
+| TOS AI Protocol | Ollama API Equivalent | Notes |
+|:---|:---|:---|
+| `prompt` | `messages` (role: `user`) | The most recent user input. |
+| `context` | `messages` (array) | Historical context injected into the message sequence. |
+| `system_prompt` | `messages` (role: `system`) | Core instructions and constraints. |
+| `tool_call` | `message.tool_calls` | Supported by Llama 3.1+ and other tool-capable models. |
+| `tool_result` | `messages` (role: `tool`) | Execution output returned to the model. |
+| `stream: true` | `stream: true` | NDJSON stream of response objects. |
+
+**Format Constraint:** All Ollama requests must include `"format": "json"` to ensure the model adheres to the structured response schema (command/explanation) required by the Brain.
+
+#### 1.3.6 OpenAI Compatible Mapping (Grok, DeepSeek, Perplexity)
+
+Most modern providers adopt the OpenAI Chat Completions standard, making this the default mapping for any service not explicitly named.
+
+| TOS AI Protocol | OpenAI API Equivalent | Notes |
+|:---|:---|:---|
+| `prompt` | `messages` (role: `user`) | Latest user interaction. |
+| `context` | `messages` (array) | Injected chronologically before the prompt. |
+| `system_prompt` | `messages` (role: `system`) | Typically the first entry in the `messages` array. |
+| `tool_call` | `choices[0].message.tool_calls` | Model-generated tool requests. |
+| `tool_result` | `role: tool` | Returns execution results via the `tool_call_id`. |
+| `stream: true` | `stream: true` | Server-Sent Events (SSE) stream. |
+
+#### 1.3.7 Anthropic Mapping (Claude)
+
+Anthropic uses a dedicated field for system instructions and requires tool results to be returned as part of a user message block.
+
+| TOS AI Protocol | Anthropic API Equivalent | Notes |
+|:---|:---|:---|
+| `prompt` | `messages` (role: `user`) | Latest user interaction. |
+| `context` | `messages` (array) | Past conversation history. |
+| `system_prompt` | `system` (top-level field) | Dedicated top-level parameter for instructions. |
+| `tool_call` | `content` (type: `tool_use`) | Captured within the response content array. |
+| `tool_result` | `role: user` (type: `tool_result`) | Tool results are sent as user messages with specific block types. |
+| `stream: true` | `stream: true` | Returns a stream of message delta events. |
+
+**Note on Built-in Tools:**
+Gemini's native `code_execution` tool is distinct from TOS tools. In TOS, all tool execution occurs within the Brain's context or isolated agent PTYs, ensuring local codebase access and security enforcement via the `TrustService`.
+
 ### 1.4 AI Skill Modules (`.tos-skill`)
 
-AI Skills are the primary unit of AI capability in TOS. A skill defines *what* the AI knows how to do for a specific task — its interaction pattern, tool access, system prompt, and learned user patterns. Multiple skills can run simultaneously, each independently toggled and configured in **Settings → AI → Skills**.
+AI Skills are the primary unit of AI capability. A skill defines *what* the AI knows how to do for a specific task — its interaction pattern, tool access, system prompt, and learned user patterns.
 
-Skills replace the former `.tos-aibehavior` module type. All references to AI behaviors in prior specs refer to skills.
+Skills replace the former `.tos-aibehavior` module type. All references to "behaviors" in legacy documentation refer to Skills. Multiple skills can run simultaneously, each independently toggled in **Settings → AI → Skills**.
 
 #### 1.4.1 Skill Layers
 

@@ -440,6 +440,20 @@ export async function confirmationReject(id: string): Promise<void> {
     await sendCommand(`confirmation_reject:${id}`);
 }
 
+// --- Directory Helpers ---
+
+export async function dirPickFile(index: number): Promise<void> {
+    await sendCommand(`dir_pick_file:${index}`);
+}
+
+export async function dirPickDir(index: number): Promise<void> {
+    await sendCommand(`dir_pick_dir:${index}`);
+}
+
+export async function dirNavigate(path: string): Promise<void> {
+    await sendCommand(`dir_navigate:${path}`);
+}
+
 /**
  * Generic IPC sender used by some legacy or high-level components.
  * Formats as "method:payload" and dispatches via sendCommand.

@@ -1,5 +1,6 @@
 <script lang="ts">
-	import { getTosState } from '$lib/stores/ipc.svelte';
+	import { getTosState, dirPickFile, dirPickDir, dirNavigate } from '$lib/stores/ipc.svelte';
+	import { slide, fade } from 'svelte/transition';
 
 	import SplitLayout from './SplitLayout.svelte';
 	import AiChat from './AiChat.svelte';
@@ -57,6 +58,14 @@
 			processPid: proc.pid
 		};
 	}
+
+	function handleEntryClick(index: number, isDir: boolean) {
+		if (isDir) {
+			dirPickDir(index);
+		} else {
+			dirPickFile(index);
+		}
+	}
 </script>
 
 <div class="command-hub command-hub-view">
@@ -96,15 +105,31 @@
 				{@const dir = activeHub.shell_listing}
 				<div aria-roledescription="chip" class="context-chip glass-panel" transition:slide>
 					<div aria-roledescription="chip" class="chip-title" style="color: var(--color-primary)">DIR PREVIEW // {dir.path}</div>
+					
+					{#if activeHub?.staged_command}
+						<div class="staging-banner" transition:fade>
+							<div class="banner-tag">STAGING</div>
+							<div class="staged-content">
+								<span class="staged-cmd">{activeHub.staged_command}</span>
+								{#if activeHub.ai_explanation}
+									<span class="staged-hint">— {activeHub.ai_explanation}</span>
+								{/if}
+							</div>
+						</div>
+					{/if}
+
 					<div class="directory-list">
-						{#each dir.entries as entry}
-							<div class="dir-entry">
+						{#each dir.entries as entry, i}
+							<button 
+								class="dir-entry interactive" 
+								onclick={() => handleEntryClick(i, entry.is_dir)}
+							>
 								<span class="dir-type" class:is-dir={entry.is_dir}>{entry.is_dir ? '[DIR]' : ''}</span>
 								<span class="dir-name" class:is-dir={entry.is_dir}>{entry.name}</span>
 								{#if !entry.is_dir}
-									<span class="dir-size">{entry.size} B</span>
+									<span class="dir-size">{(entry.size / 1024).toFixed(1)} KB</span>
 								{/if}
-							</div>
+							</button>
 						{/each}
 					</div>
 				</div>
@@ -230,6 +255,8 @@
 	/* Directory Listing */
 	.directory-list {
 		margin-top: var(--space-sm);
+		display: flex;
+		flex-direction: column;
 	}
 
 	.dir-entry {
@@ -238,7 +265,29 @@
 		gap: var(--space-sm);
 		font-family: var(--font-mono);
 		font-size: 0.8rem;
-		padding: 0.1rem 0;
+		padding: 0.25rem 0.5rem;
+		border-radius: var(--radius-sm);
+		width: 100%;
+		text-align: left;
+		background: transparent;
+		border: none;
+		color: inherit;
+		cursor: default;
+	}
+
+	.dir-entry.interactive {
+		cursor: pointer;
+		transition: background var(--transition-fast), transform var(--transition-fast);
+	}
+
+	.dir-entry.interactive:hover {
+		background: rgba(255, 255, 255, 0.05);
+		transform: translateX(4px);
+	}
+
+	.dir-entry.interactive:active {
+		background: rgba(var(--color-primary-rgb), 0.2);
+		transform: translateX(2px);
 	}
 
 	.dir-type {
@@ -250,6 +299,12 @@
 		color: var(--color-primary);
 	}
 
+	.dir-name {
+		white-space: nowrap;
+		overflow: hidden;
+		text-overflow: ellipsis;
+	}
+
 	.dir-name.is-dir {
 		font-weight: 700;
 	}
@@ -257,6 +312,48 @@
 	.dir-size {
 		margin-left: auto;
 		opacity: 0.5;
+	}
+
+	/* Staging Banner */
+	.staging-banner {
+		margin: var(--space-sm) 0;
+		padding: var(--space-sm) var(--space-md);
+		background: linear-gradient(90deg, rgba(var(--color-primary-rgb), 0.15), transparent);
+		border-left: 3px solid var(--color-primary);
+		border-radius: var(--radius-sm);
+		display: flex;
+		flex-direction: column;
+		gap: 2px;
+	}
+
+	.banner-tag {
+		font-size: 0.65rem;
+		font-weight: 800;
+		letter-spacing: 0.1em;
+		color: var(--color-primary);
+		opacity: 0.8;
+	}
+
+	.staged-content {
+		display: flex;
+		align-items: baseline;
+		gap: var(--space-sm);
+		overflow: hidden;
+	}
+
+	.staged-cmd {
+		font-family: var(--font-mono);
+		font-size: 0.9rem;
+		color: var(--color-text-bright);
+		white-space: nowrap;
+	}
+
+	.staged-hint {
+		font-size: 0.75rem;
+		color: var(--color-text-dim);
+		white-space: nowrap;
+		overflow: hidden;
+		text-overflow: ellipsis;
 	}
 
 	/* Activity Listing */

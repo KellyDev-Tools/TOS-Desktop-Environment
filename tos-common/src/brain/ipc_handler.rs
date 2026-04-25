@@ -1081,7 +1081,16 @@ impl IpcHandler {
 
                 let matches: Vec<String> = indexed_hits
                     .iter()
-                    .map(|h| format!("{} [{}]", h.path, if h.is_dir { "DIR" } else { "FILE" }))
+                    .map(|h| {
+                        format!(
+                            "{} [{}]",
+                            h.path,
+                            match h.hit_type {
+                                crate::services::search::SearchHitType::Directory => "DIR",
+                                crate::services::search::SearchHitType::File => "FILE",
+                            }
+                        )
+                    })
                     .collect();
 
                 if let Some(ref mut results) = hub.search_results {
@@ -1117,7 +1126,16 @@ impl IpcHandler {
 
                 let matches: Vec<String> = indexed_hits
                     .iter()
-                    .map(|h| format!("{} [{}]", h.path, if h.is_dir { "DIR" } else { "FILE" }))
+                    .map(|h| {
+                        format!(
+                            "{} [{}]",
+                            h.path,
+                            match h.hit_type {
+                                crate::services::search::SearchHitType::Directory => "DIR",
+                                crate::services::search::SearchHitType::File => "FILE",
+                            }
+                        )
+                    })
                     .collect();
 
                 let semantic_result = crate::SearchResult {

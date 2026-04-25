@@ -13,10 +13,41 @@
 // ---------------------------------------------------------------------------
 import { test, expect } from '@playwright/test';
 
-// Mock boot function just to pass syntax check if missing
-const bootToCommandHub = async (page: any) => {
+async function bootToCommandHub(page: any) {
+    await page.addInitScript(() => {
+        window.localStorage.setItem('tos.onboarding.first_run_complete', 'true');
+        window.localStorage.setItem('tos.onboarding.wizard_complete', 'true');
+    });
+
     await page.goto('/');
-};
+
+    // Wait for Brain connection badge.
+    const status = page.locator('.status-badge', { hasText: /BRAIN/i });
+    await expect(status).toBeVisible({ timeout: 15000 });
+
+    // Skip cinematic intro overlay.
+    await page.keyboard.press('Escape');
+    await page.waitForTimeout(400);
+
+    // Skip onboarding overlay if it still appears.
+    const skipBtn = page.locator('button:has-text("SKIP TOUR")');
+    const skipVisible = await skipBtn.isVisible().catch(() => false);
+    if (skipVisible) await skipBtn.click();
+
+    // Wait for the Global Overview sector tile to appear, then click to zoom in.
+    const sectorTile = page.locator('.sector-tile').first();
+    await expect(sectorTile).toBeVisible({ timeout: 8000 });
+    await sectorTile.click();
+
+    // After clicking a sector tile we should be in Level 2 — wait for #cmd-input.
+    const cmdInput = page.locator('input#cmd-input');
+    await expect(cmdInput).toBeVisible({ timeout: 5000 });
+
+    // Ensure CMD prompt mode is active.
+    const cmdPill = page.locator('.pill-btn', { hasText: 'CMD' });
+    const cmdPillVisible = await cmdPill.isVisible().catch(() => false);
+    if (cmdPillVisible) await cmdPill.click();
+}
 
 test.describe('Shell Pipeline Execution', () => {
     test('should execute grep command in terminal', async ({ page }) => {

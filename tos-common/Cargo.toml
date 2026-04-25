@@ -34,7 +34,7 @@ mdns-sd = "0.18.2"
 lsp-types = "0.97.0"
 url = "2.5"
 crossbeam-channel = "0.5.15"
-rustls = "0.23.39"
+rustls = { version = "0.23.39", features = ["ring"] }
 tokio-rustls = "0.26.4"
 rcgen = "0.14.7"
 webrtc = "0.17.1"

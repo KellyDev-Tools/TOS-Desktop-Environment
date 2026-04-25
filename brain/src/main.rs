@@ -18,6 +18,12 @@ async fn main() -> anyhow::Result<()> {
         .with_env_filter(env_filter)
         .init();
 
+    // §12.1: Initialize rustls crypto provider manually to avoid ambiguity 
+    // when multiple providers (ring/aws-lc-rs) are enabled by transitive deps.
+    rustls::crypto::ring::default_provider()
+        .install_default()
+        .expect("Failed to install rustls crypto provider");
+
     let args: Vec<String> = env::args().collect();
     let _is_self_test = args.iter().any(|arg| arg == "--self-test");
     let _is_headless = args.iter().any(|arg| arg == "--headless");

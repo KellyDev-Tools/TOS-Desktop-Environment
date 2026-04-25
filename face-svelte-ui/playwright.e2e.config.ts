@@ -16,7 +16,13 @@ export default defineConfig({
     workers: 1,
 
     use: {
+        baseURL: 'http://127.0.0.1:4173',
         trace: 'retain-on-failure',
+        ignoreHTTPSErrors: true,
+        video: 'on-first-retry',
+        launchOptions: {
+            args: ['--ignore-certificate-errors']
+        }
     },
 
     webServer: {

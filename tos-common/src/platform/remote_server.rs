@@ -92,12 +92,15 @@ impl RemoteServer {
                     tracing::info!("[REMOTE_SERVER] WS Client connecting from {}", addr);
                     let h_server = ws_server.clone();
                     tokio::spawn(async move {
-                        if let Ok(tls_stream) = h_server.tls_acceptor().accept(socket).await {
-                            if let Err(e) = h_server.handle_ws_client(tls_stream, addr).await {
-                                tracing::error!("[REMOTE_SERVER] WS Client error ({}): {}", addr, e);
+                        match h_server.tls_acceptor().accept(socket).await {
+                            Ok(tls_stream) => {
+                                if let Err(e) = h_server.handle_ws_client(tls_stream, addr).await {
+                                    tracing::error!("[REMOTE_SERVER] WS Client error ({}): {}", addr, e);
+                                }
                             }
-                        } else {
-                            tracing::error!("[REMOTE_SERVER] WS TLS handshake failed ({})", addr);
+                            Err(e) => {
+                                tracing::error!("[REMOTE_SERVER] WS TLS handshake failed ({}): {}", addr, e);
+                            }
                         }
                     });
                 }
@@ -150,6 +153,7 @@ impl RemoteServer {
         let cert = generate_simple_self_signed(vec![
             "localhost".into(),
             "127.0.0.1".into(),
+            "[::1]".into(),
             "tos-brain.local".into(),
         ])?;
         let key = PrivateKeyDer::Pkcs8(cert.signing_key.serialize_der().into());

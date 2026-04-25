@@ -154,8 +154,8 @@ export interface TosState {
 export function getDefaultState(): TosState {
     return {
         current_level: 1,
-        sys_prefix: 'ALPHA-2.2 // INTEL-DRIVEN',
-        sys_title: 'AWAITING BRAIN LINK...',
+        sys_prefix: 'TOS // SYSTEM-BRAIN',
+        sys_title: 'BETA-0 // INTEL-DRIVEN',
         sys_status: 'BRAIN: DISCONNECTED',
         brain_time: '--:--:--',
         active_sector_index: 0,

@@ -7,25 +7,43 @@ use crate::services::registry::ServiceRegistry;
 use std::sync::{Arc, Mutex};
 use tokio::io::{AsyncBufReadExt, AsyncWriteExt, BufReader};
 
-#[derive(Clone, serde::Deserialize)]
+/// The type of a search result hit.
+#[derive(Clone, Copy, serde::Serialize, serde::Deserialize, Debug, PartialEq, Eq)]
+pub enum SearchHitType {
+    /// The hit is a file.
+    File,
+    /// The hit is a directory.
+    Directory,
+}
+
+/// A single search result from either exact or semantic search.
+#[derive(Clone, serde::Deserialize, Debug)]
 pub struct SearchHit {
+    /// The absolute path to the hit.
     pub path: String,
-    pub is_dir: bool,
+    /// Whether the hit is a file or directory.
+    pub hit_type: SearchHitType,
+    /// The relevance score (higher is better).
     pub score: f32,
 }
 
+/// Service for interacting with the TOS search daemon.
 pub struct SearchService {
     registry: Arc<Mutex<ServiceRegistry>>,
 }
 
 impl SearchService {
+    /// Create a new SearchService with the given service registry.
     pub fn new(registry: Arc<Mutex<ServiceRegistry>>) -> Self {
         Self { registry }
     }
 
     /// Perform a literal regex/substring search.
     pub fn query(&self, pattern: &str) -> Vec<SearchHit> {
-        let rt = tokio::runtime::Handle::current();
+        let rt = match tokio::runtime::Handle::try_current() {
+            Ok(h) => h,
+            Err(_) => return vec![], // Not in a tokio context
+        };
         rt.block_on(async move {
             self.remote_call("search", pattern)
                 .await
@@ -35,7 +53,10 @@ impl SearchService {
 
     /// Perform a semantic "vector" search.
     pub fn semantic_query(&self, prompt: &str) -> Vec<SearchHit> {
-        let rt = tokio::runtime::Handle::current();
+        let rt = match tokio::runtime::Handle::try_current() {
+            Ok(h) => h,
+            Err(_) => return vec![], // Not in a tokio context
+        };
         rt.block_on(async move {
             self.remote_call("semantic_search", prompt)
                 .await
@@ -45,7 +66,10 @@ impl SearchService {
 
     async fn remote_call(&self, cmd: &str, payload: &str) -> anyhow::Result<Vec<SearchHit>> {
         let port = {
-            let reg = self.registry.lock().unwrap();
+            let reg = self
+                .registry
+                .lock()
+                .map_err(|_| anyhow::anyhow!("Service registry mutex poisoned"))?;
             reg.port_of("tos-searchd")
         }
         .ok_or_else(|| anyhow::anyhow!("Search daemon not found"))?;

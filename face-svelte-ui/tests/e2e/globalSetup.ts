@@ -11,6 +11,15 @@ export default async function globalSetup() {
 
     const rootDir = path.resolve(__dirname, '../../..');
 
+    console.log('[E2E Setup] Initializing Auxiliary Daemons via Makefile...');
+    await new Promise<void>((resolve, reject) => {
+        const services = spawn('make', ['run-services'], { cwd: rootDir, stdio: 'inherit' });
+        services.on('close', (code) => {
+            if (code === 0) resolve();
+            else reject(new Error(`make run-services failed with code ${code}`));
+        });
+    });
+
     console.log('[E2E Setup] Compiling Brain daemon...');
     await new Promise<void>((resolve, reject) => {
         const build = spawn('cargo', ['build', '--bin', 'tos-brain'], { cwd: rootDir, stdio: 'inherit' });
@@ -40,8 +49,8 @@ export default async function globalSetup() {
 
         brainProcess.stdout?.on('data', (data) => {
             const str = data.toString();
-            // Wait for Brain's startup log
-            if (str.includes('[Brain]') || str.includes('Listening')) {
+            // Wait for Brain's startup log (case-insensitive check)
+            if (str.toLowerCase().includes('[brain]') || str.toLowerCase().includes('listening')) {
                 if (!resolved) {
                     resolved = true;
                     console.log('[E2E Setup] Brain is responding.');
@@ -71,6 +80,6 @@ export default async function globalSetup() {
                 resolved = true;
                 resolve();
             }
-        }, 3000);
+        }, 8000);
     });
 }

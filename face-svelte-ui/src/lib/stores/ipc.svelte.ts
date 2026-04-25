@@ -20,8 +20,8 @@ let reconnectTimer: ReturnType<typeof setTimeout> | null = null;
 
 let prediction = $state<string>('');
 let activeWsUrl = $state<string | null>(null);
-const DEFAULT_WS_HOST = typeof window !== 'undefined' ? window.location.hostname : '127.0.0.1';
-const DEFAULT_WS_URL = `ws://${DEFAULT_WS_HOST}:7001`;
+const DEFAULT_WS_HOST = '127.0.0.1';
+const DEFAULT_WS_URL = `wss://${DEFAULT_WS_HOST}:7001`;
 
 export function getPrediction(): string {
     return prediction;
@@ -127,7 +127,7 @@ export function sendCommand(cmd: string): Promise<string | null> {
                             }
                         });
                     }
-                    resolve(response);
+                    resolve(response);            
                 }
             };
             activeWs.addEventListener('message', handler);

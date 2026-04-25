@@ -1,6 +1,4 @@
-//! Integration tests for tos-searchd
-
-use tos_searchd::{SearchState};
+use tos_searchd::{SearchHitType, SearchState};
 use tempfile::tempdir;
 
 #[tokio::test]
@@ -19,15 +17,18 @@ async fn test_hybrid_search_logic() -> anyhow::Result<()> {
     // 3. Index the files
     state.index_file(&rust_file).await?;
     state.index_file(&market_file).await?;
+    state.commit()?;
 
     // 4. Verify Exact Search (Tantivy)
     let exact_rust = state.search("rust");
     assert!(!exact_rust.is_empty(), "Tantivy should find 'rust'");
     assert!(exact_rust[0].path.contains("rust_tutorial.md"));
+    assert_eq!(exact_rust[0].hit_type, SearchHitType::File);
 
     let exact_market = state.search("marketplace");
     assert!(!exact_market.is_empty(), "Tantivy should find 'marketplace'");
     assert!(exact_market[0].path.contains("market_spec.txt"));
+    assert_eq!(exact_market[0].hit_type, SearchHitType::File);
 
     // 5. Verify Semantic Search (Candle + HNSW)
     // Querying "building daemons in rust" should semantically match "rust_tutorial.md"
@@ -38,6 +39,7 @@ async fn test_hybrid_search_logic() -> anyhow::Result<()> {
     let top_hit = &semantic_services[0];
     assert!(top_hit.path.contains("rust_tutorial.md"), 
         "Semantic match failed. Top hit: {}", top_hit.path);
+    assert_eq!(top_hit.hit_type, SearchHitType::File);
 
     Ok(())
 }

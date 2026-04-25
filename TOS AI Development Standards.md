@@ -6,7 +6,7 @@ Rules for any AI agent working in this codebase. This document covers **how** to
 
 ## 1. Use the Makefile
 
-The top-level `Makefile` is the single source of truth for building, testing, and running TOS. AI agents must use it instead of running raw `cargo`, `npm`, or `npx` commands directly.
+The top-level `Makefile` is the single source of truth for building, testing, and running TOS during development. AI agents must use it instead of running raw `cargo`, `npm`, or `npx` commands directly.
 
 **Key targets:**
 
@@ -31,7 +31,7 @@ Run `make help` for the full list.
 
 ## 2. Testing Requirements
 
-Every task must include tests at **all applicable tiers** before it is considered complete.
+You must create new tests for every feature or bug fix. Every task must include tests at **all applicable tiers** covering the new behavior before it is considered complete.
 
 ### 2.1 Test Tiers
 

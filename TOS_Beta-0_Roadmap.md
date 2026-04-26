@@ -265,7 +265,7 @@
 |---|---|---|---|
 | Path completion chips | §31.1 | ✅ | `tos-heuristicd` generates path source chips |
 | Parameter hint chips | §31.1 | ✅ | Known-command logic for git, docker, npm, cargo, apt |
-| Command history echo | §31.1 | ❌ | No history chip system |
+| Command history chips | §31.1 | ✅ | MRU history storage and echo chips implemented |
 | Typo correction chips | §31.2 | ✅ | Levenshtein-based correction in `tos-heuristicd` |
 | Focus Error chip | §31.4 | ✅ | Level 3 tagging for error keywords in PTY loop |
 | Notification Display Center | §31.5 | ✅ | Priority-gated stack in `PriorityStack.svelte` |

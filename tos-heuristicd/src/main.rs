@@ -14,6 +14,8 @@ use tokio::net::{TcpListener, TcpStream};
 struct HeuristicState {
     /// Cached common commands for typo matching.
     command_history: Vec<String>,
+    /// Recently executed commands for history echo.
+    recent_commands: Vec<String>,
     /// Common parameters for known commands.
     parameter_hints: HashMap<String, Vec<String>>,
 }
@@ -38,6 +40,7 @@ impl HeuristicState {
                 "apt".to_string(),
                 "systemctl".to_string(),
             ],
+            recent_commands: Vec::new(),
             parameter_hints: {
                 let mut m = HashMap::new();
                 m.insert("git".to_string(), vec!["status".to_string(), "add".to_string(), "commit".to_string(), "push".to_string(), "pull".to_string(), "checkout".to_string(), "branch".to_string(), "diff".to_string(), "log".to_string(), "rebase".to_string()]);
@@ -112,6 +115,21 @@ async fn handle_client(socket: TcpStream, state: Arc<Mutex<HeuristicState>>) -> 
                     serde_json::to_string(&results).unwrap_or_else(|_| "[]".to_string())
                 }
             }
+            "history_append" => {
+                let mut lock = state.lock().unwrap();
+                let cmd = payload.trim().to_string();
+                if !cmd.is_empty() {
+                    // Remove if exists to move to end (MRU)
+                    if let Some(pos) = lock.recent_commands.iter().position(|x| x == &cmd) {
+                        lock.recent_commands.remove(pos);
+                    }
+                    lock.recent_commands.push(cmd);
+                    if lock.recent_commands.len() > 50 {
+                        lock.recent_commands.remove(0);
+                    }
+                }
+                "OK".to_string()
+            }
             "ping" => "pong".to_string(),
             _ => "ERROR: Unknown command".to_string(),
         };
@@ -139,22 +157,39 @@ fn generate_suggestions(
     let mut suggestions = Vec::new();
 
     // 1. Path Completion
-    let cwd = PathBuf::from(cwd_str);
-    if let Ok(entries) = std::fs::read_dir(&cwd) {
-        for entry in entries.flatten() {
-            if let Some(name) = entry.file_name().to_str() {
-                if name.starts_with(keyword) {
-                    suggestions.push(Suggestion {
-                        text: name.to_string(),
-                        score: 0.9,
-                        source: "Path".to_string(),
-                    });
+    if !keyword.contains(' ') {
+        let cwd = PathBuf::from(cwd_str);
+        if let Ok(entries) = std::fs::read_dir(&cwd) {
+            for entry in entries.flatten() {
+                if let Some(name) = entry.file_name().to_str() {
+                    if name.starts_with(keyword) {
+                        suggestions.push(Suggestion {
+                            text: name.to_string(),
+                            score: 0.9,
+                            source: "Path".to_string(),
+                        });
+                    }
                 }
             }
         }
     }
 
-    // 2. Command Typo Correction
+    // 2. Command History Echo
+    {
+        let lock = state.lock().unwrap();
+        // Show in reverse (most recent first)
+        for cmd in lock.recent_commands.iter().rev() {
+            if cmd.starts_with(keyword) && cmd != keyword {
+                suggestions.push(Suggestion {
+                    text: cmd.clone(),
+                    score: 0.95,
+                    source: "History".to_string(),
+                });
+            }
+        }
+    }
+
+    // 3. Command Typo Correction
     {
         let lock = state.lock().unwrap();
         for cmd in &lock.command_history {

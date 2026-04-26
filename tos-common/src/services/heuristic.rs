@@ -36,4 +36,21 @@ impl HeuristicService {
 
         Ok(response.trim().to_string())
     }
+
+    /// Record a command to the history for future suggestions.
+    pub async fn record_history(&self, command: &str) -> anyhow::Result<()> {
+        let port = {
+            let reg = self.registry.lock().unwrap();
+            reg.port_of("tos-heuristicd")
+        }
+        .ok_or_else(|| anyhow::anyhow!("Heuristic service not registered"))?;
+
+        let addr = format!("127.0.0.1:{}", port);
+        let mut stream = tokio::net::TcpStream::connect(addr).await?;
+
+        let request = format!("history_append:{}\n", command);
+        stream.write_all(request.as_bytes()).await?;
+        
+        Ok(())
+    }
 }

@@ -441,6 +441,14 @@ impl IpcHandler {
                 timestamp: chrono::Local::now(),
             });
             state.version += 1;
+            
+            // Record to history
+            let heuristic = self.services.heuristic.clone();
+            let cmd_clone = cmd.to_string();
+            tokio::spawn(async move {
+                let _ = heuristic.record_history(&cmd_clone).await;
+            });
+
             return result;
         }
 
@@ -573,6 +581,13 @@ impl IpcHandler {
             }
             return msg;
         }
+        // Record to history
+        let heuristic = self.services.heuristic.clone();
+        let cmd_clone = cmd.to_string();
+        tokio::spawn(async move {
+            let _ = heuristic.record_history(&cmd_clone).await;
+        });
+
         "SUBMITTED".to_string()
     }
 

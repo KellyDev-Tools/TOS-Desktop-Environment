@@ -46,4 +46,4 @@ pub use shell::{OscEvent, OscParser};
 pub use keybindings::{KeyCombo, Keybinding, KeybindingMap};
 #[cfg(feature = "test-utils")]
 pub use daemon::MockBrain;
-pub use daemon::{register_with_brain, log_to_brain};
+pub use daemon::{register_with_brain, log_to_brain, install_crash_handler};

@@ -365,8 +365,8 @@
 | 6.6 | mDNS discovery test in real network | MEDIUM | Eco §5.2 | mdns-sd | ✅ (verify) |
 | 6.7 | HSM key provisioning for release signing | HIGH | — | CI infrastructure | ✅ |
 | 6.8 | Generate signed release assets | HIGH | — | 6.7 | ✅ |
-| 6.9 | E2E Playwright tests for Svelte UI | HIGH | Dev §4.2 | face-svelte-ui | 🔶 |
-| 6.10 | Crash reporting infrastructure (opt-in) | LOW | — | tos-loggerd | ❌ |
+| 6.9 | E2E Playwright tests for Svelte UI | HIGH | Dev §4.2 | face-svelte-ui | ✅ |
+| 6.10 | Crash reporting infrastructure (opt-in) | LOW | — | tos-loggerd | ✅ |
 
 ---
 

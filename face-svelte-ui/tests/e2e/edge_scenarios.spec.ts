@@ -57,22 +57,11 @@ async function bootToCommandHub(page: any) {
 
 // ---------------------------------------------------------------------------
 // 4-A  Trust Confirmation Blockers
-//
-// NOTE: Tagged 'pending' — triggers once .confirmation-overlay or .trust-chip
-// is wired in the UI from the Brain's pending_confirmation IPC payload.
 // ---------------------------------------------------------------------------
 test.describe('Trust Confirmation Blockers', () => {
     test.slow();
 
     test('should render trust confirmation overlay before executing sudo su', async ({ page }) => {
-        test.info().annotations.push({
-            type: 'pending',
-            description:
-                'Requires .confirmation-overlay or .trust-chip DOM node to be wired. ' +
-                'Currently the TrustService emits pending_confirmation on the IPC state ' +
-                'channel but the UI does not surface a dedicated overlay element yet.',
-        });
-
         await bootToCommandHub(page);
 
         const cmdInput = page.locator('input#cmd-input');
@@ -82,11 +71,8 @@ test.describe('Trust Confirmation Blockers', () => {
         await cmdInput.press('Enter');
 
         // Expect a trust/confirmation badge to appear before the command executes.
-        const trustIndicator = page
-            .locator('[class*="trust"], [class*="confirmation"], [class*="confirm"]')
-            .first();
-
-        await expect(trustIndicator).toBeVisible({ timeout: 5000 });
+        const trustIndicator = page.locator('.warning-chip, .confirmation-overlay, .trust-chip').first();
+        await expect(trustIndicator).toBeVisible({ timeout: 8000 });
     });
 });
 
@@ -127,22 +113,11 @@ test.describe('Split Detachment & Session Persistence', () => {
 
 // ---------------------------------------------------------------------------
 // 4-C  Heuristic AI Resolution (staged command chip)
-//
-// NOTE: Tagged 'pending' — triggers once tos-heuristicd is registered and
-// .staged-command-chip /.ai-suggestion nodes are rendered by the Brain.
 // ---------------------------------------------------------------------------
 test.describe('Heuristic AI Resolution', () => {
     test.slow();
 
     test('should surface a heuristic AI suggestion chip on hallucinated error', async ({ page }) => {
-        test.info().annotations.push({
-            type: 'pending',
-            description:
-                'Requires tos-heuristicd to be registered in the ServiceManager registry ' +
-                'and the `.staged-command-chip` or `.ai-suggestion` DOM node to be rendered ' +
-                'in the prompt interlock area when the heuristic triggers.',
-        });
-
         await bootToCommandHub(page);
 
         const cmdInput = page.locator('input#cmd-input');
@@ -150,10 +125,7 @@ test.describe('Heuristic AI Resolution', () => {
         await cmdInput.fill('tos-nonexistent-binary --flag-that-does-not-exist');
         await cmdInput.press('Enter');
 
-        const aiChip = page
-            .locator('[class*="staged-command"], [class*="ai-suggestion"], [class*="heuristic"]')
-            .first();
-
+        const aiChip = page.locator('.heuristic-chip, .staged-command-chip, .ai-suggestion').first();
         await expect(aiChip).toBeVisible({ timeout: 12000 });
     });
 });

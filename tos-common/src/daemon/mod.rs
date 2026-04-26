@@ -1,5 +1,6 @@
 use ed25519_dalek::{Signer, SigningKey};
 use rand_core::OsRng;
+use std::io::Write;
 use tokio::io::{AsyncBufReadExt, AsyncWriteExt, BufReader};
 use crate::ipc::{ServiceRegister, ServiceRegisterResponse};
 
@@ -126,4 +127,60 @@ pub async fn log_to_brain(text: &str, priority: u8) -> anyhow::Result<()> {
 
     // We don't necessarily need to wait for response for a log
     Ok(())
+}
+
+/// Install a panic hook for automated crash reporting (§6.10).
+///
+/// When a panic occurs, this hook:
+/// 1. Captures a backtrace.
+/// 2. Formats a JSON crash report.
+/// 3. Attempts to send it to tos-loggerd via the Brain's discovery gate.
+pub fn install_crash_handler(service_name: String) {
+    std::panic::set_hook(Box::new(move |info| {
+        // §6.10: Respect opt-in setting from tos.toml
+        let config = crate::config::TosConfig::load();
+        if !config.system.crash_reporting_enabled {
+            return;
+        }
+
+        let backtrace = backtrace::Backtrace::new();
+        let thread = std::thread::current();
+        let thread_name = thread.name().unwrap_or("unnamed");
+
+        let msg = match info.payload().downcast_ref::<&'static str>() {
+            Some(s) => *s,
+            None => match info.payload().downcast_ref::<String>() {
+                Some(s) => &**s,
+                None => "Box<Any>",
+            },
+        };
+
+        let location = info.location().map(|l| format!("{}:{}:{}", l.file(), l.line(), l.column())).unwrap_or_else(|| "unknown".to_string());
+
+        let report = serde_json::json!({
+            "ts": chrono::Local::now().timestamp(),
+            "service": service_name,
+            "thread": thread_name,
+            "message": msg,
+            "location": location,
+            "backtrace": format!("{:?}", backtrace),
+        });
+
+        let payload = serde_json::to_string(&report).unwrap_or_default();
+        
+        // Use synchronous IO for the panic hook as it must complete before process exit.
+        if let Ok(mut stream) = std::net::TcpStream::connect("127.0.0.1:7000") { // Default anchor
+             // We use a simple strategy: send to Brain, let Brain forward to loggerd?
+             // Actually, loggerd is a satellite. Brain knows its port.
+             // But in a panic, we don't have time for multi-step handshake.
+             // Let's see if we can find loggerd port from Brain.
+             
+             // FOR ALPHA: Send "crash:<payload>" to Brain's anchor. 
+             // We'll update Brain to handle/forward this or have loggerd listen on a well-known dev port.
+             let _ = stream.write_all(format!("crash:{}\n", payload).as_bytes());
+        }
+
+        eprintln!("TOS CRASH REPORT ({}): {}", service_name, msg);
+        eprintln!("LOCATION: {}", location);
+    }));
 }

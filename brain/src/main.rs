@@ -18,6 +18,8 @@ async fn main() -> anyhow::Result<()> {
         .with_env_filter(env_filter)
         .init();
 
+    tos_common::install_crash_handler("tos-brain".to_string());
+
     // §12.1: Initialize rustls crypto provider manually to avoid ambiguity 
     // when multiple providers (ring/aws-lc-rs) are enabled by transitive deps.
     rustls::crypto::ring::default_provider()

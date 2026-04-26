@@ -22,6 +22,7 @@ struct QueryRequest {
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
     tracing_subscriber::fmt::init();
+    tos_common::install_crash_handler("tos-loggerd".to_string());
 
     // Bind to ephemeral port for dynamic registration (§4.1)
     let listener = TcpListener::bind("0.0.0.0:0").await?;
@@ -41,6 +42,9 @@ async fn main() -> anyhow::Result<()> {
 
     tracing::info!("TOS-LOGGERD: Operational on port {}", port);
     tracing::info!("TOS-LOGGERD: Storage: {:?}", log_path);
+ 
+    let crash_path = log_path.parent().unwrap().join("crashes.jsonl");
+    tracing::info!("TOS-LOGGERD: Crash Dumps: {:?}", crash_path);
 
     loop {
         let (socket, _) = listener.accept().await?;
@@ -145,6 +149,29 @@ async fn handle_client(mut socket: TcpStream, log_path: std::path::PathBuf) -> a
                     }
                     Err(e) => format!("ERROR: Invalid JSON: {}", e),
                 }
+            }
+            "crash" => {
+                // Automated crash dump collection (§6.10)
+                let crash_path = log_path.parent().unwrap().join("crashes.jsonl");
+                if let Ok(mut file) = OpenOptions::new().create(true).append(true).open(&crash_path) {
+                    let _ = writeln!(file, "{}", payload);
+                }
+                
+                // Also log to system log as CRITICAL
+                let record = LogRecord {
+                    ts: Local::now().timestamp(),
+                    level: "3".to_string(), // CRITICAL
+                    source: "system".to_string(),
+                    event: "crash".to_string(),
+                    data: format!("CRASH REPORT RECEIVED: {}", payload),
+                };
+                let json_entry = serde_json::to_string(&record).unwrap_or_default();
+                if let Ok(mut file) = OpenOptions::new().create(true).append(true).open(&log_path) {
+                    let _ = writeln!(file, "{}", json_entry);
+                }
+
+                tracing::error!("CRASH REPORT RECEIVED: {}", payload);
+                "OK".to_string()
             }
             "query" => {
                 let req: QueryRequest = match serde_json::from_str(payload) {

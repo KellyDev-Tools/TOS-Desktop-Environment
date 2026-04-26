@@ -10,6 +10,7 @@
 //! The config is divided into three conceptual layers:
 //! - **Platform:** Filesystem base paths that vary per target (Linux, Android, XR).
 //! - **Local:** Direct-persistence settings for single-machine operation.
+//! - **System:** Low-level OS integration (crash reporting, telemetry).
 //! - **Remote:** Network binding, daemon delegation, and multi-Face coordination.
 
 use std::path::PathBuf;
@@ -243,6 +244,30 @@ impl SettingsConfig {
 }
 
 // ──────────────────────────────────────────────────────────────────────────
+// System — OS integration
+// ──────────────────────────────────────────────────────────────────────────
+ 
+/// Low-level system integration settings.
+#[derive(Debug, Clone, serde::Deserialize)]
+pub struct SystemConfig {
+    /// If true, panics generate automated crash reports sent to the Brain.
+    #[serde(default = "default_false")]
+    pub crash_reporting_enabled: bool,
+}
+
+fn default_false() -> bool {
+    false
+}
+
+impl Default for SystemConfig {
+    fn default() -> Self {
+        Self {
+            crash_reporting_enabled: false,
+        }
+    }
+}
+
+// ──────────────────────────────────────────────────────────────────────────
 // Brain — identity of this Brain instance
 // ──────────────────────────────────────────────────────────────────────────
 
@@ -348,6 +373,8 @@ pub struct TosConfig {
     pub session: SessionConfig,
     #[serde(default)]
     pub settings: SettingsConfig,
+    #[serde(default)]
+    pub system: SystemConfig,
 }
 
 

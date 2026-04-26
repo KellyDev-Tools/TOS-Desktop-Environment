@@ -38,3 +38,6 @@ debounce_ms = 2000
 [settings]
 settings_path = ""
 daemon_port = 7002
+
+[system]
+crash_reporting_enabled = true

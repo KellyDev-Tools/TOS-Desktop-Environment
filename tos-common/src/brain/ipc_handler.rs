@@ -428,6 +428,20 @@ impl IpcHandler {
             return "ERROR: Empty command".to_string();
         }
 
+        // §6.9: Intercept built-in commands from the prompt
+        let builtins = ["session_handoff_prepare", "tos_ports", "system_reset"];
+        if builtins.contains(&cmd) {
+            let result = self.handle_request(cmd);
+            let mut state = self.state.lock().unwrap();
+            state.system_log.push(crate::TerminalLine {
+                text: format!("[SYSTEM] {} -> {}", cmd, result),
+                priority: 2,
+                timestamp: chrono::Local::now(),
+            });
+            state.version += 1;
+            return result;
+        }
+
         // Non-blocking Trust Chip Emission
         // Classify the command and push a warning chip to system_log if needed.
         // This does NOT block or delay PTY submission.

@@ -11,23 +11,65 @@ export default async function globalSetup() {
 
     const rootDir = path.resolve(__dirname, '../../..');
 
-    console.log('[E2E Setup] Initializing Auxiliary Daemons via Makefile...');
-    await new Promise<void>((resolve, reject) => {
-        const services = spawn('make', ['run-services'], { cwd: rootDir, stdio: 'inherit' });
-        services.on('close', (code) => {
-            if (code === 0) resolve();
-            else reject(new Error(`make run-services failed with code ${code}`));
-        });
+    console.log('[E2E Setup] Cleaning up existing TOS processes...');
+    await new Promise<void>((resolve) => {
+        const cleanup = spawn('pkill', ['-9', 'tos-'], { stdio: 'inherit' });
+        cleanup.on('close', () => resolve());
     });
 
-    console.log('[E2E Setup] Compiling Brain daemon...');
-    await new Promise<void>((resolve, reject) => {
-        const build = spawn('cargo', ['build', '--bin', 'tos-brain'], { cwd: rootDir, stdio: 'inherit' });
-        build.on('close', (code) => {
-            if (code === 0) resolve();
-            else reject(new Error(`Cargo build failed with code ${code}`));
+
+    const sentinelFile = path.join(rootDir, '.e2e_ready');
+    const logsDir = path.join(rootDir, 'logs');
+    if (!fs.existsSync(logsDir)) fs.mkdirSync(logsDir);
+
+    if (fs.existsSync(sentinelFile)) {
+        console.log('[E2E Setup] Environment marked as READY via sentinel. Skipping heavy build phase.');
+        console.log('[E2E Setup] Spawning Auxiliary Daemons (pre-compiled)...');
+        
+        const daemons = [
+            'tos-settingsd',
+            'tos-loggerd',
+            'tos-marketplaced',
+            'tos-priorityd',
+            'tos-sessiond',
+            'tos-heuristicd',
+            'tos-searchd'
+        ];
+
+        for (const daemon of daemons) {
+            const bin = path.join(rootDir, 'target/debug', daemon);
+            if (fs.existsSync(bin)) {
+                const logStream = fs.createWriteStream(path.join(logsDir, `${daemon}.log`));
+                const proc = spawn(bin, [], { 
+                    cwd: rootDir, 
+                    stdio: ['ignore', logStream, logStream],
+                    detached: true 
+                });
+                proc.unref();
+            } else {
+                console.warn(`[E2E Setup] Daemon binary not found: ${bin}`);
+            }
+        }
+    } else {
+        console.log('[E2E Setup] Initializing Auxiliary Daemons via Makefile...');
+        // Run make run-services which builds and spawns all daemons.
+        // We'll wait for it to finish its build phase.
+        await new Promise<void>((resolve, reject) => {
+            const services = spawn('make', ['run-services'], { cwd: rootDir, stdio: 'inherit' });
+            services.on('close', (code) => {
+                if (code === 0) resolve();
+                else reject(new Error(`make run-services failed with code ${code}`));
+            });
         });
-    });
+    }
+
+    // Removed redundant cargo build for tos-brain here as make run-services already handles it.
+ 
+    // Cleanup existing session data for a truly fresh start
+    const sessionDir = path.join(process.env.HOME || '/root', '.local/share/tos/sessions');
+    if (fs.existsSync(sessionDir)) {
+        fs.readdirSync(sessionDir).forEach(f => fs.unlinkSync(path.join(sessionDir, f)));
+    }
 
     console.log('[E2E Setup] Spawning Brain headless daemon directly...');
 

@@ -2,6 +2,8 @@
 
 **Purpose:** Everything a contributor needs to build, test, and extend TOS — covering project structure, development workflow, the third-party SDK, TDD protocols, and cross-system dependency constraints.
 
+**Version:** 0.1
+
 ---
 
 ## Table of Contents
@@ -11,7 +13,7 @@
 3. [Third-Party Module SDK](#3-third-party-module-sdk)
 4. [Testing Strategy & TDD Protocols](#4-testing-strategy--tdd-protocols)
 5. [Cross-System Dependencies Map](#5-cross-system-dependencies-map)
-6. [Agent Personas & Workflow Extension](#6-agent-personas--workflow-extension)
+6. [Cortex Agent Stacking](#6-cortex-agent-stacking)
 
 ---
 
@@ -59,12 +61,13 @@
 | **Log Daemon** | `tos-loggerd` | Ephemeral | TCP | Unified system logging |
 | **Marketplace** | `tos-marketplaced` | Ephemeral | TCP | Module discovery & verification |
 | **Priority Engine** | `tos-priorityd` | Ephemeral | TCP | Tactical priority scoring |
-| **Session Service** | `tos-sessiond` | Ephemeral | TCP | Session persistence, workspace memory, and offline AI queue |
+| **Session Service** | `tos-sessiond` | Ephemeral | TCP | Session persistence and workspace memory |
+| **Cortex Service** | `tos-cortex` | Ephemeral | TCP | Orchestrates Assistants, Curators, and Agents |
 | **Web Face** | `svelte_ui/` | Ephemeral | HTTP | Svelte 5 LCARS interface |
 
 **Editor & LSP:** The TOS Editor runs as a pane type within the Web Face — it is not a separate daemon. LSP servers are spawned on-demand by the Face when a `.tos-language` module is active and a matching file is opened. LSP server processes are owned by the sector's process tree and terminated when the sector closes.
 
-To view actual live port assignments, use `tos ports` (queries the Brain's registry). See the [Ecosystem Specification §4](./TOS_beta-0_Ecosystem.md) for the full registration and discovery protocol.
+To view actual live port assignments, use `tos ports` (queries the Brain's registry). See the [Ecosystem Specification §4](./TOS_v0.1_Ecosystem.md) for the full registration and discovery protocol.
 
 ---
 
@@ -92,7 +95,7 @@ Starts the Vite dev server (with HMR) alongside the Brain. Changes to `.svelte` 
 
 Other web targets:
 - `make build-web` — Build the Svelte Face only
-- `make dev-web` — Start the Svelte dev server only (no Brain). Sets `TOS_DEV_MODE=1` so the Face loads mock state fixtures instead of entering the No Brain connection screen. See [Architecture §3.4.9](../spec/TOS_beta-0_Architecture.md#349-developer-mode-make-dev-web) for details.
+- `make dev-web` — Start the Svelte dev server only (no Brain). Sets `TOS_DEV_MODE=1` so the Face loads mock state fixtures instead of entering the No Brain connection screen. See [Architecture §3.4.9](../spec/TOS_v0.1_Architecture.md#349-developer-mode-make-dev-web) for details.
 
 #### Manual Component Launch
 
@@ -143,7 +146,7 @@ TOS_HEADLESS=1 cargo run --bin tos-brain
 2. Brain binds to anchor port 7000 and advertises via mDNS.
 3. Face (Web or Remote) connects and receives state updates and buffer streams.
 
-See [Architecture §15.6](../spec/TOS_beta-0_Architecture.md#156-renderer-mode-detection--fallback) for technical details.
+See [Architecture §15.6](../spec/TOS_v0.1_Architecture.md#156-renderer-mode-detection--fallback) for technical details.
 
 ### 2.3 Building & Checking
 
@@ -204,7 +207,7 @@ remote Face          → connects to 192.168.1.5:7000 → sends get_port_map
                      → receives full service map → upgrades to WS on port 52314
 ```
 
-See [Ecosystem Specification §4](./TOS_beta-0_Ecosystem.md) for the full registration protocol, health monitoring, and remote discovery details.
+See [Ecosystem Specification §4](./TOS_v0.1_Ecosystem.md) for the full registration protocol, health monitoring, and remote discovery details.
 
 ### 2.7 Resources & Templates
 
@@ -587,219 +590,61 @@ To safely navigate these blockers, development MUST proceed in this order:
 
 **Session Handoff** (Features §2.10)
 - **Blocks [HANDOFF]:** Cross-device handoff requires the `face_register` capability profile (Architecture §3.3.5) to be implemented first — the Brain must know the connecting Face profile before it can serve the appropriate session context.
-## 6. Agent Personas & Workflow Extension
+## 6. Cortex Agent Stacking
 
-This section covers how to build custom agent personas, extend the Roadmap Skill, and integrate workflows with external systems.
+Behavior in TOS is now defined through **stackable Agents** (`.tos-agent`). Instead of selecting a single persona, you compose a set of agents whose instructions are merged into a hierarchical prompt. This *agent stacking* is the primary method for behavior modification; single‑agent overrides are deprecated.
 
-### 6.1 Creating a Custom Agent Persona
+### 6.1 Agent Manifest & Stacking
 
-Agent personas are markdown files stored in `~/.local/share/tos/personas/` (local install) or `modules/personas/` within the source tree for development and deployment. Any markdown file in these locations is automatically discoverable.
+Each Agent manifest contains three layers:
 
-**Minimal persona:**
+- **Identity Layer** – Core persona and role.
+- **Constraint Layer** – Security, logic guardrails (“Always run `cargo check` before committing”).
+- **Efficiency Layer** – Formatting and style constraints (“LCARS‑concise output”).
 
-```markdown
-# Agent Persona: my_agent
-
-## Identity
-- **Name:** my_agent
-- **Role:** [your description]
-
-## Core Strategies
-
-### Strategy 1 Name
-- **Rule:** [What the agent should do]
-- **Implementation:** [How to do it]
-
-### Strategy 2 Name
-- **Rule:** [...]
-- **Implementation:** [...]
-
-## Tool Bundle
-- read_file, write_file, exec_cmd, ...
-
-## Backend Preference
-- **Preferred:** [local_ollama / openai_gpt4 / ...]
-- **Fallback:** [...]
-```
-
-When an LLM decomposes a task using `my_agent`, it reads this markdown and follows the strategies.
-
-### 6.2 Learned Patterns Storage
-
-As an agent executes tasks, it learns patterns:
-
-```json
-{
-  "problem_type_your_domain": {
-    "count": 3,
-    "successful_approaches": [
-      {
-        "problem": "Description of problem",
-        "solution_path": "step1 → step2 → step3",
-        "success_rate": 1.0,
-        "avg_steps": 5
-      }
-    ]
-  }
-}
-```
-
-Stored in: `~/.local/share/tos/personas/<agent_id>/patterns.json`
-
-Future task decompositions include these patterns as few-shot examples, improving accuracy.
-
-### 6.3 Extending Roadmap Planning
-
-The `roadmap_planner` skill can be extended for custom sources:
+When multiple Agents are active, the Cortex concatenates their layers in order, producing a single system prompt. For example:
 
 ```toml
-# marketplace-extension: jira_roadmap_planner
+# careful-bot.tos-agent
+[prompt]
+identity = "You are a meticulous Rust developer."
+constraints = ["Run `cargo test` after every file change."]
+efficiency = ["Keep responses under 200 words."]
 
-name = "Jira Roadmap Planner"
-version = "1.0.0"
-type = "skill"
-role = "planner"
-description = "Generate tasks from Jira issues"
-
-[capabilities]
-interaction_surface = "thought_bubble"
-trigger = "manual"
-
-[tool_bundle]
-allowed_tools = [
-  "read_jira_issue",
-  "create_task",
-  "assign_agent"
-]
-
-[permissions]
-network = true
+# security-auditor.tos-agent
+[prompt]
+identity = "You are a security reviewer."
+constraints = ["Flag any use of `unsafe`."]
+efficiency = []
 ```
 
-When user says: "Plan v0.5 from Jira", the skill:
-- Fetches issues from Jira API
-- Maps fields to `.tos-task` format
-- Creates tasks in kanban board
+If both are active, the final system prompt becomes:
 
-### 6.4 Workflow Task Format (.tos-task)
-
-Tasks are YAML files defining discrete work:
-
-```yaml
-version: "1.0"
-roadmap_id: "v0.5"
-roadmap_name: "My Sprint"
-
-tasks:
-  - id: "task_001"
-    title: "Fix bug #123"
-    description: |
-      Detailed description of the bug.
-      What needs to be done.
-    source: "github://org/repo/issues/123"
-    depends_on: ["task_000"]
-    tags: ["bug", "backend"]
-    acceptance_criteria:
-      - "Bug is fixed"
-      - "Tests pass"
-      - "Code reviewed"
+```
+You are a meticulous Rust developer. You are a security reviewer.
+Always follow these rules:
+- Run `cargo test` after every file change.
+- Flag any use of `unsafe`.
+Formatting:
+- Keep responses under 200 words.
 ```
 
-Custom tools can generate `.tos-task` files from any source (GitHub, Jira, manual input, etc.).
+### 6.2 Development Workflow
 
-### 6.5 LLM History Archive Format
+Agents are loaded from `~/.local/share/tos/cortex/`. To create a new agent:
 
-Every task's execution is archived for learning:
+1. Write a `.tos-agent` manifest as described above.
+2. Place it in `cortex/pending/`.
+3. Use the Settings UI to review and configure any required `[config_schema]` fields.
+4. Activate it; the Brain moves it to `cortex/active/` and reloads the agent stack.
 
-```json
-{
-  "task_id": "task_001",
-  "llm_history": {
-    "initial_decomposition": {
-      "timestamp": "2025-04-04T10:22:00Z",
-      "request": {
-        "task_title": "...",
-        "task_description": "...",
-        "persona_md": "[full persona markdown]",
-        "codebase_context": { ... }
-      },
-      "response": {
-        "reasoning": "...",
-        "steps": [ ... ]
-      }
-    },
-    "step_interactions": [
-      {
-        "step_id": "step_1",
-        "executed_at": "...",
-        "command_executed": "...",
-        "command_output": "...",
-        "agent_response": "..."
-      }
-    ]
-  }
-}
-```
+### 6.3 IPC & Tool Use
 
-This archive is used to:
-- Resume incomplete tasks with full context
-- Generate learned patterns
-- Train future agents on successful decompositions
-- Audit decision-making
+Agents use the same Brain Tool Registry (see Ecosystem §1.4.3, now under §1.3.3). All tool calls are routed through the trust chip system. The Cortex enforces that only tools declared in the agent’s `[allowed_tools]` are accessible.
 
-### 6.6 Project Memory Synthesis
+### 6.4 Deprecation
 
-The `dream consolidate` process reads completed task archives and generates:
-
-```markdown
-# Project Memory: [project_name]
-
-## 🎯 Quick Patterns
-- Pattern 1: problem → solution
-- Pattern 2: ...
-
-## 📚 Completed Tasks Index
-- Task 1: description + decomposition + result
-- Task 2: ...
-
-## 🔗 Cross-Task Dependencies
-- How tasks relate
-- Which approaches worked together
-
-## 💡 Emergent Recommendations
-- Lessons learned
-- Best practices discovered
-
-## 📊 Project Statistics
-- Total tasks, duration, agents used, success rate, etc.
-```
-
-Custom synthesis strategies can be provided via marketplace skills.
-
-### 6.7 IPC Contracts for Agents
-
-Agents communicate with the Brain via IPC:
-
-**Start task decomposition:**
-```json
-{
-  "method": "workflow_agent_start",
-  "params": {
-    "task_id": "task_001",
-    "agent_id": "careful_bot"
-  }
-}
-```
-
-**Advance to next step:**
-```json
-{
-  "method": "workflow_agent_step_next",
-  "params": {
-    "task_id": "task_001",
-    "agent_id": "careful_bot"
-  }
-}
+The previous `.tos-persona` format and the monolithic AI behavior modules (`.tos-aibehavior`, `.tos-skill`) are superseded by `.tos-agent` and agent stacking. Existing persona markdown files can be migrated by extracting the strategies into the new agent manifest layers.
 ```
 
 See Architecture §30.8 for complete IPC contract specification.

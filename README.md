@@ -1,8 +1,8 @@
-# TOS // BETA-0
+# TOS // v0.1
 
 **Terminal On Steroids** for the spatial and tabletop computing era.
 
-Beta-0 marks the transition to a dynamic, registry-driven architecture for the TOS Brain and its ecosystem of satellite daemons.
+v0.1 marks the transition to a dynamic, registry-driven architecture for the TOS Brain and its ecosystem of satellite daemons.
 
 ## Architecture Highlights
 - **Modular Face Architecture**: Platform-specific layers are decoupled into independent `face-*` crates (Wayland, Android, Svelte, Electron).

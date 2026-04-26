@@ -2,6 +2,8 @@
 
 **Purpose:** This document is the single source of truth for the architecture and visual design of **TOS** (**Terminal On Steroids**). It defines system structure, process boundaries, IPC contracts, the visual hierarchy, rendering model, input abstraction, security, and all platform behaviour. The terminal and command line are the absolute centre of every design decision. All features exist to augment the terminal, never to bypass it.
 
+**Version:** 0.1
+
 ---
 
 ## Table of Contents
@@ -72,7 +74,7 @@ TOS is built around a strictly vertical hierarchy of **levels**, a tree of **sec
   - **Configurability:** All Top, Left, and Right slots are user-definable via the Settings panel or direct manipulation. Any system tool can be docked to any slot.
 - **Platform backends** (Wayland, OpenXR, Android) providing rendering, input, and system services via three core traits: `Renderer`, `InputSource`, `SystemServices`.
 - **Remote connectivity** via the TOS Remote Server protocol, enabling remote sectors, collaboration, and web portals.
-- **Module system** for Application Models, Sector Types, AI backends, Terminal Output Modules, Theme Modules, and Shell Modules, all sandboxed and permissioned (see [Ecosystem Specification](./TOS_beta-0_Ecosystem.md)).
+- **Module system** for Application Models, Sector Types, AI backends, Terminal Output Modules, Theme Modules, and Shell Modules, all sandboxed and permissioned (see [Ecosystem Specification](./TOS_v0.1_Ecosystem.md)).
 - A set of **auxiliary services** running as independent processes communicating via IPC.
 - A **system-level terminal output** at Level 1 displaying the Brain's own console, powered by the terminal output module system.
 
@@ -425,9 +427,16 @@ When the Face is started via `make dev-web` (no Brain), it operates in the **No 
 
 ---
 
-## 4. Modular Service Architecture
+## 4. Cortex Orchestration Layer
 
-TOS decomposes functionality into independent services. Each service runs as a separate OS process and communicates with the Brain via a well-defined IPC protocol. This provides fault isolation, resource management, testability, and flexibility.
+The Cortex is the Brain’s modular reasoning, context, and behavior framework. It replaces the monolithic AI Engine and the former Skill/Behavior subsystem. Cortex components – **Assistants**, **Curators**, and **Agents** – run as independent services or subprocesses and communicate via MCP (Model Context Protocol), JSON‑RPC over Stdin/Stdout, or direct IPC.
+
+The Cortex manages:
+- **Assistant lifecycle:** LLM backend connection, model discovery, and request routing.
+- **Curator federation:** Multi‑source context aggregation (GitNexus, Jira, Filesystem) into a Global Knowledge Graph.
+- **Agent stacking:** Hierarchical prompt merging for persona, constraints, and formatting.
+
+All Cortex manifests are hot‑loaded from `~/.local/share/tos/cortex/` and configured through the Settings UI.
 
 | Service | Responsibilities | API / Protocol |
 |---------|-----------------|----------------|
@@ -436,14 +445,14 @@ TOS decomposes functionality into independent services. Each service runs as a s
 | **Marketplace Service** | Package index, download, installation, dependency resolution, signature verification, update monitoring. | `marketplace_search`, `marketplace_install` |
 | **Settings Daemon** | Store/retrieve configuration values, persistence, change notifications. | `get_setting`, `set_setting` |
 | **TOS Log Service** | Collect events from all components, manage log storage, retention, redaction, query interface. | `log_query` |
-| **AI Engine** | Load AI backends, process natural language queries, handle function calling, stream responses. | `ai_query` |
+| **Cortex** | Manages Assistants, Curators, Agents; handles context broadcast and tool routing. | MCP (for Curators), JSON‑RPC (for Assistants/Agents) |
 | **File Sync Service** | Monitor directories, perform bidirectional sync, conflict resolution via WebDAV extensions. | WebDAV + Inotify/FSEvents |
 | **Search Service** | Indexing of file contents, logs, and metadata. Query syntax supports regex and semantic filters. | `search_query` |
 | **Notification Center** | Aggregate notifications, manage history, deliver to Face with priority levels (1–5). | `notify_push` |
 | **Update Daemon** | Atomic update check, download, and staging. Coordination of the "Yellow Alert" status. | `update_check`, `update_apply` |
 | **Heuristic Service** | Predictive fillers, autocomplete-to-chip logic, typo correction, heuristic sector labeling. | `heuristic_query` |
 | **Audio & Haptic Engine** | Mix three-layer audio, play earcons, trigger haptic patterns. | `play_earcon`, `trigger_haptic` |
-| **Session Service** | Session persistence and workspace memory (live state auto-save, named sessions). | See [Features Specification §2](./TOS_beta-0_Features.md) |
+| **Session Service** | Session persistence and workspace memory (live state auto-save, named sessions). | See [Features Specification §2](./TOS_v0.1_Features.md) |
 
 All services communicate with the Brain via IPC. The Brain maintains authoritative state and routes messages as needed.
 
@@ -460,7 +469,7 @@ All services communicate with the Brain via IPC. The Brain maintains authoritati
 
 **Lifecycle:** Level 4 sub-views are transient; Tactical Reset flushes all inspection buffers and provides a global recovery environment.
 
-The Expanded Bezel Command Surface (see [Features Specification §1](./TOS_beta-0_Features.md)) is a cross-cutting overlay state — not a level. It is available at all levels except Tactical Reset (God Mode):
+The Expanded Bezel Command Surface (see [Features Specification §1](./TOS_v0.1_Features.md)) is a cross-cutting overlay state — not a level. It is available at all levels except Tactical Reset (God Mode):
 
 | Level | Expanded Bezel Available? |
 |-------|--------------------------|
@@ -891,8 +900,8 @@ The split system follows three principles:
 | Content Type | `pane_type` | Description |
 |:---|:---|:---|
 | **Terminal (Command Hub)** | `terminal` | A full Command Hub instance — prompt, chip columns, terminal output module. Shares the sector's shell context. |
-| **Editor** | `editor` | The TOS Editor surface — code/text viewer and editor with live AI context integration. See [Features Specification §6](./TOS_beta-0_Features.md). |
-| **Workflow Manager** | `workflow` | The Kanban board and agent terminal orchestration interface. See [Features Specification §7](./TOS_beta-0_Features.md). |
+| **Editor** | `editor` | The TOS Editor surface — code/text viewer and editor with live AI context integration. See [Features Specification §6](./TOS_v0.1_Features.md). |
+| **Workflow Manager** | `workflow` | The Kanban board and agent terminal orchestration interface. See [Features Specification §7](./TOS_v0.1_Features.md). |
 | **Level 3 Application** | `app` | Any running graphical application in Application Focus. |
 
 These can be combined freely. The default desktop layout is a vertical split with `terminal` on the left and `editor` on the right. On mobile, the default is a `tabs` layout with `terminal` as the first tab and `editor` as the second.
@@ -1013,7 +1022,7 @@ These chips operate on the **focused pane** at the time the bezel was opened.
 
 ### 11.9 Split State Persistence
 
-Split layouts are part of the sector's `hub_layout` object and are persisted to the session file as specced in the Session Persistence Specification (see [Features Specification §2](./TOS_beta-0_Features.md)). On restore:
+Split layouts are part of the sector's `hub_layout` object and are persisted to the session file as specced in the Session Persistence Specification (see [Features Specification §2](./TOS_v0.1_Features.md)). On restore:
 - All panes are recreated with their saved weights and orientations.
 - Terminal panes have their scrollback histories loaded before the shell spawns.
 - Level 3 application panes attempt to relaunch the application in the same position. If the application is no longer running, the pane renders a **[Relaunch]** chip.
@@ -1318,7 +1327,7 @@ Two principles:
 
 #### 17.2.1 Trust Configuration
 
-**First-Run Trust Setup:** During the onboarding flow (see [Features Specification §3](./TOS_beta-0_Features.md)), the user is presented with a trust configuration screen for each command class. No defaults are pre-selected. They can skip to defer all classes to WARN.
+**First-Run Trust Setup:** During the onboarding flow (see [Features Specification §3](./TOS_v0.1_Features.md)), the user is presented with a trust configuration screen for each command class. No defaults are pre-selected. They can skip to defer all classes to WARN.
 
 **Trust Levels:**
 
@@ -1444,22 +1453,14 @@ All commands, security events, role changes, and deep inspection accesses are lo
 
 TOS implements a robust, modular plugin architecture using platform-specific dynamic libraries distributed via the Marketplace ecosystem.
 
-**All detailed specifications regarding module manifests (`module.toml`), sandboxing rules, terminal UI injection, and module profiles (Shells, Themes, AI Backends, AI Skills, Bezel Components, Language Modules) are documented in the [Ecosystem Specification](./TOS_beta-0_Ecosystem.md).**
+**All detailed specifications regarding module manifests (`module.toml`), sandboxing rules, terminal UI injection, and module profiles (Shells, Themes, AI Backends, AI Skills, Bezel Components, Language Modules) are documented in the [Ecosystem Specification](./TOS_v0.1_Ecosystem.md).**
 
 ### 18.1 Module Type Summary
 
-| Type | Extension | Description |
-|:---|:---|:---|
+| Assistant | `.tos-assistant` | LLM backend provider; model discovery. |
+| Curator | `.tos-curator` | MCP‑based context/data source. |
+| Agent | `.tos-agent` | Prompt‑based persona & strategy stack. |
 | Application Model | `.tos-appmodel` | Level 3 application integration |
-| Sector Type | `.tos-sector` | Sector defaults and presets |
-| AI Backend | `.tos-ai` | LLM connection and inference |
-| AI Skill | `.tos-skill` | Task-specific AI behavior, tools, prompts, and learned patterns |
-| Terminal Output | `.tos-terminal` | Terminal rendering style |
-| Theme | `.tos-theme` | Visual appearance |
-| Shell | `.tos-shell` | Shell implementations with OSC integration |
-| Bezel Component | `.tos-bezel` | Dockable bezel slot components |
-| Audio | `.tos-audio` | Earcon sets and ambient audio |
-| Language | `.tos-language` | Syntax highlighting grammar + LSP configuration for editor panes |
 
 ---
 
@@ -1674,7 +1675,7 @@ Scrolling the Cinematic Triangular terminal triggers subtle haptic detents. Spat
 
 ## 25. Sector Templates and Marketplace
 
-Schema for `.tos-template` distribution, AI-assisted discoverability, and the Marketplace package daemon are documented in the [Ecosystem Specification §2](./TOS_beta-0_Ecosystem.md).
+Schema for `.tos-template` distribution, AI-assisted discoverability, and the Marketplace package daemon are documented in the [Ecosystem Specification §2](./TOS_v0.1_Ecosystem.md).
 
 ---
 

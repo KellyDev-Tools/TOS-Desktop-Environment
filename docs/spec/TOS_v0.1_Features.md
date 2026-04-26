@@ -1,6 +1,8 @@
 # TOS Feature Specifications
 
-**Purpose:** This document consolidates the detailed specifications for major TOS features that extend the core architecture. Each section is self-contained and cross-references the [Architecture Specification](./TOS_beta-0_Architecture.md) and [Ecosystem Specification](./TOS_beta-0_Ecosystem.md) as needed.
+**Purpose:** This document consolidates the detailed specifications for major TOS features that extend the core architecture. Each section is self-contained and cross-references the [Architecture Specification](./TOS_v0.1_Architecture.md) and [Ecosystem Specification](./TOS_v0.1_Ecosystem.md) as needed.
+
+**Version:** 0.1
 
 ---
 
@@ -9,9 +11,10 @@
 1. [Expanded Bezel Command Surface](#1-expanded-bezel-command-surface)
 2. [Session Persistence & Workspace Memory](#2-session-persistence--workspace-memory)
 3. [Onboarding & First-Run Experience](#3-onboarding--first-run-experience)
-4. [Ambient AI & Skills System](#4-ambient-ai--skills-system)
+4. [Cortex Orchestration Layer](#4-cortex-orchestration-layer)
 5. [Marketplace Discovery & Browse Experience](#5-marketplace-discovery--browse-experience)
 6. [TOS Editor](#6-tos-editor)
+7. [Kanban-Driven Agent Orchestration](#7-kanban-driven-agent-orchestration)
 
 ---
 
@@ -274,7 +277,7 @@ Both sit on top of the existing Settings Daemon, which continues to own user pre
         "tasks_visible": ["task_001", "task_002", "task_003"],
         "agents_active": [
           {
-            "agent_id": "careful_bot",
+            "agent_id": "careful-bot",
             "task_id": "task_001",
             "terminal_pane": "pane_workflow_1",
             "state": "running"
@@ -433,7 +436,7 @@ In addition to editor panes, the session file preserves active workflow state:
       "task_001": {
         "id": "task_001",
         "title": "Fix borrow checker in session.rs",
-        "assigned_agent": "careful_bot",
+        "assigned_agent": "careful-bot",
         "lane": "wip",
         "auto_accept": true,
         "state": {
@@ -454,7 +457,7 @@ In addition to editor panes, the session file preserves active workflow state:
       }
     },
     "agent_patterns": {
-      "careful_bot": {
+      "careful-bot": {
         "problem_type_lifetime_error": {
           "count": 5,
           "successful_approaches": [ ... ]
@@ -616,7 +619,6 @@ A persistent `[?]` badge lives in the Top Bezel Right section. Always visible. C
 - **Replay Tour** — restarts the Guided Demo overlay from Step 1 without resetting `wizard_complete` or any system state.
 - **Open Manual** — opens the TOS User Manual in an Application Focus window (Level 3).
 - **Reset Hints** — clears `hints_dismissed`, re-enabling all ambient hints.
-
 #### 3.4.2 IPC Contracts
 
 | Message | Effect |
@@ -641,104 +643,97 @@ A persistent `[?]` badge lives in the Top Bezel Right section. Always visible. C
 
 ---
 
-## 4. Ambient AI & Skill System
+## 4. Cortex Orchestration Layer
 
-*Supplements Architecture Specification & Ecosystem Specification*
+*Supplements Architecture Specification §4 & Ecosystem Specification §1.3*
 
 ### 4.1 Philosophy
 
-AI in TOS is not a room you walk into. It is a layer that runs underneath everything, watching, learning context, and surfacing help exactly when it is useful — then getting out of the way.
+The Cortex is not a monolithic assistant; it is a modular orchestration layer. It decouples reasoning (Assistants), context (Curators), and behavior (Agents) to provide a transparent, controllable, and multi-layered AI experience.
 
-Three principles govern all AI design in TOS:
+Three principles govern the Cortex:
 
-- **STAGE, NEVER RUN.** The AI never executes a command without the user submitting it from the prompt. Every suggestion, correction, and prediction ends up staged — visible, editable, and under user control.
-- **PLUGGABLE BY DEFAULT.** The LLM powering the system and the behaviors it exhibits are independent, swappable modules. The user is never locked into one model or one interaction style.
-- **REMOVABLE.** All AI behavior wrappers, including the defaults, can be uninstalled or disabled. A user who wants zero AI involvement gets zero AI involvement.
+- **STAGE, NEVER RUN.** The Cortex never executes a command without user submission. Every suggestion, correction, and prediction is staged in the prompt — visible, editable, and under user control.
+- **MODULAR STACKING.** Behavior is defined by stacking multiple Agents. You don't pick one "persona"; you compose a stack of instruction layers (e.g., "Senior Rust Dev" + "Security Auditor" + "LCARS Style").
+- **TRANSPARENT CONTEXT.** Curators provide explicit context via MCP. The user can see exactly which files, logs, or external data sources are being fed into the LLM for any given query.
 
 ### 4.2 Architecture Overview
 
-The AI system is split into two independent module layers that compose at runtime:
+The Cortex consists of three pluggable component types:
+
+1.  **Assistants (`.tos-assistant`)**: LLM backend providers (Gemini, Ollama, OpenAI). They handle inference and model-specific capabilities.
+2.  **Curators (`.tos-curator`)**: MCP-based data connectors. They feed real-time context (filesystem, Git, Jira, terminal buffers) into the Global Knowledge Graph.
+3.  **Agents (`.tos-agent`)**: Instruction sets that define persona, constraints, and efficiency rules. Agents are stacked to form the system prompt.
 
 ```
 ┌─────────────────────────────────────────────────┐
-│              AI Behavior Layer                  │
+│               Cortex Agent Stack                │
 │  ┌───────────┐ ┌───────────┐ ┌───────────────┐  │
-│  │ Passive   │ │   Chat    │ │   Predictor   │  │
-│  │ Observer  │ │ Companion │ │   (Ghost)     │  │
-│  │ [default] │ │ [Ollama▾] │ │ [default]    │  │
+│  │ Identity  │ │ Constraint│ │   Efficiency  │  │
+│  │ Layer     │ │ Layer     │ │   Layer       │  │
 │  └───────────┘ └───────────┘ └───────────────┘  │
-│         ↕ AI Engine API (JSON-RPC / IPC)        │
+│         ↕ Cortex API (MCP / JSON-RPC)           │
 ├─────────────────────────────────────────────────┤
-│         AI Backend Layer (cascading)            │
-│   System Default ──► Behavior Override          │
+│         Cortex Curators (Context)               │
 │  ┌──────────┐ ┌──────────┐ ┌──────────────┐    │
-│  │  Ollama  │ │ OpenAI   │ │  Anthropic   │    │
-│  │ (local)  │ │ (remote) │ │   (remote)   │    │
+│  │  Files   │ │   Git    │ │   Terminal   │    │
+│  │ (local)  │ │ (remote) │ │   (buffer)   │    │
+│  └──────────┘ └──────────┘ └──────────────┘    │
+├─────────────────────────────────────────────────┤
+│         Cortex Assistants (LLMs)                │
+│  ┌──────────┐ ┌──────────┐ ┌──────────────┐    │
+│  │  Ollama  │ │ Gemini   │ │  Anthropic   │    │
 │  └──────────┘ └──────────┘ └──────────────┘    │
 └─────────────────────────────────────────────────┘
 ```
 
-- **AI Backend modules** (`.tos-ai`) define the LLM connection. One is the **system default**, selected in **Settings → AI → Backend**. Any skill module can override this and target a specific installed backend.
-- **AI Behavior modules** (`.tos-skill`) define how the AI acts, when it speaks, and what UI it renders. Multiple skill modules can run simultaneously, each independently toggled in **Settings → AI → Skills**.
+### 4.3 Cortex Agent Stacking (`.tos-agent`)
 
-**Backend Resolution Order:**
-1. **Behavior-level override** — if the skill module has a specific backend set in its config, use that.
-2. **System default** — if no override is set, use the system default backend.
-
-The Brain's `AIService` brokers all communication between skill modules and the active backend. Behavior modules never call the backend directly — they submit requests to the `AIService` via IPC.
-
-### 4.3 AI Skill Modules (`.tos-skill`)
-
-Behavior modules define a specific AI interaction pattern and own a specific region of the UI surface.
+Agents define how the system acts and communicates. Unlike the previous "Skill" model, Agents are composable.
 
 #### 4.3.1 Manifest Structure
 
 ```toml
-name        = "Passive Observer"
-version     = "1.0.0"
-type        = "aibehavior"
-description = "Watches terminal output and surfaces contextual chips silently"
-author      = "TOS Core"
-icon        = "observer.svg"
+id      = "meticulous-dev"
+name    = "Meticulous Developer"
+version = "1.0.0"
+type    = "agent"
 
-[behavior]
-trigger     = "passive"           # passive | prompt_input | mode_switch | manual
-ui_surface  = "chips"             # chips | ghost_text | chat_panel | thought_bubble
-chip_color  = "secondary"         # primary | secondary | accent
-runs_always = true
+[prompt]
+identity = "You are a senior software architect focused on clean code and TDD."
+constraints = [
+  "Always check for existing tests before writing new ones.",
+  "Never use 'unsafe' unless explicitly requested."
+]
+efficiency = [
+  "Keep explanations brief and technical.",
+  "Use LCARS terminology (e.g., 'Sector', 'Hub', 'Detail View')."
+]
 
-[capabilities_required]
-function_calling = false
-streaming        = true
-vision           = false
-
-[permissions]
-terminal_read  = true
-prompt_read    = true
-prompt_write   = false
-network        = false
-
-[context_required]
-# Only declared fields are sent, minimizing token usage
-last_command = true
-exit_code    = true
-terminal_buffer_tail = true
+[allowed_tools]
+# Explicitly whitelist tools this agent can request
+tools = ["read_file", "write_file", "exec_cmd", "list_dir"]
 ```
 
-#### 4.3.2 UI Surfaces
+#### 4.3.2 Stacking Logic
 
-| Surface | Description | Default Color |
-|:---|:---|:---|
-| `chips` | AI-suggested chips in the left/right chip layout. Visually distinct via `secondary` color scheme. | Teal / cyan accent |
-| `ghost_text` | Inline ghost text rendered in the prompt, dimmed, accepted with `Tab` or `→`. | 40% opacity prompt color |
-| `chat_panel` | Replaces or augments the `[AI]` mode panel with a full chat interface. | Standard panel |
-| `thought_bubble` | Floating dismissable card that appears above the prompt. Tapping expands into chat. | Glassmorphism dark card |
+When multiple agents are active, the Cortex merges their prompts:
+1.  **Identities** are concatenated.
+2.  **Constraints** are deduplicated and listed as a bulleted "Global Rules" section.
+3.  **Efficiency** rules are combined into a "Formatting & Style" block.
 
-**Visual Identity:** AI chips always render in the secondary color (teal/cyan by default, themeable) with a subtle `✦` prefix glyph. This makes them immediately distinguishable from system-generated chips without any labeling required.
+### 4.4 Default Cortex Components
 
-#### 4.3.3 The Behavior API
+#### 4.4.1 Standard Assistant: Gemini (`tos-assistant-gemini`)
+The default cloud-based reasoning engine. Supports large context windows and native tool calling.
 
-Behavior modules communicate with the Brain's `AIService` via IPC using the existing JSON-RPC format:
+#### 4.4.2 Standard Curator: System Observer (`tos-curator-system`)
+Feeds terminal buffers, environment variables, and filesystem metadata into the Cortex.
+
+#### 4.4.3 Standard Agents
+- **Passive Observer**: Watches for command failures and surfaces correction chips.
+- **Chat Companion**: Handles multi-turn natural language interaction in `[AI]` mode.
+- **Predictor**: Provides ghost-text command completions based on history and local files.
 
 **Submitting a request:**
 ```json
@@ -1499,7 +1494,7 @@ A kanban board is a **project-level artifact** stored in `<project_root>/.tos/ka
       "title": "Fix borrow checker in session.rs",
       "description": "Address compiler error on line 142. Add proper error handling.",
       "lane": "wip",
-      "assigned_agent": "careful_bot",
+      "assigned_agent": "careful-bot",
       "auto_accept": true,
       "depends_on": [],
       "tags": ["backend", "critical"],
@@ -1566,13 +1561,13 @@ An agent persona is a **markdown-based strategy definition** that any AI can rea
 
 Agent personas live in `~/.local/share/tos/personas/` and are discovered by the system.
 
-**Example: careful_bot.md**
+**Example: careful-bot.md**
 
 ```markdown
-# Agent Persona: careful_bot
+# Agent Persona: careful-bot
 
 ## Identity
-- **Name:** careful_bot
+- **Name:** careful-bot
 - **Role:** Methodical, thorough, risk-averse
 - **Best for:** Critical path work, security-sensitive code, test-driven development
 - **Cost:** Slower (runs full suite), higher token cost (validates thoroughly)
@@ -1611,7 +1606,7 @@ Agent personas live in `~/.local/share/tos/personas/` and are discovered by the 
 ## Learned Patterns
 - Tracks which test failures are common for this codebase
 - Learns which code patterns are "idiomatic" vs. "fragile"
-- Stores in `~/.local/share/tos/personas/careful_bot/patterns.json`
+- Stores in `~/.local/share/tos/personas/careful-bot/patterns.json`
 ```
 
 #### 7.3.2 Built-in Personas
@@ -1620,21 +1615,21 @@ TOS ships with three reference personas:
 
 | Persona | Style | Best For | Speed |
 |---|---|---|---|
-| **careful_bot** | Test-first, thorough validation, halt on error | Critical backend, security | Slow |
-| **fast_bot** | Large steps, parallel validation, retry-on-error | Performance, feature work | Fast |
-| **creative_bot** | Suggest alternatives, experiment, low-risk paths | Exploration, prototyping | Variable |
+| **careful-bot** | Test-first, thorough validation, halt on error | Critical backend, security | Slow |
+| **fast-bot** | Large steps, parallel validation, retry-on-error | Performance, feature work | Fast |
+| **creative-bot** | Suggest alternatives, experiment, low-risk paths | Exploration, prototyping | Variable |
 
 #### 7.3.3 Custom Personas
 
 Users compose custom personas by mixing strategies or writing entirely new ones:
 
 ```markdown
-# Agent Persona: balanced_bot
+# Agent Persona: balanced-bot
 
 Combines:
-- Testing strategy from **careful_bot** (run tests, but only affected ones)
-- Step sizing from **fast_bot** (larger chunks, faster iteration)
-- Error handling from **creative_bot** (suggest alternative approaches, not just halt)
+- Testing strategy from **careful-bot** (run tests, but only affected ones)
+- Step sizing from **fast-bot** (larger chunks, faster iteration)
+- Error handling from **creative-bot** (suggest alternative approaches, not just halt)
 
 ## Custom Rule: Documentation
 - **Rule:** Generate docstring for any public API added
@@ -1647,12 +1642,12 @@ Personas are discoverable in Settings → Workflows → Agent Personas:
 
 ```
 ├─ Built-in
-│  ├─ careful_bot [details]
-│  ├─ fast_bot [details]
-│  └─ creative_bot [details]
+│  ├─ careful-bot [details]
+│  ├─ fast-bot [details]
+│  └─ creative-bot [details]
 ├─ Custom
-│  ├─ balanced_bot [details] [edit] [delete]
-│  └─ deploy_bot [details] [edit] [delete]
+│  ├─ balanced-bot [details] [edit] [delete]
+│  └─ deploy-bot [details] [edit] [delete]
 ├─ Marketplace
 │  ├─ Browse Marketplace
 │  └─ [installed marketplace personas]
@@ -1860,14 +1855,14 @@ Multiple agents can work on different tasks simultaneously. To ensure data integ
 {
   "agents_active": [
     {
-      "agent_id": "careful_bot",
+      "agent_id": "careful-bot",
       "task_id": "task_001",
       "state": "running",
       "current_step": 2,
       "terminal_pane": "pane_workflow_1"
     },
     {
-      "agent_id": "fast_bot",
+      "agent_id": "fast-bot",
       "task_id": "task_002",
       "state": "running",
       "current_step": 1,
@@ -1943,7 +1938,7 @@ All LLM requests and responses are preserved in the session file under each task
       "request": {
         "task_title": "Fix borrow checker in session.rs",
         "task_description": "...",
-        "persona_md": "[full careful_bot persona markdown]",
+        "persona_md": "[full careful-bot persona markdown]",
         "codebase_context": { ... }
       },
       "response": {
@@ -1994,13 +1989,13 @@ Expandable sections show:
 When resuming a paused task:
 
 ```
-User closes TOS while @careful_bot is mid-task:
+User closes TOS while @careful-bot is mid-task:
 - Current state saved: step 2/5, last command output, pending steps
 
 User reopens TOS:
 - Kanban board reloaded with all tasks in their lanes
-- @careful_bot task still shows "IN PROGRESS"
-- [Resume] chip appears: "Resume @careful_bot on Fix borrow checker?"
+- @careful-bot task still shows "IN PROGRESS"
+- [Resume] chip appears: "Resume @careful-bot on Fix borrow checker?"
 - User clicks [Resume] → agent continues from step 3 with full context
 ```
 

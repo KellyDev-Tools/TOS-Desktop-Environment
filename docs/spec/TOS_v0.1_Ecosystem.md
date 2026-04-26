@@ -2,7 +2,9 @@
 
 **Purpose:** This document defines the plugin architecture, module types, sandboxing rules, marketplace systems, and service orchestration for **TOS** (**Terminal On Steroids**). It covers everything from module manifests to boot sequencing.
 
-For system architecture, IPC contracts, and visual hierarchy, see the [Architecture Specification](./TOS_beta-0_Architecture.md).
+**Version:** 0.1
+
+For system architecture, IPC contracts, and visual hierarchy, see the [Architecture Specification](./TOS_v0.1_Architecture.md).
 
 ---
 
@@ -26,7 +28,7 @@ TOS employs a dual-tier trust model for modules:
 
 ### 1.0 Package Format & Structure
 
-All TOS modules are distributed as signed archives with a `.tos-<type>` extension. Recognized types: `.tos-appmodel`, `.tos-sector`, `.tos-ai`, `.tos-skill`, `.tos-terminal`, `.tos-theme`, `.tos-shell`, `.tos-bezel`, `.tos-audio`.
+All TOS modules are distributed as signed archives with a `.tos-<type>` extension. Recognized types: `.tos-appmodel`, `.tos-sector`, `.tos-assistant`, `.tos-curator`, `.tos-agent`, `.tos-terminal`, `.tos-theme`, `.tos-shell`, `.tos-bezel`, `.tos-audio`.
 
 ```
 package.tos-terminal/
@@ -48,228 +50,113 @@ Customizes an application's integration at Level 3. Manifest includes: name, ver
 
 Defines a sector's default behaviour: command favourites, interesting directories, environment, available hub modes, default guest role, associated Application Models.
 
-### 1.3 AI Backend Modules (`.tos-ai`)
+### 1.3 Cortex: The Modular Orchestration Layer
 
-AI Backend Modules provide the underlying inference engine. They manage model selection, endpoint authentication, and protocol translation (e.g., to OpenAI or Gemini APIs).
+The **Cortex** is the Brain’s modular reasoning, context, and behavior layer. It replaces the monolithic AI Service and the separate Skill/Persona systems. All Cortex components are hot‑loaded from `~/.local/share/tos/cortex/` and communicate with the Brain via standardized protocols.
 
-#### 1.3.1 Manifest & Capabilities
+| Extension | Component | Role | Logic Type |
+|---|---|---|---|
+| **`.tos-assistant`** | **Reasoning** | Manages LLM backend communication. | Service‑based (Ollama, Gemini, OpenAI). |
+| **`.tos-curator`** | **Context** | Standardizes data and indexing sources. | **MCP‑based** (Model Context Protocol). |
+| **`.tos-agent`** | **Behavior** | Defines canned personas and strategies. | Prompt‑based (Careful‑bot, Vibe‑coder). |
 
-The `module.toml` manifest for an AI backend includes a `[capabilities]` block and a `latency_profile` hint.
+### 1.3.1 Assistants (`.tos-assistant`)
 
+Assistants are providers, not models. They register a specific backend service and expose a list of available models.
+
+*Manifest:*
 ```toml
+[metadata]
+id = "ollama-provider"
+name = "Ollama Local"
+type = "assistant"
+
+[connection]
+transport = "http"
+endpoint = "http://localhost:11434"
+timeout_ms = 10000
+
+[auth]
+type = "none" # Credentials injected by Brain from secure store
+
+[trust]
+may_request = [] # Assistants usually don't need direct tool access
+
 [capabilities]
-chat             = true
+streaming = true
 function_calling = true
-vision           = false
-streaming        = true
-latency_profile  = "local"   # local | fast_remote | slow_remote
+latency_profile = "local"
 ```
 
-The `latency_profile` allows Skill modules to adapt their UI behavior (e.g., showing a loading spinner immediately or waiting for the first token).
+### 1.3.2 Curators (`.tos-curator`)
 
-#### 1.3.2 Execution Model & Protocol
+Curators connect external data sources into a unified Global Knowledge Graph. They are typically MCP servers.
 
-AI modules run in one of two modes:
-1. **Local Subprocess:** The Brain executes the module binary as a child process in a restricted sandbox.
-2. **Remote Provider:** The Brain handles direct HTTP communication for recognized providers (OpenAI, Anthropic, Ollama, Google AI Studio).
-
-**Standard I/O Boundary (Local Modules):**
-The Brain communicates with sandboxed modules via **strict JSON over Stdin/Stdout**. No prefixes or headers are used.
-
-*Input (Stdin):*
-```json
-{
-  "prompt": "list all files",
-  "context": ["sector:Primary", "path:/home/user"],
-  "stream": false
-}
-```
-
-*Output (Stdout):*
-```json
-{
-  "id": "uuid-123",
-  "choice": {
-    "role": "assistant",
-    "content": "{\"command\": \"ls -la\", \"explanation\": \"Listing files in long format.\"}"
-  },
-  "usage": { "tokens": 42 },
-  "status": "complete"
-}
-```
-
-#### 1.3.3 Service IPC (Brain <-> AI Service)
-
-Within the TOS constellation, requests to the AI Service use tagged IPC messages:
-- **Query Request:** `ai_query:{"prompt": "...", "context": [...], "stream": true}`
-- **Tool Execution:** `ai_tool_call:{"name": "exec_cmd", "args": {"cmd": "ls"}}`
-
-#### 1.3.4 Google AI Studio (Gemini API) Mapping
-
-To facilitate integration with [Google AI Studio (Gemini API)](https://ai.google.dev/gemini-api/docs/), `.tos-ai` modules should implement the following protocol mapping:
-
-| TOS AI Protocol | Gemini API Equivalent | Notes |
-|:---|:---|:---|
-| `prompt` | `contents.parts.text` | Maps to the most recent user message. |
-| `context` | `contents` | Historical messages/system state passed in the array. |
-| `system_prompt` | `systemInstruction` | Set at session initialization. |
-| `tool_call` | `functionCall` | Model-generated tool requests. |
-| `stream: true` | `streamGenerateContent` | Server-Sent Events (SSE) mapped to response chunks. |
-
-#### 1.3.5 Ollama API Mapping
-
-For local inference via [Ollama](https://ollama.com/), modules should target the `/api/chat` endpoint to maintain stateful conversations and tool-calling support.
-
-| TOS AI Protocol | Ollama API Equivalent | Notes |
-|:---|:---|:---|
-| `prompt` | `messages` (role: `user`) | The most recent user input. |
-| `context` | `messages` (array) | Historical context injected into the message sequence. |
-| `system_prompt` | `messages` (role: `system`) | Core instructions and constraints. |
-| `tool_call` | `message.tool_calls` | Supported by Llama 3.1+ and other tool-capable models. |
-| `tool_result` | `messages` (role: `tool`) | Execution output returned to the model. |
-| `stream: true` | `stream: true` | NDJSON stream of response objects. |
-
-**Format Constraint:** All Ollama requests must include `"format": "json"` to ensure the model adheres to the structured response schema (command/explanation) required by the Brain.
-
-#### 1.3.6 OpenAI Compatible Mapping (Grok, DeepSeek, Perplexity)
-
-Most modern providers adopt the OpenAI Chat Completions standard, making this the default mapping for any service not explicitly named.
-
-| TOS AI Protocol | OpenAI API Equivalent | Notes |
-|:---|:---|:---|
-| `prompt` | `messages` (role: `user`) | Latest user interaction. |
-| `context` | `messages` (array) | Injected chronologically before the prompt. |
-| `system_prompt` | `messages` (role: `system`) | Typically the first entry in the `messages` array. |
-| `tool_call` | `choices[0].message.tool_calls` | Model-generated tool requests. |
-| `tool_result` | `role: tool` | Returns execution results via the `tool_call_id`. |
-| `stream: true` | `stream: true` | Server-Sent Events (SSE) stream. |
-
-#### 1.3.7 Anthropic Mapping (Claude)
-
-Anthropic uses a dedicated field for system instructions and requires tool results to be returned as part of a user message block.
-
-| TOS AI Protocol | Anthropic API Equivalent | Notes |
-|:---|:---|:---|
-| `prompt` | `messages` (role: `user`) | Latest user interaction. |
-| `context` | `messages` (array) | Past conversation history. |
-| `system_prompt` | `system` (top-level field) | Dedicated top-level parameter for instructions. |
-| `tool_call` | `content` (type: `tool_use`) | Captured within the response content array. |
-| `tool_result` | `role: user` (type: `tool_result`) | Tool results are sent as user messages with specific block types. |
-| `stream: true` | `stream: true` | Returns a stream of message delta events. |
-
-**Note on Built-in Tools:**
-Gemini's native `code_execution` tool is distinct from TOS tools. In TOS, all tool execution occurs within the Brain's context or isolated agent PTYs, ensuring local codebase access and security enforcement via the `TrustService`.
-
-### 1.4 AI Skill Modules (`.tos-skill`)
-
-AI Skills are the primary unit of AI capability. A skill defines *what* the AI knows how to do for a specific task — its interaction pattern, tool access, system prompt, and learned user patterns.
-
-Skills replace the former `.tos-aibehavior` module type. All references to "behaviors" in legacy documentation refer to Skills. Multiple skills can run simultaneously, each independently toggled in **Settings → AI → Skills**.
-
-#### 1.4.1 Skill Layers
-
-Every skill has four composable layers:
-
-| Layer | Description |
-|:---|:---|
-| **System Prompt** | Task-specific context and instructions injected into the AI context for this skill |
-| **Tool Bundle** | A declared subset of Brain tools (§1.4.3) this skill is permitted to invoke |
-| **Learned Patterns** | User-specific observations recorded by the skill over time, stored in `~/.local/share/tos/skills/<skill_id>/patterns.json` |
-| **Interaction Surface** | The UI region the skill owns (chip column, editor annotation, chat panel, etc.) |
-
-#### 1.4.2 Manifest
-
+*Manifest:*
 ```toml
-name = "Vibe Coder"
-version = "1.0.0"
-type = "skill"
-role = "agent"
-description = "Decomposes natural language intent into reviewable multi-step file edits"
-author = "TOS Team"
-icon = "vibe-coder.png"
+[metadata]
+id = "gitnexus-mcp"
+name = "GitNexus"
+type = "curator"
 
-[capabilities]
-interaction_surface = "chip_sequence"   # chip_sequence | chat_panel | editor_annotation | ghost_text
-context_signals     = [".git", "Cargo.toml", "package.json"]
-learns_patterns     = true
-latency_profile     = "local"           # local | fast_remote | slow_remote
+[connection]
+transport = "mcp"
+endpoint = "http://localhost:3000/mcp"
 
-[agent_capabilities]
-can_spawn_subtasks = true           # Can invoke other skills
-can_switch_backend = true           # Can override backend per step
-can_manage_workflow = true          # Can read/write workflow definitions
-requires_approval_for_tools = ["write_file", "exec_cmd"]
+[auth]
+type     = "api_key"
+header   = "Authorization"
+prefix   = "Bearer "
+env_hint = "GITNEXUS_TOKEN"
 
-[tool_bundle]
-allowed_tools = ["read_file", "write_file", "list_dir", "exec_cmd", "get_terminal_output", "get_sector_context", "search_codebase"]
+[trust]
+may_request  = ["write_file"] # Allows the curator to suggest file edits
+grant_scope  = "session"
+cross_sector = false
 
-[permissions]
-filesystem = true
-terminal_read = true
-prompt_read = true
+[mcp]
+command = "npx"
+args = ["-y", "@abhigyanpatwari/gitnexus", "mcp"]
 ```
 
-`context_signals` declares file or directory names that trigger automatic skill activation when present in the sector's `cwd`. The AI Engine evaluates signals on every `cd` and sector creation.
+### 1.3.3 Agents (`.tos-agent`)
 
-#### 1.4.2.1 Agent Role (New in this version)
+Agents encapsulate persona, constraints, and task strategy. They use **Agent Stacking** to merge instructions hierarchically.
 
-Skills with `role = "agent"` have additional capabilities for workflow orchestration:
-
+*Manifest:*
 ```toml
-name = "workflow_orchestrator"
-version = "1.0.0"
-type = "skill"
-role = "agent"
-description = "Coordinates multi-step task execution and agent decomposition"
+[metadata]
+id = "careful-bot"
+name = "Careful Bot"
+type = "agent"
 
-[agent_capabilities]
-can_spawn_subtasks = true           # Can invoke other skills
-can_switch_backend = true           # Can override backend per step
-can_manage_workflow = true          # Can read/write workflow definitions
-requires_approval_for_tools = ["write_file", "exec_cmd"]
+[prompt]
+identity = "You are a meticulous Rust developer."
+constraints = ["Run `cargo test` after every change."]
+efficiency = "Keep responses under 200 words."
+
+[trust]
+may_request = ["read_file", "write_file", "exec_cmd", "search_codebase"]
+grant_scope = "interaction"
 ```
 
-#### 1.4.3 Brain Tool Registry
+### 1.3.4 Credential Injection & Trust Gating
 
-The Brain exposes a set of built-in tools that any skill with the appropriate `tool_bundle` declaration can invoke. All tool calls go through the trust chip system (Architecture §17.2) — no skill can silently modify the system.
+Cortex components run under strict isolation with two additional security layers:
 
-| Tool | Description | Trust Required |
-|:---|:---|:---|
-| `exec_cmd(cmd, sector_id)` | Stages a command in the sector's prompt — never auto-executes | Always — staged only |
-| `read_file(path)` | Returns file contents, respecting filesystem permissions | No |
-| `write_file(path, content)` | Writes file content | Yes — if outside sector cwd |
-| `list_dir(path)` | Returns directory listing | No |
-| `get_terminal_output(sector_id, lines)` | Returns recent terminal output for context | No |
-| `get_sector_context(sector_id)` | Returns cwd, env, active shell, recent commands | No |
-| `search_codebase(query, path)` | Full-text or semantic search of files | No |
-| `create_file(path, content)` | Creates a new file | Yes |
-| `delete_file(path)` | Deletes a file | Yes — always |
+1. **Credential Injection (`[auth]`):** Secrets (API keys, tokens) are never stored in the manifest. The manifest declares the *shape* of the requirement; the Brain injects the actual values from the secure Settings store at request time.
+2. **Trust Gating (`[trust]`):** Components must declare which Brain tools they intend to use. The Brain’s Trust Chip system enforces these declarations—even if a user grants broad access, a component can only invoke tools listed in its `may_request` block.
 
-Skills must declare each tool they intend to use in their `[tool_bundle]` manifest block. The Brain rejects tool calls from skills that have not declared the tool. This is enforced at runtime, not just at install time.
+### 1.3.5 Marketplace & Activation Workflow
 
-#### 1.4.4 Learned Patterns
+1. Marketplace drops a template into `cortex/pending/`.
+2. Settings UI reads the manifest and renders a configuration form for `[auth]` and connection details.
+3. User enters credentials (stored in secure `tos-settingsd`).
+4. On activation, the Brain moves the file to `cortex/active/` and initializes the component.
 
-Skills with `learns_patterns = true` may observe user behavior and record patterns to improve future suggestions. Pattern storage is:
-- Stored locally in `~/.local/share/tos/skills/<skill_id>/patterns.json`
-- Never transmitted to any network endpoint without explicit user consent
-- Viewable and deletable in **Settings → AI → Skills → [Skill Name] → Learned Patterns**
-- Excluded from session export files (`.tos-session`) by default; opt-in export available
+### 1.4 (Reserved for future Cortex expansion)
 
-#### 1.4.5 Built-in Skills
-
-TOS ships with three built-in skills that cannot be uninstalled but can be disabled:
-
-| Skill | Interaction Surface | Default State |
-|:---|:---|:---|
-| **Passive Observer** | Editor annotations + right chips | Enabled |
-| **Chat Companion** | Chat panel (AI mode) | Enabled |
-| **Vibe Coder** | Chip sequence + editor diff | Disabled until user enables |
-
-#### 1.4.6 Skill Context Minimization
-
-Skills only receive the context fields they declare in their manifest. A skill without `terminal_read = true` in its permissions block does not receive terminal output in its context. This is enforced by the AI Engine before any context is passed to a skill.
-
-**Full AI system specification:** See [Features Specification §4 — Ambient AI & Co-Pilot System](./TOS_beta-0_Features.md).
+**Full AI system specification:** See [Features Specification §4 — Ambient AI & Co-Pilot System](./TOS_v0.1_Features.md).
 
 ### 1.5 Terminal Output Modules (`.tos-terminal`)
 
@@ -306,43 +193,6 @@ pub trait TerminalOutputModule {
 - Users can select the active module globally, or per-sector (if the module supports it).
 - Switching modules takes effect immediately in all open Command Hubs (existing terminal history is re-rendered by the new module).
 
-### 1.6 Agent Personas (`.tos-persona`)
-
-An Agent Persona is a markdown-based definition of an agent's strategy, identity, and tool preferences. Any AI backend can load a persona and interpret its instructions at runtime.
-
-#### 1.6.1 Identity & Strategy
-
-A persona defines:
-- **Identity:** Role, tone, and specific strengths/weaknesses.
-- **Core Strategies:** Explicit rules for task decomposition, testing, and error handling.
-- **Tool Bundle:** The subset of Brain tools the agent prefers (or is restricted to).
-- **Backend Preference:** Preferred LLM backend for local vs. complex reasoning.
-
-#### 1.6.2 Learned Patterns
-
-Personas track and accumulate codebase-specific patterns (e.g., successful fixes for repeat errors) in a local `patterns.json` file. This knowledge is used to refine future task decompositions.
-
-#### 1.6.3 Distribution
-
-Personas are distributed as `.tos-persona` packages via the Marketplace or installed manually to `~/.local/share/tos/personas/`. For development and deployment, they can also be stored in the source tree under `modules/personas/`.
-
-#### 1.6.4 Sandboxing & Merging
-
-To satisfy the **Local First** and **Security** philosophies, agents operate in a transient filesystem sandbox. The Brain manages the creation and destruction of these sandboxes via the `workflow_agent_sandbox` IPC. Merging back to the project tree (and conflict resolution) is handled via `workflow_task_merge`.
-
----
-
-### 1.7 Roadmap Skill (`.tos-skill`)
-
-The Roadmap Skill is a system-tier agent that synchronizes the project's kanban board with external sources (GitHub, Jira, etc.) and orchestrates task assignment.
-
-#### 1.7.1 GitHub Integration
-
-The Roadmap Skill can fetch issues, pull requests, and project milestones to populate the kanban backlog automatically.
-
-#### 1.7.2 Task Decomposition
-
-Once a roadmap is loaded, the Roadmap Skill suggests task decompositions and agent assignments based on the detected project context.
 
 ---
 
@@ -468,12 +318,9 @@ args = ["lsp"]
 
 **Permissions:** Language modules require no special permissions. They are static grammar assets plus an optional LSP configuration. They do not run in the sandbox — they are loaded directly into the editor's rendering pipeline.
 
-### 1.13 Module Isolation & Permissions
-
-- Modules run in sandbox with limited access (network filtered, filesystem restricted).
-- Permissions are displayed to user during installation; user grants/denies.
-- Dangerous capabilities (e.g., local file access) require explicit consent.
-- AI Skill tool bundles are double-enforced: declared in the manifest at install time and verified by the Brain Tool Registry at runtime.
+- **Cortex components** run under the same sandboxing rules as standard modules, with the addition of **Credential Injection** and **Trust Gating** (see §1.3.4).
+- Credentials declared in `[auth]` are injected by the Brain at request time.
+- Tool access declared in `[trust]` is strictly enforced by the Brain Tool Registry.
 
 ### 1.14 Relationship Between Module Types
 
@@ -481,8 +328,8 @@ args = ["lsp"]
 - **Application Models** are shell-agnostic; they interact with the Brain, not directly with the shell.
 - **Terminal Output Modules** render the shell's output regardless of which shell is used.
 - **Theme Modules** affect the appearance of all UI elements, including terminal output and the editor surface. Editor token colors are defined in the theme's CSS via `.tos-editor` class selectors.
-- **AI Backend Modules** provide the inference engine; **AI Skill Modules** define what tasks that engine performs and what tools it can access.
-- **Language Modules** are editor-only and have no interaction with the terminal or AI system unless an AI Skill explicitly requests file content via the Brain Tool Registry.
+- **Assistants** provide inference backends; **Agents** define behavior; **Curators** supply real‑time context. Together they form the **Cortex**.  
+- Language Modules are editor‑only and have no interaction with the terminal or the Cortex unless an Agent explicitly requests file content via the Brain Tool Registry.
 
 ---
 
@@ -493,9 +340,9 @@ args = ["lsp"]
 | Sector Template | `.tos-template` | Blueprint for creating pre-configured workspaces. |
 | Sector Type | `.tos-sector` | Logic for special sector behavior. |
 | Application Model | `.tos-appmodel` | Customizes Level 3 integration. |
-| AI Backend | `.tos-ai` | Connection logic for LLMs. |
-| AI Skill | `.tos-skill` | Pluggable co-pilot interaction patterns, tool bundles, and learned behaviors. |
-| Agent Persona | `.tos-persona` | Markdown-based strategy definition for agents. |
+| **Assistant** | **`.tos-assistant`** | LLM backend provider; manages model discovery. |
+| **Curator** | **`.tos-curator`** | MCP‑based data & context source. |
+| **Agent** | **`.tos-agent`** | Prompt‑based persona & strategy stack. |
 | Terminal Output Module | `.tos-terminal` | Visual terminal rendering logic. |
 | Theme Module | `.tos-theme` | Global CSS and assets. |
 | Shell Module | `.tos-shell` | PTY integration and shell binaries. |
@@ -575,7 +422,7 @@ tos-pkg load ./my-theme-module
 
 ### 2.6 Marketplace Discovery & Browse Experience
 
-The full Marketplace UI specification — including the Home view, Category Browse, Module Detail Page, and install flow — is documented in [Features Specification §5 — Marketplace Discovery](./TOS_beta-0_Features.md).
+The full Marketplace UI specification — including the Home view, Category Browse, Module Detail Page, and install flow — is documented in [Features Specification §5 — Marketplace Discovery](./TOS_v0.1_Features.md).
 
 ---
 
@@ -744,7 +591,7 @@ Since the Brain always binds an anchor port (default `7000`), remote clients can
 2. **Query:** Client sends `get_port_map` over the TCP connection.
 3. **Response:** Brain replies with the full service map.
 4. **Upgrade:** Client uses the returned `brain_ws` port to establish a WebSocket for state synchronization.
-5. **Re-discover:** If a connection drops, the client reconnects to the anchor port and re-queries the map. See [Architecture §3.4.4](./TOS_beta-0_Architecture.md#344-reconnection-logic) for the full retry schedule and visual states during reconnection.
+5. **Re-discover:** If a connection drops, the client reconnects to the anchor port and re-queries the map. See [Architecture §3.4.4](./TOS_v0.1_Architecture.md#344-reconnection-logic) for the full retry schedule and visual states during reconnection.
 
 ### 5.2 Method 2: mDNS / DNS-SD (Zero-Config LAN)
 

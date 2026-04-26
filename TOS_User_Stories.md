@@ -7,7 +7,7 @@
 
 1. [Navigation & Hierarchy](#1-navigation--hierarchy)
 2. [Command Hub & Persistent Unified Prompt](#2-command-hub--persistent-unified-prompt)
-3. [AI Skills System](#3-ai-co-pilot-system)
+3. [Cortex Orchestration](#3-cortex-orchestration)
 4. [Workflow Management & Kanban Boards](#4-workflow-management--kanban-boards)
 5. [SEARCH Mode](#5-search-mode)
 6. [Trust & Security Model](#6-trust--security-model)
@@ -73,7 +73,7 @@ Stories covering the four hub modes, the always-visible prompt, and context-awar
 
 ---
 
-## 3. AI Skills System
+## 3. Cortex Orchestration
 
 Stories covering the Passive Observer, Chat Companion, and the AI safety boundary — the AI never executes commands directly.
 
@@ -81,12 +81,12 @@ Stories covering the Passive Observer, Chat Companion, and the AI safety boundar
 |---|---|---|---|
 | AI-01 | developer | receive a non-blocking correction chip when a command fails | I can recover immediately without manually diagnosing the error |
 | AI-02 | developer | ask a question in plain English in AI mode and receive a staged command | I can explore unfamiliar tools without memorizing syntax |
-| AI-03 | developer | review and edit the AI-staged command before it executes | I stay in full control — nothing runs behind my back |
-| AI-04 | operator | install an alternative AI backend from the Marketplace | I can use my preferred LLM provider or a local model |
-| AI-05 | operator | toggle individual AI skills on or off independently | I can disable the Chat Companion without losing the Passive Observer |
-| AI-06 | developer | have the AI silently watch for long-running commands and surface an explanation chip | I understand what a hung process is doing without interrupting it |
-| AI-07 | team lead | have AI skill automatically activate based on project context signals | Domain-specific assistance appears without me configuring it manually per session |
-| AI-08 | developer | have AI chat history restored when I return to a sector | I can resume multi-turn conversations without losing context |
+| AI-03 | developer | review and edit the Cortex-staged command before it executes | I stay in full control — nothing runs behind my back |
+| AI-04 | operator | install an alternative Assistant from the Marketplace | I can use my preferred LLM provider or a local model |
+| AI-05 | operator | toggle individual Agents on or off independently | I can disable the Chat Companion without losing the Passive Observer |
+| AI-06 | developer | have the Cortex silently watch for long-running commands and surface an explanation chip | I understand what a hung process is doing without interrupting it |
+| AI-07 | team lead | have Agent stack automatically activate based on project context signals | Domain-specific assistance appears without me configuring it manually per session |
+| AI-08 | developer | have Cortex chat history restored when I return to a sector | I can resume multi-turn conversations without losing context |
 
 ### AI-03 Acceptance Criteria
 - Every AI suggestion is placed into the prompt input field — it is never auto-submitted.
@@ -136,14 +136,14 @@ Stories covering project-scoped kanban boards, agent personas, multi-agent task 
 | WF-02 | team lead | define custom kanban lanes (Backlog, Planned, WIP, Blocked, Review, Done) | The board reflects our team's actual workflow |
 | WF-03 | developer | set auto-promotion rules (e.g., "move from Planned to WIP when capacity available") | Tasks automatically advance without manual intervention |
 | WF-04 | operator | create a task from a GitHub issue using the Roadmap Planner skill | I don't manually type task descriptions and acceptance criteria |
-| WF-05 | developer | assign an agent persona (careful_bot, fast_bot, creative_bot) to a task | The agent executes the task using a strategy that matches the work |
-| WF-06 | developer | see the agent's decomposition plan before execution | I understand how the agent will approach the task and can request changes |
-| WF-07 | developer | enable auto-accept for a task so the agent's commands run without my approval | I can let the agent work autonomously while I focus on other tasks |
+| WF-05 | developer | assign an Agent stack (careful-bot, fast-bot, creative-bot) to a task | The agents execute the task using a strategy that matches the work |
+| WF-06 | developer | see the agent's decomposition plan before execution | I understand how the agents will approach the task and can request changes |
+| WF-07 | developer | enable auto-accept for a task so the agent's commands run without my approval | I can let the agents work autonomously while I focus on other tasks |
 | WF-08 | developer | pause an agent mid-task and inspect its reasoning | I can understand why it made a decision and guide it if needed |
 | WF-09 | developer | watch multiple agents work on different tasks simultaneously in separate terminal panes | I can monitor parallel progress without context-switching |
 | WF-10 | developer | skip a step or retry with a different approach when an agent hits an error | I can manually correct course without aborting the entire task |
-| WF-11 | team lead | have an agent automatically activate based on project context (e.g., presence of Cargo.toml) | I don't need to manually configure agent strategies per-project |
-| WF-12 | developer | create custom agent personas by mixing strategies or writing new ones | I can tune agent behavior to my team's preferences |
+| WF-11 | team lead | have an agent stack automatically activate based on project context (e.g., presence of Cargo.toml) | I don't need to manually configure agent strategies per-project |
+| WF-12 | developer | create custom Agents by mixing manifests or writing new ones | I can tune behavior to my team's preferences |
 | WF-13 | developer | see all LLM reasoning archived for a completed task | I can audit how the agent decomposed and executed the work |
 | WF-14 | developer | resume a task with an agent starting from exactly where it paused | I can continue without losing context even after closing TOS |
 | WF-15 | team lead | have the kanban board synchronized across multiple sectors working on the same project | All team members see real-time updates when tasks move lanes |
@@ -191,7 +191,7 @@ Stories covering project-scoped kanban boards, agent personas, multi-agent task 
 - User can [Inspect] command output, [Retry] with different approach, or [Suggest] an alternative.
 
 ### WF-09 Acceptance Criteria
-- Each active agent is displayed as a tab in the Workflow Manager pane: [@careful_bot #task_001] [@fast_bot #task_002].
+- Each active agent is displayed as a tab in the Workflow Manager pane: [@careful-bot #task_001] [@fast-bot #task_002].
 - Clicking a tab switches to that agent's isolated terminal output.
 - Or, split the pane to see 2-4 agents simultaneously.
 - Agents' commands execute in parallel without blocking each other.
@@ -232,7 +232,7 @@ Stories covering project-scoped kanban boards, agent personas, multi-agent task 
 - Future agents load project memory as few-shot examples for new decompositions.
 
 ### WF-19 Acceptance Criteria
-- Settings → Workflows → Agent Personas → [careful_bot] → Learned Patterns shows:
+- Settings → Workflows → Agent Personas → [careful-bot] → Learned Patterns shows:
   - Problem type: lifetime_error (count: 5)
   - Successful approaches: [wrap_in_result → test_first → validate (100% success rate)]
   - Historical trends

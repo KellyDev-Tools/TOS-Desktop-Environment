@@ -107,10 +107,32 @@
 - [ ] 6.9 E2E Playwright tests for Svelte UI — Comprehensive regression suite for core UI flows.
 - [ ] 6.10 Crash reporting infrastructure (opt-in) — Automated crash dump collection via `tos-loggerd`.
 
-## Stage 8 — AI Ecosystem & Marketplace Hardening
-- [ ] 8.1 Decouple Gemini backend into standalone `.tos-ai` package
-- [ ] 8.2 Decouple Ollama backend into standalone `.tos-ai` package
-- [ ] 8.3 Decouple OpenAI/Anthropic into standalone `.tos-ai` packages
-- [ ] 8.4 Implement per-module settings persistence in `tos-settingsd`
-- [ ] 8.5 Unified Backend Configuration UI in Settings Modal
-- [ ] 8.6 Verification of `.tos-ai` module sandboxing (bubblewrap)
+## Stage 8 — Cortex Orchestration & Ecosystem Hardening
+- [ ] 8.1 Implement Brain cortex registry for `.tos-assistant`, `.tos-curator`, and `.tos-agent` (Eco §1.3, ModuleManager)
+- [ ] 8.2 Implement `[auth]` credential injection and secure Settings store (Eco §1.3.4, SettingsStore)
+- [ ] 8.3 Implement `[trust]` declaration & Brain trust chip integration (Eco §1.3.5, TrustService)
+- [ ] 8.4 Implement `[connection]` transports (http, stdio, mcp) (Eco §1.3.1, CortexRegistry)
+- [ ] 8.5 Implement Agent Stacking — hierarchical prompt merging (Features §4.3.2, BrainAI)
+- [ ] 8.6 Migrate Ollama / Gemini to `.tos-assistant` with legacy shim (Eco §1.15, CortexRegistry)
+- [ ] 8.7 Implement GitNexus curator cortex via MCP (Eco §1.3.2, CortexRegistry)
+- [ ] 8.8 Unified Cortex Configuration UI in Settings Modal (Features §4.3, SettingsModal)
+- [ ] 8.9 Verification of Cortex sandboxing — bubblewrap isolation (Arch §17.3, SandboxManager)
+
+## Deferred to v0.2
+
+> The following items are marked ❌ in the Part 1 audit of `TOS_v0.1_Roadmap.md` but are
+> explicitly deferred beyond v0.1 scope due to hardware requirements, external dependencies,
+> or policy decisions.
+
+| Item | Spec Ref | Reason |
+|---|---|---|
+| Game controller / VR input mapping | §14.4 | No controller hardware test environment |
+| Accessibility switch scanning | §14.5 | Specialized hardware needed |
+| Voice confirmation for WARN commands | §17.2.7 | Depends on voice pipeline maturity |
+| Language modules (`.tos-language`) | Eco §1.12 | Built-in LSP configs sufficient for v0.1 |
+| Audio modules (`.tos-audio`) | Eco §1.11 | Built-in earcon set sufficient for v0.1 |
+| Bezel dynamic loading from disk | Eco §1.10 | Hardcoded Svelte components sufficient for v0.1 |
+| Per-surface timeline (Level 4) | §19.1 | LogView covers basic needs |
+| OpenSearch compatibility | §19.3 | External dependency, not core |
+| Privacy controls (log opt-out) | §19.4 | Policy decision pending |
+| Spatial audio (VR/AR) | §23.3 | Requires OpenXR runtime |

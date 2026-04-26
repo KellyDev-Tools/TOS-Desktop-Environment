@@ -1,5 +1,9 @@
 # TOS User Manual
 
+**Purpose:** This document is the comprehensive guide for users interacting with the TOS environment. It covers the UI hierarchy, command systems, and workflow optimization.
+
+**Version:** 0.1
+
 ## 1. System Philosophy: The Augmented Desktop Entity
 
 TOS (**Terminal On Steroids**) is not a static workspace; it is a **dynamic augmented desktop entity**. Inspired by LCARS design principles, it prioritizes hierarchical depth, multi-sensory feedback, and context-aware rendering. The command line is not one feature among many — it is the permanent heart of the system. Every visual augmentation exists to empower the terminal, never to replace it.

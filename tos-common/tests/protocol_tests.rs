@@ -175,9 +175,10 @@ mod tests {
     #[test]
     fn ai_query_response_serialization() {
         let query = AiQuery {
-            prompt: "explain this error".to_string(),
-            context: vec!["cargo build".to_string()],
+            prompt: "echo hello".to_string(),
+            context: vec![],
             stream: false,
+            auth: std::collections::HashMap::new(),
         };
         let json = serde_json::to_string(&query).expect("AiQuery must serialize");
         let _: AiQuery = serde_json::from_str(&json).expect("AiQuery must deserialize");

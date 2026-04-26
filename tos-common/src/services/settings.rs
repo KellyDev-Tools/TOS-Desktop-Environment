@@ -9,6 +9,8 @@ use std::sync::{Arc, Mutex};
 pub struct SettingsService {
     /// Resolved absolute path to settings.json.
     config_path: PathBuf,
+    /// Resolved absolute path to settings.secure.json.
+    secure_config_path: PathBuf,
     /// Optional registry for dynamic daemon discovery (§4.1).
     registry: Option<Arc<Mutex<crate::services::registry::ServiceRegistry>>>,
     /// Whether to use local disk I/O when daemon is unavailable.
@@ -31,6 +33,7 @@ impl SettingsService {
     pub fn with_config(config: &TosConfig) -> Self {
         Self {
             config_path: config.settings_path(),
+            secure_config_path: config.secure_settings_path(),
             registry: None,
             local_persistence: config.local.persistence,
         }
@@ -42,6 +45,7 @@ impl SettingsService {
     ) -> Self {
         Self {
             config_path: config.settings_path(),
+            secure_config_path: config.secure_settings_path(),
             registry: Some(registry),
             local_persistence: config.local.persistence,
         }
@@ -99,6 +103,29 @@ impl SettingsService {
         Ok(settings)
     }
 
+    fn get_secure_daemon(&self, key: &str) -> anyhow::Result<String> {
+        let port = self
+            .registry
+            .as_ref()
+            .and_then(
+                |r: &Arc<Mutex<crate::services::registry::ServiceRegistry>>| {
+                    r.lock().unwrap().port_of("tos-settingsd")
+                },
+            )
+            .unwrap_or(7002);
+
+        let addr = format!("127.0.0.1:{}", port);
+        let mut stream = TcpStream::connect_timeout(
+            &addr.parse().unwrap(),
+            std::time::Duration::from_millis(100),
+        )?;
+        stream.write_all(format!("get_secure_setting:{}\n", key).as_bytes())?;
+        let mut reader = BufReader::new(&stream);
+        let mut response = String::new();
+        reader.read_line(&mut response)?;
+        Ok(response.trim().to_string())
+    }
+
     // ── Local persistence (direct disk I/O) ──────────────────────────
 
     fn save_local(&self, settings: &SettingsStore) -> anyhow::Result<()> {
@@ -110,12 +137,39 @@ impl SettingsService {
         Ok(())
     }
 
+    fn save_secure_local(&self, secure_settings: &HashMap<String, String>) -> anyhow::Result<()> {
+        if let Some(parent) = self.secure_config_path.parent() {
+            std::fs::create_dir_all(parent)?;
+        }
+        let json = serde_json::to_string_pretty(secure_settings)?;
+        // Set restricted permissions on Linux if possible
+        #[cfg(unix)]
+        {
+            use std::os::unix::fs::PermissionsExt;
+            std::fs::write(&self.secure_config_path, json)?;
+            std::fs::set_permissions(&self.secure_config_path, std::fs::Permissions::from_mode(0o600))?;
+        }
+        #[cfg(not(unix))]
+        std::fs::write(&self.secure_config_path, json)?;
+        
+        Ok(())
+    }
+
     pub fn load_local(&self) -> anyhow::Result<SettingsStore> {
         if !self.config_path.exists() {
             return Ok(self.default_settings());
         }
         let content = std::fs::read_to_string(&self.config_path)?;
-        let settings = serde_json::from_str(&content)?;
+        let mut settings: SettingsStore = serde_json::from_str(&content)?;
+        
+        // Also load secure settings
+        if self.secure_config_path.exists() {
+            let secure_content = std::fs::read_to_string(&self.secure_config_path)?;
+            if let Ok(secure_map) = serde_json::from_str::<HashMap<String, String>>(&secure_content) {
+                settings.secure = secure_map;
+            }
+        }
+
         Ok(settings)
     }
 
@@ -123,6 +177,11 @@ impl SettingsService {
 
     /// Save the current settings. Tries daemon first, falls back to local.
     pub fn save(&self, settings: &SettingsStore) -> anyhow::Result<()> {
+        // Save secure settings separately to disk if local persistence is on
+        if self.local_persistence {
+            let _ = self.save_secure_local(&settings.secure);
+        }
+
         // Try daemon first.
         if self.save_daemon(settings).is_ok() {
             return Ok(());
@@ -148,6 +207,23 @@ impl SettingsService {
         }
         // Return defaults as last resort.
         Ok(self.default_settings())
+    }
+
+    /// Retrieve a secure setting by key.
+    pub fn get_secure(&self, key: &str) -> Option<String> {
+        // Try daemon first.
+        if let Ok(val) = self.get_secure_daemon(key) {
+            if !val.is_empty() && !val.starts_with("ERROR") {
+                return Some(val);
+            }
+        }
+        // Local fallback.
+        if self.local_persistence {
+            if let Ok(settings) = self.load_local() {
+                return settings.secure.get(key).cloned();
+            }
+        }
+        None
     }
 
     /// Directly load from disk, bypassing daemon check.
@@ -253,6 +329,7 @@ impl SettingsService {
             sectors: HashMap::new(),
             applications: HashMap::new(),
             ai_patterns: HashMap::new(),
+            secure: HashMap::new(),
         }
     }
 }

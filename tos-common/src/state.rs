@@ -693,6 +693,11 @@ pub struct SettingsStore {
     pub applications: HashMap<String, HashMap<String, String>>,
     #[serde(default)]
     pub ai_patterns: HashMap<String, String>,
+    /// Secure settings store for sensitive credentials (API keys, tokens).
+    /// These are NEVER serialized to the Face.
+    #[serde(skip_serializing)]
+    #[serde(default)]
+    pub secure: HashMap<String, String>,
 }
 
 

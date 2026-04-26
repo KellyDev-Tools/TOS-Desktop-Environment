@@ -221,7 +221,7 @@ struct GenericCuratorModule {
 impl crate::modules::CuratorModule for GenericCuratorModule {
     fn id(&self) -> &str { &self.id }
     fn name(&self) -> &str { &self.name }
-    fn get_context(&self, _prompt: &str) -> anyhow::Result<Vec<String>> {
+    fn get_context(&self, _prompt: &str, _auth: &HashMap<String, String>) -> anyhow::Result<Vec<String>> {
         // MCP logic would go here. For now, it's a stub.
         Ok(vec![format!("Context from curator '{}'", self.name)])
     }
@@ -302,13 +302,10 @@ impl AiModule for GenericAiModule {
                     .endpoint
                     .clone()
                     .ok_or_else(|| anyhow::anyhow!("AI module '{}' has no endpoint", self.name))?;
-                let api_key = std::env::var("OPENAI_API_KEY")
-                    .ok()
-                    .or_else(|| std::env::var("ANTHROPIC_API_KEY").ok())
-                    .or_else(|| std::env::var("TOS_LLM_API_KEY").ok());
                 let provider = self.provider.clone();
                 let prompt = request.prompt.clone();
                 let context = request.context.clone();
+                let auth = request.auth.clone();
 
                 // Blocking runtime for sync trait boundary
                 let rt = tokio::runtime::Handle::try_current();
@@ -317,7 +314,7 @@ impl AiModule for GenericAiModule {
                         handle.block_on(llm_http_call(
                             &provider,
                             &base,
-                            api_key.as_deref(),
+                            &auth,
                             &prompt,
                             &context,
                         ))
@@ -326,7 +323,7 @@ impl AiModule for GenericAiModule {
                     tokio::runtime::Runtime::new()?.block_on(llm_http_call(
                         &provider,
                         &base,
-                        api_key.as_deref(),
+                        &auth,
                         &prompt,
                         &context,
                     ))
@@ -394,7 +391,7 @@ impl AiModule for GenericAiModule {
 async fn llm_http_call(
     provider: &str,
     base: &str,
-    api_key: Option<&str>,
+    auth: &HashMap<String, String>,
     prompt: &str,
     context: &[String],
 ) -> anyhow::Result<crate::modules::AiResponse> {
@@ -407,9 +404,23 @@ async fn llm_http_call(
         ctx_str
     );
 
+    // Credential resolution cascade (§1.3.4):
+    // 1. Injected auth map (from secure settings)
+    // 2. Provider-specific env vars (legacy fallback)
+    let api_key = auth.get("api_key")
+        .cloned()
+        .or_else(|| auth.get("token").cloned())
+        .or_else(|| {
+            match provider {
+                "openai" => std::env::var("OPENAI_API_KEY").ok(),
+                "anthropic" => std::env::var("ANTHROPIC_API_KEY").ok(),
+                _ => std::env::var("TOS_LLM_API_KEY").ok(),
+            }
+        });
+
     let (url, body, auth_header) = match provider {
         "anthropic" => {
-            let key = api_key.ok_or_else(|| anyhow::anyhow!("ANTHROPIC_API_KEY not set"))?;
+            let key = api_key.ok_or_else(|| anyhow::anyhow!("ANTHROPIC_API_KEY or auth.api_key not set"))?;
             let body = json!({
                 "model": "claude-3-5-sonnet-20241022",
                 "max_tokens": 512,
@@ -433,7 +444,7 @@ async fn llm_http_call(
         }
         _ => {
             // openai-compatible
-            let key = api_key.ok_or_else(|| anyhow::anyhow!("OPENAI_API_KEY not set"))?;
+            let key = api_key.ok_or_else(|| anyhow::anyhow!("OPENAI_API_KEY or auth.api_key not set"))?;
             let body = json!({
                 "model": "gpt-4o-mini",
                 "messages": [

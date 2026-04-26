@@ -97,8 +97,9 @@ impl ServiceManager {
         let lsp = Arc::new(LspService::new());
         let ssh = Arc::new(SshService::new());
 
-        // Establish cross-service dependencies (e.g., logging triggers audio cues)
+        // Establish cross-service dependencies
         logger.set_audio_service(audio.clone());
+        ai.set_settings_service(settings.clone());
 
         // Surface any init warnings through the logger
         if let Some(warning) = audio_warning {

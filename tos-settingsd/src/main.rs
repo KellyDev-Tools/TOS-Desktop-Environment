@@ -118,6 +118,23 @@ async fn handle_client(
                     "OK".to_string()
                 }
             }
+            "get_secure_setting" => {
+                let key = args[0];
+                let lock = settings.lock().unwrap();
+                lock.secure.get(key).cloned().unwrap_or_default()
+            }
+            "set_secure_setting" => {
+                if args.len() < 2 {
+                    "ERROR: Key and value required".to_string()
+                } else {
+                    let key = args[0].to_string();
+                    let val = args[1].to_string();
+                    let mut lock = settings.lock().unwrap();
+                    lock.secure.insert(key.clone(), val.clone());
+                    let _ = service.save(&*lock);
+                    "OK".to_string()
+                }
+            }
             "save" => {
                 let lock = settings.lock().unwrap();
                 match service.save(&*lock) {

@@ -6,6 +6,7 @@
 
 use crate::{TerminalContext, TerminalLine};
 use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
 use uuid::Uuid;
 
 // ---------------------------------------------------------------------------
@@ -18,6 +19,9 @@ pub struct AiQuery {
     pub prompt: String,
     pub context: Vec<String>,
     pub stream: bool,
+    /// Injected credentials from secure store (§1.3.4).
+    #[serde(default)]
+    pub auth: HashMap<String, String>,
 }
 
 /// Response payload from an AI backend.
@@ -130,7 +134,8 @@ pub trait CuratorModule: Send + Sync {
     fn id(&self) -> &str;
     fn name(&self) -> &str;
     /// Query the curator for context relevant to a prompt/task.
-    fn get_context(&self, prompt: &str) -> anyhow::Result<Vec<String>>;
+    /// Injected credentials passed in auth map (§1.3.4).
+    fn get_context(&self, prompt: &str, auth: &HashMap<String, String>) -> anyhow::Result<Vec<String>>;
 }
 
 /// Runtime contract for an Agent module (.tos-agent).

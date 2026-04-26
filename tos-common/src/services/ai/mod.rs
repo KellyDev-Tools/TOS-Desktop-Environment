@@ -212,6 +212,7 @@ pub struct AiService {
     ipc: Arc<Mutex<Option<Arc<dyn IpcDispatcher>>>>,
     modules: Arc<Mutex<Option<Arc<crate::brain::module_manager::ModuleManager>>>>,
     cortex: Arc<Mutex<Option<Arc<Mutex<crate::brain::cortex_registry::CortexRegistry>>>>>,
+    settings: Arc<Mutex<Option<Arc<crate::services::settings::SettingsService>>>>,
     active_sandboxes: Arc<Mutex<HashMap<Uuid, crate::modules::sandbox::OverlaySandbox>>>,
 }
 
@@ -227,6 +228,7 @@ impl AiService {
             ipc: Arc::new(Mutex::new(None)),
             modules: Arc::new(Mutex::new(None)),
             cortex: Arc::new(Mutex::new(None)),
+            settings: Arc::new(Mutex::new(None)),
             active_sandboxes: Arc::new(Mutex::new(HashMap::new())),
         }
     }
@@ -397,6 +399,10 @@ impl AiService {
 
     pub fn set_cortex_registry(&self, cortex: Arc<Mutex<crate::brain::cortex_registry::CortexRegistry>>) {
         *self.cortex.lock().unwrap() = Some(cortex);
+    }
+
+    pub fn set_settings_service(&self, settings: Arc<crate::services::settings::SettingsService>) {
+        *self.settings.lock().unwrap() = Some(settings);
     }
 
     /// Register the built-in behaviors (tos-chat, tos-observer) into the system state.
@@ -647,10 +653,26 @@ impl AiService {
                         "editor_context".to_string(),
                     ];
                     let context = ctx.filter_to_fields(&ctx_fields);
+                    let mut auth = HashMap::new();
+                    if let Some(settings_svc) = self.settings.lock().unwrap().as_ref() {
+                        // Inject global keys
+                        if let Some(key) = settings_svc.get_secure("openai_api_key") { auth.insert("api_key".to_string(), key); }
+                        if let Some(key) = settings_svc.get_secure("anthropic_api_key") { auth.insert("api_key".to_string(), key); }
+                        if let Some(key) = settings_svc.get_secure("tos_llm_api_key") { auth.insert("api_key".to_string(), key); }
+                        
+                        // Inject module-specific keys (§1.3.4)
+                        let mod_prefix = format!("{}.", backend_id);
+                        // This is a simplification; a real implementation would iterate over relevant keys
+                        if let Some(key) = settings_svc.get_secure(&format!("{}api_key", mod_prefix)) {
+                            auth.insert("api_key".to_string(), key);
+                        }
+                    }
+
                     let req = crate::modules::AiQuery {
                         prompt: prompt.to_string(),
                         context,
                         stream: false,
+                        auth,
                     };
                     match ai_mod.query(req) {
                         Ok(resp) => {
@@ -731,6 +753,18 @@ impl AiService {
                     partial, ctx.cwd, ctx.last_command
                 );
 
+                let mut auth = HashMap::new();
+                if let Some(settings_svc) = self.settings.lock().unwrap().as_ref() {
+                    if let Some(key) = settings_svc.get_secure("openai_api_key") { auth.insert("api_key".to_string(), key); }
+                    if let Some(key) = settings_svc.get_secure("anthropic_api_key") { auth.insert("api_key".to_string(), key); }
+                    if let Some(key) = settings_svc.get_secure("tos_llm_api_key") { auth.insert("api_key".to_string(), key); }
+                    
+                    let mod_prefix = format!("{}.", backend_id);
+                    if let Some(key) = settings_svc.get_secure(&format!("{}api_key", mod_prefix)) {
+                        auth.insert("api_key".to_string(), key);
+                    }
+                }
+
                 let req = crate::modules::AiQuery {
                     prompt,
                     context: ctx.filter_to_fields(
@@ -740,6 +774,7 @@ impl AiService {
                             .collect::<Vec<_>>(),
                     ),
                     stream: false,
+                    auth,
                 };
 
                 if let Ok(resp) = ai_mod.query(req) {
@@ -884,6 +919,18 @@ impl AiService {
                         command, status, stderr.unwrap_or("none")
                     );
 
+                    let mut auth = HashMap::new();
+                    if let Some(settings_svc) = self.settings.lock().unwrap().as_ref() {
+                        if let Some(key) = settings_svc.get_secure("openai_api_key") { auth.insert("api_key".to_string(), key); }
+                        if let Some(key) = settings_svc.get_secure("anthropic_api_key") { auth.insert("api_key".to_string(), key); }
+                        if let Some(key) = settings_svc.get_secure("tos_llm_api_key") { auth.insert("api_key".to_string(), key); }
+                        
+                        let mod_prefix = format!("{}.", backend_id);
+                        if let Some(key) = settings_svc.get_secure(&format!("{}api_key", mod_prefix)) {
+                            auth.insert("api_key".to_string(), key);
+                        }
+                    }
+
                     let req = crate::modules::AiQuery {
                         prompt,
                         context: ctx.filter_to_fields(
@@ -893,6 +940,7 @@ impl AiService {
                                 .collect::<Vec<_>>(),
                         ),
                         stream: false,
+                        auth,
                     };
 
                     if let Ok(resp) = ai_mod.query(req) {
@@ -919,18 +967,19 @@ impl AiService {
     }
 
     async fn fallback_query(&self, prompt: &str, ctx: &AiContext) -> (String, String) {
-        // If we are here, standard and local backends failed or are missing.
-        // Try queuing if this looks like a network failure.
-        if let Err(e) = self.queue_request("chat", prompt) {
-             tracing::error!("[AiService] Failed to queue request: {}", e);
+        // Fallback currently uses OpenAI GPT-4o-mini if local or module fails
+        let mut auth = HashMap::new();
+        if let Some(settings_svc) = self.settings.lock().unwrap().as_ref() {
+            if let Some(key) = settings_svc.get_secure("openai_api_key") { auth.insert("api_key".to_string(), key); }
+            if let Some(key) = settings_svc.get_secure("tos_llm_api_key") { auth.insert("api_key".to_string(), key); }
         }
 
-        let api_key = std::env::var("OPENAI_API_KEY");
-        let api_base = std::env::var("OPENAI_API_BASE")
-            .unwrap_or_else(|_| "https://api.openai.com/v1".to_string());
+        // Resolution cascade: secure store -> env var
+        let api_key = auth.get("api_key").cloned().or_else(|| std::env::var("OPENAI_API_KEY").ok());
+        let api_base = std::env::var("OPENAI_API_BASE").unwrap_or_else(|_| "https://api.openai.com/v1".to_string());
         let ipc = self.ipc.lock().unwrap().clone();
 
-        if let Ok(key) = api_key {
+        if let Some(key) = api_key {
             let client = reqwest::Client::new();
             let system_prompt = format!(
                 "You are TOS Alpha-2 Brain AI. Sector: '{}', Path: '{}', Mode: {}. \
@@ -982,16 +1031,10 @@ impl AiService {
                             (cmd, expl)
                         }
                     } else {
-                        (
-                            "echo 'LLM JSON Error'".to_string(),
-                            "AI returned invalid JSON.".to_string(),
-                        )
+                        ("echo 'AI Error'".to_string(), "Failed to parse API response".to_string())
                     }
                 }
-                Err(e) => (
-                    format!("echo 'LLM Error: {}'", e),
-                    "Network request failed.".to_string(),
-                ),
+                Err(e) => ("echo 'Network Error'".to_string(), e.to_string()),
             }
         } else {
             // Offline keyword heuristics

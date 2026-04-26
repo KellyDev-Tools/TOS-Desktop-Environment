@@ -214,6 +214,9 @@ pub struct SettingsConfig {
     /// Path to the settings JSON file. Empty = {config_dir}/settings.json.
     #[serde(default)]
     pub settings_path: String,
+    /// Path to the secure settings JSON file. Empty = {config_dir}/settings.secure.json.
+    #[serde(default)]
+    pub secure_settings_path: String,
     /// Port for the optional tos-settingsd daemon.
     #[serde(default = "default_settings_daemon_port")]
     pub daemon_port: u16,
@@ -227,6 +230,7 @@ impl Default for SettingsConfig {
     fn default() -> Self {
         Self {
             settings_path: String::new(),
+            secure_settings_path: String::new(),
             daemon_port: 7002,
         }
     }
@@ -239,6 +243,15 @@ impl SettingsConfig {
             PathBuf::from(&self.settings_path)
         } else {
             platform.resolved_config_dir().join("settings.json")
+        }
+    }
+
+    /// Resolve secure_settings_path using the platform config_dir as the base if empty.
+    pub fn resolved_secure_settings_path(&self, platform: &PlatformConfig) -> PathBuf {
+        if !self.secure_settings_path.is_empty() {
+            PathBuf::from(&self.secure_settings_path)
+        } else {
+            platform.resolved_config_dir().join("settings.secure.json")
         }
     }
 }
@@ -448,6 +461,11 @@ impl TosConfig {
     /// Resolved settings file path.
     pub fn settings_path(&self) -> PathBuf {
         self.settings.resolved_settings_path(&self.platform)
+    }
+
+    /// Resolved secure settings file path.
+    pub fn secure_settings_path(&self) -> PathBuf {
+        self.settings.resolved_secure_settings_path(&self.platform)
     }
 
     /// Resolved active working directory.

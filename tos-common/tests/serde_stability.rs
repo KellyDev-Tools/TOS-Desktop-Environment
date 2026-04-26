@@ -87,3 +87,28 @@ fn test_marketplace_summary_serde() {
     assert_eq!(summary.id, deserialized.id);
     assert_eq!(summary.rating, deserialized.rating);
 }
+
+#[test]
+fn test_settings_store_secure_skip_serializing() {
+    use std::collections::HashMap;
+    let mut secure = HashMap::new();
+    secure.insert("api_key".to_string(), "SECRET_VALUE".to_string());
+    
+    let store = SettingsStore {
+        global: HashMap::new(),
+        sectors: HashMap::new(),
+        applications: HashMap::new(),
+        ai_patterns: HashMap::new(),
+        secure,
+    };
+    
+    let serialized = serde_json::to_string(&store).unwrap();
+    
+    // Ensure the secret value is NOT in the serialized string
+    assert!(!serialized.contains("SECRET_VALUE"), "Sensitive data leaked in serialization!");
+    assert!(!serialized.contains("\"secure\""), "Secure field name should be skipped");
+    
+    // Ensure deserialization still works (it will just have an empty map due to #[serde(default)])
+    let deserialized: SettingsStore = serde_json::from_str(&serialized).unwrap();
+    assert!(deserialized.secure.is_empty());
+}

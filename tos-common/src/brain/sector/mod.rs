@@ -203,6 +203,39 @@ impl SectorManager {
         state.sectors.len() < initial_len
     }
 
+    /// Reset a sector's state and terminate its processes (§20.1).
+    pub fn reset_sector(state: &mut TosState, id: Uuid) -> bool {
+        if let Some(sector) = state.sectors.iter_mut().find(|s| s.id == id) {
+            tracing::info!("Resetting sector {} ({})", id, sector.name);
+
+            // 1. Clear application instances
+            sector.active_apps.clear();
+            sector.active_app_index = 0;
+
+            // 2. Clear all hubs within the sector
+            for hub in &mut sector.hubs {
+                hub.terminal_output.clear();
+                hub.staged_command = None;
+                hub.ai_explanation = None;
+                hub.json_context = None;
+                hub.search_results = None;
+                hub.ai_history.clear();
+                hub.active_thoughts.clear();
+                hub.is_running = false;
+                hub.last_exit_status = None;
+                hub.version += 1;
+            }
+
+            // 3. Cleanup transient sandbox data (§20.1)
+            let _ = crate::modules::sandbox::SandboxManager::cleanup_all();
+
+            sector.version += 1;
+            state.version += 1;
+            return true;
+        }
+        false
+    }
+
     /// Toggle sector heart-beat/PTY update processing.
     pub fn toggle_freeze(state: &mut TosState, id: Uuid) {
         if let Some(sector) = state.sectors.iter_mut().find(|s| s.id == id) {

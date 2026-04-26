@@ -145,6 +145,15 @@ impl SandboxManager {
         Ok(child)
     }
 
+    /// Cleans up all temporary sandbox directories (§20.1).
+    pub fn cleanup_all() -> anyhow::Result<()> {
+        let temp_base = std::env::temp_dir().join("tos_sandbox");
+        if temp_base.exists() {
+            let _ = fs::remove_dir_all(&temp_base);
+        }
+        Ok(())
+    }
+
     /// Creates a new overlay-based sandbox in a temporary directory.
     pub fn create_overlay_sandbox(lower_dir: &Path) -> anyhow::Result<OverlaySandbox> {
         let temp_base = std::env::temp_dir().join("tos_sandbox");

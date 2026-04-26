@@ -140,12 +140,29 @@ impl PtyShell {
     }
 
     pub fn send_signal(&mut self, signal: &str) -> anyhow::Result<()> {
-        match signal {
-            "INT" | "SIGINT" => self.write("\x03")?,
-            "TERM" | "SIGTERM" => self.write("\x04")?,
+        let sig = match signal {
+            "INT" | "SIGINT" => libc::SIGINT,
+            "TERM" | "SIGTERM" => libc::SIGTERM,
+            "KILL" | "SIGKILL" => libc::SIGKILL,
+            "QUIT" | "SIGQUIT" => libc::SIGQUIT,
+            "HUP" | "SIGHUP" => libc::SIGHUP,
             _ => return Err(anyhow::anyhow!("Unsupported signal: {}", signal)),
+        };
+
+        // We attempt to signal the process group of the shell.
+        // In portable-pty, the child process ID is often the PGID leader.
+        if let Some(pid) = self._child.process_id() {
+            unsafe {
+                // Negative PID sends signal to the process group
+                if libc::kill(-(pid as libc::pid_t), sig) != 0 {
+                    // Fallback to signaling just the shell process if PGID kill fails
+                    libc::kill(pid as libc::pid_t, sig);
+                }
+            }
+            Ok(())
+        } else {
+            Err(anyhow::anyhow!("Could not retrieve PID for signaling"))
         }
-        Ok(())
     }
 
     pub fn force_kill(&mut self) -> anyhow::Result<()> {

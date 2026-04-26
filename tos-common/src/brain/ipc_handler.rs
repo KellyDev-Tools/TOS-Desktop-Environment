@@ -61,6 +61,7 @@ impl IpcHandler {
             "sector_create_from_template" => self.handle_sector_create_from_template(payload),
             "sector_clone" => self.handle_sector_clone(args.first().copied()),
             "sector_close" => self.handle_sector_close(args.first().copied()),
+            "sector_reset" => self.handle_sector_reset(args.first().copied()),
             "sector_freeze" => self.handle_sector_freeze(args.first().copied()),
             "remote_disconnect" => self.handle_remote_disconnect(args.first().copied()),
             "click" => self.handle_click(payload),
@@ -897,6 +898,27 @@ impl IpcHandler {
             }
         }
         "ERROR: Invalid sector ID for close".to_string()
+    }
+
+    fn handle_sector_reset(&self, id_str: Option<&str>) -> String {
+        if let Some(id_str) = id_str {
+            if let Ok(id) = Uuid::parse_str(id_str) {
+                let mut state = self.state.lock().unwrap();
+
+                // §20.1: Send SIGTERM to the shell process group.
+                // In the current architecture, the Brain holds a single shell context,
+                // which we signal during the reset of its primary sector.
+                {
+                    let mut shell = self.shell.lock().unwrap();
+                    let _ = shell.send_signal("SIGTERM");
+                }
+
+                if crate::brain::sector::SectorManager::reset_sector(&mut state, id) {
+                    return format!("SECTOR_RESET: {}", id);
+                }
+            }
+        }
+        "ERROR: Invalid sector ID for reset".to_string()
     }
 
     fn handle_sector_freeze(&self, id_str: Option<&str>) -> String {

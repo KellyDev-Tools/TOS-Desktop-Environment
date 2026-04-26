@@ -274,7 +274,7 @@
 
 | Feature | Spec Ref | Status | Evidence |
 |---|---|---|---|
-| Sector reset (SIGTERM, clean) | §20.1 | 🔶 | Sector close exists; no SIGTERM to process tree |
+| Sector reset (SIGTERM, clean) | §20.1 | ✅ | SIGTERM to shell PGID + sandbox cleanup + state reset implemented |
 | System reset dialog | §20.2 | ✅ | Full confirmation modal in `GlobalOverview.svelte` with "RED ALERT" keyword gate + EXECUTE_RESET button |
 
 ### 1.21 TOS Log (Architecture §19)

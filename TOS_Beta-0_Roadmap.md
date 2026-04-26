@@ -123,7 +123,7 @@
 | Warning chip (non-blocking) | §17.2.3 | ✅ | `WarningChip.svelte` dedicated component filtering `[TRUST]` entries from system_log, rendered in `CommandHub.svelte` with amberPulse animation |
 | Ed25519 service signature verification | Ecosystem §4.1 | ✅ | `verify_service_signature()` with tests |
 | Module manifest signature verification | Ecosystem §1.0 | ✅ | `verify_manifest()` with tests |
-| Sandbox profiles (bubblewrap) | §17.3 | 🔶 | `sandbox.rs` (4KB) — profile definitions exist; no actual isolation |
+| Sandbox profiles (bubblewrap) | §17.3 | ✅ | Bubblewrap profiles (Default, Network, FileSystem, Full) implemented in `sandbox.rs` |
 | Voice confirmation for WARN commands | §17.2.7 | ❌ | No voice confirmation code |
 
 ### 1.8 Module System (Architecture §18, Ecosystem §1)

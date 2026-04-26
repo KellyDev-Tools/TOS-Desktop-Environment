@@ -9,7 +9,21 @@ use std::fs;
 use similar::TextDiff;
 use walkdir::WalkDir;
 
+use serde::{Serialize, Deserialize};
+
 pub struct SandboxManager;
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+pub enum SandboxProfile {
+    /// Strict isolation: no network, no persistent FS, /tmp only.
+    Default,
+    /// Adds network access (--share-net).
+    Network,
+    /// Adds sector-specific filesystem binding.
+    FileSystem,
+    /// Minimum isolation (development/trusted).
+    FullAccess,
+}
 
 /// A handle to an active overlay-based sandbox.
 pub struct OverlaySandbox {
@@ -72,41 +86,62 @@ impl SandboxManager {
     /// Sandbox configuration: Spawns a new process in isolated Linux namespaces 
     /// and configures strict memory limits via Cgroups (v2 format).
     pub fn spawn_sandboxed_process(program: &str, args: &[&str]) -> anyhow::Result<std::process::Child> {
-        tracing::info!("Initializing Kernel-Level Sandboxing for {}", program);
+        Self::spawn_bwrap_process(SandboxProfile::Default, None, program, args)
+    }
 
-        let mut cmd = Command::new(program);
-        cmd.args(args);
+    /// Spawns a process using Bubblewrap (§17.3) with a specific profile.
+    pub fn spawn_bwrap_process(
+        profile: SandboxProfile,
+        sector_id: Option<&str>,
+        program: &str,
+        args: &[&str],
+    ) -> anyhow::Result<std::process::Child> {
+        tracing::info!("Spawning Bwrap Sandbox [Profile: {:?}] for {}", profile, program);
 
-        // Kernel-Level Isolation (Namespaces)
-        // Uses raw libc unshare syscall to detach from host namespace structures.
-        unsafe {
-            cmd.pre_exec(|| {
-                // CLONE_NEWNS  (Mount/Filesystem)
-                // CLONE_NEWUTS (Hostname/Domain)
-                // CLONE_NEWIPC (Inter-Process Communication)
-                // CLONE_NEWNET (Network stack isolation)
-                let flags = libc::CLONE_NEWNS | libc::CLONE_NEWUTS | libc::CLONE_NEWIPC | libc::CLONE_NEWNET;
-                
-                // If running unprivileged, CLONE_NEWUSER is required before using the others.
-                let new_user_flag = libc::CLONE_NEWUSER;
-
-                if libc::unshare(new_user_flag | flags) != 0 {
-                    return Err(std::io::Error::last_os_error());
-                }
-                
-                Ok(())
-            });
+        let mut cmd = Command::new("bwrap");
+        
+        // Base isolation flags
+        cmd.arg("--unshare-all");
+        cmd.arg("--dir").arg("/tmp");
+        cmd.arg("--proc").arg("/proc");
+        cmd.arg("--dev").arg("/dev");
+        
+        // Host system read-only bindings (canonical LCARS sandbox)
+        for path in &["/usr", "/lib", "/lib64", "/bin", "/sbin"] {
+            if Path::new(path).exists() {
+                cmd.arg("--ro-bind").arg(path).arg(path);
+            }
         }
 
+        // Profile-specific enforcement
+        match profile {
+            SandboxProfile::Default => {
+                // Strict isolation: no network, no persistent host access.
+            },
+            SandboxProfile::Network => {
+                cmd.arg("--share-net");
+            },
+            SandboxProfile::FileSystem => {
+                if let Some(id) = sector_id {
+                    let home = std::env::var("HOME").unwrap_or_else(|_| "/home/tos".to_string());
+                    let sector_path = PathBuf::from(home).join("TOS/Sectors").join(id);
+                    if sector_path.exists() {
+                        cmd.arg("--bind").arg(&sector_path).arg("/mnt/sector");
+                    }
+                }
+            },
+            SandboxProfile::FullAccess => {
+                cmd.arg("--share-net");
+                cmd.arg("--bind").arg("/").arg("/");
+            }
+        }
+
+        cmd.arg("--").arg(program).args(args);
+        
         let child = cmd.spawn()?;
         
-        let pid = child.id();
-        
-        // Kernel-Level Resource Control (Cgroups V2)
-        // Apply memory limits post-spawn
-        Self::apply_cgroup_limits(pid)?;
-
-        tracing::info!("Process {} successfully sandboxed in kernel.", pid);
+        // Cgroup limits still apply post-spawn
+        Self::apply_cgroup_limits(child.id())?;
 
         Ok(child)
     }

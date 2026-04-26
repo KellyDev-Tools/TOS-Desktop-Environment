@@ -153,8 +153,37 @@ impl PtyShell {
         Ok(())
     }
 
-    /// Run a command in an isolated PTY and return its output (§7.7).
+    /// Run a command in an isolated PTY with a transient sandbox (§7.7).
     pub fn exec_isolated(command: &str, cwd: std::path::PathBuf) -> anyhow::Result<String> {
+        let (output, sandbox) = Self::exec_sandboxed(command, cwd)?;
+        let _ = sandbox.cleanup();
+        Ok(output)
+    }
+
+    /// Run a command in a transient filesystem sandbox (§7.7).
+    /// Returns the terminal output and the sandbox handle for later merge logic.
+    pub fn exec_sandboxed(
+        command: &str,
+        cwd: std::path::PathBuf,
+    ) -> anyhow::Result<(String, crate::modules::sandbox::OverlaySandbox)> {
+        let sandbox = crate::modules::sandbox::SandboxManager::create_overlay_sandbox(&cwd)?;
+
+        let lower = sandbox.lower.to_string_lossy();
+        let upper = sandbox.upper.to_string_lossy();
+        let work = sandbox.work.to_string_lossy();
+        let merged = sandbox.merged.to_string_lossy();
+
+        // Escape the command for bash -c (basic escaping)
+        let escaped_command = command.replace('"', "\\\"");
+
+        let sandbox_script = format!(
+            "mount -t overlay overlay -o lowerdir='{}',upperdir='{}',workdir='{}' '{}' && cd '{}' && sh -c \"{}\"",
+            lower, upper, work, merged, merged, escaped_command
+        );
+
+        let mut cmd = CommandBuilder::new("unshare");
+        cmd.args(["-m", "-r", "bash", "-c", &sandbox_script]);
+
         let pty_system = native_pty_system();
         let pair = pty_system.openpty(PtySize {
             rows: 24,
@@ -163,16 +192,12 @@ impl PtyShell {
             pixel_height: 0,
         })?;
 
-        let mut cmd = CommandBuilder::new("sh");
-        cmd.args(["-c", command]);
-        cmd.cwd(cwd);
         let _child = pair.slave.spawn_command(cmd)?;
 
         let mut reader = pair.master.try_clone_reader()?;
         let mut output = String::new();
         let mut buffer = [0u8; 1024];
 
-        // Read until EOF or timeout
         loop {
             match reader.read(&mut buffer) {
                 Ok(0) => break,
@@ -181,10 +206,12 @@ impl PtyShell {
                 }
                 Err(_) => break,
             }
-            if output.len() > 100_000 { break; } // Safety cap
+            if output.len() > 1_000_000 {
+                break;
+            } // 1MB safety cap
         }
 
-        Ok(output)
+        Ok((output, sandbox))
     }
 }
 

@@ -211,6 +211,7 @@ pub fn build_context(state: &TosState) -> AiContext {
 pub struct AiService {
     ipc: Arc<Mutex<Option<Arc<dyn IpcDispatcher>>>>,
     modules: Arc<Mutex<Option<Arc<crate::brain::module_manager::ModuleManager>>>>,
+    active_sandboxes: Arc<Mutex<HashMap<Uuid, crate::modules::sandbox::OverlaySandbox>>>,
 }
 
 impl Default for AiService {
@@ -224,6 +225,7 @@ impl AiService {
         Self {
             ipc: Arc::new(Mutex::new(None)),
             modules: Arc::new(Mutex::new(None)),
+            active_sandboxes: Arc::new(Mutex::new(HashMap::new())),
         }
     }
 
@@ -253,6 +255,45 @@ impl AiService {
         let _ = ipc.dispatch(&format!("ai_thought_stage:{}", serde_json::to_string(&done)?));
 
         Ok(())
+    }
+
+    /// Creates a sandbox for an agent task (§7.7).
+    pub fn workflow_agent_sandbox(&self, task_id: Uuid, cwd: std::path::PathBuf) -> anyhow::Result<String> {
+        let (output, sandbox) = crate::brain::shell::ShellApi::exec_sandboxed("ls -la", cwd)?;
+        self.active_sandboxes.lock().unwrap().insert(task_id, sandbox);
+        Ok(output)
+    }
+
+    /// Merges staged changes from an agent sandbox back into the project tree (§7.7).
+    pub fn workflow_task_merge(&self, state: &mut crate::state::TosState, task_id: Uuid) -> anyhow::Result<String> {
+        let sandbox = {
+            let mut sandboxes = self.active_sandboxes.lock().unwrap();
+            sandboxes.remove(&task_id).ok_or_else(|| anyhow::anyhow!("No active sandbox for task {}", task_id))?
+        };
+
+        let diffs = sandbox.calculate_diffs()?;
+        
+        // Find the task and store its staged changes
+        let mut found = false;
+        for sector in &mut state.sectors {
+            if let Some(board) = &mut sector.kanban_board {
+                for lane in &mut board.lanes {
+                    if let Some(task) = lane.tasks.iter_mut().find(|t| t.id == task_id) {
+                        task.staged_changes = diffs.clone();
+                        found = true;
+                        break;
+                    }
+                }
+            }
+            if found { break; }
+        }
+
+        if !found {
+            return Err(anyhow::anyhow!("Task {} not found in any sector", task_id));
+        }
+
+        let _ = sandbox.cleanup();
+        Ok(format!("MERGED: {} hunks staged for task {}", diffs.len(), task_id))
     }
 
     /// Dream Consolidate (Memory Synthesis) skill (§7.6, §21.5).

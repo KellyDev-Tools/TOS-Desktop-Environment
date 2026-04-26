@@ -44,4 +44,7 @@ impl ShellApi {
     pub fn force_kill(&mut self) -> anyhow::Result<()> {
         Ok(())
     }
+    pub fn exec_sandboxed(_command: &str, _cwd: std::path::PathBuf) -> anyhow::Result<(String, crate::modules::sandbox::OverlaySandbox)> {
+        Err(anyhow::anyhow!("Sandboxing not supported on Android"))
+    }
 }

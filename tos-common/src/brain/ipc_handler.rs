@@ -274,9 +274,7 @@ impl IpcHandler {
             "editor_clear_annotations" => {
                 self.handle_editor_clear_annotations(args.first().copied())
             }
-            "editor_edit_proposal" => {
-                self.handle_editor_edit_proposal(args.first().copied(), args.get(1).copied())
-            }
+            "editor_edit_proposal" => self.handle_editor_edit_proposal(args.first().copied(), Some(payload)),
             "editor_edit_apply" => {
                 self.handle_editor_edit_apply(args.first().copied(), args.get(1).copied())
             }
@@ -290,7 +288,11 @@ impl IpcHandler {
                 self.handle_editor_send_context(args.first().copied(), args.get(1).copied())
             }
             "editor_promote" => self.handle_editor_promote(args.first().copied()),
-            _ => "ERROR: Unknown prefix".to_string(),
+
+            // §7.7: Agent Sandboxing & Merge Logic
+            "workflow_agent_sandbox" => self.handle_workflow_agent_sandbox(args.first().copied(), args.get(1).copied()),
+            "workflow_task_merge" => self.handle_workflow_task_merge(args.first().copied()),
+            _ => format!("ERROR: Unknown command '{}'", prefix),
         };
 
         // Debounced session save on state-mutating events
@@ -2767,6 +2769,38 @@ impl IpcHandler {
         "AI_DREAM_CONSOLIDATE_STARTED".to_string()
     }
 
+    fn handle_workflow_agent_sandbox(&self, task_id_str: Option<&str>, cwd_str: Option<&str>) -> String {
+        let task_id = match task_id_str.and_then(|s| Uuid::parse_str(s).ok()) {
+            Some(id) => id,
+            None => return "ERROR: Invalid task_id".to_string(),
+        };
+        let cwd = match cwd_str {
+            Some(c) => std::path::PathBuf::from(c),
+            None => return "ERROR: Missing cwd".to_string(),
+        };
+
+        match self.services.ai.workflow_agent_sandbox(task_id, cwd) {
+            Ok(output) => output,
+            Err(e) => format!("ERROR: Failed to create sandbox: {}", e),
+        }
+    }
+
+    fn handle_workflow_task_merge(&self, task_id_str: Option<&str>) -> String {
+        let task_id = match task_id_str.and_then(|s| Uuid::parse_str(s).ok()) {
+            Some(id) => id,
+            None => return "ERROR: Invalid task_id".to_string(),
+        };
+
+        let mut state = self.state.lock().unwrap();
+        match self.services.ai.workflow_task_merge(&mut state, task_id) {
+            Ok(msg) => {
+                state.version += 1;
+                msg
+            }
+            Err(e) => format!("ERROR: Failed to merge task: {}", e),
+        }
+    }
+
     fn handle_confirmation_accept(&self, id_str: Option<&str>) -> String {
         if let Some(id_str) = id_str {
             if let Ok(id) = Uuid::parse_str(id_str) {
@@ -3566,6 +3600,7 @@ impl IpcHandler {
                             assignee: None,
                             priority: 0,
                             tags: vec![],
+                            staged_changes: vec![],
                         };
                         lane.tasks.push(task);
                         state.version += 1;

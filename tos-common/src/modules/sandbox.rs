@@ -4,10 +4,69 @@
  */
 use std::os::unix::process::CommandExt;
 use std::process::Command;
-use std::path::Path;
+use std::path::{Path, PathBuf};
 use std::fs;
+use similar::TextDiff;
+use walkdir::WalkDir;
 
 pub struct SandboxManager;
+
+/// A handle to an active overlay-based sandbox.
+pub struct OverlaySandbox {
+    pub root: PathBuf,
+    pub lower: PathBuf,
+    pub upper: PathBuf,
+    pub work: PathBuf,
+    pub merged: PathBuf,
+}
+
+impl OverlaySandbox {
+    /// Cleans up the sandbox directories (upper/work/merged).
+    /// Note: merged must be unmounted before deletion if still mounted.
+    pub fn cleanup(&self) -> anyhow::Result<()> {
+        let _ = fs::remove_dir_all(&self.root);
+        Ok(())
+    }
+
+    /// Compares the upper layer with the lower layer and generates DiffHunks.
+    pub fn calculate_diffs(&self) -> anyhow::Result<Vec<crate::state::DiffHunk>> {
+        let mut all_hunks = Vec::new();
+        for entry in WalkDir::new(&self.upper) {
+            let entry = entry?;
+            if !entry.file_type().is_file() {
+                continue;
+            }
+
+            let rel_path = entry.path().strip_prefix(&self.upper)?;
+            let lower_file = self.lower.join(rel_path);
+
+            let upper_content = fs::read_to_string(entry.path())?;
+            let lower_content = if lower_file.exists() {
+                fs::read_to_string(&lower_file).unwrap_or_default()
+            } else {
+                String::new()
+            };
+
+            if upper_content == lower_content {
+                continue;
+            }
+
+            let diff = TextDiff::from_lines(&lower_content, &upper_content);
+            let unified_diff = format!("{}", diff.unified_diff().context_radius(3));
+
+            if !unified_diff.is_empty() {
+                all_hunks.push(crate::state::DiffHunk {
+                    old_start: 1,
+                    old_count: lower_content.lines().count(),
+                    new_start: 1,
+                    new_count: upper_content.lines().count(),
+                    content: unified_diff,
+                });
+            }
+        }
+        Ok(all_hunks)
+    }
+}
 
 impl SandboxManager {
     /// Sandbox configuration: Spawns a new process in isolated Linux namespaces 
@@ -50,6 +109,33 @@ impl SandboxManager {
         tracing::info!("Process {} successfully sandboxed in kernel.", pid);
 
         Ok(child)
+    }
+
+    /// Creates a new overlay-based sandbox in a temporary directory.
+    pub fn create_overlay_sandbox(lower_dir: &Path) -> anyhow::Result<OverlaySandbox> {
+        let temp_base = std::env::temp_dir().join("tos_sandbox");
+        if !temp_base.exists() {
+            fs::create_dir_all(&temp_base)?;
+        }
+        
+        let id = uuid::Uuid::new_v4().to_string();
+        let root = temp_base.join(id);
+        
+        let upper = root.join("upper");
+        let work = root.join("work");
+        let merged = root.join("merged");
+        
+        fs::create_dir_all(&upper)?;
+        fs::create_dir_all(&work)?;
+        fs::create_dir_all(&merged)?;
+        
+        Ok(OverlaySandbox {
+            root,
+            lower: lower_dir.to_path_buf(),
+            upper,
+            work,
+            merged,
+        })
     }
 
     /// Isolate a process post-spawn (Mock fallback if pre_exec unavailable).

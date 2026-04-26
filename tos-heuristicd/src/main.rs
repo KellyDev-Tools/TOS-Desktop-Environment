@@ -4,6 +4,7 @@
 //! suggestions, typo corrections, and heuristic sector labeling. It registers
 //! with the Brain via Unix domain socket.
 
+use std::collections::HashMap;
 use std::path::PathBuf;
 use std::sync::{Arc, Mutex};
 use tokio::io::{AsyncBufReadExt, AsyncWriteExt, BufReader};
@@ -13,6 +14,8 @@ use tokio::net::{TcpListener, TcpStream};
 struct HeuristicState {
     /// Cached common commands for typo matching.
     command_history: Vec<String>,
+    /// Common parameters for known commands.
+    parameter_hints: HashMap<String, Vec<String>>,
 }
 
 impl HeuristicState {
@@ -34,8 +37,16 @@ impl HeuristicState {
                 "sudo".to_string(),
                 "apt".to_string(),
                 "systemctl".to_string(),
-                "docker".to_string(),
             ],
+            parameter_hints: {
+                let mut m = HashMap::new();
+                m.insert("git".to_string(), vec!["status".to_string(), "add".to_string(), "commit".to_string(), "push".to_string(), "pull".to_string(), "checkout".to_string(), "branch".to_string(), "diff".to_string(), "log".to_string(), "rebase".to_string()]);
+                m.insert("docker".to_string(), vec!["ps".to_string(), "images".to_string(), "run".to_string(), "stop".to_string(), "start".to_string(), "exec".to_string(), "build".to_string(), "pull".to_string(), "push".to_string(), "logs".to_string()]);
+                m.insert("npm".to_string(), vec!["install".to_string(), "start".to_string(), "test".to_string(), "run".to_string(), "build".to_string(), "publish".to_string(), "update".to_string(), "outdated".to_string()]);
+                m.insert("cargo".to_string(), vec!["build".to_string(), "run".to_string(), "test".to_string(), "check".to_string(), "doc".to_string(), "publish".to_string(), "update".to_string(), "expand".to_string()]);
+                m.insert("apt".to_string(), vec!["update".to_string(), "upgrade".to_string(), "install".to_string(), "remove".to_string(), "search".to_string(), "show".to_string(), "autoremove".to_string()]);
+                m
+            },
         }
     }
 }
@@ -144,15 +155,42 @@ fn generate_suggestions(
     }
 
     // 2. Command Typo Correction
-    let lock = state.lock().unwrap();
-    for cmd in &lock.command_history {
-        let distance = levenshtein_distance(keyword, cmd);
-        if distance > 0 && distance <= 2 {
-            suggestions.push(Suggestion {
-                text: cmd.clone(),
-                score: 1.0 - (distance as f32 * 0.2),
-                source: "Typo".to_string(),
-            });
+    {
+        let lock = state.lock().unwrap();
+        for cmd in &lock.command_history {
+            let distance = levenshtein_distance(keyword, cmd);
+            if distance > 0 && distance <= 2 {
+                suggestions.push(Suggestion {
+                    text: cmd.clone(),
+                    score: 1.0 - (distance as f32 * 0.2),
+                    source: "Typo".to_string(),
+                });
+            }
+        }
+    }
+
+    // 3. Parameter Hints
+    let words: Vec<&str> = keyword.split_whitespace().collect();
+    if !words.is_empty() {
+        let cmd = words[0];
+        let lock = state.lock().unwrap();
+        if let Some(hints) = lock.parameter_hints.get(cmd) {
+            let last_word = words.last().copied().unwrap_or("");
+            let is_at_command = words.len() == 1 && keyword.ends_with(' ');
+            let is_at_parameter = words.len() > 1;
+
+            if is_at_command || is_at_parameter {
+                let filter = if is_at_parameter && !keyword.ends_with(' ') { last_word } else { "" };
+                for hint in hints {
+                    if hint.starts_with(filter) && hint != filter {
+                        suggestions.push(Suggestion {
+                            text: hint.clone(),
+                            score: 0.85,
+                            source: "Hint".to_string(),
+                        });
+                    }
+                }
+            }
         }
     }
 

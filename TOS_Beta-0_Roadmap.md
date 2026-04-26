@@ -264,7 +264,7 @@
 | Feature | Spec Ref | Status | Evidence |
 |---|---|---|---|
 | Path completion chips | §31.1 | ✅ | `tos-heuristicd` generates path source chips |
-| Parameter hint chips | §31.1 | ❌ | No known-command hint logic |
+| Parameter hint chips | §31.1 | ✅ | Known-command logic for git, docker, npm, cargo, apt |
 | Command history echo | §31.1 | ❌ | No history chip system |
 | Typo correction chips | §31.2 | ✅ | Levenshtein-based correction in `tos-heuristicd` |
 | Focus Error chip | §31.4 | ✅ | Level 3 tagging for error keywords in PTY loop |

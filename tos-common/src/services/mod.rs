@@ -100,6 +100,7 @@ impl ServiceManager {
         // Establish cross-service dependencies
         logger.set_audio_service(audio.clone());
         ai.set_settings_service(settings.clone());
+        ai.set_trust_service(trust.clone());
 
         // Surface any init warnings through the logger
         if let Some(warning) = audio_warning {

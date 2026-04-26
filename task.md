@@ -108,16 +108,15 @@
 - [ ] 6.10 Crash reporting infrastructure (opt-in) — Automated crash dump collection via `tos-loggerd`.
 
 ## Stage 8 — Cortex Orchestration & Ecosystem Hardening
-- [x] 8.1 IMPLEMENT `CortexRegistry` in `tos-common/src/brain/`
-- [x] 8.2 IMPLEMENT `[auth]` credential injection and secure Settings store (Eco §1.3.4, `SettingsStore`)
-- [ ] 8.3 IMPLEMENT `AiBehavior` parser for Markdown Agent Personas (§7.3)
-- [ ] 8.4 Implement `[trust]` declaration & Brain trust chip integration (Eco §1.3.5, TrustService)
-- [ ] 8.5 Implement `[connection]` transports (http, stdio, mcp) (Eco §1.3.1, CortexRegistry)
-- [ ] 8.6 Implement Agent Stacking — hierarchical prompt merging (Features §4.3.2, BrainAI)
-- [ ] 8.7 Migrate Ollama / Gemini to `.tos-assistant` with legacy shim (Eco §1.15, CortexRegistry)
-- [ ] 8.8 Implement GitNexus curator cortex via MCP (Eco §1.3.2, CortexRegistry)
-- [ ] 8.9 Unified Cortex Configuration UI in Settings Modal (Features §4.3, SettingsModal)
-- [ ] 8.10 Verification of Cortex sandboxing — bubblewrap isolation (Arch §17.3, SandboxManager)
+- [x] 8.1 Implement Brain cortex registry for `.tos-assistant`, `.tos-curator`, and `.tos-agent` (Eco §1.3, ModuleManager)
+- [x] 8.2 Implement `[auth]` credential injection and secure Settings store (Eco §1.3.4, SettingsStore)
+- [x] 8.3 Implement `[trust]` declaration & Brain trust chip integration (Eco §1.3.5, TrustService)
+- [ ] 8.4 Implement `[connection]` transports (http, stdio, mcp) (Eco §1.3.1, CortexRegistry)
+- [ ] 8.5 Implement Agent Stacking (hierarchical prompt merging) (Dev §6, BrainAI)
+- [ ] 8.6 Migrate Ollama / Gemini to `.tos-assistant` with legacy shim (Eco §1.15, CortexRegistry)
+- [ ] 8.7 Implement GitNexus curator cortex via MCP (Eco §1.3.2, CortexRegistry)
+- [ ] 8.8 Unified Cortex Configuration UI in Settings Modal (Features §4.3, SettingsModal)
+- [ ] 8.9 Verification of Cortex sandboxing — bubblewrap isolation (Arch §17.3, SandboxManager)
 
 ## Deferred to v0.2
 

@@ -209,6 +209,47 @@ impl TrustService {
         }
         serde_json::to_string(&config).unwrap_or_else(|_| "{}".to_string())
     }
+
+    /// Verifies if a Cortex component is allowed to invoke a specific tool (§1.3.4).
+    /// This is the core "Brain Trust Chip" logic for tool gating.
+    pub fn verify_tool_access(
+        &self,
+        manifest: &crate::services::marketplace::ModuleManifest,
+        tool_name: &str,
+    ) -> bool {
+        // 1. Check [trust] may_request block (§1.3.4)
+        if let Some(trust) = &manifest.trust {
+            if trust.may_request.iter().any(|t| t == tool_name) {
+                return true;
+            }
+        }
+
+        // 2. Legacy fallback to [tool_bundle] (§1.4)
+        if let Some(bundle) = &manifest.tool_bundle {
+            if bundle.allowed_tools.iter().any(|t| t == tool_name) {
+                return true;
+            }
+        }
+
+        false
+    }
+
+    /// Verifies if a Curator is allowed to access a specific MCP scope.
+    pub fn verify_mcp_access(
+        &self,
+        manifest: &crate::services::marketplace::ModuleManifest,
+        scope: &str,
+    ) -> bool {
+        if let Some(trust) = &manifest.trust {
+            // Curators usually have grant_scope = "session" or "interaction"
+            if let Some(grant) = &trust.grant_scope {
+                if grant == scope {
+                    return true;
+                }
+            }
+        }
+        false
+    }
 }
 
 #[cfg(test)]
@@ -332,5 +373,55 @@ mod tests {
         
         assert!(!trust.is_path_trusted(Path::new("/etc/passwd"), root));
         assert!(!trust.is_path_trusted(Path::new("/sector/other/file.txt"), root));
+    }
+
+    #[test]
+    fn test_verify_tool_access() {
+        use crate::services::marketplace::{ModuleManifest, TrustConfig, ToolBundleConfig};
+        let trust = TrustService::new();
+
+        let mut manifest = ModuleManifest {
+            id: "test-agent".to_string(),
+            name: "Test Agent".to_string(),
+            version: "1.0.0".to_string(),
+            module_type: "agent".to_string(),
+            author: "TOS Team".to_string(),
+            description: None,
+            icon: None,
+            shell: None,
+            executable: None,
+            integration: None,
+            assets: None,
+            capabilities: None,
+            provider: None,
+            endpoint: None,
+            latency_profile: None,
+            tool_bundle: None,
+            connection: None,
+            auth: None,
+            trust: Some(TrustConfig {
+                may_request: vec!["read_file".to_string(), "exec_cmd".to_string()],
+                grant_scope: Some("interaction".to_string()),
+                cross_sector: Some(false),
+            }),
+            mcp: None,
+            prompt: None,
+            signature: None,
+        };
+
+        // Allowed
+        assert!(trust.verify_tool_access(&manifest, "read_file"));
+        assert!(trust.verify_tool_access(&manifest, "exec_cmd"));
+
+        // Denied
+        assert!(!trust.verify_tool_access(&manifest, "write_file"));
+
+        // Test fallback to tool_bundle
+        manifest.trust = None;
+        manifest.tool_bundle = Some(ToolBundleConfig {
+            allowed_tools: vec!["write_file".to_string()],
+        });
+        assert!(trust.verify_tool_access(&manifest, "write_file"));
+        assert!(!trust.verify_tool_access(&manifest, "read_file"));
     }
 }

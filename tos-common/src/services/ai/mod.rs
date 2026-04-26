@@ -213,6 +213,7 @@ pub struct AiService {
     modules: Arc<Mutex<Option<Arc<crate::brain::module_manager::ModuleManager>>>>,
     cortex: Arc<Mutex<Option<Arc<Mutex<crate::brain::cortex_registry::CortexRegistry>>>>>,
     settings: Arc<Mutex<Option<Arc<crate::services::settings::SettingsService>>>>,
+    trust: Arc<Mutex<Option<Arc<crate::services::trust::TrustService>>>>,
     active_sandboxes: Arc<Mutex<HashMap<Uuid, crate::modules::sandbox::OverlaySandbox>>>,
 }
 
@@ -229,6 +230,7 @@ impl AiService {
             modules: Arc::new(Mutex::new(None)),
             cortex: Arc::new(Mutex::new(None)),
             settings: Arc::new(Mutex::new(None)),
+            trust: Arc::new(Mutex::new(None)),
             active_sandboxes: Arc::new(Mutex::new(HashMap::new())),
         }
     }
@@ -405,6 +407,10 @@ impl AiService {
         *self.settings.lock().unwrap() = Some(settings);
     }
 
+    pub fn set_trust_service(&self, trust: Arc<crate::services::trust::TrustService>) {
+        *self.trust.lock().unwrap() = Some(trust);
+    }
+
     /// Register the built-in behaviors (tos-chat, tos-observer) into the system state.
     pub fn register_defaults(&self, state: &mut TosState) {
         // 1. Chat Companion
@@ -497,12 +503,12 @@ impl AiService {
             return false;
         }
 
-        // Check manifest tool_bundle via ModuleManager
+        // Check manifest trust block via ModuleManager (The "Brain Trust Chip")
         if let Ok(m_lock) = self.modules.lock() {
             if let Some(modules) = m_lock.as_ref() {
                 if let Some(manifest) = modules.get_manifest(behavior_id) {
-                    if let Some(bundle) = &manifest.tool_bundle {
-                        return bundle.allowed_tools.iter().any(|t| t == tool_name);
+                    if let Some(trust_svc) = self.trust.lock().unwrap().as_ref() {
+                        return trust_svc.verify_tool_access(manifest, tool_name);
                     }
                 }
             }

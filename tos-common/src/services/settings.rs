@@ -238,6 +238,10 @@ impl SettingsService {
             "tos.accessibility.dwell_click.duration".to_string(),
             "1000".to_string(),
         );
+        map.insert(
+            "tos.accessibility.simplified_mode".to_string(),
+            "false".to_string(),
+        );
 
         // --- Network (Ecosystem Orchestration / Anchor Port) ---
         map.insert("tos.network.anchor_port".to_string(), "7000".to_string());

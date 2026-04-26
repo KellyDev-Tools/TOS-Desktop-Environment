@@ -339,7 +339,7 @@
 			</div>
 
 			<!-- Center Section: Brain Status + Telemetry -->
-			<div class="header-section header-center">
+			<div class="header-section header-center clutter-reduction">
 				<BrainStatus />
 				<Telemetry />
 			</div>
@@ -387,7 +387,7 @@
 					⊞
 				</button>
 			</div>
-			<div class="sidebar-modules">
+			<div class="sidebar-modules clutter-reduction">
 				<Minimap />
 			</div>
 			<div class="sidebar-spacer"></div>
@@ -565,7 +565,7 @@
 
 		<!-- Right Sidebar -->
 		<aside class="lcars-sidebar lcars-sidebar-right" class:expanded={sidebarRight}>
-			<div class="sidebar-modules">
+			<div class="sidebar-modules clutter-reduction">
 				<PriorityStack />
 				<MiniLog />
 			</div>

@@ -433,3 +433,21 @@ filter: brightness(1.2);
 		width: 100%;
 	}
 }
+
+/* --- 10. Simplified Mode Accessibility (§24.4) --- */
+.tos-simplified-mode {
+	font-size: 1.2rem !important;
+}
+
+.tos-simplified-mode .lcars-elbow {
+	display: none !important;
+}
+
+.tos-simplified-mode .status-badge {
+	font-size: 0.9rem;
+	padding: 0.4rem 1rem;
+}
+
+.tos-simplified-mode .clutter-reduction {
+	display: none !important;
+}

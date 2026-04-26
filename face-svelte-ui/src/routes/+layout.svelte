@@ -13,12 +13,15 @@
 		if (browser) {
 			const highContrastForced = tosState.settings?.global?.['tos.interface.high_contrast'] === 'true';
 			const theme = tosState.settings?.global?.['tos.interface.theme'] || 'dark';
+			const simplifiedMode = tosState.settings?.global?.['tos.accessibility.simplified_mode'] === 'true';
+			const activeModule = tosState.available_modules.find(m => m.id === tosState.active_terminal_module);
+			const supportsHighContrast = activeModule?.supports_high_contrast || false;
 
-			if (highContrastForced || tosState.supports_high_contrast) {
-				document.body.className = 'tos-theme-high-contrast';
-			} else {
-				document.body.className = `tos-theme-${theme}`;
+			let bodyClass = highContrastForced || supportsHighContrast ? 'tos-theme-high-contrast' : `tos-theme-${theme}`;
+			if (simplifiedMode) {
+				bodyClass += ' tos-simplified-mode';
 			}
+			document.body.className = bodyClass;
 
 			// --- Accessibility: Dwell Click (§24.3) ---
 			const dwellEnabled = tosState.settings?.global?.['tos.accessibility.dwell_click.enabled'] === 'true';

@@ -240,7 +240,7 @@
 | Screen reader bridge (AT-SPI) | §24.1 | ✅ | Semantic roles and ARIA tags added across face-svelte-ui components |
 | Keyboard navigation (full) | §24.3 | ✅ | Complete tab-stop chain with LCARS-compliant focus containment |
 | Dwell clicking | §24.3 | ✅ | Global listener with visual progress indicator |
-| Simplified mode | §24.4 | ❌ | Not implemented |
+| Simplified mode | §24.4 | ✅ | CSS-driven UI reduction and scaling implemented |
 
 ### 1.17 Priority & Visual Indicators (Architecture §21)
 

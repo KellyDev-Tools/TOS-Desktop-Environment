@@ -17,6 +17,7 @@ pub struct ModuleManifest {
     pub icon: Option<String>,
 
     // §1.7: Shell Specifics
+    pub shell: Option<ShellConfig>,
     pub executable: Option<ExecutableConfig>,
     pub integration: Option<crate::modules::ShellIntegration>,
 
@@ -48,6 +49,14 @@ pub struct ToolBundleConfig {
 pub struct ExecutableConfig {
     pub path: String,
     pub args: Vec<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+pub struct ShellConfig {
+    /// List of support scripts to copy into the sandbox/shell environment.
+    pub scripts: Vec<String>,
+    /// The initialization command to source or run (e.g. "source tos.fish").
+    pub init: String,
 }
 
 pub struct MarketplaceService {
@@ -214,6 +223,39 @@ impl MarketplaceService {
         themes
     }
 
+    /// Lists shell modules installed in the system modules directory.
+    pub fn list_shell_modules() -> Vec<crate::ShellModuleMeta> {
+        let mut modules = Vec::new();
+        let mut base_path = dirs::home_dir().unwrap_or_else(|| PathBuf::from("/tmp"));
+        base_path.push(".config/tos/modules/shell");
+
+        if let Ok(entries) = std::fs::read_dir(base_path) {
+            for entry in entries.flatten() {
+                if let Ok(manifest) = Self::discover_module_local(entry.path()) {
+                    if manifest.module_type == "Shell" || manifest.module_type == "shell" {
+                        if let Some(shell) = manifest.shell {
+                            modules.push(crate::ShellModuleMeta {
+                                id: manifest.id,
+                                name: manifest.name,
+                                version: manifest.version,
+                                author: manifest.author,
+                                executable: manifest.executable.map(|e| e.path).unwrap_or_else(|| "/bin/bash".to_string()),
+                                integration: manifest.integration.unwrap_or(crate::modules::ShellIntegration {
+                                    osc_directory: false,
+                                    osc_command_result: false,
+                                    osc_suggestions: false,
+                                }),
+                                scripts: shell.scripts,
+                                init: shell.init,
+                            });
+                        }
+                    }
+                }
+            }
+        }
+        modules
+    }
+
     /// Lists AI modules installed in the system modules directory.
     pub fn list_ai_modules() -> Vec<crate::AiModuleMetadata> {
         let mut modules = Vec::new();
@@ -306,6 +348,7 @@ mod tests {
             author: "TOS Team".to_string(),
             description: None,
             icon: None,
+            shell: None,
             executable: None,
             integration: None,
             assets: None,

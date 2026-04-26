@@ -45,6 +45,18 @@ pub struct TerminalOutputModuleMeta {
     pub supports_reduced_motion: bool,
 }
 
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+pub struct ShellModuleMeta {
+    pub id: String,
+    pub name: String,
+    pub version: String,
+    pub author: String,
+    pub executable: String,
+    pub integration: crate::modules::ShellIntegration,
+    pub scripts: Vec<String>,
+    pub init: String,
+}
+
 /// Layout geometry for terminal output rendering.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum TerminalLayoutType {
@@ -731,6 +743,8 @@ pub struct TosState {
     pub brain_time: String,
     pub active_terminal_module: String,
     pub available_modules: Vec<TerminalOutputModuleMeta>,
+    pub active_shell_module: String,
+    pub available_shell_modules: Vec<ShellModuleMeta>,
     pub active_ai_module: String,
     pub available_ai_modules: Vec<AiModuleMetadata>,
     /// Registered AI behavior modules and their per-behavior configurations.
@@ -837,6 +851,23 @@ impl Default for TosState {
                     supports_high_contrast: false,
                     supports_reduced_motion: false,
                 },
+            ],
+            active_shell_module: "tos-shell-fish".to_string(),
+            available_shell_modules: vec![
+                ShellModuleMeta {
+                    id: "tos-shell-fish".to_string(),
+                    name: "TOS Fish Shell".to_string(),
+                    version: "1.0.0".to_string(),
+                    author: "TOS Core".to_string(),
+                    executable: "/usr/bin/fish".to_string(),
+                    integration: crate::modules::ShellIntegration {
+                        osc_directory: true,
+                        osc_command_result: true,
+                        osc_suggestions: true,
+                    },
+                    scripts: vec!["tos.fish".to_string()],
+                    init: "source tos.fish".to_string(),
+                }
             ],
             active_ai_module: "tos-ai-standard".to_string(),
             available_ai_modules: vec![AiModuleMetadata {

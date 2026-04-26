@@ -22,7 +22,7 @@ pub use face::{Face, MockFace};
 pub use config::TosConfig;
 pub use state::{
     TosState, Sector, CommandHub, CommandHubMode,
-    TerminalOutputModuleMeta, TerminalLayoutType, ThemeModule, ThemeAssetDefinition,
+    TerminalOutputModuleMeta, ShellModuleMeta, TerminalLayoutType, ThemeModule, ThemeAssetDefinition,
     AiModuleMetadata, TerminalContext, TerminalLine, SettingsStore, HierarchyLevel,
     TrustTier, ConfirmationRequest, ApplicationModel, BezelAction, DecorationPolicy,
     ZoomBehavior, AppInstance, SectorTemplate, HubTemplate, DirectoryListing,

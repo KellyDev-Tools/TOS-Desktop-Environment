@@ -101,6 +101,7 @@ impl ModuleManager {
         });
 
         Ok(Box::new(GenericAiModule {
+            id: manifest.id.clone(),
             path,
             name: manifest.name.clone(),
             capabilities: caps,
@@ -109,6 +110,7 @@ impl ModuleManager {
                 .clone()
                 .unwrap_or_else(|| "module".to_string()),
             endpoint: manifest.endpoint.clone(),
+            connection: manifest.connection.clone(),
             latency_profile: manifest
                 .latency_profile
                 .clone()
@@ -190,18 +192,27 @@ impl crate::modules::AssistantModule for GenericAssistantModule {
     fn id(&self) -> &str { &self.id }
     fn name(&self) -> &str { &self.name }
     fn query(&self, request: crate::modules::AiQuery) -> anyhow::Result<crate::modules::AiResponse> {
-        // Assistant queries use the GenericAiModule logic under the hood for now,
+        // Assistant queries use the GenericAiModule logic under the hood,
         // but with manifest-driven configuration.
         let provider = self.manifest.provider.clone().unwrap_or_else(|| "module".to_string());
         let endpoint = self.manifest.endpoint.clone();
         
-        // Wrap in a temporary GenericAiModule to reuse its logic
+        let path = self.manifest.executable.as_ref().map(|exe| {
+            let mut p = std::env::current_dir().unwrap_or_default(); // Fallback
+            // In a real system we'd use the module base path, but GenericAssistantModule 
+            // doesn't have it easily accessible here. However, it's usually http-based.
+            p.push(&exe.path);
+            p
+        });
+
         let ai_mod = GenericAiModule {
-            path: None, // Assistants usually don't have a binary unless provider is "module"
+            id: self.id.clone(),
+            path,
             name: self.name.clone(),
             capabilities: self.manifest.capabilities.clone().unwrap_or_default(),
             provider,
             endpoint,
+            connection: self.manifest.connection.clone(),
             latency_profile: "medium".to_string(),
         };
         ai_mod.query(request)
@@ -221,8 +232,48 @@ struct GenericCuratorModule {
 impl crate::modules::CuratorModule for GenericCuratorModule {
     fn id(&self) -> &str { &self.id }
     fn name(&self) -> &str { &self.name }
-    fn get_context(&self, _prompt: &str, _auth: &HashMap<String, String>) -> anyhow::Result<Vec<String>> {
-        // MCP logic would go here. For now, it's a stub.
+    fn get_context(&self, prompt: &str, _auth: &HashMap<String, String>) -> anyhow::Result<Vec<String>> {
+        if let Some(conn) = &self.manifest.connection {
+            match conn.transport.as_str() {
+                "mcp" => {
+                    if let Some(mcp) = &self.manifest.mcp {
+                        let rt = tokio::runtime::Handle::try_current();
+                        let params = serde_json::json!({
+                            "prompt": prompt
+                        });
+                        let result = if let Ok(handle) = rt {
+                            tokio::task::block_in_place(|| {
+                                handle.block_on(mcp_stdio_call(
+                                    &mcp.command,
+                                    &mcp.args,
+                                    "resources/read", // Default curator method
+                                    params,
+                                ))
+                            })
+                        } else {
+                            tokio::runtime::Runtime::new()?.block_on(mcp_stdio_call(
+                                &mcp.command,
+                                &mcp.args,
+                                "resources/read",
+                                params,
+                            ))
+                        }?;
+                        
+                        // Expecting a list of strings or a structured MCP response
+                        if let Some(content) = result.get("content").and_then(|c| c.as_array()) {
+                            return Ok(content.iter().filter_map(|v| v.as_str().map(|s| s.to_string())).collect());
+                        }
+                        return Ok(vec![result.to_string()]);
+                    }
+                }
+                "stdio" => {
+                    // Fallback to simple stdio if transport is stdio
+                }
+                _ => {}
+            }
+        }
+        
+        // Default stub if no transport or connection failed
         Ok(vec![format!("Context from curator '{}'", self.name)])
     }
 }
@@ -279,12 +330,13 @@ impl ShellModule for GenericShellModule {
 }
 
 struct GenericAiModule {
+    id: String,
     path: Option<PathBuf>,
     name: String,
     capabilities: Vec<String>,
     provider: String,
     endpoint: Option<String>,
-    #[allow(dead_code)]
+    connection: Option<crate::services::marketplace::ConnectionConfig>,
     latency_profile: String,
 }
 
@@ -293,9 +345,47 @@ impl AiModule for GenericAiModule {
         &self,
         request: crate::modules::AiQuery,
     ) -> anyhow::Result<crate::modules::AiResponse> {
-        // --- Provider-driven HTTP dispatch ---
-        // If the manifest declares an endpoint + provider, make a real API call
-        // via a blocking tokio task. Otherwise fall through to subprocess exec.
+        // 1. Check for explicit [connection] transport (§1.3.1)
+        if let Some(conn) = &self.connection {
+            match conn.transport.as_str() {
+                "http" => {
+                    let base = conn.endpoint.clone()
+                        .or_else(|| self.endpoint.clone())
+                        .ok_or_else(|| anyhow::anyhow!("AI module '{}' has no endpoint", self.name))?;
+                    
+                    let rt = tokio::runtime::Handle::try_current();
+                    return if let Ok(handle) = rt {
+                        tokio::task::block_in_place(|| {
+                            handle.block_on(llm_http_call(
+                                &self.provider,
+                                &base,
+                                &request.auth,
+                                &request.prompt,
+                                &request.context,
+                            ))
+                        })
+                    } else {
+                        tokio::runtime::Runtime::new()?.block_on(llm_http_call(
+                            &self.provider,
+                            &base,
+                            &request.auth,
+                            &request.prompt,
+                            &request.context,
+                        ))
+                    };
+                }
+                "mcp" => {
+                    // MCP-driven sampling (future expansion)
+                    return Err(anyhow::anyhow!("MCP transport for Assistants not yet implemented"));
+                }
+                "stdio" => {
+                    // Fall through to subprocess logic below
+                }
+                _ => {}
+            }
+        }
+
+        // --- Legacy / Default Provider-driven HTTP dispatch ---
         match self.provider.as_str() {
             "openai" | "anthropic" | "ollama" => {
                 let base = self
@@ -334,7 +424,7 @@ impl AiModule for GenericAiModule {
             _ => {} // Fall through to subprocess
         }
 
-        // --- Subprocess exec ("module" provider) ---
+        // --- Subprocess exec ("module" provider or "stdio" transport) ---
         let path = match &self.path {
             Some(p) => p,
             None => {
@@ -497,4 +587,48 @@ async fn llm_http_call(
         usage: crate::modules::AiUsage { tokens: 0 },
         status: crate::modules::AiStatus::Complete,
     })
+}
+
+/// Simple MCP stdio-based JSON-RPC call.
+async fn mcp_stdio_call(
+    command: &str,
+    args: &[String],
+    method: &str,
+    params: serde_json::Value,
+) -> anyhow::Result<serde_json::Value> {
+    use tokio::io::{AsyncBufReadExt, AsyncWriteExt, BufReader};
+    use tokio::process::Command;
+    use std::process::Stdio;
+
+    let mut child = Command::new(command)
+        .args(args)
+        .stdin(Stdio::piped())
+        .stdout(Stdio::piped())
+        .stderr(Stdio::piped())
+        .spawn()?;
+
+    let mut stdin = child.stdin.take().ok_or_else(|| anyhow::anyhow!("Failed to open stdin"))?;
+    let stdout = child.stdout.take().ok_or_else(|| anyhow::anyhow!("Failed to open stdout"))?;
+    let mut reader = BufReader::new(stdout).lines();
+
+    let request = serde_json::json!({
+        "jsonrpc": "2.0",
+        "id": 1,
+        "method": method,
+        "params": params
+    });
+
+    stdin.write_all(serde_json::to_string(&request)?.as_bytes()).await?;
+    stdin.write_all(b"\n").await?;
+    stdin.flush().await?;
+
+    if let Some(line) = reader.next_line().await? {
+        let response: serde_json::Value = serde_json::from_str(&line)?;
+        if let Some(error) = response.get("error") {
+            return Err(anyhow::anyhow!("MCP Error: {}", error));
+        }
+        return Ok(response.get("result").cloned().unwrap_or(serde_json::Value::Null));
+    }
+
+    Err(anyhow::anyhow!("No response from MCP server"))
 }

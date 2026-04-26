@@ -13,6 +13,7 @@ anyhow = "1.0"
 tracing = "0.1"
 uuid = { version = "1.7", features = ["v4"] }
 base64 = "0.22"
+tempfile = "3.10"
 
 [[test]]
 name = "service_orchestration"
@@ -41,3 +42,7 @@ path = "osc_stress.rs"
 [[test]]
 name = "session_persistence"
 path = "session_persistence.rs"
+
+[[test]]
+name = "cortex_transports"
+path = "cortex_transports.rs"

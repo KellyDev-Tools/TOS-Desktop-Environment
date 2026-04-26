@@ -24,7 +24,14 @@ pub struct ModuleManifest {
     // §1.6: Theme Specifics
     pub assets: Option<crate::ThemeAssetDefinition>,
 
-    // §1.3: AI Specifics
+    // §1.3: Cortex Specifics
+    pub connection: Option<ConnectionConfig>,
+    pub auth: Option<AuthConfig>,
+    pub trust: Option<TrustConfig>,
+    pub mcp: Option<McpConfig>,
+    pub prompt: Option<PromptConfig>,
+
+    // §1.3: AI Specifics (legacy/assistant fallback)
     pub capabilities: Option<Vec<String>>,
     /// LLM provider identifier: "openai", "anthropic", "ollama", or "module".
     pub provider: Option<String>,
@@ -38,6 +45,42 @@ pub struct ModuleManifest {
 
     // The Ed25519 cryptographic signature of the manifest contents
     pub signature: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+pub struct ConnectionConfig {
+    pub transport: String, // "http", "stdio", "mcp"
+    pub endpoint: Option<String>,
+    pub timeout_ms: Option<u64>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+pub struct AuthConfig {
+    #[serde(rename = "type")]
+    pub auth_type: String, // "none", "api_key", "bearer"
+    pub header: Option<String>,
+    pub prefix: Option<String>,
+    pub env_hint: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+pub struct TrustConfig {
+    pub may_request: Vec<String>,
+    pub grant_scope: Option<String>, // "session", "interaction"
+    pub cross_sector: Option<bool>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+pub struct McpConfig {
+    pub command: String,
+    pub args: Vec<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+pub struct PromptConfig {
+    pub identity: String,
+    pub constraints: Vec<String>,
+    pub efficiency: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
@@ -357,6 +400,11 @@ mod tests {
             endpoint: None,
             latency_profile: None,
             tool_bundle: None,
+            connection: None,
+            auth: None,
+            trust: None,
+            mcp: None,
+            prompt: None,
             signature: None,
         };
 

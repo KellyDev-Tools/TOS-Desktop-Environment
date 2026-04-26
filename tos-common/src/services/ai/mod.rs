@@ -211,6 +211,7 @@ pub fn build_context(state: &TosState) -> AiContext {
 pub struct AiService {
     ipc: Arc<Mutex<Option<Arc<dyn IpcDispatcher>>>>,
     modules: Arc<Mutex<Option<Arc<crate::brain::module_manager::ModuleManager>>>>,
+    cortex: Arc<Mutex<Option<Arc<Mutex<crate::brain::cortex_registry::CortexRegistry>>>>>,
     active_sandboxes: Arc<Mutex<HashMap<Uuid, crate::modules::sandbox::OverlaySandbox>>>,
 }
 
@@ -225,6 +226,7 @@ impl AiService {
         Self {
             ipc: Arc::new(Mutex::new(None)),
             modules: Arc::new(Mutex::new(None)),
+            cortex: Arc::new(Mutex::new(None)),
             active_sandboxes: Arc::new(Mutex::new(HashMap::new())),
         }
     }
@@ -391,6 +393,10 @@ impl AiService {
 
     pub fn set_module_manager(&self, modules: Arc<crate::brain::module_manager::ModuleManager>) {
         *self.modules.lock().unwrap() = Some(modules);
+    }
+
+    pub fn set_cortex_registry(&self, cortex: Arc<Mutex<crate::brain::cortex_registry::CortexRegistry>>) {
+        *self.cortex.lock().unwrap() = Some(cortex);
     }
 
     /// Register the built-in behaviors (tos-chat, tos-observer) into the system state.

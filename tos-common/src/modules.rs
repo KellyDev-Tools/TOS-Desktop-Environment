@@ -110,4 +110,36 @@ pub trait TerminalOutputModule: Send + Sync {
     /// Return the module's unique identifier.
     fn get_id(&self) -> &str;
 }
+// ---------------------------------------------------------------------------
+// Cortex Contract (§1.3)
+// ---------------------------------------------------------------------------
+
+/// Runtime contract for an Assistant module (.tos-assistant).
+/// Assistants manage LLM backend communication and model discovery.
+pub trait AssistantModule: Send + Sync {
+    fn id(&self) -> &str;
+    fn name(&self) -> &str;
+    fn query(&self, request: AiQuery) -> anyhow::Result<AiResponse>;
+    fn list_models(&self) -> Vec<String>;
+    fn capabilities(&self) -> &[String];
+}
+
+/// Runtime contract for a Curator module (.tos-curator).
+/// Curators provide context via MCP (Model Context Protocol).
+pub trait CuratorModule: Send + Sync {
+    fn id(&self) -> &str;
+    fn name(&self) -> &str;
+    /// Query the curator for context relevant to a prompt/task.
+    fn get_context(&self, prompt: &str) -> anyhow::Result<Vec<String>>;
+}
+
+/// Runtime contract for an Agent module (.tos-agent).
+/// Agents define personas and task strategies for Agent Stacking (§1.3.3).
+pub trait AgentModule: Send + Sync {
+    fn id(&self) -> &str;
+    fn name(&self) -> &str;
+    fn prompt_identity(&self) -> &str;
+    fn prompt_constraints(&self) -> &[String];
+}
+
 pub mod sandbox;

@@ -130,6 +130,118 @@ impl ModuleManager {
 
         Ok(Box::new(GenericTerminalOutputModule { id: id.to_string() }))
     }
+
+    /// Instantiates an AssistantModule from a manifest.
+    pub fn load_assistant(&self, id: &str) -> anyhow::Result<Box<dyn crate::modules::AssistantModule>> {
+        let manifest = self
+            .get_manifest(id)
+            .ok_or_else(|| anyhow::anyhow!("Module not found"))?;
+        if manifest.module_type != "assistant" {
+            return Err(anyhow::anyhow!("Module is not an assistant"));
+        }
+
+        Ok(Box::new(GenericAssistantModule {
+            id: manifest.id.clone(),
+            name: manifest.name.clone(),
+            manifest: manifest.clone(),
+        }))
+    }
+
+    /// Instantiates a CuratorModule from a manifest.
+    pub fn load_curator(&self, id: &str) -> anyhow::Result<Box<dyn crate::modules::CuratorModule>> {
+        let manifest = self
+            .get_manifest(id)
+            .ok_or_else(|| anyhow::anyhow!("Module not found"))?;
+        if manifest.module_type != "curator" {
+            return Err(anyhow::anyhow!("Module is not a curator"));
+        }
+
+        Ok(Box::new(GenericCuratorModule {
+            id: manifest.id.clone(),
+            name: manifest.name.clone(),
+            manifest: manifest.clone(),
+        }))
+    }
+
+    /// Instantiates an AgentModule from a manifest.
+    pub fn load_agent(&self, id: &str) -> anyhow::Result<Box<dyn crate::modules::AgentModule>> {
+        let manifest = self
+            .get_manifest(id)
+            .ok_or_else(|| anyhow::anyhow!("Module not found"))?;
+        if manifest.module_type != "agent" {
+            return Err(anyhow::anyhow!("Module is not an agent"));
+        }
+
+        Ok(Box::new(GenericAgentModule {
+            id: manifest.id.clone(),
+            name: manifest.name.clone(),
+            manifest: manifest.clone(),
+        }))
+    }
+}
+
+struct GenericAssistantModule {
+    id: String,
+    name: String,
+    manifest: ModuleManifest,
+}
+
+impl crate::modules::AssistantModule for GenericAssistantModule {
+    fn id(&self) -> &str { &self.id }
+    fn name(&self) -> &str { &self.name }
+    fn query(&self, request: crate::modules::AiQuery) -> anyhow::Result<crate::modules::AiResponse> {
+        // Assistant queries use the GenericAiModule logic under the hood for now,
+        // but with manifest-driven configuration.
+        let provider = self.manifest.provider.clone().unwrap_or_else(|| "module".to_string());
+        let endpoint = self.manifest.endpoint.clone();
+        
+        // Wrap in a temporary GenericAiModule to reuse its logic
+        let ai_mod = GenericAiModule {
+            path: None, // Assistants usually don't have a binary unless provider is "module"
+            name: self.name.clone(),
+            capabilities: self.manifest.capabilities.clone().unwrap_or_default(),
+            provider,
+            endpoint,
+            latency_profile: "medium".to_string(),
+        };
+        ai_mod.query(request)
+    }
+    fn list_models(&self) -> Vec<String> { vec!["default".to_string()] }
+    fn capabilities(&self) -> &[String] {
+        self.manifest.capabilities.as_deref().unwrap_or(&[])
+    }
+}
+
+struct GenericCuratorModule {
+    id: String,
+    name: String,
+    manifest: ModuleManifest,
+}
+
+impl crate::modules::CuratorModule for GenericCuratorModule {
+    fn id(&self) -> &str { &self.id }
+    fn name(&self) -> &str { &self.name }
+    fn get_context(&self, _prompt: &str) -> anyhow::Result<Vec<String>> {
+        // MCP logic would go here. For now, it's a stub.
+        Ok(vec![format!("Context from curator '{}'", self.name)])
+    }
+}
+
+struct GenericAgentModule {
+    id: String,
+    name: String,
+    manifest: ModuleManifest,
+}
+
+impl crate::modules::AgentModule for GenericAgentModule {
+    fn id(&self) -> &str { &self.id }
+    fn name(&self) -> &str { &self.name }
+    fn prompt_identity(&self) -> &str {
+        self.manifest.prompt.as_ref().map(|p| p.identity.as_str()).unwrap_or("You are a TOS Agent.")
+    }
+    fn prompt_constraints(&self) -> &[String] {
+        self.manifest.prompt.as_ref().map(|p| p.constraints.as_slice()).unwrap_or(&[])
+    }
 }
 
 struct GenericTerminalOutputModule {

@@ -1,3 +1,4 @@
+pub mod cortex_registry;
 pub mod hierarchy;
 pub mod ipc_handler;
 pub mod module_manager;
@@ -18,6 +19,7 @@ pub struct Brain {
     pub shell: Arc<Mutex<ShellApi>>,
     pub services: Arc<crate::services::ServiceManager>,
     pub modules: Arc<ModuleManager>,
+    pub cortex: Arc<Mutex<crate::brain::cortex_registry::CortexRegistry>>,
 }
 
 impl Brain {
@@ -43,7 +45,9 @@ impl Brain {
         let services = Arc::new(crate::services::ServiceManager::with_config(&config));
         services.lsp.set_state(state.clone());
         let modules = Arc::new(ModuleManager::new(std::path::PathBuf::from("./modules")));
+        let cortex = Arc::new(Mutex::new(crate::brain::cortex_registry::CortexRegistry::new(modules.clone())));
         services.ai.set_module_manager(modules.clone());
+        services.ai.set_cortex_registry(cortex.clone());
 
         let shell_obj = ShellApi::new(
             state.clone(),
@@ -168,6 +172,7 @@ impl Brain {
             shell,
             services,
             modules,
+            cortex,
         })
     }
 }

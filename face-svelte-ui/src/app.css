@@ -407,3 +407,29 @@ box-shadow: 0 0 0 4px rgba(247, 168, 51, 0.2);
 border-color: var(--color-primary);
 filter: brightness(1.2);
 }
+
+/* --- 9. Dwell Click Accessibility --- */
+.tos-dwell-active {
+	position: relative !important;
+}
+
+.tos-dwell-active::after {
+	content: '';
+	position: absolute;
+	bottom: -4px;
+	left: 0;
+	height: 3px;
+	background: var(--color-secondary);
+	width: 0;
+	animation: dwell-progress var(--dwell-duration) linear forwards;
+	pointer-events: none;
+	box-shadow: 0 0 8px var(--color-secondary);
+	z-index: 1000;
+	border-radius: var(--radius-pill);
+}
+
+@keyframes dwell-progress {
+	to {
+		width: 100%;
+	}
+}

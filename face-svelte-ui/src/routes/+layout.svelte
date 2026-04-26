@@ -19,6 +19,68 @@
 			} else {
 				document.body.className = `tos-theme-${theme}`;
 			}
+
+			// --- Accessibility: Dwell Click (§24.3) ---
+			const dwellEnabled = tosState.settings?.global?.['tos.accessibility.dwell_click.enabled'] === 'true';
+			const dwellDuration = parseInt(tosState.settings?.global?.['tos.accessibility.dwell_click.duration'] || '1000');
+
+			if (dwellEnabled) {
+				let dwellTimer: any = null;
+				let currentTarget: HTMLElement | null = null;
+
+				const clearTimer = () => {
+					if (dwellTimer) {
+						clearTimeout(dwellTimer);
+						dwellTimer = null;
+					}
+					if (currentTarget) {
+						currentTarget.classList.remove('tos-dwell-active');
+					}
+				};
+
+				const startTimer = () => {
+					if (!currentTarget) return;
+					currentTarget.classList.add('tos-dwell-active');
+					currentTarget.style.setProperty('--dwell-duration', `${dwellDuration}ms`);
+
+					dwellTimer = setTimeout(() => {
+						if (currentTarget) {
+							currentTarget.click();
+							clearTimer();
+							currentTarget = null;
+						}
+					}, dwellDuration);
+				};
+
+				const onPointerOver = (e: PointerEvent) => {
+					const target = (e.target as HTMLElement).closest('button, a, input, [role="button"]') as HTMLElement;
+					if (target && target !== currentTarget) {
+						clearTimer();
+						currentTarget = target;
+						startTimer();
+					} else if (!target && currentTarget) {
+						clearTimer();
+						currentTarget = null;
+					}
+				};
+
+				const onPointerOut = (e: PointerEvent) => {
+					const target = (e.target as HTMLElement).closest('button, a, input, [role="button"]') as HTMLElement;
+					if (target === currentTarget) {
+						clearTimer();
+						currentTarget = null;
+					}
+				};
+
+				document.addEventListener('pointerover', onPointerOver);
+				document.addEventListener('pointerout', onPointerOut);
+
+				return () => {
+					document.removeEventListener('pointerover', onPointerOver);
+					document.removeEventListener('pointerout', onPointerOut);
+					clearTimer();
+				};
+			}
 		}
 	});
 

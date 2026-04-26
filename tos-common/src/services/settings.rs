@@ -228,6 +228,16 @@ impl SettingsService {
             "tos.interface.splits.divider_snap".to_string(),
             "true".to_string(),
         );
+        
+        // --- Accessibility (Accessibility Specification §24) ---
+        map.insert(
+            "tos.accessibility.dwell_click.enabled".to_string(),
+            "false".to_string(),
+        );
+        map.insert(
+            "tos.accessibility.dwell_click.duration".to_string(),
+            "1000".to_string(),
+        );
 
         // --- Network (Ecosystem Orchestration / Anchor Port) ---
         map.insert("tos.network.anchor_port".to_string(), "7000".to_string());

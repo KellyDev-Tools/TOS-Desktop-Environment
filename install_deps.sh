@@ -91,7 +91,9 @@ install_debian() {
         kitty \
         fish \
         unzip \
-        openjdk-17-jdk
+        openjdk-17-jdk \
+        dpkg-dev \
+        debhelper
 }
 
 install_fedora() {
@@ -123,7 +125,8 @@ install_fedora() {
         unzip \
         java-17-openjdk-devel \
         perl-FindBin \
-        perl-core
+        perl-core \
+        rpm-build
 
     # Optional desktop components (might be missing in some RHEL 9 repos)
     echo "Attempting to install optional Wayland testing tools (Sway, Waybar, etc.)..."

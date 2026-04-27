@@ -200,7 +200,7 @@
 | Module System | 5 | 3 | 2 |
 | Service Daemons | 12 | 0 | 0 |
 | AI Foundation (Completed) | 22 | 1 | 0 |
-| **Cortex Migration (Stage 8)** | **0** | **0** | **9** |
+| **Cortex Migration (Stage 8)** | **9** | **0** | **0** |
 | Marketplace UI | 8 | 0 | 0 |
 | TOS Editor | 9 | 0 | 0 |
 | Session Persistence | 7 | 0 | 0 |

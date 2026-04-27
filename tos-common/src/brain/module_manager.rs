@@ -27,7 +27,7 @@ impl ModuleManager {
                 id: "ollama".to_string(),
                 name: "Ollama Local (Shim)".to_string(),
                 version: "0.1.0".to_string(),
-                module_type: "ai".to_string(),
+                module_type: "assistant".to_string(),
                 author: "TOS Core".to_string(),
                 description: Some("Legacy shim for local Ollama instance".to_string()),
                 icon: None,
@@ -64,7 +64,7 @@ impl ModuleManager {
                 id: "gemini".to_string(),
                 name: "Google Gemini (Shim)".to_string(),
                 version: "0.1.0".to_string(),
-                module_type: "ai".to_string(),
+                module_type: "assistant".to_string(),
                 author: "TOS Core".to_string(),
                 description: Some("Legacy shim for Google Gemini API".to_string()),
                 icon: None,
@@ -763,18 +763,18 @@ mod tests {
         // Check Ollama shim
         let ollama = manager.get_manifest("ollama").expect("Ollama shim should exist");
         assert_eq!(ollama.provider.as_deref(), Some("ollama"));
-        assert_eq!(ollama.module_type, "ai");
+        assert_eq!(ollama.module_type, "assistant");
 
         // Check Gemini shim
         let gemini = manager.get_manifest("gemini").expect("Gemini shim should exist");
         assert_eq!(gemini.provider.as_deref(), Some("google"));
-        assert_eq!(gemini.module_type, "ai");
+        assert_eq!(gemini.module_type, "assistant");
     }
 
     #[test]
-    fn test_load_ai_shim() {
+    fn test_load_assistant_shim() {
         let manager = ModuleManager::new(PathBuf::from("/tmp/tos-test-modules"));
-        let ai = manager.load_ai("ollama").expect("Should load ollama shim as AiModule");
-        assert_eq!(ai.name(), "Ollama Local (Shim)");
+        let assistant = manager.load_assistant("ollama").expect("Should load ollama shim as AssistantModule");
+        assert_eq!(assistant.name(), "Ollama Local (Shim)");
     }
 }

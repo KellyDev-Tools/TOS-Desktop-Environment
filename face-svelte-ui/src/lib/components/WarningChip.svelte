@@ -14,7 +14,11 @@
 {#if trustWarnings.length > 0}
 	<div class="warning-container">
 		{#each trustWarnings as warning}
-			<div aria-roledescription="chip" class="warning-chip amberPulse">
+			<div 
+				aria-roledescription="chip" 
+				class="warning-chip amberPulse"
+				data-color={tosState.settings?.global?.['tos.ai.chip_color'] || 'secondary'}
+			>
 				<span aria-roledescription="chip" class="chip-icon">⚠</span>
 				<span aria-roledescription="chip" class="chip-text">{warning.text.replace('[TRUST] ', '')}</span>
 			</div>
@@ -39,7 +43,7 @@
 		align-items: center;
 		gap: var(--space-sm);
 		padding: var(--space-xs) var(--space-md);
-		background: var(--color-warning);
+		background: var(--color-warning); /* Default */
 		color: black;
 		font-weight: 800;
 		font-family: var(--font-mono);
@@ -51,17 +55,16 @@
 		pointer-events: auto;
 	}
 
-	.chip-icon {
-		font-size: 1rem;
+	.warning-chip[data-color="secondary"] { 
+		background: var(--color-secondary); 
+		box-shadow: 0 4px 12px rgba(102, 204, 204, 0.4);
 	}
-
-	@keyframes amberPulse {
-		0% { box-shadow: 0 0 0 0 rgba(255, 153, 0, 0.7); }
-		70% { box-shadow: 0 0 0 10px rgba(255, 153, 0, 0); }
-		100% { box-shadow: 0 0 0 0 rgba(255, 153, 0, 0); }
+	.warning-chip[data-color="primary"] { 
+		background: var(--color-primary); 
+		box-shadow: 0 4px 12px rgba(247, 168, 51, 0.4);
 	}
-
-	.amberPulse {
-		animation: amberPulse 2s infinite;
+	.warning-chip[data-color="warning"] { 
+		background: var(--color-warning); 
+		box-shadow: 0 4px 12px rgba(255, 153, 0, 0.4);
 	}
 </style>

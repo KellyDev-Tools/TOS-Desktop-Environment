@@ -153,6 +153,8 @@ impl IpcHandler {
             "ai_agent_stack_clear" => self.handle_ai_agent_stack_clear(),
             "ai_curator_enable" => self.handle_ai_curator_enable(args.first().copied()),
             "ai_curator_disable" => self.handle_ai_curator_disable(args.first().copied()),
+            "ai_disable_all" => self.handle_ai_disable_all(),
+            "ai_enable_all" => self.handle_ai_enable_all(),
 
             // §27.6: Directory Pick Behavior
             "dir_pick_file" => self.handle_dir_pick(args.first().copied()),
@@ -657,6 +659,24 @@ impl IpcHandler {
         } else {
             format!("CURATOR_NOT_ENABLED: {}", id)
         }
+    }
+
+    fn handle_ai_disable_all(&self) -> String {
+        let mut state = self.state.lock().unwrap();
+        for b in state.ai_behaviors.iter_mut() {
+            b.enabled = false;
+        }
+        state.version += 1;
+        "AI_DISABLED_ALL".to_string()
+    }
+
+    fn handle_ai_enable_all(&self) -> String {
+        let mut state = self.state.lock().unwrap();
+        for b in state.ai_behaviors.iter_mut() {
+            b.enabled = true;
+        }
+        state.version += 1;
+        "AI_ENABLED_ALL".to_string()
     }
 
     fn handle_set_mode(&self, mode_str: Option<&str>) -> String {

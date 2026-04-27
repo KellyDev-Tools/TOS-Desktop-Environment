@@ -234,161 +234,214 @@
 							{/each}
 						</div>
 
-					<!-- ═══ AI TAB ═══ -->
+					<!-- ═══ AI TAB (Cortex Orchestration) ═══ -->
 					{:else if activeTab === 'ai'}
 						<div class="settings-group">
-							<div class="settings-group-title">HEURISTICS</div>
+							<div class="settings-group-title">BACKEND (ASSISTANTS)</div>
 							<div class="settings-row">
-								<span class="settings-label">Autocomplete-to-Chip</span>
-								<label class="toggle">
-									<input type="checkbox" checked={true} onchange={(e) => setSetting('tos.ai.heuristic.autocomplete', (e.target as HTMLInputElement).checked.toString())} />
-									<span class="toggle-slider"></span>
-								</label>
-							</div>
-							<div class="settings-row">
-								<span class="settings-label">Implicit Correction</span>
-								<label class="toggle">
-									<input type="checkbox" checked={true} onchange={(e) => setSetting('tos.ai.heuristic.correction', (e.target as HTMLInputElement).checked.toString())} />
-									<span class="toggle-slider"></span>
-								</label>
-							</div>
-						</div>
-
-						<div class="settings-group">
-							<div class="settings-group-title">GLOBAL AI</div>
-							<div class="settings-row">
-								<span class="settings-label">Conversation History</span>
-								<div class="settings-row-actions">
-									<span class="settings-value">Persisted (200 msg)</span>
-									<button class="lcars-btn-sm danger" onclick={() => sendCommand('ai_history_clear')}>CLEAR</button>
-								</div>
-							</div>
-							<div class="settings-row">
-								<span class="settings-label">Ghost Text Opacity</span>
-								<input type="range" class="settings-range" min="0" max="100" value="40" onchange={(e) => setSetting('tos.ai.ghost_opacity', (e.target as HTMLInputElement).value)} />
-							</div>
-						</div>
-
-						<div class="settings-group">
-							<div class="settings-group-title">BACKEND</div>
-							<div class="settings-row">
-								<span class="settings-label">Active Default</span>
+								<span class="settings-label">System Default</span>
 								<span class="settings-value text-mono ai-backend-id">
 									{tosState.ai_default_backend || tosState.active_ai_module || 'none'}
 								</span>
 							</div>
+
 							<div class="settings-row">
-								<span class="settings-label">Set Default Backend</span>
-								<div class="settings-input-row">
-									<input
-										class="settings-input text-mono"
-										placeholder="module-id or url…"
-										bind:value={newBackendId}
-										onkeydown={(e) => e.key === 'Enter' && setDefaultBackend()}
-									/>
-									<button class="lcars-btn-sm primary" onclick={setDefaultBackend}>SET</button>
+								<span class="settings-label">API Key Status</span>
+								<div class="key-status-row">
+									<span class="key-badge" class:configured={openaiKeySet} title="OPENAI_API_KEY">
+										{openaiKeySet ? 'OPENAI ✓' : 'OPENAI ✗'}
+									</span>
+									<span class="key-badge" class:configured={anthropicKeySet} title="ANTHROPIC_API_KEY">
+										{anthropicKeySet ? 'ANTHROPIC ✓' : 'ANTHROPIC ✗'}
+									</span>
+									<span class="key-badge" class:configured={!!tosState.settings?.global?.['tos.ai.google_api_key']} title="GOOGLE_API_KEY">
+										{tosState.settings?.global?.['tos.ai.google_api_key'] ? 'GEMINI ✓' : 'GEMINI ✗'}
+									</span>
 								</div>
 							</div>
-						</div>
 
-						<div class="settings-group">
-							<div class="settings-group-title">API KEY STATUS</div>
-							<div class="settings-row">
-								<span class="settings-label">OpenAI</span>
-								<span class="key-badge" class:configured={openaiKeySet}>
-									{openaiKeySet ? '✓ CONFIGURED' : '✗ NOT SET'}
-								</span>
-							</div>
-							<div class="settings-row">
-								<span class="settings-label">Anthropic</span>
-								<span class="key-badge" class:configured={anthropicKeySet}>
-									{anthropicKeySet ? '✓ CONFIGURED' : '✗ NOT SET'}
-								</span>
-							</div>
-							<div class="settings-hint">
-								Set keys via environment: <code>OPENAI_API_KEY</code>, <code>ANTHROPIC_API_KEY</code>
-							</div>
-						</div>
-
-						<div class="settings-group">
-							<div class="settings-group-title">INSTALLED AI MODULES</div>
+							<div class="settings-group-subtitle">INSTALLED BACKENDS</div>
 							{#if tosState.available_ai_modules?.length}
-								{#each tosState.available_ai_modules as mod}
-									<div class="settings-row module-row">
-										<div class="module-info">
-											<span class="settings-label">{mod.name}</span>
-											{#if mod.provider}
-												<span class="module-provider">{mod.provider.toUpperCase()}</span>
-											{/if}
+								<div class="module-grid">
+									{#each tosState.available_ai_modules as mod}
+										<div class="module-card glass-panel" class:active={tosState.ai_default_backend === mod.id}>
+											<div class="module-card-header">
+												<span class="module-name">{mod.name}</span>
+												<span class="module-id text-mono">{mod.id}</span>
+											</div>
+											<div class="module-card-footer">
+												<span class="module-type-badge">ASSISTANT</span>
+												<button
+													class="lcars-btn-sm"
+													class:primary={tosState.ai_default_backend === mod.id}
+													onclick={() => activateAiModule(mod.id)}
+												>
+													{tosState.ai_default_backend === mod.id ? 'DEFAULT ✓' : 'SET DEFAULT'}
+												</button>
+											</div>
 										</div>
-										<button
-											class="lcars-btn-sm"
-											class:primary={tosState.active_ai_module === mod.id || tosState.ai_default_backend === mod.id}
-											onclick={() => activateAiModule(mod.id)}
-										>
-											{tosState.active_ai_module === mod.id || tosState.ai_default_backend === mod.id ? 'ACTIVE ✓' : 'ACTIVATE'}
-										</button>
-									</div>
-								{/each}
+									{/each}
+								</div>
 							{:else}
-								<div class="settings-empty">No AI modules installed. Visit Marketplace →</div>
+								<div class="settings-empty">No AI backends installed.</div>
 							{/if}
+
+							<div class="settings-footer-action">
+								<button class="lcars-btn marketplace-jump small" onclick={() => {
+									import('$lib/stores/ui.svelte').then(m => m.setCurrentMode('marketplace'));
+									sendCommand('set_mode:marketplace');
+									closeSettings();
+								}}>
+									<span class="nav-icon">⊞</span> BROWSE ASSISTANTS...
+								</button>
+							</div>
 						</div>
 
 						<div class="settings-group">
-							<div class="settings-group-title">BEHAVIORS</div>
+							<div class="settings-group-title">SKILLS (AGENTS)</div>
+							<div class="settings-desc">Agents define how the AI acts. Multiple active agents form a stack.</div>
 							{#if tosState.ai_behaviors?.length}
-								{#each tosState.ai_behaviors as behavior}
-									<div class="behavior-card glass-panel">
-										<div class="behavior-header">
-											<span class="behavior-name">{behavior.name}</span>
-											<label class="toggle">
-												<input
-													type="checkbox"
-													checked={behavior.enabled}
-													onchange={() => toggleBehavior(behavior.id, behavior.enabled)}
-												/>
-												<span class="toggle-slider"></span>
-											</label>
+								<div class="behavior-stack">
+									{#each tosState.ai_behaviors as behavior}
+										<div class="behavior-card glass-panel" class:disabled={!behavior.enabled}>
+											<div class="behavior-header">
+												<div class="behavior-title-group">
+													<span class="behavior-name">{behavior.name}</span>
+													<span class="behavior-id text-mono">{behavior.id}</span>
+												</div>
+												<label class="toggle">
+													<input
+														type="checkbox"
+														checked={behavior.enabled}
+														onchange={() => toggleBehavior(behavior.id, behavior.enabled)}
+													/>
+													<span class="toggle-slider"></span>
+												</label>
+											</div>
+											
+											<div class="behavior-config">
+												<div class="config-row">
+													<span class="settings-label small">Backend Override</span>
+													<select
+														class="settings-select small"
+														value={behavior.backend_override ?? ''}
+														onchange={(e) => setBehaviorBackend(behavior.id, (e.target as HTMLSelectElement).value)}
+													>
+														<option value="">(use default)</option>
+														{#each (tosState.available_ai_modules || []) as mod}
+															<option value={mod.id}>{mod.name}</option>
+														{/each}
+													</select>
+												</div>
+
+												{#if behavior.id === 'tos-observer' || behavior.id === 'passive-observer'}
+													<div class="config-row">
+														<span class="settings-label small">Sensitivity</span>
+														<select 
+															class="settings-select small" 
+															value={behavior.config['sensitivity'] || 'medium'}
+															onchange={(e) => sendCommand(`ai_behavior_configure:${behavior.id};sensitivity;${(e.target as HTMLSelectElement).value}`)}
+														>
+															<option value="low">LOW</option>
+															<option value="medium">MEDIUM</option>
+															<option value="high">HIGH</option>
+														</select>
+													</div>
+												{/if}
+											</div>
 										</div>
-										<div class="behavior-meta">
-											<span class="behavior-id text-mono">{behavior.id}</span>
-											{#if behavior.backend_override}
-												<span class="behavior-backend-badge">→ {behavior.backend_override}</span>
-											{/if}
-										</div>
-										<div class="behavior-backend-row">
-											<span class="settings-label small">Backend override</span>
-											<select
-												class="settings-select small"
-												value={behavior.backend_override ?? ''}
-												onchange={(e) => setBehaviorBackend(behavior.id, (e.target as HTMLSelectElement).value)}
-											>
-												<option value="">(use default)</option>
-												{#each (tosState.available_ai_modules || []) as mod}
-													<option value={mod.id}>{mod.name}</option>
-												{/each}
-											</select>
-										</div>
-									</div>
-								{/each}
+									{/each}
+								</div>
 							{:else}
-								<div class="settings-empty">No behaviors registered.</div>
+								<div class="settings-empty">No skills registered.</div>
 							{/if}
+
+							<div class="settings-footer-action">
+								<button class="lcars-btn marketplace-jump small" onclick={() => {
+									import('$lib/stores/ui.svelte').then(m => m.setCurrentMode('marketplace'));
+									sendCommand('set_mode:marketplace');
+									closeSettings();
+								}}>
+									<span class="nav-icon">⊞</span> ADD SKILL...
+								</button>
+							</div>
 						</div>
 
 						<div class="settings-group">
-							<div class="settings-group-title">LEARNED PATTERNS (§4.10)</div>
+							<div class="settings-group-title">GLOBAL CORTEX SETTINGS</div>
+							
+							<div class="settings-row">
+								<span class="settings-label">Disable All AI</span>
+								<label class="toggle">
+									<input 
+										type="checkbox" 
+										checked={tosState.ai_behaviors?.every(b => !b.enabled)}
+										onchange={(e) => sendCommand((e.target as HTMLInputElement).checked ? 'ai_disable_all' : 'ai_enable_all')} 
+									/>
+									<span class="toggle-slider"></span>
+								</label>
+							</div>
+
+							<div class="settings-row">
+								<span class="settings-label">AI Chip Color</span>
+								<select 
+									class="settings-select" 
+									value={tosState.settings?.global?.['tos.ai.chip_color'] || 'secondary'}
+									onchange={(e) => setSetting('tos.ai.chip_color', (e.target as HTMLSelectElement).value)}
+								>
+									<option value="secondary">SECONDARY (TEAL)</option>
+									<option value="primary">PRIMARY (AMBER)</option>
+									<option value="warning">WARNING (YELLOW)</option>
+								</select>
+							</div>
+
+							<div class="settings-row">
+								<span class="settings-label">Ghost Text Opacity</span>
+								<div class="settings-range-container">
+									<input 
+										type="range" 
+										class="settings-range" 
+										min="0" max="100" 
+										value={tosState.settings?.global?.['tos.ai.ghost_opacity'] || '40'} 
+										onchange={(e) => setSetting('tos.ai.ghost_opacity', (e.target as HTMLInputElement).value)} 
+									/>
+									<span class="settings-range-value text-mono">{tosState.settings?.global?.['tos.ai.ghost_opacity'] || '40'}%</span>
+								</div>
+							</div>
+
+							<div class="settings-row">
+								<span class="settings-label">Context Scope</span>
+								<select 
+									class="settings-select" 
+									value={tosState.settings?.global?.['tos.ai.context_scope'] || 'standard'}
+									onchange={(e) => setSetting('tos.ai.context_scope', (e.target as HTMLSelectElement).value)}
+								>
+									<option value="standard">STANDARD</option>
+									<option value="minimal">MINIMAL</option>
+									<option value="full">FULL</option>
+								</select>
+							</div>
+
+							<div class="settings-row">
+								<span class="settings-label">Conversation History</span>
+								<button class="lcars-btn-sm danger" onclick={() => sendCommand('ai_history_clear')}>CLEAR ALL</button>
+							</div>
+						</div>
+
+						<div class="settings-group">
+							<div class="settings-group-title">LEARNED PATTERNS</div>
 							{#if Object.keys(tosState.settings?.ai_patterns || {}).length > 0}
-								{#each Object.entries(tosState.settings.ai_patterns) as [id, pattern]}
-									<div class="pattern-card glass-panel">
-										<div class="pattern-header">
-											<span class="pattern-id text-mono">{id}</span>
-											<button class="lcars-btn-sm danger" onclick={() => sendCommand(`ai_pattern_set:${id};`)}>DELETE</button>
+								<div class="pattern-grid">
+									{#each Object.entries(tosState.settings.ai_patterns) as [id, pattern]}
+										<div class="pattern-card glass-panel">
+											<div class="pattern-header">
+												<span class="pattern-id text-mono">{id}</span>
+												<button class="lcars-btn-sm danger" onclick={() => sendCommand(`ai_pattern_set:${id};`)}>REMOVE</button>
+											</div>
+											<pre class="pattern-content text-mono">{pattern}</pre>
 										</div>
-										<pre class="pattern-content text-mono">{pattern}</pre>
-									</div>
-								{/each}
+									{/each}
+								</div>
 							{:else}
 								<div class="settings-empty">No patterns learned yet. Corrections will appear here.</div>
 							{/if}
@@ -919,5 +972,106 @@
 		margin: 0;
 		overflow-x: auto;
 		white-space: pre-wrap;
+	}
+
+	.key-status-row {
+		display: flex;
+		gap: var(--space-xs);
+	}
+
+	.settings-group-subtitle {
+		font-family: var(--font-display);
+		font-size: 0.55rem;
+		font-weight: 700;
+		letter-spacing: 0.1em;
+		color: var(--color-text-muted);
+		margin-top: var(--space-md);
+		margin-bottom: var(--space-xs);
+		text-transform: uppercase;
+	}
+
+	.module-grid {
+		display: grid;
+		grid-template-columns: repeat(auto-fill, minmax(13rem, 1fr));
+		gap: var(--space-sm);
+		margin-top: var(--space-sm);
+	}
+
+	.module-card {
+		padding: var(--space-sm);
+		border-radius: var(--radius-md);
+		border: 1px solid rgba(255,255,255,0.05);
+		display: flex;
+		flex-direction: column;
+		gap: var(--space-xs);
+		transition: all var(--transition-fast);
+	}
+	.module-card.active {
+		border-color: rgba(247, 168, 51, 0.3);
+		background: rgba(247, 168, 51, 0.03);
+	}
+
+	.module-card-header {
+		display: flex;
+		flex-direction: column;
+	}
+	.module-name { font-size: 0.78rem; font-weight: 700; color: var(--color-text); }
+	.module-id { font-size: 0.62rem; color: var(--color-text-muted); }
+
+	.module-card-footer {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		margin-top: var(--space-xs);
+	}
+	.module-type-badge {
+		font-size: 0.55rem;
+		font-weight: 800;
+		color: var(--color-primary);
+		opacity: 0.8;
+	}
+
+	.behavior-stack {
+		display: flex;
+		flex-direction: column;
+		gap: var(--space-sm);
+		margin-top: var(--space-sm);
+	}
+
+	.behavior-card.disabled {
+		opacity: 0.6;
+		filter: grayscale(0.5);
+	}
+
+	.behavior-title-group {
+		display: flex;
+		flex-direction: column;
+	}
+
+	.behavior-config {
+		margin-top: var(--space-sm);
+		padding-top: var(--space-sm);
+		border-top: 1px solid rgba(255,255,255,0.05);
+		display: flex;
+		flex-direction: column;
+		gap: var(--space-xs);
+	}
+
+	.config-row {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+	}
+
+	.settings-desc {
+		font-size: 0.7rem;
+		color: var(--color-text-muted);
+		margin-bottom: var(--space-sm);
+	}
+
+	.marketplace-jump.small {
+		width: auto;
+		padding: 0.4rem 1rem;
+		font-size: 0.65rem;
 	}
 </style>

@@ -103,6 +103,10 @@ impl IpcHandler {
             "face_register" => self.handle_face_register(payload),
             "service_register" => self.handle_service_register(payload),
             "market" => self.handle_market_command(payload),
+            "crash" => {
+                self.services.logger.crash_report(payload);
+                "OK".to_string()
+            }
             "terminal_resize" => {
                 self.handle_terminal_resize(args.first().copied(), args.get(1).copied())
             }

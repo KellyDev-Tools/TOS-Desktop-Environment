@@ -40,15 +40,60 @@ impl Renderer for QuestRenderer {
     }
 }
 
-pub struct QuestInput;
+pub struct QuestInput {
+    pub mapping: crate::DeviceMapping,
+}
+
+impl Default for QuestInput {
+    fn default() -> Self {
+        Self {
+            mapping: crate::DeviceMapping::default(),
+        }
+    }
+}
 
 impl InputSource for QuestInput {
     fn poll_events(&mut self) -> Vec<RawInputEvent> {
-        vec![] // OpenXR hand/trigger input
+        // Mocking some OpenXR events that would normally come from the XR runtime
+        vec![
+            RawInputEvent::SpatialGesture {
+                hand: "left".to_string(),
+                gesture: "pinch_left".to_string(),
+            },
+            RawInputEvent::SpatialGaze {
+                x: 0.0,
+                y: 0.0,
+                z: -1.0,
+                dwell_ms: 600,
+            },
+        ]
     }
+
     fn map_to_semantic(&self, raw: RawInputEvent) -> Option<SemanticEvent> {
         match raw {
             RawInputEvent::KeyDown(k) if k == "X" => Some(SemanticEvent::ZoomOut),
+            RawInputEvent::ControllerButtonDown { button, .. } => {
+                self.mapping.lookup_button(&button).and_then(|action| match action {
+                    "select" => Some(SemanticEvent::Select("default".to_string())),
+                    "home" => Some(SemanticEvent::Home),
+                    "zoom_out" => Some(SemanticEvent::ZoomOut),
+                    "zoom_in" => Some(SemanticEvent::ZoomIn),
+                    "command_hub" => Some(SemanticEvent::CommandHub),
+                    "toggle_bezel" => Some(SemanticEvent::ToggleBezel),
+                    _ => None,
+                })
+            }
+            RawInputEvent::SpatialGesture { gesture, .. } => {
+                self.mapping.lookup_gesture(&gesture).and_then(|action| match action {
+                    "zoom_out" => Some(SemanticEvent::ZoomOut),
+                    "zoom_in" => Some(SemanticEvent::ZoomIn),
+                    "open_hub" => Some(SemanticEvent::CommandHub),
+                    _ => None,
+                })
+            }
+            RawInputEvent::SpatialGaze { dwell_ms, .. } if dwell_ms >= self.mapping.gaze_dwell_ms => {
+                Some(SemanticEvent::Select("gaze_target".to_string()))
+            }
             _ => None,
         }
     }

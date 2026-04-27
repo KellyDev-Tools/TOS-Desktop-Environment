@@ -5,6 +5,7 @@ pub mod ipc;
 pub mod keybindings;
 pub mod state;
 pub mod marketplace;
+pub mod controller_mapping;
 pub mod modules;
 pub mod platform;
 pub mod shell;
@@ -44,6 +45,7 @@ pub use collaboration::{Participant, ParticipantRole, PresenceStatus, WebRtcPayl
 pub use platform::{AppPlatform, PlatformStatus, RemoteServer, remote::RemoteRenderer};
 pub use shell::{OscEvent, OscParser};
 pub use keybindings::{KeyCombo, Keybinding, KeybindingMap};
+pub use controller_mapping::DeviceMapping;
 #[cfg(feature = "test-utils")]
 pub use daemon::MockBrain;
 pub use daemon::{register_with_brain, log_to_brain, install_crash_handler};

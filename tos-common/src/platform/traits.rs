@@ -57,6 +57,14 @@ pub enum RawInputEvent {
     KeyDown(String),
     TouchDown(f32, f32),
     Click(f32, f32),
+    /// Game controller button press (e.g. "South", "East", "Start").
+    ControllerButtonDown { controller_id: u32, button: String },
+    /// Game controller axis movement (e.g. "LeftStickX", "RightTrigger").
+    ControllerAxisMove { controller_id: u32, axis: String, value: f32 },
+    /// XR / Spatial hand gesture (e.g. "pinch_left", "wrist_tap").
+    SpatialGesture { hand: String, gesture: String },
+    /// XR / Spatial gaze or eye tracking event.
+    SpatialGaze { x: f32, y: f32, z: f32, dwell_ms: u32 },
 }
 
 pub use crate::ipc::SemanticEvent;

@@ -94,6 +94,7 @@
 - [x] 5.9 FPS monitoring + Tactical Alert — Added FPS tracking to Renderer and tactical alerts on frame drops (§16.4).
 - [x] 5.10 Voice command input pipeline — Implemented VoiceCommandStart and VoiceTranscription SemanticEvents (§14.3).
 - [x] 5.11 Depth-based render throttling — Implemented depth-aware surface composition skipping in LinuxRenderer (§16.1).
+- [x] 5.12 Game controller / VR input mapping — Implemented DeviceMapping and QuestInput integration (§14.4).
 
 ## Stage 6 — Collaboration, Remote & Release
 - [x] 6.1 TLS handshake in Remote Server protocol — Migrated `remote_server.rs` to `rustls` with dynamic self-signed certificate generation using `rcgen`.
@@ -126,7 +127,6 @@
 
 | Item | Spec Ref | Reason |
 |---|---|---|
-| Game controller / VR input mapping | §14.4 | No controller hardware test environment |
 | Accessibility switch scanning | §14.5 | Specialized hardware needed |
 | Voice confirmation for WARN commands | §17.2.7 | Depends on voice pipeline maturity |
 | Language modules (`.tos-language`) | Eco §1.12 | Built-in LSP configs sufficient for v0.1 |

@@ -150,4 +150,22 @@ impl LoggerService {
                 stream.write_all(format!("archive_ai:{}\n", payload).as_bytes());
         }
     }
+
+    /// Automated crash dump collection (§6.10).
+    pub fn crash_report(&self, payload: &str) {
+        let port = self
+            .registry
+            .as_ref()
+            .and_then(|r| r.lock().unwrap().port_of("tos-loggerd"))
+            .unwrap_or(7003);
+
+        let addr = format!("127.0.0.1:{}", port);
+        if let Ok(mut stream) = std::net::TcpStream::connect_timeout(
+            &addr.parse().unwrap(),
+            std::time::Duration::from_millis(50),
+        ) {
+            use std::io::Write;
+            let _ = stream.write_all(format!("crash:{}\n", payload).as_bytes());
+        }
+    }
 }

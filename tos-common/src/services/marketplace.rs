@@ -48,6 +48,9 @@ pub struct ModuleManifest {
     pub treesitter_grammar: Option<String>,
     pub lsp: Option<LspConfig>,
 
+    // §1.10: Bezel Specifics
+    pub bezel: Option<BezelConfig>,
+
     // The Ed25519 cryptographic signature of the manifest contents
     pub signature: Option<String>,
 }
@@ -103,6 +106,11 @@ pub struct ExecutableConfig {
 pub struct LspConfig {
     pub command: String,
     pub args: Vec<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+pub struct BezelConfig {
+    pub preferred_slot: String, // "top", "left", "right"
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
@@ -419,6 +427,7 @@ mod tests {
             file_extensions: None,
             treesitter_grammar: None,
             lsp: None,
+            bezel: None,
             signature: None,
         };
 

@@ -148,6 +148,15 @@ pub struct AiBehavior {
     pub config: HashMap<String, String>,
 }
 
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct BezelComponentState {
+    pub id: String,
+    pub name: String,
+    pub html: String,
+    pub data: serde_json::Value,
+    pub slot: String, // "top", "left", "right"
+}
+
 /// The operational augmentation modes for the Command Hub.
 ///
 /// Each mode changes the chip column content and terminal output rendering
@@ -814,6 +823,7 @@ pub struct TosState {
     pub active_agent_stack: Vec<String>,
     /// List of active curators whose context will be aggregated for AI queries.
     pub active_curators: Vec<String>,
+    pub active_bezel_components: Vec<BezelComponentState>,
     pub accessibility: AccessibilityState,
     pub version: u64,
 }
@@ -947,6 +957,7 @@ impl Default for TosState {
             active_agents: vec![],
             active_agent_stack: vec![],
             active_curators: vec![],
+            active_bezel_components: vec![],
             accessibility: AccessibilityState::default(),
             version: 0,
         }

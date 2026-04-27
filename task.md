@@ -98,6 +98,7 @@
 - [x] 5.13 Accessibility switch scanning — Implemented `AccessibilityService` and switch scan IPC (§14.5).
 - [x] 5.14 OpenXR / Quest renderer — Implemented `QuestRenderer` with spatial Cockpit layers and `RendererManager` integration (§15.3, §15.7).
 - [x] 5.15 Language modules — Implemented `.tos-language` manifest support and dynamic LSP discovery in `LspService` (§1.12).
+- [x] 5.16 Bezel component modules — Implemented `BezelModule` trait, dynamic loading, and `BezelService` integration (§1.10).
 
 ## Stage 6 — Collaboration, Remote & Release
 - [x] 6.1 TLS handshake in Remote Server protocol — Migrated `remote_server.rs` to `rustls` with dynamic self-signed certificate generation using `rcgen`.

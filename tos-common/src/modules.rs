@@ -149,4 +149,18 @@ pub trait AgentModule: Send + Sync {
     fn prompt_efficiency(&self) -> Option<&str>;
 }
 
+// ---------------------------------------------------------------------------
+// Bezel Module Contract (§1.10)
+// ---------------------------------------------------------------------------
+
+/// Runtime contract for a Bezel Component module (.tos-bezel).
+pub trait BezelModule: Send + Sync {
+    fn id(&self) -> &str;
+    fn name(&self) -> &str;
+    /// Update the component's state and return the rendered HTML and data.
+    fn update(&mut self, state: &crate::state::TosState) -> (String, serde_json::Value);
+    /// Handle a click event on a specific element ID within the component.
+    fn handle_click(&mut self, element_id: &str, x: f32, y: f32);
+}
+
 pub mod sandbox;

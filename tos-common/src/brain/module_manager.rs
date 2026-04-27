@@ -57,6 +57,7 @@ impl ModuleManager {
                 file_extensions: None,
                 treesitter_grammar: None,
                 lsp: None,
+                bezel: None,
                 signature: None,
             });
         }
@@ -97,6 +98,7 @@ impl ModuleManager {
                 file_extensions: None,
                 treesitter_grammar: None,
                 lsp: None,
+                bezel: None,
                 signature: None,
             });
         }
@@ -271,6 +273,20 @@ impl ModuleManager {
             .filter(|m| m.module_type == "language")
             .collect()
     }
+
+    pub fn load_bezel(&self, id: &str) -> anyhow::Result<Box<dyn crate::modules::BezelModule>> {
+        let manifest = self
+            .get_manifest(id)
+            .ok_or_else(|| anyhow::anyhow!("Module not found"))?;
+        if manifest.module_type != "bezel" {
+            return Err(anyhow::anyhow!("Module is not a bezel component"));
+        }
+
+        Ok(Box::new(GenericBezelModule {
+            id: manifest.id.clone(),
+            name: manifest.name.clone(),
+        }))
+    }
 }
 
 struct GenericAssistantModule {
@@ -410,6 +426,20 @@ impl crate::modules::TerminalOutputModule for GenericTerminalOutputModule {
     fn get_id(&self) -> &str {
         &self.id
     }
+}
+
+struct GenericBezelModule {
+    id: String,
+    name: String,
+}
+
+impl crate::modules::BezelModule for GenericBezelModule {
+    fn id(&self) -> &str { &self.id }
+    fn name(&self) -> &str { &self.name }
+    fn update(&mut self, _state: &crate::state::TosState) -> (String, serde_json::Value) {
+        (format!("<div>Bezel: {}</div>", self.name), serde_json::json!({}))
+    }
+    fn handle_click(&mut self, _element_id: &str, _x: f32, _y: f32) {}
 }
 
 // Internal generic implementation for built-in or simple shell modules

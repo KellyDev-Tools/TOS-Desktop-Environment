@@ -15,6 +15,7 @@ pub mod settings;
 pub mod trust;
 pub mod lsp;
 pub mod ssh;
+pub mod bezel;
 
 pub use accessibility::AccessibilityService;
 pub use ai::AiService;
@@ -33,6 +34,7 @@ pub use settings::SettingsService;
 pub use trust::TrustService;
 pub use lsp::LspService;
 pub use ssh::SshService;
+pub use bezel::BezelService;
 
 use crate::config::TosConfig;
 use std::sync::{Arc, Mutex};
@@ -55,6 +57,7 @@ pub struct ServiceManager {
     pub capture: Arc<CaptureService>,
     pub lsp: Arc<LspService>,
     pub ssh: Arc<SshService>,
+    pub bezel: Arc<BezelService>,
 }
 
 impl Default for ServiceManager {
@@ -100,6 +103,7 @@ impl ServiceManager {
 
         let lsp = Arc::new(LspService::new());
         let ssh = Arc::new(SshService::new());
+        let bezel = Arc::new(BezelService::new());
 
         // Establish cross-service dependencies
         logger.set_audio_service(audio.clone());
@@ -129,6 +133,7 @@ impl ServiceManager {
             capture,
             lsp,
             ssh,
+            bezel,
         }
     }
     pub fn set_ipc(&self, ipc: std::sync::Arc<dyn crate::ipc::IpcDispatcher>) {

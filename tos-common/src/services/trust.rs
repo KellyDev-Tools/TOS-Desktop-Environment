@@ -409,6 +409,7 @@ mod tests {
             file_extensions: None,
             treesitter_grammar: None,
             lsp: None,
+            bezel: None,
             signature: None,
         };
 

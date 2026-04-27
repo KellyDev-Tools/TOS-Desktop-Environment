@@ -219,6 +219,14 @@ impl IpcHandler {
             "bezel_expand" => self.handle_bezel_expand(),
             "bezel_collapse" => self.handle_bezel_collapse(),
             "bezel_swipe" => self.handle_bezel_swipe(args.first().copied()),
+            "bezel_activate" => self.handle_bezel_activate(args.first().copied()),
+            "bezel_deactivate" => self.handle_bezel_deactivate(args.first().copied()),
+            "bezel_click" => self.handle_bezel_click(
+                args.first().copied(),
+                args.get(1).copied(),
+                args.get(2).copied(),
+                args.get(3).copied(),
+            ),
             "onboarding_skip_tour" => self.handle_onboarding_skip_tour(),
             "onboarding_advance_step" => self.handle_onboarding_advance_step(args.first().copied()),
             "onboarding_hint_dismiss" => self.handle_onboarding_hint_dismiss(args.first().copied()),
@@ -3815,6 +3823,39 @@ impl IpcHandler {
             }
         }
         "ERROR: Invalid task_delete payload or task/lane not found".to_string()
+    }
+
+    fn handle_bezel_activate(&self, id: Option<&str>) -> String {
+        let id = match id {
+            Some(i) => i,
+            None => return "ERROR: Missing component ID".to_string(),
+        };
+        match self.services.bezel.activate_component(id) {
+            Ok(_) => "BEZEL_ACTIVATED".to_string(),
+            Err(e) => format!("ERROR: {}", e),
+        }
+    }
+
+    fn handle_bezel_deactivate(&self, id: Option<&str>) -> String {
+        let id = match id {
+            Some(i) => i,
+            None => return "ERROR: Missing component ID".to_string(),
+        };
+        self.services.bezel.deactivate_component(id);
+        "BEZEL_DEACTIVATED".to_string()
+    }
+
+    fn handle_bezel_click(&self, component_id: Option<&str>, element_id: Option<&str>, x: Option<&str>, y: Option<&str>) -> String {
+        let cid = match component_id {
+            Some(i) => i,
+            None => return "ERROR: Missing component ID".to_string(),
+        };
+        let eid = element_id.unwrap_or("");
+        let x_val = x.and_then(|v| v.parse::<f32>().ok()).unwrap_or(0.0);
+        let y_val = y.and_then(|v| v.parse::<f32>().ok()).unwrap_or(0.0);
+        
+        self.services.bezel.handle_click(cid, eid, x_val, y_val);
+        "OK".to_string()
     }
 
     fn handle_set_active_sector(&self, idx_str: Option<&str>) -> String {

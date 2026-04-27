@@ -103,6 +103,7 @@
 - [x] 5.18 Spatial audio — Implemented `rodio::SpatialSink` integration for 3D earcon localization (§23.3).
 - [x] 5.19 Privacy controls — Implemented `incognito` mode in `SessionService` and IPC toggle handlers (§19.4).
 - [x] 5.20 Per-surface timeline (Level 4) — Implemented `TimelineService` for state snapshot recording and `DetailView` scrubbing (§19.1).
+- [x] 5.21 OpenSearch compatibility — Implemented `opensearch.xml` generation and HTTP-over-TCP routing in `RemoteServer` (§19.3).
 
 ## Stage 6 — Collaboration, Remote & Release
 - [x] 6.1 TLS handshake in Remote Server protocol — Migrated `remote_server.rs` to `rustls` with dynamic self-signed certificate generation using `rcgen`.

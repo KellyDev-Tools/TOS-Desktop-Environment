@@ -211,6 +211,31 @@ impl RemoteServer {
 
             let command = line.trim();
             if !command.is_empty() {
+                // §19.3: OpenSearch HTTP compatibility
+                if command.starts_with("GET /opensearch.xml") {
+                    let xml = self.generate_opensearch_xml();
+                    let response = format!(
+                        "HTTP/1.1 200 OK\r\nContent-Type: application/opensearchdescription+xml\r\nContent-Length: {}\r\nConnection: close\r\n\r\n{}",
+                        xml.len(),
+                        xml
+                    );
+                    writer.write_all(response.as_bytes()).await?;
+                    writer.flush().await?;
+                    return Ok(());
+                } else if command.starts_with("GET /search?q=") {
+                    let query = command.split("q=").nth(1).unwrap_or("").split(' ').next().unwrap_or("");
+                    let ipc_cmd = format!("search:{}", query);
+                    let results = self.ipc.handle_request(&ipc_cmd);
+                    let response = format!(
+                        "HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nContent-Length: {}\r\nConnection: close\r\n\r\n{}",
+                        results.len(),
+                        results
+                    );
+                    writer.write_all(response.as_bytes()).await?;
+                    writer.flush().await?;
+                    return Ok(());
+                }
+
                 let response = self.ipc.handle_request(command);
                 writer
                     .write_all(format!("{}\n", response).as_bytes())
@@ -423,5 +448,17 @@ impl RemoteServer {
 
         sessions.insert(user_id, pc.clone());
         Ok(pc)
+    }
+
+    pub fn generate_opensearch_xml(&self) -> String {
+        r#"<?xml version="1.0" encoding="UTF-8"?>
+<OpenSearchDescription xmlns="http://a9.com/-/spec/opensearch/1.1/">
+  <ShortName>TOS Brain</ShortName>
+  <Description>Search the TOS Brain indexed content</Description>
+  <Tags>tos brain search ai</Tags>
+  <Contact>admin@tos-brain.local</Contact>
+  <Url type="application/json" method="GET" template="http://localhost:7000/search?q={searchTerms}"/>
+  <Url type="text/html" method="GET" template="http://localhost:7000/search?q={searchTerms}"/>
+</OpenSearchDescription>"#.to_string()
     }
 }

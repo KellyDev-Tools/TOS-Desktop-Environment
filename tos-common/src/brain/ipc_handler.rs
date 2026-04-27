@@ -215,6 +215,12 @@ impl IpcHandler {
             "audio_volume_set" => {
                 self.handle_audio_volume_set(args.first().copied(), args.get(1).copied())
             }
+            "audio_spatial_earcon" => self.handle_audio_spatial_earcon(
+                args.first().copied(),
+                args.get(1).copied(),
+                args.get(2).copied(),
+                args.get(3).copied(),
+            ),
             "audio_load_module" => self.handle_audio_load_module(args.first().copied()),
             "audio_voice_play" => self.handle_audio_voice_play(Some(payload)),
             "bezel_expand" => self.handle_bezel_expand(),
@@ -3824,6 +3830,19 @@ impl IpcHandler {
             }
         }
         "ERROR: Invalid task_delete payload or task/lane not found".to_string()
+    }
+
+    fn handle_audio_spatial_earcon(&self, name: Option<&str>, x: Option<&str>, y: Option<&str>, z: Option<&str>) -> String {
+        let name = match name {
+            Some(n) => n,
+            None => return "ERROR: Missing earcon name".to_string(),
+        };
+        let x_val = x.and_then(|v| v.parse::<f32>().ok()).unwrap_or(0.0);
+        let y_val = y.and_then(|v| v.parse::<f32>().ok()).unwrap_or(0.0);
+        let z_val = z.and_then(|v| v.parse::<f32>().ok()).unwrap_or(0.0);
+        
+        self.services.audio.play_spatial_earcon(name, x_val, y_val, z_val);
+        "OK".to_string()
     }
 
     fn handle_audio_load_module(&self, id: Option<&str>) -> String {

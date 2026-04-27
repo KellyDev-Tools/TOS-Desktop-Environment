@@ -92,7 +92,7 @@
 | Haptic service | §23.4 | ✅ | `HapticService` with patterns for Android and Quest haptics |
 | Three-layer audio (ambient/tactical/voice) | §23.1 | ✅ | Independent volume control and mixing for Ambient/Tactical/Voice layers |
 | Alert level adaptation (Green/Yellow/Red) | §23.2 | ✅ | 1Hz brain loop escalates ambient audio based on sector priority |
-| Spatial audio (VR/AR) | §23.3 | ❌ | No spatial audio |
+| Spatial audio (VR/AR) | §23.3 | ✅ | `AudioService` implements `SpatialSink` for earcon localization in 3D space |
 
 ### 1.16 Accessibility (Architecture §24)
 

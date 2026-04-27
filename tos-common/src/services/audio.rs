@@ -14,6 +14,7 @@ pub enum AudioLayer {
 
 enum AudioCommand {
     PlayEarcon(String),
+    PlaySpatialEarcon(String, [f32; 3]),
     PlayAmbient(String), // For now, still synthetic
     StopAmbient,
     PlayVoice(String),   // Placeholder for TTS
@@ -47,11 +48,18 @@ impl AudioService {
             let tactical_sink = Sink::try_new(&stream_handle).ok();
             let ambient_sink = Sink::try_new(&stream_handle).ok();
             let voice_sink = Sink::try_new(&stream_handle).ok();
+            let spatial_sink = rodio::SpatialSink::try_new(
+                &stream_handle,
+                [0.0, 0.0, 0.0],
+                [-0.05, 0.0, 0.0],
+                [0.05, 0.0, 0.0],
+            ).ok();
 
             // Default volumes
             if let Some(ref s) = tactical_sink { s.set_volume(0.15); }
             if let Some(ref s) = ambient_sink { s.set_volume(0.05); }
             if let Some(ref s) = voice_sink { s.set_volume(0.3); }
+            if let Some(ref s) = spatial_sink { s.set_volume(0.2); }
 
             let mut earcon_assets: std::collections::HashMap<String, Vec<u8>> = std::collections::HashMap::new();
             let mut ambient_assets: std::collections::HashMap<String, Vec<u8>> = std::collections::HashMap::new();
@@ -96,6 +104,25 @@ impl AudioService {
                     }
                     AudioCommand::PlayEarcon(name) => {
                         if let Some(ref sink) = tactical_sink {
+                            if let Some(bytes) = earcon_assets.get(&name) {
+                                let cursor = std::io::Cursor::new(bytes.clone());
+                                if let Ok(source) = rodio::Decoder::new(cursor) {
+                                    sink.append(source);
+                                    continue;
+                                }
+                            }
+                            
+                            let (freq, dur) = Self::get_earcon_params(&name);
+                            let source = SineWave::new(freq)
+                                .take_duration(Duration::from_millis(dur))
+                                .amplify(1.0);
+                            sink.append(source);
+                        }
+                    }
+                    AudioCommand::PlaySpatialEarcon(name, pos) => {
+                        if let Some(ref sink) = spatial_sink {
+                            sink.set_emitter_position(pos);
+                            
                             if let Some(bytes) = earcon_assets.get(&name) {
                                 let cursor = std::io::Cursor::new(bytes.clone());
                                 if let Ok(source) = rodio::Decoder::new(cursor) {
@@ -202,6 +229,12 @@ impl AudioService {
     pub fn play_earcon(&self, name: &str) {
         tracing::debug!("[AUDIO] Tactical earcon: {}", name);
         let _ = self.sender.send(AudioCommand::PlayEarcon(name.to_string()));
+    }
+
+    /// Trigger a spatial tactical earcon.
+    pub fn play_spatial_earcon(&self, name: &str, x: f32, y: f32, z: f32) {
+        tracing::debug!("[AUDIO] Spatial earcon: {} at [{}, {}, {}]", name, x, y, z);
+        let _ = self.sender.send(AudioCommand::PlaySpatialEarcon(name.to_string(), [x, y, z]));
     }
 
     /// Start ambient background audio.

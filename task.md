@@ -100,6 +100,7 @@
 - [x] 5.15 Language modules — Implemented `.tos-language` manifest support and dynamic LSP discovery in `LspService` (§1.12).
 - [x] 5.16 Bezel component modules — Implemented `BezelModule` trait, dynamic loading, and `BezelService` integration (§1.10).
 - [x] 5.17 Audio modules — Implemented `.tos-audio` manifest support and dynamic asset loading in `AudioService` (§1.9).
+- [x] 5.18 Spatial audio — Implemented `rodio::SpatialSink` integration for 3D earcon localization (§23.3).
 
 ## Stage 6 — Collaboration, Remote & Release
 - [x] 6.1 TLS handshake in Remote Server protocol — Migrated `remote_server.rs` to `rustls` with dynamic self-signed certificate generation using `rcgen`.

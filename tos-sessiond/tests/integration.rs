@@ -30,13 +30,12 @@ async fn test_session_handoff() -> anyhow::Result<()> {
     let mut child = Command::new(bin_path).spawn()?;
     
     let (_, port) = mock_brain.handle_one_registration().await?;
-    let mut stream = TcpStream::connect(format!("127.0.0.1:{}", port)).await?;
-    let mut reader = BufReader::new(stream);
+    let stream = TcpStream::connect(format!("127.0.0.1:{}", port)).await?;
     
     // 1. Prepare Handoff
     let mock_json = "{\"version\":1, \"sectors\":[]}";
     let msg = format!("session_handoff_prepare:{}\n", mock_json);
-    let (mut reader_stream, mut writer_stream) = TcpStream::connect(format!("127.0.0.1:{}", port)).await?.into_split();
+    let (reader_stream, mut writer_stream) = TcpStream::connect(format!("127.0.0.1:{}", port)).await?.into_split();
     writer_stream.write_all(msg.as_bytes()).await?;
     
     let mut reader = BufReader::new(reader_stream);
@@ -46,7 +45,7 @@ async fn test_session_handoff() -> anyhow::Result<()> {
     assert_eq!(token.len(), 6);
     
     // 2. Claim Handoff
-    let (mut reader_stream, mut writer_stream) = TcpStream::connect(format!("127.0.0.1:{}", port)).await?.into_split();
+    let (reader_stream, mut writer_stream) = TcpStream::connect(format!("127.0.0.1:{}", port)).await?.into_split();
     writer_stream.write_all(format!("session_handoff_claim:{}\n", token).as_bytes()).await?;
     
     let mut reader = BufReader::new(reader_stream);
@@ -55,7 +54,7 @@ async fn test_session_handoff() -> anyhow::Result<()> {
     assert_eq!(claimed_data.trim(), mock_json);
     
     // 3. Claim again (should fail)
-    let (mut reader_stream, mut writer_stream) = TcpStream::connect(format!("127.0.0.1:{}", port)).await?.into_split();
+    let (reader_stream, mut writer_stream) = TcpStream::connect(format!("127.0.0.1:{}", port)).await?.into_split();
     writer_stream.write_all(format!("session_handoff_claim:{}\n", token).as_bytes()).await?;
     
     let mut reader = BufReader::new(reader_stream);

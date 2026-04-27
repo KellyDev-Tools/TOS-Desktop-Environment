@@ -222,6 +222,9 @@ impl IpcHandler {
                 args.get(3).copied(),
             ),
             "audio_load_module" => self.handle_audio_load_module(args.first().copied()),
+            "privacy_incognito_toggle" => self.handle_privacy_incognito_toggle(),
+            "privacy_memory_archival_toggle" => self.handle_privacy_memory_archival_toggle(),
+            "privacy_confirm_archive_toggle" => self.handle_privacy_confirm_archive_toggle(),
             "audio_voice_play" => self.handle_audio_voice_play(Some(payload)),
             "bezel_expand" => self.handle_bezel_expand(),
             "bezel_collapse" => self.handle_bezel_collapse(),
@@ -3843,6 +3846,31 @@ impl IpcHandler {
         
         self.services.audio.play_spatial_earcon(name, x_val, y_val, z_val);
         "OK".to_string()
+    }
+
+    fn handle_privacy_incognito_toggle(&self) -> String {
+        let mut state = self.state.lock().unwrap();
+        let current = state.settings.resolve("tos.privacy.incognito", None, None).as_deref() == Some("true");
+        let new_val = if current { "false" } else { "true" };
+        state.settings.global.insert("tos.privacy.incognito".to_string(), new_val.to_string());
+        state.privacy_active = new_val == "true";
+        format!("PRIVACY_INCOGNITO:{}", new_val)
+    }
+
+    fn handle_privacy_memory_archival_toggle(&self) -> String {
+        let mut state = self.state.lock().unwrap();
+        let current = state.settings.resolve("tos.privacy.memory_archival", None, None).as_deref() != Some("false");
+        let new_val = if current { "false" } else { "true" };
+        state.settings.global.insert("tos.privacy.memory_archival".to_string(), new_val.to_string());
+        format!("PRIVACY_MEMORY_ARCHIVAL:{}", new_val)
+    }
+
+    fn handle_privacy_confirm_archive_toggle(&self) -> String {
+        let mut state = self.state.lock().unwrap();
+        let current = state.settings.resolve("tos.privacy.confirm_archive", None, None).as_deref() != Some("false");
+        let new_val = if current { "false" } else { "true" };
+        state.settings.global.insert("tos.privacy.confirm_archive".to_string(), new_val.to_string());
+        format!("PRIVACY_CONFIRM_ARCHIVE:{}", new_val)
     }
 
     fn handle_audio_load_module(&self, id: Option<&str>) -> String {

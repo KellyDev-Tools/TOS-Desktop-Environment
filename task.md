@@ -101,6 +101,7 @@
 - [x] 5.16 Bezel component modules — Implemented `BezelModule` trait, dynamic loading, and `BezelService` integration (§1.10).
 - [x] 5.17 Audio modules — Implemented `.tos-audio` manifest support and dynamic asset loading in `AudioService` (§1.9).
 - [x] 5.18 Spatial audio — Implemented `rodio::SpatialSink` integration for 3D earcon localization (§23.3).
+- [x] 5.19 Privacy controls — Implemented `incognito` mode in `SessionService` and IPC toggle handlers (§19.4).
 
 ## Stage 6 — Collaboration, Remote & Release
 - [x] 6.1 TLS handshake in Remote Server protocol — Migrated `remote_server.rs` to `rustls` with dynamic self-signed certificate generation using `rcgen`.

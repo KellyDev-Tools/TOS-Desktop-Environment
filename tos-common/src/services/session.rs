@@ -214,6 +214,11 @@ impl SessionService {
     /// Save the live session state. Routes to daemon if available, falls
     /// back to direct disk write when local_persistence is enabled.
     pub fn save_live(&self, state: &TosState) -> anyhow::Result<()> {
+        // Privacy check: Incognito mode disables live auto-saving.
+        if state.settings.resolve("tos.privacy.incognito", None, None).as_deref() == Some("true") {
+            return Ok(());
+        }
+
         // If local persistence is disabled, daemon is mandatory.
         if !self.local_persistence {
             if let Some(addr) = self.get_daemon_address() {
@@ -257,6 +262,11 @@ impl SessionService {
 
     /// Save a named session.
     pub fn save(&self, sector_id: &str, name: &str, state: &TosState) -> anyhow::Result<()> {
+        // Privacy check: Incognito mode disables all session saving.
+        if state.settings.resolve("tos.privacy.incognito", None, None).as_deref() == Some("true") {
+            return Err(anyhow::anyhow!("SESSION_BLOCKED: Incognito mode is active"));
+        }
+
         if let Some(addr) = self.get_daemon_address() {
             if self
                 .save_named_daemon(sector_id, name, state, &addr)

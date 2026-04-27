@@ -131,7 +131,7 @@
 | Global TOS Log Sector | §19.2 | ✅ | `LogView.svelte` (232 lines) with category filtering (ALL/SYSTEM/AI/TRUST/NETWORK/USER), text search, log export, and clear |
 | Per-surface timeline (Level 4) | §19.1 | ❌ | No timeline view |
 | OpenSearch compatibility | §19.3 | ❌ | Not implemented |
-| Privacy controls (opt-out) | §19.4 | ❌ | Not implemented |
+| Privacy controls (opt-out) | §19.4 | ✅ | `SessionService` respects `tos.privacy.incognito` setting; IPC toggles implemented |
 | Logger service running | §19 | ✅ | `tos-loggerd` operational |
 
 ---

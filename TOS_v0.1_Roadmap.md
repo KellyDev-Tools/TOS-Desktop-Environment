@@ -182,7 +182,7 @@
 | 8.6 | Migrate Ollama / Gemini to `.tos-assistant` with legacy shim | HIGH | Eco §1.15 | CortexRegistry | ✅ |
 | 8.7 | Implement GitNexus curator cortex via MCP | HIGH | Eco §1.3.2 | CortexRegistry | ✅ |
 | 8.8 | Unified Cortex Configuration UI in Settings Modal | MEDIUM | Features §4.3 | SettingsModal | ✅ |
-| 8.9 | Verification of Cortex sandboxing (bubblewrap isolation) | HIGH | Arch §17.3 | SandboxManager | ❌ |
+| 8.9 | Verification of Cortex sandboxing (bubblewrap isolation) | HIGH | Arch §17.3 | SandboxManager | ✅ |
 
 ---
 

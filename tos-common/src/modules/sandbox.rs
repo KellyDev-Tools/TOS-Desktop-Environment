@@ -106,9 +106,17 @@ impl SandboxManager {
         cmd.arg("--dev").arg("/dev");
         
         // Host system read-only bindings (canonical LCARS sandbox)
-        for path in &["/usr", "/lib", "/lib64", "/bin", "/sbin"] {
-            if Path::new(path).exists() {
-                cmd.arg("--ro-bind").arg(path).arg(path);
+        // We must be careful with symlinks. /bin -> /usr/bin, etc.
+        for path in &["/usr", "/lib", "/lib64", "/bin", "/sbin", "/etc/alternatives"] {
+            if let Ok(metadata) = fs::symlink_metadata(path) {
+                if metadata.is_symlink() {
+                    if let Ok(target) = fs::read_link(path) {
+                        // If it's a relative link, we might need more logic, but usually they are absolute or simple
+                        cmd.arg("--symlink").arg(target).arg(path);
+                    }
+                } else {
+                    cmd.arg("--ro-bind").arg(path).arg(path);
+                }
             }
         }
 
@@ -125,6 +133,7 @@ impl SandboxManager {
                     let home = std::env::var("HOME").unwrap_or_else(|_| "/home/tos".to_string());
                     let sector_path = PathBuf::from(home).join("TOS/Sectors").join(id);
                     if sector_path.exists() {
+                        cmd.arg("--dir").arg("/mnt");
                         cmd.arg("--bind").arg(&sector_path).arg("/mnt/sector");
                     }
                 }
@@ -136,6 +145,9 @@ impl SandboxManager {
         }
 
         cmd.arg("--").arg(program).args(args);
+        
+        cmd.stdout(std::process::Stdio::piped());
+        cmd.stderr(std::process::Stdio::piped());
         
         let child = cmd.spawn()?;
         

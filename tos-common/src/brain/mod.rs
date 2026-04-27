@@ -31,10 +31,12 @@ impl Brain {
         let mut state_val = TosState::default();
         let live_path = sessions_dir.join("_live.tos-session");
         let mut restored = false;
-        if let Ok(content) = std::fs::read_to_string(&live_path) {
-            if let Ok(live_state) = serde_json::from_str::<TosState>(&content) {
-                state_val = live_state;
-                restored = true;
+        if !cfg!(test) {
+            if let Ok(content) = std::fs::read_to_string(&live_path) {
+                if let Ok(live_state) = serde_json::from_str::<TosState>(&content) {
+                    state_val = live_state;
+                    restored = true;
+                }
             }
         }
 

@@ -33,6 +33,8 @@ export function getCurrentFps(): number { return currentFps; }
 
 // --- Actions ---
 export function setCurrentMode(mode: ViewMode): void {
+    console.log(`[UI Store] Setting mode to: ${mode}`);
+    // console.log(new Error().stack); // Svelte doesn't always show good stacks here, but we can try
     currentMode = mode;
 }
 

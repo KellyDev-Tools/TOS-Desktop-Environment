@@ -116,6 +116,7 @@ export function sendCommand(cmd: string): Promise<string | null> {
         return new Promise((resolve) => {
             const id = Math.random().toString(36).substring(7);
             const handler = (event: MessageEvent) => {
+                console.log(`[IPC] Received: ${event.data.substring(0, 50)}...`);
                 if (typeof event.data === 'string' && event.data.startsWith(`res:${id}:`)) {
                     activeWs.removeEventListener('message', handler);
                     const response = event.data.substring(id.length + 5);

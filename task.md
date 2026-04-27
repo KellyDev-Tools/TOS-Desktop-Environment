@@ -113,10 +113,10 @@
 - [x] 8.3 Implement `[trust]` declaration & Brain trust chip integration (Eco §1.3.5, TrustService)
 - [x] 8.4 Implement `[connection]` transports (http, stdio, mcp) (Eco §1.3.1, CortexRegistry)
 - [x] 8.5 Implement Agent Stacking (hierarchical prompt merging) (Dev §6, BrainAI)
-- [ ] 8.6 Migrate Ollama / Gemini to `.tos-assistant` with legacy shim (Eco §1.15, CortexRegistry)
+- [x] 8.6 Migrate Ollama / Gemini to `.tos-assistant` with legacy shim (Eco §1.15, CortexRegistry)
 - [x] 8.7 Implement GitNexus curator cortex via MCP (Eco §1.3.2, CortexRegistry)
-- [ ] 8.8 Unified Cortex Configuration UI in Settings Modal (Features §4.3, SettingsModal)
-- [ ] 8.9 Verification of Cortex sandboxing — bubblewrap isolation (Arch §17.3, SandboxManager)
+- [x] 8.8 Unified Cortex Configuration UI in Settings Modal (Features §4.3, SettingsModal)
+- [x] 8.9 Verification of Cortex sandboxing — bubblewrap isolation (Arch §17.3, SandboxManager)
 
 ## Deferred to v0.2
 

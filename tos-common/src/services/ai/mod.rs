@@ -694,95 +694,86 @@ impl AiService {
         let backend_id = self.resolve_backend(&state, "chat").to_string();
 
         let (command, explanation) = {
-            let maybe_modules = self.modules.lock().unwrap().clone(); // <-- drop guard immediately
-            if let Some(modules) = maybe_modules {
-                if let Ok(ai_mod) = modules.load_ai(&backend_id) {
-                    // Use all context fields by default for the primary chat behavior
-                    let ctx_fields = vec![
-                        "cwd".to_string(),
-                        "sector_name".to_string(),
-                        "shell".to_string(),
-                        "terminal_tail".to_string(),
-                        "last_command".to_string(),
-                        "mode".to_string(),
-                        "chat_history".to_string(),
-                        "editor_context".to_string(),
-                    ];
-                    let mut context = ctx.filter_to_fields(&ctx_fields);
-                    let mut auth = HashMap::new();
-                    
-                    let system_prompt = Some(self.assemble_stacked_prompt(&state));
+            // Use all context fields by default for the primary chat behavior
+            let ctx_fields = vec![
+                "cwd".to_string(),
+                "sector_name".to_string(),
+                "shell".to_string(),
+                "terminal_tail".to_string(),
+                "last_command".to_string(),
+                "mode".to_string(),
+                "chat_history".to_string(),
+                "editor_context".to_string(),
+            ];
+            let mut context = ctx.filter_to_fields(&ctx_fields);
+            let mut auth = HashMap::new();
+            
+            let system_prompt = Some(self.assemble_stacked_prompt(&state));
 
-                    if let Some(settings_svc) = self.settings.lock().unwrap().as_ref() {
-                        // Inject global keys
-                        if let Some(key) = settings_svc.get_secure("openai_api_key") { auth.insert("api_key".to_string(), key); }
-                        if let Some(key) = settings_svc.get_secure("anthropic_api_key") { auth.insert("api_key".to_string(), key); }
-                        if let Some(key) = settings_svc.get_secure("google_api_key") { auth.insert("api_key".to_string(), key); }
-                        if let Some(key) = settings_svc.get_secure("tos_llm_api_key") { auth.insert("api_key".to_string(), key); }
-                        
-                        // Inject module-specific keys (§1.3.4)
-                        let mod_prefix = format!("{}.", backend_id);
-                        if let Some(key) = settings_svc.get_secure(&format!("{}api_key", mod_prefix)) {
-                            auth.insert("api_key".to_string(), key);
-                        }
+            if let Some(settings_svc) = self.settings.lock().unwrap().as_ref() {
+                // Inject global keys
+                if let Some(key) = settings_svc.get_secure("openai_api_key") { auth.insert("api_key".to_string(), key); }
+                if let Some(key) = settings_svc.get_secure("anthropic_api_key") { auth.insert("api_key".to_string(), key); }
+                if let Some(key) = settings_svc.get_secure("google_api_key") { auth.insert("api_key".to_string(), key); }
+                if let Some(key) = settings_svc.get_secure("tos_llm_api_key") { auth.insert("api_key".to_string(), key); }
+                
+                // Inject module-specific keys (§1.3.4)
+                let mod_prefix = format!("{}.", backend_id);
+                if let Some(key) = settings_svc.get_secure(&format!("{}api_key", mod_prefix)) {
+                    auth.insert("api_key".to_string(), key);
+                }
 
-                        // Aggregate context from active curators (§1.3.2)
-                        let cortex_lock = self.cortex.lock().unwrap();
-                        if let Some(cortex_arc) = cortex_lock.as_ref() {
-                            let cortex = cortex_arc.lock().unwrap();
-                            for curator_id in &state.active_curators {
-                                if let Some(curator) = cortex.get_curator(curator_id) {
-                                    // Inject curator-specific auth if needed
-                                    let mut cur_auth = auth.clone();
-                                    if let Some(key) = settings_svc.get_secure(&format!("{}.api_key", curator_id)) {
-                                        cur_auth.insert("api_key".to_string(), key);
-                                    }
-                                    if let Ok(cur_ctx) = curator.get_context(prompt, &cur_auth) {
-                                        context.extend(cur_ctx);
-                                    }
-                                }
+                // Aggregate context from active curators (§1.3.2)
+                let cortex_lock = self.cortex.lock().unwrap();
+                if let Some(cortex_arc) = cortex_lock.as_ref() {
+                    let cortex = cortex_arc.lock().unwrap();
+                    for curator_id in &state.active_curators {
+                        if let Some(curator) = cortex.get_curator(curator_id) {
+                            // Inject curator-specific auth if needed
+                            let mut cur_auth = auth.clone();
+                            if let Some(key) = settings_svc.get_secure(&format!("{}.api_key", curator_id)) {
+                                cur_auth.insert("api_key".to_string(), key);
+                            }
+                            if let Ok(cur_ctx) = curator.get_context(prompt, &cur_auth) {
+                                context.extend(cur_ctx);
                             }
                         }
                     }
+                }
+            }
 
-                    let req = crate::modules::AiQuery {
-                        prompt: prompt.to_string(),
-                        system_prompt,
-                        context,
-                        stream: false,
-                        auth,
-                    };
-                    match ai_mod.query(req) {
-                        Ok(resp) => {
-                            if let Ok(parsed) =
-                                serde_json::from_str::<serde_json::Value>(&resp.choice.content)
-                            {
-                                let cmd = parsed["command"]
-                                    .as_str()
-                                    .unwrap_or("echo 'Error'")
-                                    .to_string();
-                                let expl = parsed["explanation"]
-                                    .as_str()
-                                    .unwrap_or("No explanation")
-                                    .to_string();
-                                (cmd, expl)
-                            } else {
-                                (
-                                    format!("echo '{}'", resp.choice.content),
-                                    "Raw response from AI module".to_string(),
-                                )
-                            }
-                        }
-                        Err(e) => {
-                            tracing::error!("[AiService] Module query failed: {}. Using fallback.", e);
-                            self.fallback_query(prompt, &ctx).await
-                        }
+            let req = crate::modules::AiQuery {
+                prompt: prompt.to_string(),
+                system_prompt,
+                context,
+                stream: false,
+                auth,
+            };
+            match self.dispatch_query(&backend_id, req).await {
+                Ok(resp) => {
+                    if let Ok(parsed) =
+                        serde_json::from_str::<serde_json::Value>(&resp.choice.content)
+                    {
+                        let cmd = parsed["command"]
+                            .as_str()
+                            .unwrap_or("echo 'Error'")
+                            .to_string();
+                        let expl = parsed["explanation"]
+                            .as_str()
+                            .unwrap_or("No explanation")
+                            .to_string();
+                        (cmd, expl)
+                    } else {
+                        (
+                            format!("echo '{}'", resp.choice.content),
+                            "Raw response from AI module".to_string(),
+                        )
                     }
-                } else {
+                }
+                Err(e) => {
+                    tracing::error!("[AiService] Module query failed: {}. Using fallback.", e);
                     self.fallback_query(prompt, &ctx).await
                 }
-            } else {
-                self.fallback_query(prompt, &ctx).await
             }
         }; // close let (command, explanation) = { ... }
 
@@ -820,50 +811,45 @@ impl AiService {
         let backend_id = self.resolve_backend(&state, "chat").to_string();
         let ctx = build_context(&state);
 
-        let maybe_modules = self.modules.lock().unwrap().clone();
-        if let Some(modules) = maybe_modules {
-            if let Ok(ai_mod) = modules.load_ai(&backend_id) {
-                let prompt = format!(
-                    "PREDICT COMMAND GHOST TEXT: User is typing '{}'. \
-                     CWD: {}. Last Cmd: {}. \
-                     Predict the REST of the command. Return ONLY the predicted suffix string. \
-                     If no confident prediction, return an empty string.",
-                    partial, ctx.cwd, ctx.last_command
-                );
+        let mut auth = HashMap::new();
+        if let Some(settings_svc) = self.settings.lock().unwrap().as_ref() {
+            if let Some(key) = settings_svc.get_secure("openai_api_key") { auth.insert("api_key".to_string(), key); }
+            if let Some(key) = settings_svc.get_secure("anthropic_api_key") { auth.insert("api_key".to_string(), key); }
+            if let Some(key) = settings_svc.get_secure("google_api_key") { auth.insert("api_key".to_string(), key); }
+            if let Some(key) = settings_svc.get_secure("tos_llm_api_key") { auth.insert("api_key".to_string(), key); }
+            
+            let mod_prefix = format!("{}.", backend_id);
+            if let Some(key) = settings_svc.get_secure(&format!("{}api_key", mod_prefix)) {
+                auth.insert("api_key".to_string(), key);
+            }
+        }
 
-                let mut auth = HashMap::new();
-                if let Some(settings_svc) = self.settings.lock().unwrap().as_ref() {
-                    if let Some(key) = settings_svc.get_secure("openai_api_key") { auth.insert("api_key".to_string(), key); }
-                    if let Some(key) = settings_svc.get_secure("anthropic_api_key") { auth.insert("api_key".to_string(), key); }
-                    if let Some(key) = settings_svc.get_secure("google_api_key") { auth.insert("api_key".to_string(), key); }
-                    if let Some(key) = settings_svc.get_secure("tos_llm_api_key") { auth.insert("api_key".to_string(), key); }
-                    
-                    let mod_prefix = format!("{}.", backend_id);
-                    if let Some(key) = settings_svc.get_secure(&format!("{}api_key", mod_prefix)) {
-                        auth.insert("api_key".to_string(), key);
-                    }
-                }
+        let prompt_str = format!(
+            "PREDICT COMMAND GHOST TEXT: User is typing '{}'. \
+             CWD: {}. Last Cmd: {}. \
+             Predict the REST of the command. Return ONLY the predicted suffix string. \
+             If no confident prediction, return an empty string.",
+            partial, ctx.cwd, ctx.last_command
+        );
 
-                let req = crate::modules::AiQuery {
-                    prompt,
-                    system_prompt: None, // Prediction uses internal prompt
-                    context: ctx.filter_to_fields(
-                        &["cwd", "last_command"]
-                            .iter()
-                            .map(|s| s.to_string())
-                            .collect::<Vec<_>>(),
-                    ),
-                    stream: false,
-                    auth,
-                };
+        let req = crate::modules::AiQuery {
+            prompt: prompt_str,
+            system_prompt: None, // Prediction uses internal prompt
+            context: ctx.filter_to_fields(
+                &["cwd", "last_command"]
+                    .iter()
+                    .map(|s| s.to_string())
+                    .collect::<Vec<_>>(),
+            ),
+            stream: false,
+            auth,
+        };
 
-                if let Ok(resp) = ai_mod.query(req) {
-                    let content = resp.choice.content.trim().trim_matches('\"');
-                    if !content.is_empty() && content.len() < 50 && !content.contains('\n') {
-                        let _ = ipc.dispatch(&format!("ai_prediction_received:{}", content));
-                        return Ok(content.to_string());
-                    }
-                }
+        if let Ok(resp) = self.dispatch_query(&backend_id, req).await {
+            let content = resp.choice.content.trim().trim_matches('\"');
+            if !content.is_empty() && content.len() < 50 && !content.contains('\n') {
+                let _ = ipc.dispatch(&format!("ai_prediction_received:{}", content));
+                return Ok(content.to_string());
             }
         }
 
@@ -989,57 +975,52 @@ impl AiService {
             let ctx = build_context(&state);
             let backend_id = self.resolve_backend(&state, "tos-observer").to_string();
 
-            let maybe_modules = self.modules.lock().unwrap().clone();
-            if let Some(modules) = maybe_modules {
-                if let Ok(ai_mod) = modules.load_ai(&backend_id) {
-                    let prompt = format!(
-                        "COMMAND FAILED: '{}' with status {}. Stderr: '{}'. \
-                         Analyze the error and provide a one-line JSON FIX: \
-                         {{\"command\": \"<staged_fix>\", \"explanation\": \"<short_description>\"}}.",
-                        command, status, stderr.unwrap_or("none")
-                    );
+            let prompt_str = format!(
+                "COMMAND FAILED: '{}' with status {}. Stderr: '{}'. \
+                 Analyze the error and provide a one-line JSON FIX: \
+                 {{\"command\": \"<staged_fix>\", \"explanation\": \"<short_description>\"}}.",
+                command, status, stderr.unwrap_or("none")
+            );
 
-                    let mut auth = HashMap::new();
-                    if let Some(settings_svc) = self.settings.lock().unwrap().as_ref() {
-                        if let Some(key) = settings_svc.get_secure("openai_api_key") { auth.insert("api_key".to_string(), key); }
-                        if let Some(key) = settings_svc.get_secure("anthropic_api_key") { auth.insert("api_key".to_string(), key); }
-                        if let Some(key) = settings_svc.get_secure("google_api_key") { auth.insert("api_key".to_string(), key); }
-                        if let Some(key) = settings_svc.get_secure("tos_llm_api_key") { auth.insert("api_key".to_string(), key); }
-                        
-                        let mod_prefix = format!("{}.", backend_id);
-                        if let Some(key) = settings_svc.get_secure(&format!("{}api_key", mod_prefix)) {
-                            auth.insert("api_key".to_string(), key);
-                        }
-                    }
+            let mut auth = HashMap::new();
+            if let Some(settings_svc) = self.settings.lock().unwrap().as_ref() {
+                if let Some(key) = settings_svc.get_secure("openai_api_key") { auth.insert("api_key".to_string(), key); }
+                if let Some(key) = settings_svc.get_secure("anthropic_api_key") { auth.insert("api_key".to_string(), key); }
+                if let Some(key) = settings_svc.get_secure("google_api_key") { auth.insert("api_key".to_string(), key); }
+                if let Some(key) = settings_svc.get_secure("tos_llm_api_key") { auth.insert("api_key".to_string(), key); }
+                
+                let mod_prefix = format!("{}.", backend_id);
+                if let Some(key) = settings_svc.get_secure(&format!("{}api_key", mod_prefix)) {
+                    auth.insert("api_key".to_string(), key);
+                }
+            }
 
-                    let req = crate::modules::AiQuery {
-                        prompt,
-                        system_prompt: None, // Observer uses internal prompt
-                        context: ctx.filter_to_fields(
-                            &["cwd", "terminal_tail", "last_command"]
-                                .iter()
-                                .map(|s| s.to_string())
-                                .collect::<Vec<_>>(),
-                        ),
-                        stream: false,
-                        auth,
-                    };
+            let req = crate::modules::AiQuery {
+                prompt: prompt_str,
+                system_prompt: None, // Observer uses internal prompt
+                context: ctx.filter_to_fields(
+                    &["cwd", "terminal_tail", "last_command"]
+                        .iter()
+                        .map(|s| s.to_string())
+                        .collect::<Vec<_>>(),
+                ),
+                stream: false,
+                auth,
+            };
 
-                    if let Ok(resp) = ai_mod.query(req) {
-                        if let Ok(parsed) =
-                            serde_json::from_str::<serde_json::Value>(&resp.choice.content)
-                        {
-                            let cmd = parsed["command"].as_str().unwrap_or("").to_string();
-                            let expl = parsed["explanation"].as_str().unwrap_or("").to_string();
-                            if !cmd.is_empty() {
-                                let payload = json!({
-                                    "behavior": "tos-observer",
-                                    "command": cmd,
-                                    "explanation": format!("✦ OBSERVER: {}", expl)
-                                });
-                                let _ = ipc.dispatch(&format!("ai_stage_command:{}", payload));
-                            }
-                        }
+            if let Ok(resp) = self.dispatch_query(&backend_id, req).await {
+                if let Ok(parsed) =
+                    serde_json::from_str::<serde_json::Value>(&resp.choice.content)
+                {
+                    let cmd = parsed["command"].as_str().unwrap_or("").to_string();
+                    let expl = parsed["explanation"].as_str().unwrap_or("").to_string();
+                    if !cmd.is_empty() {
+                        let payload = json!({
+                            "behavior": "tos-observer",
+                            "command": cmd,
+                            "explanation": format!("✦ OBSERVER: {}", expl)
+                        });
+                        let _ = ipc.dispatch(&format!("ai_stage_command:{}", payload));
                     }
                 }
             }
@@ -1157,5 +1138,33 @@ impl AiService {
                 )
             }
         }
+    }
+
+    async fn dispatch_query(
+        &self,
+        backend_id: &str,
+        request: crate::modules::AiQuery,
+    ) -> anyhow::Result<crate::modules::AiResponse> {
+        // 1. Try Cortex Registry (Assistants)
+        let maybe_cortex = self.cortex.lock().unwrap().clone();
+        if let Some(cortex_arc) = maybe_cortex {
+            let cortex = cortex_arc.lock().unwrap();
+            if let Some(assistant) = cortex.get_assistant(backend_id) {
+                return assistant.query(request);
+            }
+        }
+
+        // 2. Try Module Manager (Legacy AI Modules)
+        let maybe_modules = self.modules.lock().unwrap().clone();
+        if let Some(modules) = maybe_modules {
+            if let Ok(ai_mod) = modules.load_ai(backend_id) {
+                return ai_mod.query(request);
+            }
+        }
+
+        Err(anyhow::anyhow!(
+            "AI backend '{}' not found in Cortex or ModuleManager",
+            backend_id
+        ))
     }
 }

@@ -72,6 +72,15 @@ export interface TerminalOutputModule {
     supports_reduced_motion: boolean;
 }
 
+export interface ShellModuleMeta {
+    id: string;
+    name: string;
+    version: string;
+    author: string;
+    executable: string;
+    integration: any;
+}
+
 export interface ThemeModule {
     id: string;
     name: string;
@@ -112,8 +121,8 @@ export interface SplitPane {
 }
 
 export type SplitNode =
-    | { kind: 'Leaf'; value: SplitPane }
-    | { kind: 'Container'; orientation: SplitOrientation; children: SplitNode[] };
+    | { Leaf: SplitPane }
+    | { Container: { orientation: SplitOrientation; children: SplitNode[] } };
 
 export interface TosSettings {
     global: Record<string, string>;
@@ -137,6 +146,8 @@ export interface TosState {
     brain_time: string;
     active_terminal_module: string;
     available_modules: TerminalOutputModule[];
+    active_shell_module: string;
+    available_shell_modules: ShellModuleMeta[];
     active_ai_module: string;
     available_ai_modules: AiModuleMetadata[];
     ai_behaviors: AiBehavior[];
@@ -146,6 +157,9 @@ export interface TosState {
     available_themes: ThemeModule[];
     device_profile: FaceProfile;
     ai_offline_queue: any[];
+    active_agents: any[];
+    active_agent_stack: string[];
+    active_curators: string[];
     version: number;
 }
 
@@ -203,6 +217,8 @@ export function getDefaultState(): TosState {
         },
         available_modules: [],
         active_terminal_module: 'tos-standard-rect',
+        available_shell_modules: [],
+        active_shell_module: 'tos-shell-fish',
         available_themes: [],
         active_theme: 'tos-classic-lcars',
         available_ai_modules: [],
@@ -212,6 +228,9 @@ export function getDefaultState(): TosState {
         ai_default_backend: 'tos-ai-standard',
         device_profile: 'desktop',
         ai_offline_queue: [],
+        active_agents: [],
+        active_agent_stack: [],
+        active_curators: [],
         version: 0
     };
 }

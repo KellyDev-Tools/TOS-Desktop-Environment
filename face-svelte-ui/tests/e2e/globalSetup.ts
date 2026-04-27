@@ -39,10 +39,10 @@ export default async function globalSetup() {
         for (const daemon of daemons) {
             const bin = path.join(rootDir, 'target/debug', daemon);
             if (fs.existsSync(bin)) {
-                const logStream = fs.createWriteStream(path.join(logsDir, `${daemon}.log`));
+                const logFd = fs.openSync(path.join(logsDir, `${daemon}.log`), 'a');
                 const proc = spawn(bin, [], { 
                     cwd: rootDir, 
-                    stdio: ['ignore', logStream, logStream],
+                    stdio: ['ignore', logFd, logFd],
                     detached: true 
                 });
                 proc.unref();
@@ -80,7 +80,7 @@ export default async function globalSetup() {
         const brainProcess = spawn(binPath, ['--headless'], {
             cwd: rootDir,
             stdio: ['ignore', 'pipe', 'pipe'],
-            env: { ...process.env, TOS_ANCHOR_PORT: '7001' } // Force fixed port for tests
+            env: process.env
         });
 
         if (brainProcess.pid) {

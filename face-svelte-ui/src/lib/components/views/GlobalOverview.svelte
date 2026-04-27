@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { fade, scale } from 'svelte/transition';
 	import { getTosState } from '$lib/stores/ipc.svelte';
 	import { setCurrentMode, type ViewMode } from '$lib/stores/ui.svelte';
 	import * as ipc from '$lib/stores/ipc.svelte';
@@ -36,8 +37,9 @@
 	}
 
 	async function handleSectorClick(index: number) {
-		await ipc.switchSector(index);
+		console.log(`[GlobalOverview] Sector ${index} clicked`);
 		setCurrentMode('hubs');
+		await ipc.switchSector(index);
 	}
 
 	async function handleSystemReset() {
@@ -107,7 +109,7 @@
 					<div aria-roledescription="chip" class="priority-chip">PRIORITY {sector.priority}</div>
 				{/if}
 				<div class="sector-thumbnail">
-					{#if sector.hubs[0]?.activity_listing?.processes?.length}
+					{#if sector.hubs && sector.hubs[0]?.activity_listing?.processes?.length}
 						<div class="app-matrix">
 							{#each sector.hubs[0].activity_listing.processes.slice(0, 4) as app}
 								<div class="matrix-item app-item">
@@ -126,13 +128,22 @@
 							{/each}
 						</div>
 					{:else}
-						<div class="no-feed">NO ACTIVE FEED</div>
+						<div class="stat-group-container">
+							<div class="stat-group" in:fade={{ delay: 200 + i * 50 }}>
+								<span class="stat-label">TYPE</span>
+								<span class="stat-value">{sector.name === 'CORE' ? 'SYSTEM' : 'ISOLATED'}</span>
+							</div>
+							<div class="stat-group" in:fade={{ delay: 300 + i * 50 }}>
+								<span class="stat-label">STATUS</span>
+								<span class="stat-value status-online">ACTIVE</span>
+							</div>
+						</div>
 					{/if}
 				</div>
 				<div class="sector-id">S0{i}</div>
 				<div class="sector-name">{sector.name.toUpperCase()}</div>
-				<div class="sector-meta">TYPE: {(sector.type || 'STANDARD').toUpperCase()}</div>
-				<div class="sector-meta">STATUS: {(sector.status || 'ACTIVE').toUpperCase()}</div>
+				<div class="sector-meta">TYPE: {(sector.name === 'CORE' ? 'SYSTEM' : 'ISOLATED')}</div>
+				<div class="sector-meta">STATUS: ACTIVE</div>
 			</button>
 		{/each}
 	</div>
@@ -347,11 +358,33 @@
 		border: 1px solid var(--color-border);
 	}
 
-	.no-feed {
+	.stat-group-container {
+		display: flex;
+		flex-direction: column;
+		gap: 8px;
+	}
+
+	.stat-group {
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+	}
+
+	.stat-label {
 		font-size: 0.6rem;
-		font-family: var(--font-display);
-		letter-spacing: 0.1em;
 		color: var(--color-text-muted);
+		font-family: var(--font-mono);
+	}
+
+	.stat-value {
+		font-size: 0.8rem;
+		color: var(--color-text);
+		font-family: var(--font-display);
+		font-weight: 700;
+	}
+
+	.status-online {
+		color: var(--color-success);
 	}
 
 	.app-matrix {
@@ -571,5 +604,15 @@
 	.lcars-btn:hover:not(:disabled) {
 		filter: brightness(1.2);
 		box-shadow: 0 0 15px currentColor;
+	}
+
+	@keyframes blink {
+		0%, 100% { opacity: 1; }
+		50% { opacity: 0.3; }
+	}
+
+	@keyframes scaleIn {
+		from { opacity: 0; transform: scale(0.95); }
+		to { opacity: 1; transform: scale(1); }
 	}
 </style>

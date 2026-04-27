@@ -449,5 +449,6 @@ filter: brightness(1.2);
 }
 
 .tos-simplified-mode .clutter-reduction {
-	display: none !important;
+	/* display: none !important; */
+	opacity: 0.5;
 }

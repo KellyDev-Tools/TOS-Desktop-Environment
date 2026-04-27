@@ -27,7 +27,7 @@ impl ModuleManager {
                 id: "ollama".to_string(),
                 name: "Ollama Local (Shim)".to_string(),
                 version: "0.1.0".to_string(),
-                module_type: "ai".to_string(),
+                module_type: "assistant".to_string(),
                 author: "TOS Core".to_string(),
                 description: Some("Legacy shim for local Ollama instance".to_string()),
                 icon: None,
@@ -64,7 +64,7 @@ impl ModuleManager {
                 id: "gemini".to_string(),
                 name: "Google Gemini (Shim)".to_string(),
                 version: "0.1.0".to_string(),
-                module_type: "ai".to_string(),
+                module_type: "assistant".to_string(),
                 author: "TOS Core".to_string(),
                 description: Some("Legacy shim for Google Gemini API".to_string()),
                 icon: None,
@@ -179,7 +179,7 @@ impl ModuleManager {
         });
 
         Ok(Box::new(GenericAiModule {
-            id: manifest.id.clone(),
+            _id: manifest.id.clone(),
             path,
             name: manifest.name.clone(),
             capabilities: caps,
@@ -189,7 +189,7 @@ impl ModuleManager {
                 .unwrap_or_else(|| "module".to_string()),
             endpoint: manifest.endpoint.clone(),
             connection: manifest.connection.clone(),
-            latency_profile: manifest
+            _latency_profile: manifest
                 .latency_profile
                 .clone()
                 .unwrap_or_else(|| "medium".to_string()),
@@ -284,14 +284,14 @@ impl crate::modules::AssistantModule for GenericAssistantModule {
         });
 
         let ai_mod = GenericAiModule {
-            id: self.id.clone(),
+            _id: self.id.clone(),
             path,
             name: self.name.clone(),
             capabilities: self.manifest.capabilities.clone().unwrap_or_default(),
             provider,
             endpoint,
             connection: self.manifest.connection.clone(),
-            latency_profile: "medium".to_string(),
+            _latency_profile: "medium".to_string(),
         };
         ai_mod.query(request)
     }
@@ -419,14 +419,14 @@ impl ShellModule for GenericShellModule {
 }
 
 struct GenericAiModule {
-    id: String,
+    _id: String,
     path: Option<PathBuf>,
     name: String,
     capabilities: Vec<String>,
     provider: String,
     endpoint: Option<String>,
     connection: Option<crate::services::marketplace::ConnectionConfig>,
-    latency_profile: String,
+    _latency_profile: String,
 }
 
 impl AiModule for GenericAiModule {
@@ -763,18 +763,18 @@ mod tests {
         // Check Ollama shim
         let ollama = manager.get_manifest("ollama").expect("Ollama shim should exist");
         assert_eq!(ollama.provider.as_deref(), Some("ollama"));
-        assert_eq!(ollama.module_type, "ai");
+        assert_eq!(ollama.module_type, "assistant");
 
         // Check Gemini shim
         let gemini = manager.get_manifest("gemini").expect("Gemini shim should exist");
         assert_eq!(gemini.provider.as_deref(), Some("google"));
-        assert_eq!(gemini.module_type, "ai");
+        assert_eq!(gemini.module_type, "assistant");
     }
 
     #[test]
-    fn test_load_ai_shim() {
+    fn test_load_assistant_shim() {
         let manager = ModuleManager::new(PathBuf::from("/tmp/tos-test-modules"));
-        let ai = manager.load_ai("ollama").expect("Should load ollama shim as AiModule");
-        assert_eq!(ai.name(), "Ollama Local (Shim)");
+        let assistant = manager.load_assistant("ollama").expect("Should load ollama shim as AssistantModule");
+        assert_eq!(assistant.name(), "Ollama Local (Shim)");
     }
 }

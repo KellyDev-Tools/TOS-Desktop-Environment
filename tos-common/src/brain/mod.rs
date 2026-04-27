@@ -52,6 +52,7 @@ impl Brain {
         services.ai.set_cortex_registry(cortex.clone());
         services.lsp.set_module_manager(modules.clone());
         services.bezel.set_module_manager(modules.clone());
+        services.audio.set_module_manager(modules.clone());
 
         let shell_obj = ShellApi::new(
             state.clone(),

@@ -99,6 +99,7 @@
 - [x] 5.14 OpenXR / Quest renderer — Implemented `QuestRenderer` with spatial Cockpit layers and `RendererManager` integration (§15.3, §15.7).
 - [x] 5.15 Language modules — Implemented `.tos-language` manifest support and dynamic LSP discovery in `LspService` (§1.12).
 - [x] 5.16 Bezel component modules — Implemented `BezelModule` trait, dynamic loading, and `BezelService` integration (§1.10).
+- [x] 5.17 Audio modules — Implemented `.tos-audio` manifest support and dynamic asset loading in `AudioService` (§1.9).
 
 ## Stage 6 — Collaboration, Remote & Release
 - [x] 6.1 TLS handshake in Remote Server protocol — Migrated `remote_server.rs` to `rustls` with dynamic self-signed certificate generation using `rcgen`.
@@ -122,20 +123,3 @@
 - [x] 8.7 Implement GitNexus curator cortex via MCP (Eco §1.3.2, CortexRegistry)
 - [x] 8.8 Unified Cortex Configuration UI in Settings Modal (Features §4.3, SettingsModal)
 - [x] 8.9 Verification of Cortex sandboxing — bubblewrap isolation (Arch §17.3, SandboxManager)
-
-## Deferred to v0.2
-
-> The following items are marked ❌ in the Part 1 audit of `TOS_v0.1_Roadmap.md` but are
-> explicitly deferred beyond v0.1 scope due to hardware requirements, external dependencies,
-> or policy decisions.
-
-| Item | Spec Ref | Reason |
-|---|---|---|
-| Voice confirmation for WARN commands | §17.2.7 | Depends on voice pipeline maturity |
-| Language modules (`.tos-language`) | Ecosystem §1.12 | ✅ | Implemented `LanguageModule` manifest and dynamic `LspService` discovery |
-| Audio modules (`.tos-audio`) | Eco §1.11 | Built-in earcon set sufficient for v0.1 |
-| Bezel dynamic loading from disk | Eco §1.10 | Hardcoded Svelte components sufficient for v0.1 |
-| Per-surface timeline (Level 4) | §19.1 | LogView covers basic needs |
-| OpenSearch compatibility | §19.3 | External dependency, not core |
-| Privacy controls (log opt-out) | §19.4 | Policy decision pending |
-| Spatial audio (VR/AR) | §23.3 | Requires OpenXR runtime |

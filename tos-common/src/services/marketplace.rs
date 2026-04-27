@@ -51,6 +51,9 @@ pub struct ModuleManifest {
     // §1.10: Bezel Specifics
     pub bezel: Option<BezelConfig>,
 
+    // §1.9: Audio Specifics
+    pub audio: Option<AudioConfig>,
+
     // The Ed25519 cryptographic signature of the manifest contents
     pub signature: Option<String>,
 }
@@ -111,6 +114,13 @@ pub struct LspConfig {
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub struct BezelConfig {
     pub preferred_slot: String, // "top", "left", "right"
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+pub struct AudioConfig {
+    pub earcons: String, // Path to earcons.json
+    pub ambient: String, // Path to ambient.json
+    pub clicks: String,  // Path to clicks.json
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
@@ -428,6 +438,7 @@ mod tests {
             treesitter_grammar: None,
             lsp: None,
             bezel: None,
+            audio: None,
             signature: None,
         };
 

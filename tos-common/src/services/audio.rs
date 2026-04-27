@@ -3,6 +3,7 @@ use rodio::{OutputStream, Sink};
 use std::thread;
 use std::time::Duration;
 use std::sync::mpsc::{Sender, channel};
+use std::sync::{Arc, Mutex};
 
 #[derive(Debug, Clone, Copy)]
 pub enum AudioLayer {
@@ -17,10 +18,12 @@ enum AudioCommand {
     StopAmbient,
     PlayVoice(String),   // Placeholder for TTS
     SetVolume(AudioLayer, f32),
+    LoadModule(String),
 }
 
 pub struct AudioService {
     sender: Sender<AudioCommand>,
+    module_manager: Arc<Mutex<Option<Arc<crate::brain::module_manager::ModuleManager>>>>,
 }
 
 impl AudioService {
@@ -50,21 +53,76 @@ impl AudioService {
             if let Some(ref s) = ambient_sink { s.set_volume(0.05); }
             if let Some(ref s) = voice_sink { s.set_volume(0.3); }
 
+            let mut earcon_assets: std::collections::HashMap<String, Vec<u8>> = std::collections::HashMap::new();
+            let mut ambient_assets: std::collections::HashMap<String, Vec<u8>> = std::collections::HashMap::new();
+
             while let Ok(cmd) = rx.recv() {
                 match cmd {
+                    AudioCommand::LoadModule(manifest_json) => {
+                        if let Ok(manifest) = serde_json::from_str::<crate::services::marketplace::ModuleManifest>(&manifest_json) {
+                            if let Some(audio) = manifest.audio {
+                                // In a real implementation, we would load these from the module directory
+                                // For v0.1, we'll look in ~/.config/tos/modules/audio/<id>/assets/
+                                let mut base = dirs::home_dir().unwrap_or_default();
+                                base.push(".config/tos/modules/audio");
+                                base.push(&manifest.id);
+                                base.push("assets");
+
+                                // Load earcons mapping
+                                let e_path = base.join("earcons.json");
+                                if let Ok(content) = std::fs::read_to_string(e_path) {
+                                    if let Ok(map) = serde_json::from_str::<std::collections::HashMap<String, String>>(&content) {
+                                        for (name, file) in map {
+                                            if let Ok(bytes) = std::fs::read(base.join(file)) {
+                                                earcon_assets.insert(name, bytes);
+                                            }
+                                        }
+                                    }
+                                }
+                                
+                                // Load ambient mapping
+                                let a_path = base.join("ambient.json");
+                                if let Ok(content) = std::fs::read_to_string(a_path) {
+                                    if let Ok(map) = serde_json::from_str::<std::collections::HashMap<String, String>>(&content) {
+                                        for (name, file) in map {
+                                            if let Ok(bytes) = std::fs::read(base.join(file)) {
+                                                ambient_assets.insert(name, bytes);
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
                     AudioCommand::PlayEarcon(name) => {
                         if let Some(ref sink) = tactical_sink {
+                            if let Some(bytes) = earcon_assets.get(&name) {
+                                let cursor = std::io::Cursor::new(bytes.clone());
+                                if let Ok(source) = rodio::Decoder::new(cursor) {
+                                    sink.append(source);
+                                    continue;
+                                }
+                            }
+                            
                             let (freq, dur) = Self::get_earcon_params(&name);
                             let source = SineWave::new(freq)
                                 .take_duration(Duration::from_millis(dur))
-                                .amplify(1.0); // Volume controlled by sink
+                                .amplify(1.0);
                             sink.append(source);
                         }
                     }
                     AudioCommand::PlayAmbient(name) => {
                         if let Some(ref sink) = ambient_sink {
-                            sink.stop(); // Stop current ambient
-                            // For now, synthetic "hum"
+                            sink.stop();
+                            
+                            if let Some(bytes) = ambient_assets.get(&name) {
+                                let cursor = std::io::Cursor::new(bytes.clone());
+                                if let Ok(source) = rodio::Decoder::new(cursor) {
+                                    sink.append(source.repeat_infinite());
+                                    continue;
+                                }
+                            }
+
                             let freq = if name == "low_power" { 60.0 } else { 120.0 };
                             let source = SineWave::new(freq)
                                 .amplify(0.5)
@@ -79,7 +137,6 @@ impl AudioService {
                     }
                     AudioCommand::PlayVoice(_text) => {
                         if let Some(ref sink) = voice_sink {
-                            // Placeholder: play a "voice-like" chirping for now
                             let source = SineWave::new(880.0)
                                 .take_duration(Duration::from_millis(100))
                                 .amplify(1.0);
@@ -103,7 +160,28 @@ impl AudioService {
         // Give the thread a moment to report back
         let init_warning = warn_rx.recv_timeout(Duration::from_millis(100)).ok();
 
-        (Self { sender: tx }, init_warning)
+        (Self { 
+            sender: tx,
+            module_manager: Arc::new(Mutex::new(None)),
+        }, init_warning)
+    }
+
+    pub fn set_module_manager(&self, mm: Arc<crate::brain::module_manager::ModuleManager>) {
+        *self.module_manager.lock().unwrap() = Some(mm);
+    }
+
+    pub fn load_audio_module(&self, id: &str) -> anyhow::Result<()> {
+        let mm_lock = self.module_manager.lock().unwrap();
+        let mm = mm_lock.as_ref().ok_or_else(|| anyhow::anyhow!("ModuleManager not set"))?;
+        let manifest = mm.get_manifest(id).ok_or_else(|| anyhow::anyhow!("Module not found"))?;
+        
+        if manifest.module_type != "audio" {
+            return Err(anyhow::anyhow!("Module is not an audio bundle"));
+        }
+
+        let json = serde_json::to_string(manifest)?;
+        let _ = self.sender.send(AudioCommand::LoadModule(json));
+        Ok(())
     }
 
     fn get_earcon_params(name: &str) -> (f32, u64) {

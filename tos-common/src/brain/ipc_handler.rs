@@ -215,6 +215,7 @@ impl IpcHandler {
             "audio_volume_set" => {
                 self.handle_audio_volume_set(args.first().copied(), args.get(1).copied())
             }
+            "audio_load_module" => self.handle_audio_load_module(args.first().copied()),
             "audio_voice_play" => self.handle_audio_voice_play(Some(payload)),
             "bezel_expand" => self.handle_bezel_expand(),
             "bezel_collapse" => self.handle_bezel_collapse(),
@@ -3823,6 +3824,17 @@ impl IpcHandler {
             }
         }
         "ERROR: Invalid task_delete payload or task/lane not found".to_string()
+    }
+
+    fn handle_audio_load_module(&self, id: Option<&str>) -> String {
+        let id = match id {
+            Some(i) => i,
+            None => return "ERROR: Missing module ID".to_string(),
+        };
+        match self.services.audio.load_audio_module(id) {
+            Ok(_) => "AUDIO_MODULE_LOADED".to_string(),
+            Err(e) => format!("ERROR: {}", e),
+        }
     }
 
     fn handle_bezel_activate(&self, id: Option<&str>) -> String {

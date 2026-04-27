@@ -410,6 +410,7 @@ mod tests {
             treesitter_grammar: None,
             lsp: None,
             bezel: None,
+            audio: None,
             signature: None,
         };
 

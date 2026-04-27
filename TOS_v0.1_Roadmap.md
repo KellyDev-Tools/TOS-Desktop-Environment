@@ -79,7 +79,7 @@
 | Agent modules (`.tos-agent`) | Ecosystem §1.3.3 | ✅ | Stacking logic and manifest loading implemented |
 | Bezel component modules (`.tos-bezel`) | Ecosystem §1.10 | ✅ | Implemented `BezelModule` trait, dynamic loading, and IPC management |
 | Language modules (`.tos-language`) | Ecosystem §1.12 | ✅ | Implemented `LanguageModule` manifest and dynamic `LspService` discovery |
-| Audio modules (`.tos-audio`) | Ecosystem §1.9 | ❌ | No audio module loading |
+| Audio modules (`.tos-audio`) | Ecosystem §1.9 | ✅ | Implemented `AudioConfig` and dynamic asset loading in `AudioService` |
 | Tool bundle enforcement | Ecosystem §1.3.4 | ✅ | `AiService::validate_tool_call()` checks manifest `[trust]` block via `ModuleManager` |
 
 ### 1.10–1.14 Daemons, Marketplace, Editor, Session, Onboarding — ✅ [Archived](./docs/archive/TOS_Beta-0_Roadmap_Archive.md#part-1-—-completed-audit-sections)

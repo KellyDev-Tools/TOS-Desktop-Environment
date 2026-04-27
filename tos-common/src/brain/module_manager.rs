@@ -58,6 +58,7 @@ impl ModuleManager {
                 treesitter_grammar: None,
                 lsp: None,
                 bezel: None,
+                audio: None,
                 signature: None,
             });
         }
@@ -99,6 +100,7 @@ impl ModuleManager {
                 treesitter_grammar: None,
                 lsp: None,
                 bezel: None,
+                audio: None,
                 signature: None,
             });
         }
@@ -286,6 +288,13 @@ impl ModuleManager {
             id: manifest.id.clone(),
             name: manifest.name.clone(),
         }))
+    }
+
+    pub fn list_audio_modules(&self) -> Vec<&ModuleManifest> {
+        self.modules
+            .values()
+            .filter(|m| m.module_type == "audio")
+            .collect()
     }
 }
 

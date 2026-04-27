@@ -106,7 +106,7 @@
 - [x] 6.7 HSM key provisioning for release signing — Implemented `tos-signer` utility with PKCS#11/HSM support (§6.7).
 - [x] 6.8 Generate signed release assets — Integrated `tos-signer` into build pipeline and release scripts (§6.8).
 - [ ] 6.9 E2E Playwright tests for Svelte UI — Comprehensive regression suite for core UI flows.
-- [ ] 6.10 Crash reporting infrastructure (opt-in) — Automated crash dump collection via `tos-loggerd`.
+- [x] 6.10 Crash reporting infrastructure (opt-in) — Automated crash dump collection via tos-loggerd. Implemented crash IPC, logger service support, and loggerd sink.
 
 ## Stage 8 — Cortex Orchestration & Ecosystem Hardening
 - [x] 8.1 Implement Brain cortex registry for `.tos-assistant`, `.tos-curator`, and `.tos-agent` (Eco §1.3, ModuleManager)

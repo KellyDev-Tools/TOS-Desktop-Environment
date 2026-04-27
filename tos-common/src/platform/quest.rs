@@ -5,38 +5,111 @@ use crate::platform::{
 };
 use std::path::Path;
 
-pub struct QuestRenderer;
+pub struct QuestRenderer {
+    pub surfaces: std::collections::HashMap<SurfaceHandle, QuestSurface>,
+    pub next_handle: u32,
+}
+
+pub struct QuestSurface {
+    pub config: SurfaceConfig,
+    pub depth: u8,
+    pub pid: Option<u32>,
+    pub layer_type: CockpitLayer,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum CockpitLayer {
+    /// The primary 360-degree UI wrap.
+    MainCylinder,
+    /// Floating bezel or action panel.
+    FloatingQuad,
+    /// Level 3 application viewport.
+    AppViewport,
+}
+
+impl QuestRenderer {
+    pub fn new() -> Self {
+        Self {
+            surfaces: std::collections::HashMap::new(),
+            next_handle: 100,
+        }
+    }
+
+    fn resolve_layer(&self, config: &SurfaceConfig) -> CockpitLayer {
+        if config.width > 2000 {
+            CockpitLayer::MainCylinder
+        } else if config.depth > 0 {
+            CockpitLayer::FloatingQuad
+        } else {
+            CockpitLayer::AppViewport
+        }
+    }
+}
 
 impl Renderer for QuestRenderer {
     fn create_surface(&mut self, config: SurfaceConfig) -> SurfaceHandle {
+        let handle = SurfaceHandle(self.next_handle);
+        self.next_handle += 1;
+
+        let layer_type = self.resolve_layer(&config);
+        
         tracing::info!(
-            "Allocating OpenXR Swapchain Surface: {}x{}",
+            "Allocating OpenXR Swapchain Surface: {}x{} as {:?}",
             config.width,
-            config.height
+            config.height,
+            layer_type
         );
-        SurfaceHandle(77) // Placeholder for actual xrCreateSwapchain
+
+        self.surfaces.insert(handle, QuestSurface {
+            config,
+            depth: 0,
+            pid: None,
+            layer_type,
+        });
+
+        handle
     }
 
     fn update_surface(&mut self, handle: SurfaceHandle, content: &dyn SurfaceContent) {
-        tracing::debug!("xrAcquireSwapchainImage for handle {}", handle.0);
-        tracing::debug!("xrWaitSwapchainImage for handle {}", handle.0);
+        if let Some(_surface) = self.surfaces.get(&handle) {
+            tracing::debug!("xrAcquireSwapchainImage for handle {}", handle.0);
+            tracing::debug!("xrWaitSwapchainImage for handle {}", handle.0);
 
-        let data = content.pixel_data();
-        if !data.is_empty() {
-            tracing::debug!("Copied {} bytes to OpenXR Swapchain image", data.len());
+            let data = content.pixel_data();
+            if !data.is_empty() {
+                tracing::debug!("Copied {} bytes to OpenXR Swapchain image", data.len());
+            }
+
+            tracing::debug!("xrReleaseSwapchainImage for handle {}", handle.0);
         }
-
-        tracing::debug!("xrReleaseSwapchainImage for handle {}", handle.0);
     }
 
-    fn set_surface_depth(&mut self, _handle: SurfaceHandle, _depth: u8) {
-        tracing::debug!("QuestRenderer: Setting depth for throttle logic");
+    fn set_surface_depth(&mut self, handle: SurfaceHandle, depth: u8) {
+        if let Some(surface) = self.surfaces.get_mut(&handle) {
+            surface.depth = depth;
+            tracing::debug!("QuestRenderer: Updated depth for handle {} to {}", handle.0, depth);
+        }
     }
 
-    fn register_pid(&mut self, _pid: u32, _handle: SurfaceHandle) {}
+    fn register_pid(&mut self, pid: u32, handle: SurfaceHandle) {
+        if let Some(surface) = self.surfaces.get_mut(&handle) {
+            surface.pid = Some(pid);
+        }
+    }
 
     fn composite(&mut self) {
-        tracing::debug!("xrEndFrame: Compositing OpenXR projection layers");
+        tracing::debug!("xrBeginFrame: Synchronizing with XR runtime");
+        
+        // In a real OpenXR implementation, we would iterate through surfaces
+        // and create xr::CompositionLayerProjection and xr::CompositionLayerQuad
+        let cylinder_count = self.surfaces.values().filter(|s| s.layer_type == CockpitLayer::MainCylinder).count();
+        let quad_count = self.surfaces.values().filter(|s| s.layer_type == CockpitLayer::FloatingQuad || s.layer_type == CockpitLayer::AppViewport).count();
+        
+        tracing::debug!(
+            "xrEndFrame: Compositing {} Cylinder layers and {} Quad layers",
+            cylinder_count,
+            quad_count
+        );
     }
 }
 

@@ -5,6 +5,7 @@ use std::env;
 pub enum RendererMode {
     Headless,
     Remote,
+    Quest,
 }
 
 pub struct RendererManager;
@@ -12,10 +13,18 @@ pub struct RendererManager;
 impl RendererManager {
     /// Detect the appropriate renderer mode for the current environment.
     pub fn detect() -> RendererMode {
-        // Default to headless for the daemon; remote if needed for streaming.
+        // 1. Explicit overrides
+        if env::var("TOS_HEADLESS").is_ok() {
+            return RendererMode::Headless;
+        }
+        if env::var("TOS_XR").is_ok() {
+            return RendererMode::Quest;
+        }
         if env::var("TOS_REMOTE").is_ok() {
             return RendererMode::Remote;
         }
+
+        // 2. Default to headless for the daemon.
         RendererMode::Headless
     }
 
@@ -24,6 +33,7 @@ impl RendererManager {
         match mode {
             RendererMode::Headless => Ok(Box::new(HeadlessRenderer::new())),
             RendererMode::Remote => Ok(Box::new(RemoteRenderer)),
+            RendererMode::Quest => Ok(Box::new(crate::platform::quest::QuestRenderer::new())),
         }
     }
 }

@@ -9,7 +9,7 @@ pub struct SurfaceConfig {
     pub depth: u8,
 }
 
-#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, Eq, Hash, PartialEq)]
 pub struct SurfaceHandle(pub u32);
 
 /// Result of a frame capture operation.

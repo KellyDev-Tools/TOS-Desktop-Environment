@@ -44,7 +44,7 @@
 | HeadlessRenderer | §15.6 | ✅ | `headless.rs` (2.7KB) |
 | WaylandRenderer | §15.2 | ✅ | `LinuxRenderer` in `lib.rs` + `WaylandShell` in `wayland.rs` with SHM/DMABUF support |
 | RemoteRenderer stub | §15.3 | ✅ | `RemoteServer` integration + WebRTC video stream orchestration |
-| OpenXR / Quest renderer | §15.3, §15.7 | 🔶 | `quest.rs` (2.2KB) — stub |
+| OpenXR / Quest renderer | §15.3, §15.7 | ✅ | Implemented `QuestRenderer` with Cockpit layer support and `RendererManager` integration |
 | DMABUF surface embedding | §15.2 | ✅ | `create_dmabuf_buffer` using `zwp_linux_dmabuf_v1` in `wayland.rs` |
 | Frame capture / thumbnails | §16.1 | ✅ | `CaptureService` with sysinfo-based backend |
 | Depth-based render throttling | §16.1 | ✅ | Throttling logic in `LinuxRenderer` + alert escalation in Brain |

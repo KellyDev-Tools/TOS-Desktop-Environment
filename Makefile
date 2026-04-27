@@ -22,7 +22,8 @@ TOS_FACE_PORT ?= 8080
         run run-web run-web-dev dev-web clean \
         android-check android-build android-release android-install android-run clean-android android-test \
         android-flutter-generate android-flutter-build android-flutter-install android-flutter-run \
-        pack-face-electron-win pack-face-electron-linux pack-face-electron-mac
+        pack-face-electron-win pack-face-electron-linux pack-face-electron-mac \
+        install uninstall package-deb package-rpm package-arch package-all
 
 # -----------------------------------------------------------------------------
 # 0. INFRASTRUCTURE & HOOKS
@@ -98,6 +99,14 @@ help:
 	@echo "  make pack-face-electron-win   Bundle Electron Face for Windows (.exe)"
 	@echo "  make pack-face-electron-linux Bundle Electron Face for Linux (.AppImage)"
 	@echo "  make pack-face-electron-mac   Bundle Electron Face for macOS (.dmg)"
+	@echo ""
+	@echo "\033[1;33mSystem Installation & Packaging:\033[0m"
+	@echo "  make install         Install TOS to the system (Default PREFIX=/usr/local)"
+	@echo "  make uninstall       Remove TOS from the system"
+	@echo "  make package-all     Build all distribution packages (deb, rpm, arch)"
+	@echo "  make package-deb     Build Debian/Ubuntu (.deb) package"
+	@echo "  make package-rpm     Build Fedora/RHEL (.rpm) package"
+	@echo "  make package-arch    Build Arch Linux (PKGBUILD) package"
 	@echo ""
 	@echo "\033[1;33mMaintenance:\033[0m"
 	@echo "  make clean           Purge build artifacts and logs"
@@ -486,3 +495,94 @@ release-sign:
 	@echo "[TOS] tos-signer built at: target/release/tos-signer"
 	@echo "[TOS] To provision a key:  TOS_HSM_MODULE=/usr/lib/softhsm/libsofthsm2.so ./target/release/tos-signer provision --slot 0 --pin <pin> --label tos-release"
 	@echo "[TOS] To sign an artifact: TOS_HSM_MODULE=/usr/lib/softhsm/libsofthsm2.so ./target/release/tos-signer sign --slot 0 --pin <pin> --label tos-release <file>"
+
+# -----------------------------------------------------------------------------
+# 8. SYSTEM INSTALLATION & PACKAGING
+# -----------------------------------------------------------------------------
+
+PREFIX ?= /usr/local
+BINDIR := $(PREFIX)/bin
+DATADIR := $(PREFIX)/share
+SYSCONFDIR := /etc/tos
+LOGDIR := /var/log/tos
+XSESSIONSDIR := $(DATADIR)/xsessions
+WAYLANDSESSIONSDIR := $(DATADIR)/wayland-sessions
+APPSDIR := $(DATADIR)/applications
+
+build-release:
+	@echo "[TOS] Building all components in Release Mode..."
+	cargo build --release -p tos-common -p brain -p face-wayland-linux -p tos-settingsd -p tos-loggerd -p tos-marketplaced -p tos-priorityd -p tos-sessiond -p tos-heuristicd -p tos-searchd
+
+install: build-release
+	@echo "[TOS] Installing System Components to $(PREFIX)..."
+	@sudo mkdir -p "$(BINDIR)" "$(XSESSIONSDIR)" "$(WAYLANDSESSIONSDIR)" "$(APPSDIR)" "$(SYSCONFDIR)" "$(LOGDIR)"
+	@sudo mkdir -p "$(DATADIR)/tos" "$(DATADIR)/pixmaps"
+	
+	@# Install Binaries
+	@sudo cp target/release/tos-brain "$(BINDIR)/"
+	@sudo cp packaging/tos-session "$(BINDIR)/"
+	@sudo cp target/release/face-wayland-linux "$(BINDIR)/tos-wayland-face"
+	@for daemon in tos-settingsd tos-marketplaced tos-sessiond tos-loggerd tos-searchd tos-heuristicd tos-priorityd; do \
+		if [ -f "target/release/$$daemon" ]; then \
+			if [ "$$daemon" = "tos-searchd" ]; then \
+				sudo cp "target/release/$$daemon" "$(BINDIR)/searchd"; \
+			else \
+				sudo cp "target/release/$$daemon" "$(BINDIR)/"; \
+			fi; \
+		fi; \
+	done
+	@sudo chmod 755 "$(BINDIR)/tos-brain" "$(BINDIR)/tos-session" "$(BINDIR)/tos-wayland-face"
+	
+	@# Install Desktop Files
+	@if [ -f packaging/tos.desktop ]; then \
+		sudo cp packaging/tos.desktop "$(XSESSIONSDIR)/"; \
+		sudo cp packaging/tos.desktop "$(WAYLANDSESSIONSDIR)/"; \
+		sudo cp packaging/tos.desktop "$(APPSDIR)/"; \
+		sudo chmod 644 "$(XSESSIONSDIR)/tos.desktop" "$(WAYLANDSESSIONSDIR)/tos.desktop" "$(APPSDIR)/tos.desktop"; \
+	fi
+	
+	@# Install Icons
+	@if [ -f assets/tos-icon.png ]; then \
+		sudo cp assets/tos-icon.png "$(DATADIR)/pixmaps/tos-icon.png"; \
+	fi
+	
+	@# Install Configuration
+	@if [ -f tos.toml ]; then \
+		sudo cp tos.toml "$(SYSCONFDIR)/"; \
+	fi
+
+	@echo "[TOS] Installation Complete. Reboot or restart your Display Manager to see the TOS session."
+
+uninstall:
+	@echo "[TOS] Removing System Components..."
+	@sudo rm -f "$(BINDIR)/tos-brain" "$(BINDIR)/tos-session" "$(BINDIR)/tos-wayland-face"
+	@sudo rm -f "$(BINDIR)/tos-settingsd" "$(BINDIR)/tos-marketplaced" "$(BINDIR)/tos-sessiond"
+	@sudo rm -f "$(BINDIR)/tos-loggerd" "$(BINDIR)/searchd" "$(BINDIR)/tos-heuristicd" "$(BINDIR)/tos-priorityd"
+	@sudo rm -f "$(XSESSIONSDIR)/tos.desktop"
+	@sudo rm -f "$(WAYLANDSESSIONSDIR)/tos.desktop"
+	@sudo rm -f "$(APPSDIR)/tos.desktop"
+	@echo "[TOS] Components removed. Configuration in $(SYSCONFDIR) and logs in $(LOGDIR) preserved."
+
+package-all: package-deb package-rpm package-arch
+
+package-deb:
+	@echo "[TOS] Building Debian Package (.deb)..."
+	@if command -v dpkg-buildpackage >/dev/null; then \
+		dpkg-buildpackage -us -uc; \
+	else \
+		echo "[TOS] Error: dpkg-buildpackage not found."; \
+		exit 1; \
+	fi
+
+package-rpm:
+	@echo "[TOS] Building RPM Package (.rpm)..."
+	@if command -v rpmbuild >/dev/null; then \
+		rpmbuild -ba packaging/rpm/tos.spec; \
+	else \
+		echo "[TOS] Error: rpmbuild not found."; \
+		exit 1; \
+	fi
+
+package-arch:
+	@echo "[TOS] Building Arch Linux Package (PKGBUILD)..."
+	@cd packaging/arch && makepkg -s

@@ -511,7 +511,7 @@ APPSDIR := $(DATADIR)/applications
 
 build-release:
 	@echo "[TOS] Building all components in Release Mode..."
-	cargo build --release -p tos-common -p brain -p face-wayland-linux -p tos-settingsd -p tos-loggerd -p tos-marketplaced -p tos-priorityd -p tos-sessiond -p tos-heuristicd -p tos-searchd
+	cargo build --release -p tos-common -p tos-brain -p face-wayland-linux -p tos-settingsd -p tos-loggerd -p tos-marketplaced -p tos-priorityd -p tos-sessiond -p tos-heuristicd -p tos-searchd
 
 install: build-release
 	@echo "[TOS] Installing System Components to $(PREFIX)..."

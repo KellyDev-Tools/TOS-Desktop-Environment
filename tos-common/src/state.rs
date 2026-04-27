@@ -763,6 +763,10 @@ pub struct TosState {
     pub ai_offline_queue: Vec<QueuedAiRequest>,
     /// Currently active agents and their task associations.
     pub active_agents: Vec<AgentState>,
+    /// Prioritized list of active agents for Agent Stacking instruction merging.
+    pub active_agent_stack: Vec<String>,
+    /// List of active curators whose context will be aggregated for AI queries.
+    pub active_curators: Vec<String>,
     pub version: u64,
 }
 
@@ -927,6 +931,8 @@ impl Default for TosState {
             device_profile: crate::ipc::FaceProfile::Desktop,
             ai_offline_queue: vec![],
             active_agents: vec![],
+            active_agent_stack: vec![],
+            active_curators: vec![],
             version: 0,
         }
     }

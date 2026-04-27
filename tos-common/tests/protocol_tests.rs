@@ -176,6 +176,7 @@ mod tests {
     fn ai_query_response_serialization() {
         let query = AiQuery {
             prompt: "echo hello".to_string(),
+            system_prompt: None,
             context: vec![],
             stream: false,
             auth: std::collections::HashMap::new(),

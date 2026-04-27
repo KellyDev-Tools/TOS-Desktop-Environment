@@ -75,8 +75,8 @@
 | Theme modules | Ecosystem §1.6 | ✅ | 3 built-in themes; disk discovery |
 | Shell modules | Ecosystem §1.7 | ✅ | ShellModule logic, manifest loading, and Fish/Zsh script integration implemented |
 | Assistant modules (`.tos-assistant`) | Ecosystem §1.3.1 | ✅ | `ModuleManager::load_assistant()` + legacy shim for `.tos-ai` |
-| Curator modules (`.tos-curator`) | Ecosystem §1.3.2 | 🔶 | Filesystem curator built-in; dynamic MCP loading unimplemented |
-| Agent modules (`.tos-agent`) | Ecosystem §1.3.3 | 🔶 | Stacking logic implemented; manifest loading unimplemented |
+| Curator modules (`.tos-curator`) | Ecosystem §1.3.2 | ✅ | Dynamic MCP loading integrated with AI query flow |
+| Agent modules (`.tos-agent`) | Ecosystem §1.3.3 | ✅ | Stacking logic and manifest loading implemented |
 | Bezel component modules | Ecosystem §1.8 | 🔶 | 5 bezel slot components exist; no dynamic loading from disk |
 | Language modules (`.tos-language`) | Ecosystem §1.10 | ❌ | No language module type |
 | Audio modules (`.tos-audio`) | Ecosystem §1.9 | ❌ | No audio module loading |
@@ -178,9 +178,9 @@
 | 8.2 | Implement `[auth]` credential injection and secure Settings store | HIGH | Eco §1.3.4 | SettingsStore | ✅ |
 | 8.3 | Implement `[trust]` declaration & Brain trust chip integration | HIGH | Eco §1.3.5 | TrustService | ✅ |
 | 8.4 | Implement `[connection]` transports (http, stdio, mcp) | HIGH | Eco §1.3.1 | CortexRegistry | ✅ |
-| 8.5 | Implement Agent Stacking (hierarchical prompt merging) | HIGH | Dev §6 | BrainAI | ❌ |
-| 8.6 | Migrate Ollama / Gemini to `.tos-assistant` with legacy shim | HIGH | Eco §1.15 | CortexRegistry | ❌ |
-| 8.7 | Implement GitNexus curator cortex via MCP | HIGH | Eco §1.3.2 | CortexRegistry | ❌ |
+| 8.5 | Implement Agent Stacking (hierarchical prompt merging) | HIGH | Dev §6 | BrainAI | ✅ |
+| 8.6 | Migrate Ollama / Gemini to `.tos-assistant` with legacy shim | HIGH | Eco §1.15 | CortexRegistry | ✅ |
+| 8.7 | Implement GitNexus curator cortex via MCP | HIGH | Eco §1.3.2 | CortexRegistry | ✅ |
 | 8.8 | Unified Cortex Configuration UI in Settings Modal | MEDIUM | Features §4.3 | SettingsModal | ❌ |
 | 8.9 | Verification of Cortex sandboxing (bubblewrap isolation) | HIGH | Arch §17.3 | SandboxManager | ❌ |
 

@@ -15,7 +15,85 @@ impl ModuleManager {
             base_path,
         };
         let _ = manager.discover_all();
+        manager.register_legacy_shims();
         manager
+    }
+
+    /// Registers virtual manifests for internal backends (Ollama, Gemini) per §1.15.
+    fn register_legacy_shims(&mut self) {
+        // 1. Ollama Legacy Shim
+        if !self.modules.contains_key("ollama") {
+            self.modules.insert("ollama".to_string(), ModuleManifest {
+                id: "ollama".to_string(),
+                name: "Ollama Local (Shim)".to_string(),
+                version: "0.1.0".to_string(),
+                module_type: "ai".to_string(),
+                author: "TOS Core".to_string(),
+                description: Some("Legacy shim for local Ollama instance".to_string()),
+                icon: None,
+                shell: None,
+                executable: None,
+                integration: None,
+                assets: None,
+                connection: Some(crate::services::marketplace::ConnectionConfig {
+                    transport: "http".to_string(),
+                    endpoint: Some("http://localhost:11434".to_string()),
+                    timeout_ms: Some(10000),
+                }),
+                auth: Some(crate::services::marketplace::AuthConfig {
+                    auth_type: "none".to_string(),
+                    header: None,
+                    prefix: None,
+                    env_hint: None,
+                }),
+                trust: None,
+                mcp: None,
+                prompt: None,
+                capabilities: Some(vec!["text-generation".to_string()]),
+                provider: Some("ollama".to_string()),
+                endpoint: Some("http://localhost:11434".to_string()),
+                latency_profile: Some("low".to_string()),
+                tool_bundle: None,
+                signature: None,
+            });
+        }
+
+        // 2. Gemini Legacy Shim
+        if !self.modules.contains_key("gemini") {
+            self.modules.insert("gemini".to_string(), ModuleManifest {
+                id: "gemini".to_string(),
+                name: "Google Gemini (Shim)".to_string(),
+                version: "0.1.0".to_string(),
+                module_type: "ai".to_string(),
+                author: "TOS Core".to_string(),
+                description: Some("Legacy shim for Google Gemini API".to_string()),
+                icon: None,
+                shell: None,
+                executable: None,
+                integration: None,
+                assets: None,
+                connection: Some(crate::services::marketplace::ConnectionConfig {
+                    transport: "http".to_string(),
+                    endpoint: Some("https://generativelanguage.googleapis.com/v1beta".to_string()),
+                    timeout_ms: Some(30000),
+                }),
+                auth: Some(crate::services::marketplace::AuthConfig {
+                    auth_type: "api_key".to_string(),
+                    header: Some("x-goog-api-key".to_string()),
+                    prefix: None,
+                    env_hint: Some("GOOGLE_API_KEY".to_string()),
+                }),
+                trust: None,
+                mcp: None,
+                prompt: None,
+                capabilities: Some(vec!["text-generation".to_string(), "vision".to_string()]),
+                provider: Some("google".to_string()),
+                endpoint: Some("https://generativelanguage.googleapis.com/v1beta".to_string()),
+                latency_profile: Some("medium".to_string()),
+                tool_bundle: None,
+                signature: None,
+            });
+        }
     }
 
     /// Scans the base directory for valid TOS modules.
@@ -259,9 +337,17 @@ impl crate::modules::CuratorModule for GenericCuratorModule {
                             ))
                         }?;
                         
-                        // Expecting a list of strings or a structured MCP response
+                        // Expecting a list of strings or structured MCP TextContent objects
                         if let Some(content) = result.get("content").and_then(|c| c.as_array()) {
-                            return Ok(content.iter().filter_map(|v| v.as_str().map(|s| s.to_string())).collect());
+                            let mut results = vec![];
+                            for item in content {
+                                if let Some(s) = item.as_str() {
+                                    results.push(s.to_string());
+                                } else if let Some(text) = item.get("text").and_then(|t| t.as_str()) {
+                                    results.push(text.to_string());
+                                }
+                            }
+                            return Ok(results);
                         }
                         return Ok(vec![result.to_string()]);
                     }
@@ -292,6 +378,9 @@ impl crate::modules::AgentModule for GenericAgentModule {
     }
     fn prompt_constraints(&self) -> &[String] {
         self.manifest.prompt.as_ref().map(|p| p.constraints.as_slice()).unwrap_or(&[])
+    }
+    fn prompt_efficiency(&self) -> Option<&str> {
+        self.manifest.prompt.as_ref().and_then(|p| p.efficiency.as_deref())
     }
 }
 
@@ -361,6 +450,7 @@ impl AiModule for GenericAiModule {
                                 &base,
                                 &request.auth,
                                 &request.prompt,
+                                request.system_prompt.clone(),
                                 &request.context,
                             ))
                         })
@@ -370,6 +460,7 @@ impl AiModule for GenericAiModule {
                             &base,
                             &request.auth,
                             &request.prompt,
+                            request.system_prompt.clone(),
                             &request.context,
                         ))
                     };
@@ -406,6 +497,7 @@ impl AiModule for GenericAiModule {
                             &base,
                             &auth,
                             &prompt,
+                            request.system_prompt.clone(),
                             &context,
                         ))
                     })
@@ -415,6 +507,7 @@ impl AiModule for GenericAiModule {
                         &base,
                         &auth,
                         &prompt,
+                        request.system_prompt.clone(),
                         &context,
                     ))
                 };
@@ -483,16 +576,19 @@ async fn llm_http_call(
     base: &str,
     auth: &HashMap<String, String>,
     prompt: &str,
+    system_prompt: Option<String>,
     context: &[String],
 ) -> anyhow::Result<crate::modules::AiResponse> {
     use serde_json::json;
 
     let client = reqwest::Client::new();
     let ctx_str = context.join("; ");
-    let system = format!(
-        "You are TOS Alpha-2 Brain AI. Context: {}. Respond with JSON {{\"command\": \"<shell cmd>\", \"explanation\": \"<short>\"}}",
-        ctx_str
-    );
+    let system = system_prompt.unwrap_or_else(|| {
+        format!(
+            "You are TOS Alpha-2 Brain AI. Context: {}. Respond with JSON {{\"command\": \"<shell cmd>\", \"explanation\": \"<short>\"}}",
+            ctx_str
+        )
+    });
 
     // Credential resolution cascade (§1.3.4):
     // 1. Injected auth map (from secure settings)
@@ -531,6 +627,22 @@ async fn llm_http_call(
                 "format": "json"
             });
             (format!("{}/api/generate", base), body, String::new())
+        }
+        "google" => {
+            let key = api_key.ok_or_else(|| anyhow::anyhow!("GOOGLE_API_KEY or auth.api_key not set"))?;
+            let body = json!({
+                "contents": [{
+                    "parts": [{
+                        "text": format!("{}\n\nUser request: {}", system, prompt)
+                    }]
+                }]
+            });
+            // Gemini uses API key in URL or header. x-goog-api-key is standard for headers.
+            (
+                format!("{}/models/gemini-1.5-flash:generateContent", base),
+                body,
+                format!("x-goog-api-key: {}", key),
+            )
         }
         _ => {
             // openai-compatible
@@ -572,6 +684,10 @@ async fn llm_http_call(
             .unwrap_or("{}")
             .to_string(),
         "ollama" => resp["response"].as_str().unwrap_or("{}").to_string(),
+        "google" => resp["candidates"][0]["content"]["parts"][0]["text"]
+            .as_str()
+            .unwrap_or("{}")
+            .to_string(),
         _ => resp["choices"][0]["message"]["content"]
             .as_str()
             .unwrap_or("{}")
@@ -630,5 +746,35 @@ async fn mcp_stdio_call(
         return Ok(response.get("result").cloned().unwrap_or(serde_json::Value::Null));
     }
 
-    Err(anyhow::anyhow!("No response from MCP server"))
+    let output = child.wait_with_output().await?;
+    let stderr = String::from_utf8_lossy(&output.stderr);
+    Err(anyhow::anyhow!("No response from MCP server. Stderr: {}", stderr))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::path::PathBuf;
+
+    #[test]
+    fn test_legacy_shims() {
+        let manager = ModuleManager::new(PathBuf::from("/tmp/tos-test-modules"));
+        
+        // Check Ollama shim
+        let ollama = manager.get_manifest("ollama").expect("Ollama shim should exist");
+        assert_eq!(ollama.provider.as_deref(), Some("ollama"));
+        assert_eq!(ollama.module_type, "ai");
+
+        // Check Gemini shim
+        let gemini = manager.get_manifest("gemini").expect("Gemini shim should exist");
+        assert_eq!(gemini.provider.as_deref(), Some("google"));
+        assert_eq!(gemini.module_type, "ai");
+    }
+
+    #[test]
+    fn test_load_ai_shim() {
+        let manager = ModuleManager::new(PathBuf::from("/tmp/tos-test-modules"));
+        let ai = manager.load_ai("ollama").expect("Should load ollama shim as AiModule");
+        assert_eq!(ai.name(), "Ollama Local (Shim)");
+    }
 }

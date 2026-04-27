@@ -46,3 +46,11 @@ path = "session_persistence.rs"
 [[test]]
 name = "cortex_transports"
 path = "cortex_transports.rs"
+
+[[test]]
+name = "agent_stacking"
+path = "agent_stacking.rs"
+
+[[test]]
+name = "curator_mcp"
+path = "curator_mcp.rs"

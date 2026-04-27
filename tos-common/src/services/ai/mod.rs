@@ -610,6 +610,56 @@ impl AiService {
         }
     }
 
+    /// Assembles the hierarchical system prompt from the active agent stack (§6).
+    pub fn assemble_stacked_prompt(&self, state: &crate::TosState) -> String {
+        let cortex_lock = self.cortex.lock().unwrap();
+        let cortex_arc = match cortex_lock.as_ref() {
+            Some(c) => c.clone(),
+            None => return "You are TOS Alpha-2 Brain AI.".to_string(),
+        };
+        let cortex = cortex_arc.lock().unwrap();
+
+        let mut identities = vec![];
+        let mut constraints = vec![];
+        let mut efficiencies = vec![];
+
+        for agent_id in &state.active_agent_stack {
+            if let Some(agent) = cortex.get_agent(agent_id) {
+                identities.push(agent.prompt_identity().to_string());
+                for c in agent.prompt_constraints() {
+                    constraints.push(format!("- {}", c));
+                }
+                if let Some(e) = agent.prompt_efficiency() {
+                    efficiencies.push(e.to_string());
+                }
+            }
+        }
+
+        if identities.is_empty() {
+            return "You are TOS Alpha-2 Brain AI.".to_string();
+        }
+
+        let mut prompt = String::new();
+        
+        prompt.push_str("IDENTITY:\n");
+        prompt.push_str(&identities.join("\n"));
+        prompt.push_str("\n\n");
+
+        if !constraints.is_empty() {
+            prompt.push_str("CONSTRAINTS:\n");
+            prompt.push_str(&constraints.join("\n"));
+            prompt.push_str("\n\n");
+        }
+
+        if !efficiencies.is_empty() {
+            prompt.push_str("EFFICIENCY:\n");
+            prompt.push_str(&efficiencies.join("\n"));
+            prompt.push_str("\n\n");
+        }
+
+        prompt
+    }
+
     // --- Query ---
 
     /// Process natural language query and stage a command for user review.
@@ -658,24 +708,46 @@ impl AiService {
                         "chat_history".to_string(),
                         "editor_context".to_string(),
                     ];
-                    let context = ctx.filter_to_fields(&ctx_fields);
+                    let mut context = ctx.filter_to_fields(&ctx_fields);
                     let mut auth = HashMap::new();
+                    
+                    let system_prompt = Some(self.assemble_stacked_prompt(&state));
+
                     if let Some(settings_svc) = self.settings.lock().unwrap().as_ref() {
                         // Inject global keys
                         if let Some(key) = settings_svc.get_secure("openai_api_key") { auth.insert("api_key".to_string(), key); }
                         if let Some(key) = settings_svc.get_secure("anthropic_api_key") { auth.insert("api_key".to_string(), key); }
+                        if let Some(key) = settings_svc.get_secure("google_api_key") { auth.insert("api_key".to_string(), key); }
                         if let Some(key) = settings_svc.get_secure("tos_llm_api_key") { auth.insert("api_key".to_string(), key); }
                         
                         // Inject module-specific keys (§1.3.4)
                         let mod_prefix = format!("{}.", backend_id);
-                        // This is a simplification; a real implementation would iterate over relevant keys
                         if let Some(key) = settings_svc.get_secure(&format!("{}api_key", mod_prefix)) {
                             auth.insert("api_key".to_string(), key);
+                        }
+
+                        // Aggregate context from active curators (§1.3.2)
+                        let cortex_lock = self.cortex.lock().unwrap();
+                        if let Some(cortex_arc) = cortex_lock.as_ref() {
+                            let cortex = cortex_arc.lock().unwrap();
+                            for curator_id in &state.active_curators {
+                                if let Some(curator) = cortex.get_curator(curator_id) {
+                                    // Inject curator-specific auth if needed
+                                    let mut cur_auth = auth.clone();
+                                    if let Some(key) = settings_svc.get_secure(&format!("{}.api_key", curator_id)) {
+                                        cur_auth.insert("api_key".to_string(), key);
+                                    }
+                                    if let Ok(cur_ctx) = curator.get_context(prompt, &cur_auth) {
+                                        context.extend(cur_ctx);
+                                    }
+                                }
+                            }
                         }
                     }
 
                     let req = crate::modules::AiQuery {
                         prompt: prompt.to_string(),
+                        system_prompt,
                         context,
                         stream: false,
                         auth,
@@ -763,6 +835,7 @@ impl AiService {
                 if let Some(settings_svc) = self.settings.lock().unwrap().as_ref() {
                     if let Some(key) = settings_svc.get_secure("openai_api_key") { auth.insert("api_key".to_string(), key); }
                     if let Some(key) = settings_svc.get_secure("anthropic_api_key") { auth.insert("api_key".to_string(), key); }
+                    if let Some(key) = settings_svc.get_secure("google_api_key") { auth.insert("api_key".to_string(), key); }
                     if let Some(key) = settings_svc.get_secure("tos_llm_api_key") { auth.insert("api_key".to_string(), key); }
                     
                     let mod_prefix = format!("{}.", backend_id);
@@ -773,6 +846,7 @@ impl AiService {
 
                 let req = crate::modules::AiQuery {
                     prompt,
+                    system_prompt: None, // Prediction uses internal prompt
                     context: ctx.filter_to_fields(
                         &["cwd", "last_command"]
                             .iter()
@@ -929,6 +1003,7 @@ impl AiService {
                     if let Some(settings_svc) = self.settings.lock().unwrap().as_ref() {
                         if let Some(key) = settings_svc.get_secure("openai_api_key") { auth.insert("api_key".to_string(), key); }
                         if let Some(key) = settings_svc.get_secure("anthropic_api_key") { auth.insert("api_key".to_string(), key); }
+                        if let Some(key) = settings_svc.get_secure("google_api_key") { auth.insert("api_key".to_string(), key); }
                         if let Some(key) = settings_svc.get_secure("tos_llm_api_key") { auth.insert("api_key".to_string(), key); }
                         
                         let mod_prefix = format!("{}.", backend_id);
@@ -939,6 +1014,7 @@ impl AiService {
 
                     let req = crate::modules::AiQuery {
                         prompt,
+                        system_prompt: None, // Observer uses internal prompt
                         context: ctx.filter_to_fields(
                             &["cwd", "terminal_tail", "last_command"]
                                 .iter()
@@ -985,19 +1061,29 @@ impl AiService {
         let api_base = std::env::var("OPENAI_API_BASE").unwrap_or_else(|_| "https://api.openai.com/v1".to_string());
         let ipc = self.ipc.lock().unwrap().clone();
 
+        // Get stacked prompt for fallback too
+        let state_json = ipc.as_ref().map(|i| i.dispatch("get_state:")).unwrap_or_default();
+        let stacked_prompt = if let Ok(state) = serde_json::from_str::<TosState>(state_json.split(" (").next().unwrap_or(&state_json)) {
+            Some(self.assemble_stacked_prompt(&state))
+        } else {
+            None
+        };
+
         if let Some(key) = api_key {
             let client = reqwest::Client::new();
-            let system_prompt = format!(
-                "You are TOS Alpha-2 Brain AI. Sector: '{}', Path: '{}', Mode: {}. \
-                 Translate the user's request into a single shell command. \
-                 Always respond with JSON: {{\"command\": \"<cmd>\", \"explanation\": \"<short desc>\"}}.",
-                ctx.sector_name, ctx.cwd, ctx.active_mode
-            );
+            let system = stacked_prompt.unwrap_or_else(|| {
+                format!(
+                    "You are TOS Alpha-2 Brain AI. Sector: '{}', Path: '{}', Mode: {}. \
+                     Translate the user's request into a single shell command. \
+                     Always respond with JSON: {{\"command\": \"<cmd>\", \"explanation\": \"<short desc>\"}}.",
+                    ctx.sector_name, ctx.cwd, ctx.active_mode
+                )
+            });
 
             let req_body = json!({
                 "model": "gpt-4o-mini",
                 "messages": [
-                    { "role": "system", "content": system_prompt },
+                    { "role": "system", "content": system },
                     { "role": "user", "content": prompt }
                 ],
                 "response_format": { "type": "json_object" }

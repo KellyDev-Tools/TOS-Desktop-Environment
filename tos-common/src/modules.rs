@@ -17,6 +17,7 @@ use uuid::Uuid;
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct AiQuery {
     pub prompt: String,
+    pub system_prompt: Option<String>,
     pub context: Vec<String>,
     pub stream: bool,
     /// Injected credentials from secure store (§1.3.4).
@@ -145,6 +146,7 @@ pub trait AgentModule: Send + Sync {
     fn name(&self) -> &str;
     fn prompt_identity(&self) -> &str;
     fn prompt_constraints(&self) -> &[String];
+    fn prompt_efficiency(&self) -> Option<&str>;
 }
 
 pub mod sandbox;

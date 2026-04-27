@@ -148,6 +148,11 @@ impl IpcHandler {
             "ai_pattern_get" => self.handle_ai_pattern_get(args.first().copied()),
             "ai_history_append" => self.handle_ai_history_append(payload, "assistant"),
             "ai_submit" => self.handle_ai_submit(payload),
+            "ai_agent_stack_push" => self.handle_ai_agent_stack_push(args.first().copied()),
+            "ai_agent_stack_pop" => self.handle_ai_agent_stack_pop(),
+            "ai_agent_stack_clear" => self.handle_ai_agent_stack_clear(),
+            "ai_curator_enable" => self.handle_ai_curator_enable(args.first().copied()),
+            "ai_curator_disable" => self.handle_ai_curator_disable(args.first().copied()),
 
             // §27.6: Directory Pick Behavior
             "dir_pick_file" => self.handle_dir_pick(args.first().copied()),
@@ -590,6 +595,68 @@ impl IpcHandler {
         });
 
         "SUBMITTED".to_string()
+    }
+
+    fn handle_ai_agent_stack_push(&self, agent_id: Option<&str>) -> String {
+        let id = match agent_id {
+            Some(i) => i.to_string(),
+            None => return "ERROR: Missing agent ID".to_string(),
+        };
+
+        let mut state = self.state.lock().unwrap();
+        state.active_agent_stack.retain(|a| a != &id); // Remove if already present to move to top
+        state.active_agent_stack.push(id.clone());
+        state.version += 1;
+        format!("AGENT_STACKED: {}", id)
+    }
+
+    fn handle_ai_agent_stack_pop(&self) -> String {
+        let mut state = self.state.lock().unwrap();
+        if let Some(id) = state.active_agent_stack.pop() {
+            state.version += 1;
+            format!("AGENT_UNSTACKED: {}", id)
+        } else {
+            "ERROR: Stack is empty".to_string()
+        }
+    }
+
+    fn handle_ai_agent_stack_clear(&self) -> String {
+        let mut state = self.state.lock().unwrap();
+        state.active_agent_stack.clear();
+        state.version += 1;
+        "AGENT_STACK_CLEARED".to_string()
+    }
+
+    fn handle_ai_curator_enable(&self, curator_id: Option<&str>) -> String {
+        let id = match curator_id {
+            Some(i) => i.to_string(),
+            None => return "ERROR: Missing curator ID".to_string(),
+        };
+
+        let mut state = self.state.lock().unwrap();
+        if !state.active_curators.contains(&id) {
+            state.active_curators.push(id.clone());
+            state.version += 1;
+            format!("CURATOR_ENABLED: {}", id)
+        } else {
+            format!("CURATOR_ALREADY_ENABLED: {}", id)
+        }
+    }
+
+    fn handle_ai_curator_disable(&self, curator_id: Option<&str>) -> String {
+        let id = match curator_id {
+            Some(i) => i.to_string(),
+            None => return "ERROR: Missing curator ID".to_string(),
+        };
+
+        let mut state = self.state.lock().unwrap();
+        if state.active_curators.contains(&id) {
+            state.active_curators.retain(|a| a != &id);
+            state.version += 1;
+            format!("CURATOR_DISABLED: {}", id)
+        } else {
+            format!("CURATOR_NOT_ENABLED: {}", id)
+        }
     }
 
     fn handle_set_mode(&self, mode_str: Option<&str>) -> String {

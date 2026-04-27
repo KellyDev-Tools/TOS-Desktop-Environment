@@ -94,6 +94,11 @@ impl Brain {
         // --- Initialize AI Behaviors ---
         {
             let mut lock = state.lock().unwrap();
+            
+            // Record initial timeline snapshot (§19.1)
+            services.timeline.record_snapshot(&lock);
+            lock.timeline_history_len = services.timeline.len();
+
             services.ai.register_defaults(&mut lock);
         }
 
@@ -170,6 +175,10 @@ impl Brain {
 
                     // Update Bezel Components (§1.10)
                     svc_clock.bezel.update_state(&mut lock);
+
+                    // Record timeline snapshot (§19.1)
+                    svc_clock.timeline.record_snapshot(&lock);
+                    lock.timeline_history_len = svc_clock.timeline.len();
                 }
             }
         });

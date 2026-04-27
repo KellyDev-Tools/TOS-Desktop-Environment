@@ -222,6 +222,8 @@ impl IpcHandler {
                 args.get(3).copied(),
             ),
             "audio_load_module" => self.handle_audio_load_module(args.first().copied()),
+            "timeline_scrub" => self.handle_timeline_scrub(args.first().copied()),
+            "timeline_reset" => self.handle_timeline_reset(),
             "privacy_incognito_toggle" => self.handle_privacy_incognito_toggle(),
             "privacy_memory_archival_toggle" => self.handle_privacy_memory_archival_toggle(),
             "privacy_confirm_archive_toggle" => self.handle_privacy_confirm_archive_toggle(),
@@ -3846,6 +3848,30 @@ impl IpcHandler {
         
         self.services.audio.play_spatial_earcon(name, x_val, y_val, z_val);
         "OK".to_string()
+    }
+
+    fn handle_timeline_scrub(&self, index: Option<&str>) -> String {
+        let index = match index.and_then(|i| i.parse::<usize>().ok()) {
+            Some(i) => i,
+            None => return "ERROR: Invalid index".to_string(),
+        };
+        
+        if let Some(snapshot) = self.services.timeline.get_snapshot(index) {
+            let mut state = self.state.lock().unwrap();
+            let history_len = self.services.timeline.len();
+            *state = snapshot;
+            state.timeline_cursor = Some(index);
+            state.timeline_history_len = history_len;
+            "TIMELINE_SCRUBBED".to_string()
+        } else {
+            "ERROR: Snapshot not found".to_string()
+        }
+    }
+
+    fn handle_timeline_reset(&self) -> String {
+        let mut state = self.state.lock().unwrap();
+        state.timeline_cursor = None;
+        "TIMELINE_RESET".to_string()
     }
 
     fn handle_privacy_incognito_toggle(&self) -> String {

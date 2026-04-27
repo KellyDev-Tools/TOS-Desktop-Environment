@@ -149,10 +149,18 @@ impl SandboxManager {
         cmd.stdout(std::process::Stdio::piped());
         cmd.stderr(std::process::Stdio::piped());
         
-        let child = cmd.spawn()?;
+        let child = cmd.spawn().map_err(|e| {
+            if e.kind() == std::io::ErrorKind::NotFound {
+                anyhow::anyhow!("bubblewrap (bwrap) not found in PATH. Please install bubblewrap.")
+            } else {
+                anyhow::Error::from(e).context("Failed to spawn bwrap process")
+            }
+        })?;
         
         // Cgroup limits still apply post-spawn
-        Self::apply_cgroup_limits(child.id())?;
+        if let Err(e) = Self::apply_cgroup_limits(child.id()) {
+            tracing::warn!("Failed to apply cgroup limits: {}. Continuing without strict limits.", e);
+        }
 
         Ok(child)
     }

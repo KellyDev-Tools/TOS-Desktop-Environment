@@ -80,7 +80,7 @@ export default async function globalSetup() {
         const brainProcess = spawn(binPath, ['--headless'], {
             cwd: rootDir,
             stdio: ['ignore', 'pipe', 'pipe'],
-            env: { ...process.env, TOS_ANCHOR_PORT: '7001' } // Force fixed port for tests
+            env: process.env
         });
 
         if (brainProcess.pid) {

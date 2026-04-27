@@ -179,7 +179,7 @@ impl ModuleManager {
         });
 
         Ok(Box::new(GenericAiModule {
-            id: manifest.id.clone(),
+            _id: manifest.id.clone(),
             path,
             name: manifest.name.clone(),
             capabilities: caps,
@@ -189,7 +189,7 @@ impl ModuleManager {
                 .unwrap_or_else(|| "module".to_string()),
             endpoint: manifest.endpoint.clone(),
             connection: manifest.connection.clone(),
-            latency_profile: manifest
+            _latency_profile: manifest
                 .latency_profile
                 .clone()
                 .unwrap_or_else(|| "medium".to_string()),
@@ -284,14 +284,14 @@ impl crate::modules::AssistantModule for GenericAssistantModule {
         });
 
         let ai_mod = GenericAiModule {
-            id: self.id.clone(),
+            _id: self.id.clone(),
             path,
             name: self.name.clone(),
             capabilities: self.manifest.capabilities.clone().unwrap_or_default(),
             provider,
             endpoint,
             connection: self.manifest.connection.clone(),
-            latency_profile: "medium".to_string(),
+            _latency_profile: "medium".to_string(),
         };
         ai_mod.query(request)
     }
@@ -419,14 +419,14 @@ impl ShellModule for GenericShellModule {
 }
 
 struct GenericAiModule {
-    id: String,
+    _id: String,
     path: Option<PathBuf>,
     name: String,
     capabilities: Vec<String>,
     provider: String,
     endpoint: Option<String>,
     connection: Option<crate::services::marketplace::ConnectionConfig>,
-    latency_profile: String,
+    _latency_profile: String,
 }
 
 impl AiModule for GenericAiModule {

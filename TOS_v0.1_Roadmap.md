@@ -78,7 +78,7 @@
 | Curator modules (`.tos-curator`) | Ecosystem §1.3.2 | ✅ | Dynamic MCP loading integrated with AI query flow |
 | Agent modules (`.tos-agent`) | Ecosystem §1.3.3 | ✅ | Stacking logic and manifest loading implemented |
 | Bezel component modules | Ecosystem §1.8 | 🔶 | 5 bezel slot components exist; no dynamic loading from disk |
-| Language modules (`.tos-language`) | Ecosystem §1.10 | ❌ | No language module type |
+| Language modules (`.tos-language`) | Ecosystem §1.12 | ✅ | Implemented `LanguageModule` manifest and dynamic `LspService` discovery |
 | Audio modules (`.tos-audio`) | Ecosystem §1.9 | ❌ | No audio module loading |
 | Tool bundle enforcement | Ecosystem §1.3.4 | ✅ | `AiService::validate_tool_call()` checks manifest `[trust]` block via `ModuleManager` |
 

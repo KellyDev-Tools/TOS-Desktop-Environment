@@ -54,6 +54,9 @@ impl ModuleManager {
                 endpoint: Some("http://localhost:11434".to_string()),
                 latency_profile: Some("low".to_string()),
                 tool_bundle: None,
+                file_extensions: None,
+                treesitter_grammar: None,
+                lsp: None,
                 signature: None,
             });
         }
@@ -91,6 +94,9 @@ impl ModuleManager {
                 endpoint: Some("https://generativelanguage.googleapis.com/v1beta".to_string()),
                 latency_profile: Some("medium".to_string()),
                 tool_bundle: None,
+                file_extensions: None,
+                treesitter_grammar: None,
+                lsp: None,
                 signature: None,
             });
         }
@@ -257,6 +263,13 @@ impl ModuleManager {
             name: manifest.name.clone(),
             manifest: manifest.clone(),
         }))
+    }
+
+    pub fn list_language_modules(&self) -> Vec<&ModuleManifest> {
+        self.modules
+            .values()
+            .filter(|m| m.module_type == "language")
+            .collect()
     }
 }
 

@@ -97,6 +97,7 @@
 - [x] 5.12 Game controller / VR input mapping — Implemented DeviceMapping and QuestInput integration (§14.4).
 - [x] 5.13 Accessibility switch scanning — Implemented `AccessibilityService` and switch scan IPC (§14.5).
 - [x] 5.14 OpenXR / Quest renderer — Implemented `QuestRenderer` with spatial Cockpit layers and `RendererManager` integration (§15.3, §15.7).
+- [x] 5.15 Language modules — Implemented `.tos-language` manifest support and dynamic LSP discovery in `LspService` (§1.12).
 
 ## Stage 6 — Collaboration, Remote & Release
 - [x] 6.1 TLS handshake in Remote Server protocol — Migrated `remote_server.rs` to `rustls` with dynamic self-signed certificate generation using `rcgen`.
@@ -130,7 +131,7 @@
 | Item | Spec Ref | Reason |
 |---|---|---|
 | Voice confirmation for WARN commands | §17.2.7 | Depends on voice pipeline maturity |
-| Language modules (`.tos-language`) | Eco §1.12 | Built-in LSP configs sufficient for v0.1 |
+| Language modules (`.tos-language`) | Ecosystem §1.12 | ✅ | Implemented `LanguageModule` manifest and dynamic `LspService` discovery |
 | Audio modules (`.tos-audio`) | Eco §1.11 | Built-in earcon set sufficient for v0.1 |
 | Bezel dynamic loading from disk | Eco §1.10 | Hardcoded Svelte components sufficient for v0.1 |
 | Per-surface timeline (Level 4) | §19.1 | LogView covers basic needs |

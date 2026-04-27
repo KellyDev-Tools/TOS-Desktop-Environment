@@ -43,6 +43,11 @@ pub struct ModuleManifest {
     // §1.4: AI Skill Specifics
     pub tool_bundle: Option<ToolBundleConfig>,
 
+    // §1.12: Language Specifics
+    pub file_extensions: Option<Vec<String>>,
+    pub treesitter_grammar: Option<String>,
+    pub lsp: Option<LspConfig>,
+
     // The Ed25519 cryptographic signature of the manifest contents
     pub signature: Option<String>,
 }
@@ -91,6 +96,12 @@ pub struct ToolBundleConfig {
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub struct ExecutableConfig {
     pub path: String,
+    pub args: Vec<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+pub struct LspConfig {
+    pub command: String,
     pub args: Vec<String>,
 }
 
@@ -405,6 +416,9 @@ mod tests {
             trust: None,
             mcp: None,
             prompt: None,
+            file_extensions: None,
+            treesitter_grammar: None,
+            lsp: None,
             signature: None,
         };
 

@@ -20,6 +20,7 @@ pub struct LspClient {
 pub struct LspService {
     clients: Arc<Mutex<HashMap<String, Arc<LspClient>>>>, // language -> Client
     state: Arc<Mutex<Option<Arc<Mutex<TosState>>>>>,
+    module_manager: Arc<Mutex<Option<Arc<crate::brain::module_manager::ModuleManager>>>>,
 }
 
 impl Default for LspService {
@@ -33,6 +34,7 @@ impl LspService {
         Self {
             clients: Arc::new(Mutex::new(HashMap::new())),
             state: Arc::new(Mutex::new(None)),
+            module_manager: Arc::new(Mutex::new(None)),
         }
     }
 
@@ -40,16 +42,45 @@ impl LspService {
         *self.state.lock().unwrap() = Some(state);
     }
 
+    pub fn set_module_manager(&self, manager: Arc<crate::brain::module_manager::ModuleManager>) {
+        *self.module_manager.lock().unwrap() = Some(manager);
+    }
+
     pub fn start_client(&self, language: &str, cwd: PathBuf) -> Option<Arc<LspClient>> {
-        let cmd_name = match language {
-            "rust" => "rust-analyzer",
-            "typescript" | "javascript" | "typescriptreact" => "typescript-language-server",
-            "python" => "pyright-langserver",
-            _ => return None,
+        let mut cmd_name = match language {
+            "rust" => "rust-analyzer".to_string(),
+            "typescript" | "javascript" | "typescriptreact" => "typescript-language-server".to_string(),
+            "python" => "pyright-langserver".to_string(),
+            _ => "".to_string(),
         };
 
+        let mut args = vec!["--stdio".to_string()];
+
+        // Check for Language Modules (§1.12)
+        if cmd_name.is_empty() {
+            let mm_lock = self.module_manager.lock().unwrap();
+            if let Some(mm) = mm_lock.as_ref() {
+                for manifest in mm.list_language_modules() {
+                    if let Some(extensions) = &manifest.file_extensions {
+                        if extensions.iter().any(|e| e.trim_start_matches('.') == language) || manifest.id == language {
+                            if let Some(lsp_config) = &manifest.lsp {
+                                cmd_name = lsp_config.command.clone();
+                                args = lsp_config.args.clone();
+                                break;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        if cmd_name.is_empty() {
+            return None;
+        }
+
         // Try binding locally
-        let mut child = match Command::new(cmd_name)
+        let mut child = match Command::new(&cmd_name)
+            .args(&args)
             .current_dir(&cwd)
             .stdin(Stdio::piped())
             .stdout(Stdio::piped())

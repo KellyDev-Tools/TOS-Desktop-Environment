@@ -406,6 +406,9 @@ mod tests {
             }),
             mcp: None,
             prompt: None,
+            file_extensions: None,
+            treesitter_grammar: None,
+            lsp: None,
             signature: None,
         };
 

@@ -50,6 +50,7 @@ impl Brain {
         let cortex = Arc::new(Mutex::new(crate::brain::cortex_registry::CortexRegistry::new(modules.clone())));
         services.ai.set_module_manager(modules.clone());
         services.ai.set_cortex_registry(cortex.clone());
+        services.lsp.set_module_manager(modules.clone());
 
         let shell_obj = ShellApi::new(
             state.clone(),

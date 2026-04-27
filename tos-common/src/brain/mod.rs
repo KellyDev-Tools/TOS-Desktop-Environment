@@ -45,7 +45,7 @@ impl Brain {
         let state = Arc::new(Mutex::new(state_val));
 
         let services = Arc::new(crate::services::ServiceManager::with_config(&config));
-        services.lsp.set_state(state.clone());
+        services.set_state(state.clone());
         let modules = Arc::new(ModuleManager::new(std::path::PathBuf::from("./modules")));
         let cortex = Arc::new(Mutex::new(crate::brain::cortex_registry::CortexRegistry::new(modules.clone())));
         services.ai.set_module_manager(modules.clone());

@@ -317,6 +317,18 @@ impl IpcHandler {
             // §7.7: Agent Sandboxing & Merge Logic
             "workflow_agent_sandbox" => self.handle_workflow_agent_sandbox(args.first().copied(), args.get(1).copied()),
             "workflow_task_merge" => self.handle_workflow_task_merge(args.first().copied()),
+            
+            // §14.5: Accessibility Switch Scanning
+            "access_scan_toggle" => {
+                self.services.accessibility.toggle_scanning();
+                "OK".to_string()
+            }
+            "access_scan_advance" => {
+                self.services.accessibility.advance_scan();
+                "OK".to_string()
+            }
+            "access_scan_select" => self.services.accessibility.select_current(),
+            
             _ => format!("ERROR: Unknown command '{}'", prefix),
         };
 

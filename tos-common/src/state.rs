@@ -22,6 +22,33 @@ pub enum HierarchyLevel {
     Marketplace = 6,
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+pub enum ScanningMode {
+    Auto,
+    Manual,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct AccessibilityState {
+    pub scanning_enabled: bool,
+    pub scanning_mode: ScanningMode,
+    pub scanning_interval_ms: u32,
+    pub active_scan_path: Vec<String>,
+    pub current_scan_index: usize,
+}
+
+impl Default for AccessibilityState {
+    fn default() -> Self {
+        Self {
+            scanning_enabled: false,
+            scanning_mode: ScanningMode::Auto,
+            scanning_interval_ms: 1000,
+            active_scan_path: vec![],
+            current_scan_index: 0,
+        }
+    }
+}
+
 /// Context for terminal module execution.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum TerminalContext {
@@ -787,6 +814,7 @@ pub struct TosState {
     pub active_agent_stack: Vec<String>,
     /// List of active curators whose context will be aggregated for AI queries.
     pub active_curators: Vec<String>,
+    pub accessibility: AccessibilityState,
     pub version: u64,
 }
 
@@ -919,8 +947,8 @@ impl Default for TosState {
             active_agents: vec![],
             active_agent_stack: vec![],
             active_curators: vec![],
+            accessibility: AccessibilityState::default(),
             version: 0,
         }
     }
 }
-

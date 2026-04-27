@@ -1,3 +1,4 @@
+pub mod accessibility;
 pub mod ai;
 pub mod audio;
 pub mod capture;
@@ -15,6 +16,7 @@ pub mod trust;
 pub mod lsp;
 pub mod ssh;
 
+pub use accessibility::AccessibilityService;
 pub use ai::AiService;
 pub use audio::AudioService;
 pub use capture::CaptureService;
@@ -36,6 +38,7 @@ use crate::config::TosConfig;
 use std::sync::{Arc, Mutex};
 
 pub struct ServiceManager {
+    pub accessibility: Arc<AccessibilityService>,
     pub logger: Arc<LoggerService>,
     pub settings: Arc<SettingsService>,
     pub audio: Arc<AudioService>,
@@ -71,6 +74,7 @@ impl ServiceManager {
         let registry = Arc::new(Mutex::new(ServiceRegistry::new(anchor_port)));
 
         // 2. Initialize Services with Registry awareness
+        let accessibility = Arc::new(AccessibilityService::new());
         let settings = Arc::new(SettingsService::with_registry_and_config(
             registry.clone(),
             config,
@@ -108,6 +112,7 @@ impl ServiceManager {
         }
 
         Self {
+            accessibility,
             logger,
             settings,
             audio,
@@ -127,7 +132,12 @@ impl ServiceManager {
         }
     }
     pub fn set_ipc(&self, ipc: std::sync::Arc<dyn crate::ipc::IpcDispatcher>) {
+        self.accessibility.set_ipc(ipc.clone());
         self.logger.set_ipc(ipc.clone());
         self.ai.set_ipc(ipc);
+    }
+    pub fn set_state(&self, state: std::sync::Arc<std::sync::Mutex<crate::state::TosState>>) {
+        self.accessibility.set_state(state.clone());
+        self.lsp.set_state(state);
     }
 }

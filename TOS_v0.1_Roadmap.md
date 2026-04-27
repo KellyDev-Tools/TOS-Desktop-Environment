@@ -34,7 +34,7 @@
 | Default keyboard shortcuts mapped | §14.2 | ✅ | `KeybindingMap` with 29 default bindings, `keybindings_get/set/reset` IPC, `keybindings.svelte.ts` store |
 | Voice command grammar | §14.3 | ✅ | `handle_voice_command_start/transcription` IPC + context-aware grammar matching |
 | Game controller / VR input mapping | §14.4 | ✅ | Implemented DeviceMapping and QuestInput integration |
-| Accessibility switch scanning | §14.5 | ❌ | No switch scan implementation |
+| Accessibility switch scanning | §14.5 | ✅ | Implemented AccessibilityService and Switch Scanning IPC (§14.5) |
 
 ### 1.7 Platform Abstraction & Rendering (Architecture §15–§16)
 

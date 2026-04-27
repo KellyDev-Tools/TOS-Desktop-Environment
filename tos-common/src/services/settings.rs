@@ -318,6 +318,18 @@ impl SettingsService {
             "tos.accessibility.simplified_mode".to_string(),
             "false".to_string(),
         );
+        map.insert(
+            "tos.accessibility.scanning.enabled".to_string(),
+            "false".to_string(),
+        );
+        map.insert(
+            "tos.accessibility.scanning.mode".to_string(),
+            "auto".to_string(),
+        );
+        map.insert(
+            "tos.accessibility.scanning.interval".to_string(),
+            "1000".to_string(),
+        );
 
         // --- Network (Ecosystem Orchestration / Anchor Port) ---
         map.insert("tos.network.anchor_port".to_string(), "7000".to_string());

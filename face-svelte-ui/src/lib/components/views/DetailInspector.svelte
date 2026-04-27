@@ -1,13 +1,18 @@
 <script lang="ts">
+	import { onMount } from 'svelte';
 	import { fade, slide, fly } from 'svelte/transition';
 	import { getTosState, sendCommand, processInspect, getBuffer } from '$lib/stores/ipc.svelte';
 
 	const tosState = $derived(getTosState());
 	
+	onMount(() => {
+		console.log('[DetailInspector] Component mounted');
+	});
+
 	type InspectorMode = 'detail' | 'buffer' | 'reset';
 	let mode = $state<InspectorMode>('detail');
 	
-	let selectedPid = $state<string | null>(null);
+	let selectedPid = $state<number | null>(null);
 	let inspectionData = $state<any>(null);
 	let bufferData = $state<string>('');
 	let loading = $state(false);
@@ -21,17 +26,23 @@
 	});
 
 	async function loadData() {
-		if (!selectedPid) return;
+		if (selectedPid === null) return;
+		const pidStr = selectedPid.toString();
 		loading = true;
 		if (mode === 'detail') {
-			const resp = await processInspect(selectedPid);
-			try {
-				inspectionData = JSON.parse(resp);
-			} catch (e) {
-				inspectionData = { error: 'Failed to parse metadata' };
+			const resp = await processInspect(pidStr);
+			if (resp === null) {
+				inspectionData = { error: 'Failed to communicate with Brain' };
+			} else {
+				try {
+					inspectionData = typeof resp === 'string' ? JSON.parse(resp) : resp;
+				} catch (e) {
+					inspectionData = { error: 'Failed to parse metadata' };
+				}
 			}
 		} else if (mode === 'buffer') {
-			bufferData = await getBuffer(selectedPid);
+			const resp = await getBuffer(pidStr);
+			bufferData = resp || 'ERROR: Could not retrieve buffer';
 		}
 		loading = false;
 	}
@@ -46,7 +57,7 @@
 		}
 	}
 
-	function selectProcess(pid: string) {
+	function selectProcess(pid: number) {
 		selectedPid = pid;
 	}
 </script>
@@ -75,17 +86,19 @@
 			<div class="process-list">
 				{#each tosState.sectors as sector}
 					{#each sector.hubs as hub}
-						{#each hub.activity_listing.processes as proc}
-							<button 
-								class="proc-item" 
-								class:selected={selectedPid === proc.pid}
-								onclick={() => selectProcess(proc.pid)}
-							>
-								<span class="proc-pid">{proc.pid}</span>
-								<span class="proc-name">{proc.name}</span>
-								<span class="proc-cpu">{proc.cpu_usage}%</span>
-							</button>
-						{/each}
+						{#if hub.activity_listing?.processes}
+							{#each hub.activity_listing.processes as proc}
+								<button 
+									class="proc-item" 
+									class:selected={selectedPid === proc.pid}
+									onclick={() => selectProcess(proc.pid)}
+								>
+									<span class="proc-pid">{proc.pid}</span>
+									<span class="proc-name">{proc.name}</span>
+									<span class="proc-cpu">{proc.cpu_usage}%</span>
+								</button>
+							{/each}
+						{/if}
 					{/each}
 				{/each}
 			</div>
@@ -100,11 +113,11 @@
 			{#if mode === 'reset'}
 				<div class="wireframe-grid" in:fade>
 					{#each tosState.sectors as sector, i}
-						<div class="wireframe-sector" class:frozen={sector.frozen} class:deadlocked={sector.status === 'Deadlocked'}>
+						<div class="wireframe-sector" class:frozen={sector.frozen}>
 							<div class="wf-title">S0{i} // {sector.name}</div>
 							<div class="wf-metrics">
 								<div>HUBS: {sector.hubs.length}</div>
-								<div>STATE: {sector.frozen ? 'FROZEN' : (sector.status === 'Deadlocked' ? 'DEADLOCKED' : 'NOMINAL')}</div>
+								<div>STATE: {sector.frozen ? 'FROZEN' : 'NOMINAL'}</div>
 							</div>
 						</div>
 					{/each}
@@ -117,7 +130,7 @@
 							<div class="meta-grid">
 								<div class="meta-item"><span class="label">COMMAND:</span> <span class="val">{inspectionData.command}</span></div>
 								<div class="meta-item"><span class="label">USER:</span> <span class="val">{inspectionData.user}</span></div>
-								<div class="meta-item"><span class="label">STATUS:</span> <span class="val status-{inspectionData.status.toLowerCase()}">{inspectionData.status}</span></div>
+								<div class="meta-item"><span class="label">STATUS:</span> <span class="val status-{inspectionData.status?.toLowerCase()}">{inspectionData.status}</span></div>
 								<div class="meta-item"><span class="label">UPTIME:</span> <span class="val">{inspectionData.uptime}</span></div>
 								<div class="meta-item"><span class="label">CPU:</span> <span class="val">{inspectionData.cpu_percent}%</span></div>
 								<div class="meta-item"><span class="label">MEM_RSS:</span> <span class="val">{inspectionData.mem_rss} KB</span></div>
@@ -125,25 +138,29 @@
 								<div class="meta-item"><span class="label">SANDBOX:</span> <span class="val">{inspectionData.sandbox_tier}</span></div>
 							</div>
 						</div>
-						<div class="meta-section">
-							<h3>SECURITY_CAPABILITIES</h3>
-							<div class="caps-list">
-								{#each inspectionData.permissions as perm}
-									<span aria-roledescription="chip" class="cap-chip">{perm}</span>
-								{/each}
+						{#if inspectionData.permissions}
+							<div class="meta-section">
+								<h3>SECURITY_CAPABILITIES</h3>
+								<div class="caps-list">
+									{#each inspectionData.permissions as perm}
+										<span aria-roledescription="chip" class="cap-chip">{perm}</span>
+									{/each}
+								</div>
 							</div>
-						</div>
-						<div class="meta-section">
-							<h3>EVENT_HISTORY</h3>
-							<div class="history-table">
-								{#each inspectionData.event_history as event}
-									<div class="history-row">
-										<span class="hist-time">[{event.time}]</span>
-										<span class="hist-event">{event.event}</span>
-									</div>
-								{/each}
+						{/if}
+						{#if inspectionData.event_history}
+							<div class="meta-section">
+								<h3>EVENT_HISTORY</h3>
+								<div class="history-table">
+									{#each inspectionData.event_history as event}
+										<div class="history-row">
+											<span class="hist-time">[{event.time}]</span>
+											<span class="hist-event">{event.event}</span>
+										</div>
+									{/each}
+								</div>
 							</div>
-						</div>
+						{/if}
 					</div>
 				{:else}
 					<div class="empty-state">SELECT PROCESS TO INSPECT METADATA</div>
@@ -417,11 +434,6 @@
 	}
 
 	.wireframe-sector.frozen { border-color: var(--color-primary); color: var(--color-primary); }
-	.wireframe-sector.deadlocked {
-		border-color: #ff3333;
-		color: #ff3333;
-		animation: blink 0.5s infinite;
-	}
 
 	.wf-title {
 		font-weight: 700;

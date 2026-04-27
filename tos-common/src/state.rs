@@ -311,6 +311,27 @@ pub struct AiThought {
     pub timestamp: chrono::DateTime<chrono::Local>,
 }
 
+/// A "Thought Bubble" or "Decision Chip" representing an AI's internal reasoning or plan step (§3.3).
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct AgentState {
+    pub agent_id: String,
+    pub task_id: Uuid,
+    pub status: AgentStatus,
+    pub current_step: usize,
+    pub total_steps: usize,
+    pub terminal_pane_id: Option<Uuid>,
+    pub sandbox_id: Option<String>,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+pub enum AgentStatus {
+    Idle,
+    Running,
+    Paused,
+    Completed,
+    Failed,
+}
+
 /// An AI request queued while the system is offline or backend is unreachable (§4.9).
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct QueuedAiRequest {
@@ -478,7 +499,6 @@ pub struct SplitPane {
 
 /// A recursive split tree node — either a container (with children) or a leaf pane.
 #[derive(Debug, Clone, Serialize, Deserialize)]
-#[serde(tag = "kind")]
 pub enum SplitNode {
     Leaf(SplitPane),
     Container {
@@ -770,27 +790,6 @@ pub struct TosState {
     pub version: u64,
 }
 
-/// Represents the execution state of an autonomous agent (§7.7.1).
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct AgentState {
-    pub agent_id: String,
-    pub task_id: Uuid,
-    pub status: AgentStatus,
-    pub current_step: usize,
-    pub total_steps: usize,
-    pub terminal_pane_id: Option<Uuid>,
-    pub sandbox_id: Option<String>,
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
-pub enum AgentStatus {
-    Idle,
-    Running,
-    Paused,
-    Completed,
-    Failed,
-}
-
 impl Default for TosState {
     fn default() -> Self {
         let sector = Sector {
@@ -800,7 +799,7 @@ impl Default for TosState {
                 id: Uuid::new_v4(),
                 mode: CommandHubMode::Command,
                 prompt: String::new(),
-                current_directory: std::env::current_dir().unwrap_or_else(|_| PathBuf::from("/")),
+                current_directory: PathBuf::from("/"),
                 terminal_output: vec![],
                 buffer_limit: 500,
                 shell_listing: None,
@@ -838,96 +837,21 @@ impl Default for TosState {
             settings: SettingsStore::default(),
             pending_confirmation: None,
             system_log: vec![],
-            sys_prefix: "TOS // SYSTEM-BRAIN".to_string(),
-            sys_title: "BETA-0 // INTEL-DRIVEN".to_string(),
-            sys_status: "BRAIN: ACTIVE".to_string(),
+            sys_prefix: "ALPHA-2.2 // INTEL-DRIVEN".to_string(),
+            sys_title: "TOS CORE BRAIN".to_string(),
+            sys_status: "SYSTEM READY".to_string(),
             brain_time: "00:00:00".to_string(),
-            active_terminal_module: "tos-standard-rect".to_string(),
-            available_modules: vec![
-                TerminalOutputModuleMeta {
-                    id: "tos-standard-rect".to_string(),
-                    name: "Standard Rectangular".to_string(),
-                    version: "1.0.0".to_string(),
-                    layout: TerminalLayoutType::Rectangular,
-                    supports_high_contrast: true,
-                    supports_reduced_motion: true,
-                },
-                TerminalOutputModuleMeta {
-                    id: "tos-cinematic-tri".to_string(),
-                    name: "Cinematic Triangular".to_string(),
-                    version: "1.0.0".to_string(),
-                    layout: TerminalLayoutType::Cinematic,
-                    supports_high_contrast: false,
-                    supports_reduced_motion: false,
-                },
-            ],
+            active_terminal_module: "tos-terminal-lcars".to_string(),
+            available_modules: vec![],
             active_shell_module: "tos-shell-fish".to_string(),
-            available_shell_modules: vec![
-                ShellModuleMeta {
-                    id: "tos-shell-fish".to_string(),
-                    name: "TOS Fish Shell".to_string(),
-                    version: "1.0.0".to_string(),
-                    author: "TOS Core".to_string(),
-                    executable: "/usr/bin/fish".to_string(),
-                    integration: crate::modules::ShellIntegration {
-                        osc_directory: true,
-                        osc_command_result: true,
-                        osc_suggestions: true,
-                    },
-                    scripts: vec!["tos.fish".to_string()],
-                    init: "source tos.fish".to_string(),
-                }
-            ],
-            active_ai_module: "tos-ai-standard".to_string(),
-            available_ai_modules: vec![AiModuleMetadata {
-                id: "tos-ai-standard".to_string(),
-                name: "Standard AI Core".to_string(),
-                version: "1.0.0".to_string(),
-                author: "TOS Core".to_string(),
-                capabilities: vec!["chat".to_string(), "streaming".to_string()],
-            }],
+            available_shell_modules: vec![],
+            active_ai_module: "tos-cortex-pro".to_string(),
+            available_ai_modules: vec![],
             ai_behaviors: vec![],
             bezel_expanded: false,
-            ai_default_backend: "tos-ai-standard".to_string(),
-            active_theme: "tos-classic-lcars".to_string(),
-            available_themes: vec![
-                ThemeModule {
-                    id: "tos-classic-lcars".to_string(),
-                    name: "Classic LCARS".to_string(),
-                    version: "1.0.0".to_string(),
-                    author: "TOS Core".to_string(),
-                    description: "Standard LCARS color scheme (Blue/Purple/Gold)".to_string(),
-                    assets: ThemeAssetDefinition {
-                        css: "theme-classic.css".to_string(),
-                        fonts: vec!["Outfit-Regular.ttf".to_string()],
-                        icons: "assets/icons/classic/".to_string(),
-                    },
-                },
-                ThemeModule {
-                    id: "tos-tactical-amber".to_string(),
-                    name: "Tactical Amber".to_string(),
-                    version: "1.0.0".to_string(),
-                    author: "TOS Core".to_string(),
-                    description: "High-contrast amber tactical interface".to_string(),
-                    assets: ThemeAssetDefinition {
-                        css: "theme-tactical.css".to_string(),
-                        fonts: vec!["Outfit-Bold.ttf".to_string()],
-                        icons: "assets/icons/tactical/".to_string(),
-                    },
-                },
-                ThemeModule {
-                    id: "tos-red-alert".to_string(),
-                    name: "Red Alert".to_string(),
-                    version: "1.0.0".to_string(),
-                    author: "TOS Core".to_string(),
-                    description: "High-intensity emergency mode".to_string(),
-                    assets: ThemeAssetDefinition {
-                        css: "theme-red.css".to_string(),
-                        fonts: vec!["Outfit-Bold.ttf".to_string()],
-                        icons: "assets/icons/red/".to_string(),
-                    },
-                },
-            ],
+            ai_default_backend: "tos-cortex-pro".to_string(),
+            active_theme: "tos-theme-obsidian".to_string(),
+            available_themes: vec![],
             device_profile: crate::ipc::FaceProfile::Desktop,
             ai_offline_queue: vec![],
             active_agents: vec![],

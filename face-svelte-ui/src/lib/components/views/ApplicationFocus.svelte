@@ -1,8 +1,13 @@
 <script lang="ts">
 	import { getTosState } from '$lib/stores/ipc.svelte';
 
+	import { onMount } from 'svelte';
 	const tosState = $derived(getTosState());
-	const currentSector = $derived(tosState.sectors[tosState.active_sector_index]);
+	const currentSector = $derived(tosState.sectors?.[tosState.active_sector_index]);
+
+	onMount(() => {
+		console.log('[ApplicationFocus] Component mounted');
+	});
 </script>
 
 <div class="app-focus">

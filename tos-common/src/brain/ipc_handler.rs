@@ -26,7 +26,20 @@ impl IpcHandler {
     }
 
     /// Standardized Message Format: prefix:payload;payload...
+    /// Also supports WebSocket wrapper: cmd:id:prefix:payload
     pub fn handle_request(&self, request: &str) -> String {
+        tracing::info!("[IPC] Request: {}", request);
+        
+        // Handle WebSocket wrapper: cmd:id:actual_command
+        if request.starts_with("cmd:") {
+            if let Some((_, rest)) = request.split_once(':') {
+                if let Some((id, actual_cmd)) = rest.split_once(':') {
+                    let response = self.handle_request(actual_cmd);
+                    return format!("res:{}:{}", id, response);
+                }
+            }
+        }
+
         let start = Instant::now();
         let (prefix, payload) = request.split_once(':').unwrap_or((request, ""));
         let args: Vec<&str> = payload.split(';').collect();

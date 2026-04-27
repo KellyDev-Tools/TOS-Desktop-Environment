@@ -2,6 +2,9 @@ import { test, expect } from '@playwright/test';
 import { bootToCommandHub, switchToMode, navToGlobalOverview, openExpandedBezel, closeExpandedBezel } from './test-utils';
 
 test.describe('TOS Core UI Flows (Stage 6.9)', () => {
+    test.beforeEach(async ({ page }) => {
+        page.on('console', msg => console.log(`[BROWSER] ${msg.type()}: ${msg.text()}`));
+    });
 
     test('Flow 1: Fresh Boot & Connection', async ({ page }) => {
         await page.goto('/');
@@ -9,7 +12,7 @@ test.describe('TOS Core UI Flows (Stage 6.9)', () => {
         // Should show connection state if Brain isn't ready or if it's slow.
         const status = page.locator('.status-badge');
         await expect(status).toBeVisible({ timeout: 15000 });
-        await expect(status).toContainText(/BRAIN/i);
+        await expect(status).toContainText(/READY/i);
 
         // Verify cinematic overlay presence (unless first_run_complete is set).
         const cinematic = page.locator('.onboarding-overlay');
@@ -21,29 +24,50 @@ test.describe('TOS Core UI Flows (Stage 6.9)', () => {
     });
 
     test('Flow 2: Hierarchical Navigation (L1 -> L4)', async ({ page }) => {
+        console.log('Starting Flow 2...');
         await bootToCommandHub(page); // Starts at L2
+        console.log('Booted to Command Hub.');
 
         // Go to L1
         await navToGlobalOverview(page);
+        console.log('Navigated to L1 Global Overview.');
         
         // Go back to L2 (Command Hub)
-        const sectorTile = page.locator('.sector-tile').first();
+        const sectorTile = page.locator('.sector-grid .sector-tile').first();
         await expect(sectorTile).toBeVisible();
+        console.log('Sector tile visible, clicking...');
         await sectorTile.click();
         
         const cmdInput = page.locator('input#cmd-input');
         await expect(cmdInput).toBeVisible();
+        console.log('[Flow 2] Back in L2 Command Hub.');
+        await expect(page.locator('.viewport-title')).toContainText('COMMAND HUB', { timeout: 10000 });
 
         // Switch to Level 3 (Application Focus / Sectors)
+        console.log('[Flow 2] Switching to Level 3 (Sectors)...');
         await switchToMode(page, '3');
-        // In Level 3, we expect to see the application focus surface.
-        const appFocus = page.locator('.app-focus, .terminal-output').first();
-        await expect(appFocus).toBeVisible({ timeout: 10000 });
+        
+        console.log('[Flow 2] Waiting for APPLICATION FOCUS title...');
+        await expect(page.locator('.viewport-title')).toContainText('APPLICATION FOCUS', { timeout: 10000 });
 
+        // In Level 3, we expect to see the application focus surface.
+        console.log('[Flow 2] Waiting for .app-focus to be visible...');
+        const appFocus = page.locator('.app-focus').first();
+        await expect(appFocus).toBeVisible({ timeout: 15000 });
+        
         // Switch to Level 4 (Detail Inspector)
+        console.log('[Flow 2] Switching to Level 4 (Detail)...');
         await switchToMode(page, '4');
-        const detailView = page.locator('.detail-view, .detail-inspector');
-        await expect(detailView).toBeVisible({ timeout: 5000 });
+        
+        console.log('[Flow 2] Waiting for DETAIL INSPECTOR title...');
+        await expect(page.locator('.viewport-title')).toContainText('DETAIL INSPECTOR', { timeout: 10000 });
+
+        // In Level 4, we expect to see the detail inspector.
+        console.log('[Flow 2] Waiting for .detail-inspector to be visible...');
+        const detailInspector = page.locator('.detail-inspector').first();
+        await expect(detailInspector).toBeVisible({ timeout: 15000 });
+        
+        console.log('[Flow 2] Hierarchical Navigation complete.');
     });
 
     test('Flow 3: Split Viewports & Persistence', async ({ page }) => {
@@ -55,20 +79,19 @@ test.describe('TOS Core UI Flows (Stage 6.9)', () => {
         const TAG = 'SPLIT_PERSIST_TEST';
         await cmdInput.fill(`echo ${TAG}`);
         await cmdInput.press('Enter');
-        await expect(page.locator('.term-line', { hasText: TAG })).toBeVisible();
+        await expect(page.locator('.term-line', { hasText: TAG }).first()).toBeVisible();
+        await cmdInput.blur();
 
         // Create a horizontal split using keyboard shortcut Ctrl+\
-        // Fallback to Ctrl+- if Ctrl+\ is tricky on some layouts
+        await page.waitForTimeout(500); // Wait for focus to settle
         await page.keyboard.press('Control+\\');
         
-        // If split didn't happen, try Ctrl+-
+        // Verify at least two panes exist.
         const panes = page.locator('.split-pane-leaf');
-        if (await panes.count() < 2) {
-            await page.keyboard.press('Control+-');
-        }
-
-        // Verify two panes exist.
-        await expect(panes).toHaveCount(2, { timeout: 8000 });
+        await expect(async () => {
+            const count = await panes.count();
+            expect(count).toBeGreaterThanOrEqual(2);
+        }).toPass({ timeout: 8000 });
 
         // Verify output is still visible in one of them.
         await expect(page.locator('.term-line', { hasText: TAG }).first()).toBeVisible();

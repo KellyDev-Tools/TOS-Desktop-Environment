@@ -42,6 +42,9 @@ thumbs.db
 *.pid
 test_results.log
 *.webm
+*.e2e_ready
+e2e_output.txt
+*flow*result*.txt
 **/node_modules/
 **/.svelte-kit/
 face-svelte-ui/build/

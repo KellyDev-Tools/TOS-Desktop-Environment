@@ -41,7 +41,11 @@
 
 	const tosState = $derived(getTosState());
 	const connState = $derived(getConnectionState());
-	const mode = $derived(getCurrentMode());
+	const mode = $derived.by(() => {
+		const m = getCurrentMode();
+		console.log(`[Page] Reactive mode update: ${m}`);
+		return m;
+	});
 	const promptMode = $derived(getPromptMode());
 	const sidebarLeft = $derived(isSidebarLeftExpanded());
 	const sidebarRight = $derived(isSidebarRightExpanded());
@@ -214,7 +218,7 @@
 	// View title derived from mode
 	const viewTitle = $derived(
 		mode === 'global' ? 'GLOBAL OVERVIEW' :
-		mode === 'hubs' ? `HUB VIEW // COMMAND` :
+		mode === 'hubs' ? `COMMAND HUB` :
 		mode === 'sectors' ? `APPLICATION FOCUS // ${activeSector?.name?.toUpperCase() || 'UNKNOWN'}` :
 		mode === 'detail' ? 'DETAIL INSPECTOR // LEVEL 4' :
 		mode === 'buffer' ? 'RAW DATA BUFFER // LEVEL 5' :
@@ -452,43 +456,27 @@
 						{/if}
 
 						{#if connState === 'connected' && !cinematicActive}
-							<!-- Background / Level 1 Layer -->
-							<div class="spatial-layer level-1" class:zoomed={mode !== 'global'}>
-								<SystemOutput />
-								{#if mode === 'global' || mode === 'hubs' || mode === 'sectors'}
-									<!-- Keep Global visible underneath for blur effect when zoomed -->
-									<div transition:fade={{duration: 200}} style="width:100%; height:100%;">
-										<GlobalOverview />
+							<SystemOutput />
+							<div class="view-wrapper" in:scale={{ duration: 400, start: 0.95 }} out:scale={{ duration: 300, start: 1.05 }}>
+								{#if mode === 'global'}
+									<GlobalOverview />
+								{:else if mode === 'hubs'}
+									<CommandHub />
+								{:else if mode === 'sectors'}
+									<ApplicationFocus />
+								{:else if mode === 'detail'}
+									<DetailInspector />
+								{:else if mode === 'marketplace'}
+									<Marketplace />
+								{:else if mode === 'buffer'}
+									<div class="placeholder-view">
+										<div class="placeholder-title">RAW DATA BUFFER</div>
+										<div class="placeholder-sub">Level 5 — Hex Stream View</div>
 									</div>
+								{:else if mode === 'logs'}
+									<LogView />
 								{/if}
 							</div>
-
-							<!-- Higher Levels Layer -->
-							{#if mode !== 'global'}
-								<div class="spatial-layer level-higher" in:scale={{start: 0.95, duration: 400, opacity: 0}} out:fade={{duration: 200}}>
-									{#if mode === 'hubs'}
-										<CommandHub />
-									{:else if mode === 'marketplace'}
-										<Marketplace />
-									{:else if mode === 'sectors'}
-										<ApplicationFocus />
-									{:else if mode === 'detail'}
-										<DetailInspector />
-									{:else if mode === 'buffer'}
-										<div class="placeholder-view">
-											<div class="placeholder-title">RAW DATA BUFFER</div>
-											<div class="placeholder-sub">Level 5 — Hex Stream View</div>
-										</div>
-									{:else if mode === 'spatial'}
-										<div class="placeholder-view">
-											<div class="placeholder-title">SPATIAL TOPOLOGY</div>
-											<div class="placeholder-sub">3D Sector Shell</div>
-										</div>
-									{:else if mode === 'logs'}
-										<LogView />
-									{/if}
-								</div>
-							{/if}
 						{/if}
 					</div>
 				</div>
@@ -942,6 +930,14 @@
 		flex: 1;
 		position: relative;
 		overflow: hidden;
+		display: flex;
+		flex-direction: column;
+	}
+
+	.view-wrapper {
+		flex: 1;
+		width: 100%;
+		min-height: 0;
 	}
 
 	/* ── Bottom Footer/Bezel ── */

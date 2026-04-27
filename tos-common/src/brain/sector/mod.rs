@@ -417,6 +417,9 @@ impl SectorManager {
         });
 
         hub.focused_pane_id = Some(new_pane_id);
+        hub.version += 1;
+        state.sectors[idx].version += 1;
+        state.version += 1;
         Ok(new_pane_id)
     }
 

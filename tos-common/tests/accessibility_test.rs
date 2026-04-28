@@ -51,6 +51,9 @@ async fn test_sector_scanning() {
     // Create a second sector
     brain.ipc.handle_request("sector_create:Research");
     
+    // Zoom back out to Global Overview to enable sector scanning
+    brain.ipc.handle_request("set_mode:global");
+    
     // Toggle scanning ON
     brain.ipc.handle_request("access_scan_toggle");
     

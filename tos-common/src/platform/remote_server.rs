@@ -150,6 +150,9 @@ impl RemoteServer {
     }
 
     fn generate_tls_config() -> anyhow::Result<ServerConfig> {
+        // §12.1: Ensure a crypto provider is installed for rustls 0.23+
+        let _ = rustls::crypto::ring::default_provider().install_default();
+
         let cert = generate_simple_self_signed(vec![
             "localhost".into(),
             "127.0.0.1".into(),

@@ -3,7 +3,6 @@ use tos_common::state::*;
 use tos_common::brain::ipc_handler::IpcHandler;
 use std::fs;
 use std::path::PathBuf;
-use tokio::time::{sleep, Duration};
 
 #[tokio::test]
 async fn test_session_persistence_lifecycle() -> anyhow::Result<()> {

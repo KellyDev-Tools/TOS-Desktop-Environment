@@ -881,7 +881,7 @@ impl Default for TosState {
             timeline_history_len: 0,
             pending_confirmation: None,
             system_log: vec![],
-            sys_prefix: "ALPHA-2.2 // INTEL-DRIVEN".to_string(),
+            sys_prefix: "TOS // SYSTEM-BRAIN".to_string(),
             sys_title: "TOS CORE BRAIN".to_string(),
             sys_status: "SYSTEM READY".to_string(),
             brain_time: "00:00:00".to_string(),

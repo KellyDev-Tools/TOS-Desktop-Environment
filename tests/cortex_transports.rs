@@ -1,5 +1,4 @@
 use std::collections::HashMap;
-use std::path::PathBuf;
 use tos_common::modules::AiQuery;
 use tos_common::brain::module_manager::ModuleManager;
 
@@ -75,12 +74,9 @@ async fn test_stdio_ai_fallback() {
     
     #[cfg(unix)]
     {
-        use std::io::Write;
         use std::os::unix::fs::PermissionsExt;
-        let mut f = std::fs::File::create(&exe_path).unwrap();
-        f.write_all(b"#!/bin/bash\necho '{\"id\":\"00000000-0000-0000-0000-000000000000\",\"choice\":{\"role\":\"assistant\",\"content\":\"mock response\"},\"usage\":{\"tokens\":10},\"status\":\"complete\"}'").unwrap();
-        f.sync_all().unwrap();
-        drop(f);
+        let script_content = b"#!/bin/bash\necho '{\"id\":\"00000000-0000-0000-0000-000000000000\",\"choice\":{\"role\":\"assistant\",\"content\":\"mock response\"},\"usage\":{\"tokens\":10},\"status\":\"complete\"}'";
+        std::fs::write(&exe_path, script_content).unwrap();
 
         let mut perms = std::fs::metadata(&exe_path).unwrap().permissions();
         perms.set_mode(0o755);
@@ -109,6 +105,7 @@ transport = "stdio"
     
     let query = AiQuery {
         prompt: "hello".to_string(),
+        system_prompt: None,
         context: vec![],
         stream: false,
         auth: HashMap::new(),

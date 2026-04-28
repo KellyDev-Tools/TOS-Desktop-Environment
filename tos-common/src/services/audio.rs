@@ -68,7 +68,7 @@ impl AudioService {
                 match cmd {
                     AudioCommand::LoadModule(manifest_json) => {
                         if let Ok(manifest) = serde_json::from_str::<crate::services::marketplace::ModuleManifest>(&manifest_json) {
-                            if let Some(audio) = manifest.audio {
+                            if let Some(_audio) = manifest.audio {
                                 // In a real implementation, we would load these from the module directory
                                 // For v0.1, we'll look in ~/.config/tos/modules/audio/<id>/assets/
                                 let mut base = dirs::home_dir().unwrap_or_default();

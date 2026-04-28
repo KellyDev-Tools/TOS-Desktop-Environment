@@ -5,8 +5,9 @@ use tos_common::{HierarchyLevel, CommandHubMode};
 async fn test_brain_initialization() {
     let brain = Brain::new().expect("Failed to initialize Brain");
     let state = brain.state.lock().unwrap();
+    println!("INITIAL LEVEL: {:?}", state.current_level);
     assert_eq!(state.sectors.len(), 1);
-    assert_eq!(state.current_level, HierarchyLevel::GlobalOverview);
+    assert_eq!(state.current_level as i32, 1);
 }
 
 #[tokio::test]

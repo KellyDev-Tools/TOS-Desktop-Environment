@@ -28,12 +28,19 @@ async fn main() -> anyhow::Result<()> {
 
     let args: Vec<String> = env::args().collect();
     let _is_self_test = args.iter().any(|arg| arg == "--self-test");
-    let _is_headless = args.iter().any(|arg| arg == "--headless");
+    let is_headless = args.iter().any(|arg| arg == "--headless");
+    let is_orchestrate = args.iter().any(|arg| arg == "--orchestrate");
 
     // 1. Initialize Brain Core
     let brain = Brain::new()?;
     let ipc = brain.ipc.clone();
     let _state = brain.state.clone();
+
+    // 1.1 Spawn services if orchestrated
+    if is_orchestrate {
+        tracing::info!("[BRAIN] Orchestrating TOS session services (Headless={})...", is_headless);
+        brain.spawn_daemons()?;
+    }
 
     // 2. Initialize Renderer for Capture/Thumbnails
     let render_mode = tos_common::brain::renderer_manager::RendererManager::detect();

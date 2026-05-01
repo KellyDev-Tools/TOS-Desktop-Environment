@@ -12,6 +12,7 @@ use self::shell::ShellApi;
 use crate::TosState;
 use std::sync::{Arc, Mutex};
 use std::thread;
+use std::process::Command;
 
 pub struct Brain {
     pub state: Arc<Mutex<TosState>>,
@@ -33,7 +34,13 @@ impl Brain {
         let mut restored = false;
         if !cfg!(test) {
             if let Ok(content) = std::fs::read_to_string(&live_path) {
-                if let Ok(live_state) = serde_json::from_str::<TosState>(&content) {
+                if let Ok(mut live_state) = serde_json::from_str::<TosState>(&content) {
+                    // §13.2: Reset transient execution state on restore to avoid stale 'is_running' flags.
+                    for sector in &mut live_state.sectors {
+                        for hub in &mut sector.hubs {
+                            hub.is_running = false;
+                        }
+                    }
                     state_val = live_state;
                     restored = true;
                 }
@@ -191,5 +198,64 @@ impl Brain {
             modules,
             cortex,
         })
+    }
+
+    /// Spawns auxiliary daemons (settingsd, loggerd, etc.) for a full TOS session.
+    pub fn spawn_daemons(&self) -> anyhow::Result<()> {
+        let daemons = [
+            "tos-settingsd",
+            "tos-loggerd",
+            "tos-sessiond",
+            "tos-marketplaced",
+            "tos-priorityd",
+            "tos-heuristicd",
+            "tos-searchd",
+        ];
+
+        // Get the directory of the current executable to find siblings
+        let current_exe = std::env::current_exe()?;
+        let bin_dir = current_exe.parent().unwrap();
+
+        for daemon in daemons {
+            let mut cmd = if let Ok(path) = std::env::var("TOS_BIN_DIR") {
+                Command::new(std::path::Path::new(&path).join(daemon))
+            } else if bin_dir.join(daemon).exists() {
+                Command::new(bin_dir.join(daemon))
+            } else {
+                Command::new(daemon) // Fallback to PATH
+            };
+
+            // Also check for the 'searchd' alias if tos-searchd isn't found
+            if daemon == "tos-searchd" && !bin_dir.join(daemon).exists() {
+                if bin_dir.join("searchd").exists() {
+                    cmd = Command::new(bin_dir.join("searchd"));
+                }
+            }
+
+            let mut child = cmd;
+            
+            // §20.2: Path resolution fallbacks for restricted environments (GDM/systemd)
+            if !std::path::Path::new(daemon).exists() && bin_dir.join(daemon).exists() == false {
+                let fallbacks = ["/usr/local/bin", "/usr/bin", "/bin"];
+                for base in fallbacks {
+                    let path = format!("{}/{}", base, daemon);
+                    if std::path::Path::new(&path).exists() {
+                        child = Command::new(path);
+                        break;
+                    }
+                }
+            }
+
+            match child.spawn() {
+                Ok(child_proc) => {
+                    tracing::info!("[BRAIN] Spawned daemon {}: PID {}", daemon, child_proc.id());
+                }
+                Err(e) => {
+                    tracing::error!("[BRAIN] Failed to spawn daemon {}: {}", daemon, e);
+                }
+            }
+        }
+
+        Ok(())
     }
 }

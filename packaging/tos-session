@@ -6,17 +6,28 @@ export XDG_CURRENT_DESKTOP=TOS
 export XDG_SESSION_DESKTOP=TOS
 export XDG_SESSION_TYPE=wayland
 
-# 2. Daemon Constellation (Background Services)
-/usr/bin/tos-settingsd &
-/usr/bin/tos-loggerd &
-/usr/bin/tos-sessiond &
-/usr/bin/tos-marketplaced &
-/usr/bin/tos-priorityd &
-/usr/bin/tos-heuristicd &
-/usr/bin/searchd &
+# 2. Logging Setup
+mkdir -p "$HOME/.local/share/tos/logs"
+LOG_FILE="$HOME/.local/share/tos/logs/session.log"
+exec > >(tee -a "$LOG_FILE") 2>&1
+
+echo "[TOS-SESSION] Starting session at $(date)"
 
 # 3. Brain Core & Display Face Orchestration
-# The native face manages the Wayland compositor connection.
-/usr/bin/tos-brain --headless &
+# The --orchestrate flag tells the brain to spawn auxiliary daemons.
+# We run the brain in the background so the script can proceed to the face.
+echo "[TOS-SESSION] Launching Brain with Orchestration..."
+/usr/bin/tos-brain --headless --orchestrate &
+
+# Wait for brain and services to stabilize
 sleep 2
-/usr/bin/tos-wayland-face
+
+# 4. Launch the primary Wayland face inside a minimal compositor
+# We use Sway as the default compositor for the TOS session.
+echo "[TOS-SESSION] Launching Sway with TOS configuration..."
+if command -v sway >/dev/null 2>&1; then
+    exec sway --config /etc/tos/sway.config
+else
+    echo "[TOS-SESSION] ERROR: sway not found. Cannot start Wayland session."
+    exit 1
+fi

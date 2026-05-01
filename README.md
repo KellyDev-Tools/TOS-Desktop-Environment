@@ -18,16 +18,22 @@ v0.1 marks the transition to a dynamic, registry-driven architecture for the TOS
 - Android NDK (optional, for handheld builds)
 
 ### Installation
-For full-system installation using Linux native service endpoints or Homebrew formulas:
+For full-system installation including GDM session support:
 ```bash
 make build-all
+make install # will ask for sudo password
+make restart-gdm
 ```
-For localized and portable deployments, refer to the [Packaging & Release Guide](./docs/guides/Packaging-and-Release.md).
+After installation, you can select **TOS** from your display manager (GDM/SDDM) login screen.
 
 ### Running the Brain
-To start the core Brain and its system services (requires `make build-services` first):
+To start the core Brain in a standalone terminal:
 ```bash
-make run-services
+# Start brain only
+./target/debug/tos-brain
+
+# Start brain and automatically spawn all auxiliary services (Orchestration)
+./target/debug/tos-brain --orchestrate
 ```
 
 ### Running the Face (Svelte-based Web Interface)

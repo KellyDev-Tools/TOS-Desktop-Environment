@@ -23,7 +23,7 @@ TOS_FACE_PORT ?= 8080
         android-check android-build android-release android-install android-run clean-android android-test \
         android-flutter-generate android-flutter-build android-flutter-install android-flutter-run \
         pack-face-electron-win pack-face-electron-linux pack-face-electron-mac \
-        install uninstall package-deb package-rpm package-arch package-all
+        install uninstall restart-gdm package-deb package-rpm package-arch package-all
 
 # -----------------------------------------------------------------------------
 # 0. INFRASTRUCTURE & HOOKS
@@ -530,14 +530,15 @@ install: build-release
 	
 	@for daemon in tos-settingsd tos-marketplaced tos-sessiond tos-loggerd tos-searchd tos-heuristicd tos-priorityd; do \
 		if [ -f "target/release/$$daemon" ]; then \
-			if [ "$$daemon" = "tos-searchd" ]; then \
-				sudo cp "target/release/$$daemon" "$(BINDIR)/searchd"; \
-			else \
-				sudo cp "target/release/$$daemon" "$(BINDIR)/"; \
-			fi; \
+			sudo cp "target/release/$$daemon" "$(BINDIR)/"; \
 		fi; \
 	done
 	@sudo chmod 755 "$(BINDIR)/tos-brain" "$(BINDIR)/tos-wayland-face"
+	@for daemon in tos-settingsd tos-marketplaced tos-sessiond tos-loggerd tos-searchd tos-heuristicd tos-priorityd; do \
+		if [ -f "$(BINDIR)/$$daemon" ]; then \
+			sudo chmod 755 "$(BINDIR)/$$daemon"; \
+		fi; \
+	done
 	
 	@# Patch and Install Desktop Files
 	@if [ -f packaging/tos.desktop ]; then \
@@ -557,6 +558,10 @@ install: build-release
 	@if [ -f tos.toml ]; then \
 		sudo cp tos.toml "$(SYSCONFDIR)/"; \
 	fi
+	@if [ -f packaging/sway.config ]; then \
+		sed "s|/usr/bin|$(BINDIR)|g" packaging/sway.config > /tmp/sway.config.tmp; \
+		sudo mv /tmp/sway.config.tmp "$(SYSCONFDIR)/sway.config"; \
+	fi
 
 	@echo "[TOS] Installation Complete. Reboot or restart your Display Manager to see the TOS session."
 
@@ -564,11 +569,16 @@ uninstall:
 	@echo "[TOS] Removing System Components..."
 	@sudo rm -f "$(BINDIR)/tos-brain" "$(BINDIR)/tos-session" "$(BINDIR)/tos-wayland-face"
 	@sudo rm -f "$(BINDIR)/tos-settingsd" "$(BINDIR)/tos-marketplaced" "$(BINDIR)/tos-sessiond"
-	@sudo rm -f "$(BINDIR)/tos-loggerd" "$(BINDIR)/searchd" "$(BINDIR)/tos-heuristicd" "$(BINDIR)/tos-priorityd"
+	@sudo rm -f "$(BINDIR)/tos-loggerd" "$(BINDIR)/tos-searchd" "$(BINDIR)/tos-heuristicd" "$(BINDIR)/tos-priorityd"
 	@sudo rm -f "$(XSESSIONSDIR)/tos.desktop"
 	@sudo rm -f "$(WAYLANDSESSIONSDIR)/tos.desktop"
 	@sudo rm -f "$(APPSDIR)/tos.desktop"
 	@echo "[TOS] Components removed. Configuration in $(SYSCONFDIR) and logs in $(LOGDIR) preserved."
+	@echo "[TOS] Note: You may need to run 'make restart-gdm' to refresh the session list."
+
+restart-gdm:
+	@echo "[TOS] Attempting to restart GDM to refresh session list..."
+	@sudo systemctl restart gdm || sudo systemctl restart gdm3 || echo "[TOS] Failed to restart GDM. Please restart it manually."
 
 package-all: package-deb package-rpm package-arch
 

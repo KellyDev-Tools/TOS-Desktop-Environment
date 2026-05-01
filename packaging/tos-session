@@ -1,4 +1,4 @@
-#!/bin/bash
+64r6#!/bin/bash
 # /usr/bin/tos-session - Canonical Wayland OS entry point
 
 # 1. Environment Configuration
@@ -23,11 +23,22 @@ echo "[TOS-SESSION] Launching Brain with Orchestration..."
 sleep 2
 
 # 4. Launch the primary Wayland face inside a minimal compositor
-# We use Sway as the default compositor for the TOS session.
-echo "[TOS-SESSION] Launching Sway with TOS configuration..."
+# We prefer Sway or Cage for a minimal dedicated TOS session.
+echo "[TOS-SESSION] Searching for a suitable Wayland compositor..."
+
 if command -v sway >/dev/null 2>&1; then
+    echo "[TOS-SESSION] Found Sway. Launching..."
     exec sway --config /etc/tos/sway.config
+elif command -v cage >/dev/null 2>&1; then
+    echo "[TOS-SESSION] Found Cage. Launching face directly..."
+    exec cage -- /usr/bin/tos-wayland-face
+elif [ -f /usr/bin/gnome-shell ]; then
+    echo "[TOS-SESSION] Falling back to GNOME Shell (Wayland mode)..."
+    # Note: This is a heavy fallback and might not use the minimal config.
+    exec gnome-shell --wayland -- /usr/bin/tos-wayland-face
 else
-    echo "[TOS-SESSION] ERROR: sway not found. Cannot start Wayland session."
+    echo "[TOS-SESSION] ERROR: No suitable Wayland compositor found (tried sway, cage, gnome-shell)."
+    echo "[TOS-SESSION] Please install sway or cage: sudo apt install sway cage"
+    sleep 10
     exit 1
 fi

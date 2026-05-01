@@ -661,31 +661,22 @@ Three principles govern the Cortex:
 
 The Cortex consists of three pluggable component types:
 
-1.  **Assistants (`.tos-assistant`)**: LLM backend providers (Gemini, Ollama, OpenAI). They handle inference and model-specific capabilities.
-2.  **Curators (`.tos-curator`)**: MCP-based data connectors. They feed real-time context (filesystem, Git, Jira, terminal buffers) into the Global Knowledge Graph.
-3.  **Agents (`.tos-agent`)**: Instruction sets that define persona, constraints, and efficiency rules. Agents are stacked to form the system prompt.
+1. **Assistants** (`.tos-assistant`): LLM backend providers
+2. **Curators** (`.tos-curator`): Data connectors including IDE state
+3. **Agents** (`.tos-agent`): Instruction sets defining persona
 
-```
-┌─────────────────────────────────────────────────┐
-│               Cortex Agent Stack                │
-│  ┌───────────┐ ┌───────────┐ ┌───────────────┐  │
-│  │ Identity  │ │ Constraint│ │   Efficiency  │  │
-│  │ Layer     │ │ Layer     │ │   Layer       │  │
-│  └───────────┘ └───────────┘ └───────────────┘  │
-│         ↕ Cortex API (MCP / JSON-RPC)           │
-├─────────────────────────────────────────────────┤
-│         Cortex Curators (Context)               │
-│  ┌──────────┐ ┌──────────┐ ┌──────────────┐    │
-│  │  Files   │ │   Git    │ │   Terminal   │    │
-│  │ (local)  │ │ (remote) │ │   (buffer)   │    │
-│  └──────────┘ └──────────┘ └──────────────┘    │
-├─────────────────────────────────────────────────┤
-│         Cortex Assistants (LLMs)                │
-│  ┌──────────┐ ┌──────────┐ ┌──────────────┐    │
-│  │  Ollama  │ │ Gemini   │ │  Anthropic   │    │
-│  └──────────┘ └──────────┘ └──────────────┘    │
-└─────────────────────────────────────────────────┘
-```
+| Curator | Type | Purpose |
+|:---|:---|:---|
+| Filesystem | Local | Read files, directories, metadata |
+| Terminal | Local | PTY output, exit codes, environment |
+| Git | Local | Commits, branches, diffs |
+| IDE State | External | Current file, cursor, selection, diagnostics |
+
+| Target | Type | Examples |
+|:---|:---|:---|
+| Terminal | Local | `stage_command`, `exec_cmd` |
+| Workflow | Internal | `spawn_agent`, `run_task` |
+| IDE | External | `open_file`, `goto_line`, `insert_text` |
 
 ### 4.3 Cortex Agent Stacking (`.tos-agent`)
 
@@ -855,7 +846,21 @@ The `[AI]` mode is preserved as a first-class Command Hub mode. Its behavior is 
 - If no Chat Companion module is installed, `[AI]` mode falls back to a minimal built-in text interface with a notice to install a Chat Companion from the Marketplace.
 - `[AI]` mode remains one of three Command Hub modes: `[CMD]`, `[SEARCH]`, `[AI]`.
 
-### 4.7 Context Passed to All Skill Modules
+### 4.7 Agent Context Propagation
+
+#### 4.7.1Overview
+
+When a Kanban task is activated, the associated Agent stack propagates to the active IDE if the IDE supports it. The IDE's AI layer receives the merged Agent system prompt and task context.
+
+#### 4.7.2Unified AI Voice (Optional API)
+
+This feature is **optional**. If an IDE (e.g., standard VS Code or an older Vim setup) does not expose an API to dynamically rewrite its system prompt, the integration simply degrades gracefully. The user continues to use the TOS Level 2 Chat Companion for the unified voice, while the IDE is used purely as a text actuator.
+
+---
+
+
+
+### 4.8 Context Passed### 4.8 Context Passed to All Skill Modules
 
 The `AIService` maintains a rolling context object automatically included with every skill module request. When an Editor pane is open in the sector, the Editor Context Object (Features §6.5.1) is also included.
 
@@ -883,7 +888,7 @@ The `AIService` maintains a rolling context object automatically included with e
 
 Modules declare which context fields they consume in their manifest under `[context_required]`. The `AIService` only sends declared fields, minimizing token usage.
 
-### 4.8 Vibe Coder Skill (`tos-vibe-coder`)
+### 4.9 Vibe Coder Skill (`tos-vibe-coder`)
 
 The Vibe Coder is the third built-in skill. It is disabled by default and activated by the user in **Settings → AI → Skills**.
 
@@ -907,7 +912,7 @@ File edits proposed by Vibe Coder are routed through the Editor AI Edit Flow (§
 
 **Context signals:** `.git`, `Cargo.toml`, `package.json`, `pyproject.toml` — activates automatically in development sector contexts.
 
-### 4.9 Offline AI Queue
+### 4.10 Offline AI Queue
 
 When the Brain cannot reach the configured AI backend (network loss, backend down, remote inference timeout), pending AI requests are queued rather than silently dropped.
 
@@ -923,7 +928,7 @@ When the Brain cannot reach the configured AI backend (network loss, backend dow
 | `ai_queue_status` | Returns count of pending queued requests |
 | `ai_queue_flush` | Discards all queued requests |
 
-### 4.10 Settings Integration
+### 4.11 Settings Integration
 
 ```
 Settings → AI
@@ -956,7 +961,7 @@ Settings → AI
     └── Context Sent:         [Standard ▾] (Standard / Minimal / Full)
 ```
 
-### 4.11 IPC Contracts — AI System
+### 4.12 IPC Contracts — AI System
 
 | Message | Effect |
 |:---|:---|
@@ -978,7 +983,7 @@ Settings → AI
 | `ai_queue_status` | Returns count of pending queued requests |
 | `ai_queue_flush` | Discards all queued requests |
 
-### 4.12 Safety Contracts
+### 4.13 Safety Contracts
 
 - **No auto-execution.** No skill module may call `prompt_submit` directly. All command staging goes through `ai_chip_stage` or `stage_command`, placing text in the prompt without submitting.
 - **Workflow agent confirmation.** Any workflow agent staging a command in classes `filesystem_write`, `network`, `process_kill`, or `privilege_escalation` must route through the Brain's tactile confirmation API. The Brain enforces this regardless of module implementation.
@@ -1148,261 +1153,27 @@ There is no separate "My Modules" section in the marketplace. Installed module m
 
 ---
 
-## 6. TOS Editor
+## 6. File Context Pane (L2 Replacement)
 
-*Supplements Architecture Specification §11 (Split Viewports) and §27 (UI Module Interaction APIs)*
+### 6..1Purpose
 
-### 6.1 Philosophy
+A **lightweight, read-only** viewer for Level 2 that tracks the IDE's state. It replaces the heavy TOS Editor.
 
-The TOS Editor exists because code and terminal output are inseparable. A developer running `cargo build` in one pane should be able to see the failing file in the next pane without switching applications, losing focus, or losing AI context.
+### 6.2 Features
 
-Three principles govern all editor design decisions:
+- ✅ Displays syntax-highlighted file content (using basic Tree-sitter).
+- ✅ Subscribes to IDE State Curator to show real-time cursor position.
+- ✅ Selection → prompt integration.
+- ✅ IDE switcher UI.
+- ❌ **No editing, no LSP, no multi-cursor.** (All editing is deferred to the Level 3 IDE).
 
-- **OUTPUT AREA FIRST.** The editor is primarily a *viewer* of the file currently active in the terminal context. Editing is a secondary capability that activates on demand. The terminal drives; the editor follows.
-- **AI CONTEXT IS ALWAYS LIVE.** Every visible file, every selection, every cursor position is live context for the AI system. The AI knows what you are looking at without you pasting anything.
-- **NO ESCAPE FROM TOS.** The editor never opens a separate window or requires leaving the hierarchy. It is always a pane, an overlay, or a Level 3 surface — always surrounded by the Tactical Bezel, always connected to the Brain.
+### 6.3 Implementation Details
 
-### 6.2 Surface Modes
-
-| Mode | Description | Activation |
-|:---|:---|:---|
-| **Viewer** | Read-only. Displays file, scrolls to relevant lines, highlights syntax, provides AI context. No cursor, no input. | Automatic — triggered by terminal events or `editor_open` IPC |
-| **Editor** | Full cursor, keyboard input, syntax-aware editing, save operations. | User taps into the editor surface or sends `editor_activate` |
-| **Diff** | Side-by-side comparison. Left = current file; right = proposed or historical state. | `editor_diff` IPC or automatically by Vibe Coder AI Edit Flow (§6.6) |
-
-### 6.3 Editor Output Area — Level 2 Integration
-
-The editor integrates into the Command Hub as a named output area — a peer to the terminal pane, not subordinate to it.
-
-#### 6.3.1 Hub Layout Integration
-
-`pane_type: "editor"` is a first-class pane type alongside `"terminal"` (Architecture §11.2). Editor panes are persisted in the session file (§2.9).
-
-#### 6.3.2 Select to Open and Auto-Open Triggers
-
-The Brain provides a mechanism to open or update the editor pane in response to terminal events indicated by underlined or highlighted text in the terminal output:
-
-| Terminal Event | Editor Response |
-|:---|:---|
-| Command exits non-zero with a file path + line number in output | highlight line in amber, user can select line to open file, scrolls to error line |
-| `cd` to a directory | on user selection the Editor shows directory listing in Viewer Mode |
-| User types a file path in the prompt | on user selection the Editor previews the file before submission |
-| AI Passive Observer identifies a relevant file | on user selection the Editor opens file with AI annotation overlay |
-| `git diff` or `git show` executed | on user selection the Editor switches to Diff Mode |
-
-Auto-open is configurable per sector in **Settings → Editor → Auto-Open Triggers**.
-
-#### 6.3.3 Focus Rules
-
-- Keyboard input always goes to the terminal pane by default.
-- Clicking or tapping the editor pane switches keyboard focus to Editor Mode.
-- `Ctrl+E` / swipe right-to-left toggles focus between terminal and editor panes.
-- In mobile Face profile, focus follows the active tab.
-
-#### 6.3.4 Editor Pane Header
-
-```
-┌──────────────────────────────────────────────────────┐
-│  📄 src/brain/main.rs  ●  Rust  │ Ln 142  │ [AI] [⊞] │
-└──────────────────────────────────────────────────────┘
-```
-
-- **●** — unsaved changes indicator (amber dot)
-- **[AI]** — opens the AI Context Panel (§6.5) for this file
-- **[⊞]** — promotes editor pane to Level 3 Application Focus
-
-### 6.4 Editor Application Focus — Level 3
-
-When promoted to Level 3, the editor becomes a full-screen surface wrapped in the Tactical Bezel.
-
-```
-┌─────────────────────────────────────────────────────┐
-│  TOP BEZEL — File path, branch, dirty indicator     │
-├──────────────┬──────────────────────┬───────────────┤
-│  LEFT BEZEL  │                      │  RIGHT BEZEL  │
-│  File tree   │   EDITOR SURFACE     │  AI Context   │
-│  (optional)  │                      │  Panel (§6.5) │
-├──────────────┴──────────────────────┴───────────────┤
-│  BOTTOM BEZEL — Persistent Unified Prompt           │
-└─────────────────────────────────────────────────────┘
-```
-
-The Persistent Unified Prompt remains active at all times. Commands typed while the editor is at Level 3 route to the sector's active PTY — the editor never intercepts shell commands.
-
-The **File Tree** is an optional Bezel Component (`.tos-bezel`) docked to the Left Bezel slot showing the sector's cwd as a collapsible tree. A **minimap** of the current file occupies the Right Lateral Bezel slot when at Level 3.
-
-### 6.5 AI Context System
-
-#### 6.5.1 Editor Context Object
-
-The Brain maintains an Editor Context Object for each open editor pane. This object is automatically included in every AI query from the same sector (§4.7).
-
-```json
-{
-  "editor_context": {
-    "file": "/8TB/tos/src/brain/main.rs",
-    "language": "rust",
-    "visible_range": { "start_line": 138, "end_line": 185 },
-    "cursor_line": 142,
-    "cursor_col": 18,
-    "selection": null,
-    "unsaved_changes": false,
-    "git_status": "modified",
-    "diagnostics": [
-      { "line": 142, "severity": "error", "message": "cannot borrow `state` as mutable" }
-    ]
-  }
-}
-```
-
-By default only the visible range and diagnostics are included to keep context tokens bounded. The user can expand scope in the AI Context Panel.
-
-#### 6.5.2 AI Context Panel
-
-Dockable Right Bezel slot component showing the live relationship between the current file and the AI:
-
-```
-┌─────────────────────────────────┐
-│  AI CONTEXT          [⟳] [✕]   │
-├─────────────────────────────────┤
-│  📄 main.rs : Ln 142            │
-│  ⚠ 1 error in context           │
-│                                 │
-│  CONTEXT SCOPE                  │
-│  ○ Visible range (default)      │
-│  ● Selection only               │
-│  ○ Full file                    │
-│  ○ Full file + imports          │
-│                                 │
-│  ACTIVE ANNOTATIONS             │
-│  › Line 142 — borrow error      │
-│    [Ask AI] [Explain] [Fix]     │
-│                                 │
-│  RECENT AI EDITS                │
-│  › refactor_session_handler     │
-│    2 mins ago · [Undo]          │
-└─────────────────────────────────┘
-```
-
-#### 6.5.3 Context Send Actions
-
-| Action | How | Result |
-|:---|:---|:---|
-| Send visible range | Tap `[AI]` in pane header | Visible lines sent as user message |
-| Send selection | Select text → right-click → "Ask AI about this" | Selected text sent with ±10 lines context |
-| Send full file | Context Panel → Full file | Full content sent; AI warned if > 32K tokens |
-| Send error | Click annotation chip → [Ask AI] | Error + surrounding lines sent |
-| Send diff | In Diff Mode → [Ask AI about diff] | Both sides sent |
-
-#### 6.5.4 Inline AI Annotations
-
-When the AI references specific lines, the Brain renders annotation chips in the editor's right margin. Annotations are ephemeral — tied to the AI chat turn that generated them.
-
-#### 6.5.5 Semantic Scroll Sync
-
-When the AI references a line in its response, the editor automatically scrolls to that line with a brief amber pulse. Scrolling the editor updates the AI context object so the next message automatically has the correct visible range.
-
-### 6.6 AI Edit Flow (Vibe Coder Integration)
-
-#### 6.6.1 Triggering an Edit
-
-Initiated by:
-- Natural language edit request in the prompt while editor is open
-- Vibe Coder (§4.8) decomposing a task into a file edit step
-- Clicking **[Fix]** on an annotation chip
-- Selecting text → right-click → "Ask AI to rewrite this"
-
-#### 6.6.2 Diff Review
-
-The editor automatically switches to Diff Mode when an edit proposal is received:
-
-```
-┌──────────────────────────────────────────────────────┐
-│  PROPOSED EDIT — fix borrow error       [Apply] [✕]  │
-├─────────────────────┬────────────────────────────────┤
-│  CURRENT            │  PROPOSED                      │
-│  let state = self   │  let Some(state) = self        │
-│    .sessions        │    .sessions                   │
-│    .get_mut(&id)    │    .get_mut(&id) else {        │
-│    .expect("...");  │      return Err(...);          │
-│                     │    };                          │
-│  state.update();    │  state.update();               │
-└─────────────────────┴────────────────────────────────┘
-```
-
-**[Apply]** writes the change and returns to Editor Mode. **[✕]** rejects. The user can also edit the proposed side directly before applying.
-
-#### 6.6.3 Multi-File Edits
-
-When Vibe Coder proposes edits spanning multiple files, a chip sequence appears in the Right Bezel:
-
-```
-PROPOSED EDITS  (3 files)
-─────────────────────────
-✓ 1. main.rs — null check     [View] [Apply]
-○ 2. session.rs — error type  [View] [Apply]
-○ 3. lib.rs — re-export       [View] [Apply]
-
-[Apply All]  [Reject All]
-```
-
-Each step can be applied individually. **Pending steps are persisted in the session file (§2.9)** — the user can apply steps across devices and sessions.
-
-#### 6.6.4 Undo
-
-All AI-applied edits are recorded in the undo stack with a distinct AI label. `Ctrl+Z` undoes them like any other edit. The AI Context Panel maintains a Recent AI Edits list (last 10) with per-edit undo buttons.
-
-### 6.7 Multi-Device Rendering
-
-| Profile | Default Hub Layout | Editor Behavior |
-|:---|:---|:---|
-| `desktop` | Vertical split — terminal left, editor right | Full editor with minimap, file tree, keyboard shortcuts |
-| `mobile` | Tab layout — terminal tab / editor tab | Editor in second tab; AI Context Panel as bottom sheet; long-press line number sends line to AI |
-| `vr` | Single pane | Editor as spatial panel; spatial gestures for navigation |
-
-On mobile, tapping a line number in the margin sends that line to the AI as context. This is the primary mobile AI interaction with the editor — no text selection required.
-
-When the virtual keyboard appears on mobile, the editor shrinks to accommodate it. Bezel slots collapse automatically. The prompt remains accessible via a floating pill above the keyboard.
-
-### 6.8 File Management
-
-| Action | Behavior |
-|:---|:---|
-| `edit <path>` in prompt | Opens file in Editor Mode |
-| `view <path>` in prompt | Opens file in Viewer Mode |
-| `Ctrl+S` | Save to current path |
-| `Ctrl+Shift+S` | Save As — opens path input chip in prompt |
-| Close pane with unsaved changes | Warning chip: `[Save] [Discard] [Cancel]` |
-| Files outside sector cwd | Trust confirmation chip required before write |
-| Binary files | Viewer Mode only — hex dump via Terminal Output Module |
-| Files > 10MB | Viewer Mode only with warning chip |
-| Image files | Rendered inline if Face supports it; AI vision context if backend declares `vision = true` |
-
-### 6.9 Language & Syntax Support
-
-**Built-in languages (Tree-sitter):** Rust, TypeScript, JavaScript, Python, Bash/Zsh, JSON, TOML, YAML, Markdown, HTML, CSS, SQL, Dockerfile, Go, C, C++.
-
-**Language detection priority:**
-1. File extension
-2. Shebang line
-3. Content heuristics
-4. Manual override via language badge in pane header
-
-**LSP Integration:** When an LSP server is available in the sector's PATH for the current language, the editor activates diagnostics, hover, go-to-definition, and completion. LSP diagnostics are forwarded to the Editor Context Object automatically.
-
-Additional languages can be added via `.tos-language` modules (Ecosystem §1.10).
-
-### 6.10 Session Persistence
-
-See §2.9 for the full editor pane session schema.
-
-### 6.11 IPC Contracts
-### 6.12 Accessibility
-
-TOS Editor follows the global accessibility guidelines (Visual Design §4.1). Specific enhancements include:
-- Screen reader announces line numbers and indentation level.
-- High-contrast syntax highlighting mode.
-- Keyboard-only navigation for all editor actions.
+1. **Real-Time Sync Strategy:** The pane subscribes to `IDEStateCurator` events. Fast cursor movements are throttled to 60fps for UI rendering, but the underlying state tracks at source rate.
+2. **File Size Limits & Chunking:** For files >1MB, the viewer falls back to virtual scrolling. It dynamically requests visible line ranges from the Brain's caching layer rather than loading the entire buffer into UI memory.
+3. **Syntax Highlighting Rules:** Uses a bundled set of common Tree-sitter grammars (Rust, TS, Python, Go, C). If a grammar is missing, falls back to plain text.
+4. **Selection & Prompt Integration:** When text is highlighted in the File Context Pane, a `[Stage Selection]` chip appears. Clicking it injects a blockquote of the selection with its line numbers into the `[AI]` prompt buffer.
+5. **File Change Detection:** Polling is handled by the `IDEStateCurator` or local `inotify`. When a file is modified externally, the pane subtly highlights the changed hunks.
 
 ---
 
@@ -2028,3 +1799,262 @@ Synchronization via:
 - File system watches (inotify / FSEvents)
 - IPC updates between sectors on same machine
 - For remote: TOS Remote Server protocol (see Architecture §12)
+
+
+### 7.7 Workflow Example: Task-Driven Development
+
+#### 7.7.1User Scenario
+
+**Tim is working on a TOS project with a Kanban board tracking multiple tasks.**
+
+#### 7.7.2Step-by-Step Execution
+
+#### Step 1: Activate Kanban Task
+
+```
+Level 2: Kanban Board (TOS)
+┌──────────────────────────────────┐
+│ Sprint: Auth Refactor            │
+│ ┌────────────────────────────────┐│
+│ │ Task: Refactor HMAC validation ││
+│ │ Status: ⏳ In Progress          ││
+│ │                                ││
+│ │ Agents:                        ││
+│ │  + Security-Conscious Dev      ││
+│ │  + Code Auditor                ││
+│ │  + Performance Reviewer        ││
+│ │                                ││
+│ │ [⧉ Open in Zed] [Monitor]      ││
+│ └────────────────────────────────┘│
+└──────────────────────────────────┘
+
+User clicks: [⧉ Open in Zed]
+```
+
+#### Step 2: Cortex Activation Event
+
+**TOS Brain (Cortex) fires:**
+
+```json
+{
+  "event": "task_activated",
+  "event_source": "kanban",
+  "task_id": "AUTH-REFACTOR-003",
+  "agents": ["security-conscious-dev", "code-auditor", "performance-reviewer"],
+  "file": "src/auth/hmac.rs"
+}
+```
+
+#### Step 3: IDE Executor Routes to IDE Integration Service
+
+**Cortex Action:** `ide_context_update`
+
+```json
+{
+  "type": "action",
+  "target": "ide",
+  "action": "set_agent_context",
+  "agents": [
+    {
+      "id": "security-conscious-dev",
+      "system_prompt": "You are a security-conscious developer...",
+      "constraints": ["Always use constant-time comparisons..."],
+      "efficiency": [...]
+    },
+    // ... other agents
+  ],
+  "task_context": {...}
+}
+```
+
+#### Step 4: IDE Integration Service Receives & Routes
+
+```
+IDE Integration Service receives set_agent_context action
+  ↓
+Identifies active IDE: Zed
+  ↓
+Routes via Cortex API to Zed Extension
+  ↓
+Zed Extension receives agent context
+  ↓
+Merges system prompts
+  ↓
+Writes to ~/.config/zed/tos-ai-context.json
+  (or injects via future Zed extension API)
+```
+
+#### Step 5: IDE Action - Open File
+
+**Same action includes:**
+
+```json
+{
+  "type": "action",
+  "target": "ide",
+  "action": "open_file",
+  "params": {
+    "path": "src/auth/hmac.rs",
+    "line": 1
+  }
+}
+```
+
+Zed Extension executes: `zed::open_file("src/auth/hmac.rs", 1)`
+
+**User sees:** Zed opens with src/auth/hmac.rs
+
+#### Step 6: File Context Pane Syncs
+
+**TOS File Context Pane (L2):**
+
+```
+File Context Pane
+┌─────────────────────────────────┐
+│ src/auth/hmac.rs                │
+│ [in Zed — unsaved: 0 hunks]     │
+│                                 │
+│  1  import hashlib              │
+│  2  import hmac                 │
+│  3                              │
+│ ...                             │
+│                                 │
+│ [⧉ Edit in Zed] [Switch IDE]    │
+└─────────────────────────────────┘
+
+Subscribes to IDE State Curator:
+- Real-time cursor position display
+- Unsaved indicator
+- Diagnostics from Zed's LSP
+```
+
+#### Step 7: User Edits in Zed (with Agent Persona)
+
+**User types:**
+
+```rust
+// src/auth/hmac.rs:42
+fn validate_hmac(sig: &str, key: &str) -> bool {
+    sig == key  // ← Cursor here
+}
+```
+
+**Zed AI (running with security-conscious persona):**
+
+```
+💡 [Zed AI Chat] Security Issue
+
+Based on the security-conscious persona from task AUTH-REFACTOR-003:
+
+Timing Attack Vulnerability
+
+The standard == operator compares strings byte-by-byte and stops at 
+the first mismatch. This timing variation leaks information about 
+which byte differs, enabling timing attacks against cryptographic 
+signatures.
+
+Your "Security-Conscious Dev" constraint requires: 
+"Always use constant-time comparisons for sensitive data"
+
+Suggested fix:
+
+```rust
+fn validate_hmac(sig: &str, key: &str) -> bool {
+    hmac::compare_digest(sig.as_bytes(), key.as_bytes())
+}
+```
+
+[Accept] [Refine] [Explain]
+```
+
+#### Step 8: User Accepts, File Updates
+
+**User clicks [Accept]**
+
+Zed's AI applies the suggestion. File is modified.
+
+**IDE State Curator reports:**
+```json
+{
+  "event": "file_modified",
+  "file": "src/auth/hmac.rs",
+  "hunk_count": 1,
+  "unsaved_changes": true
+}
+```
+
+**File Context Pane (L2) updates:**
+```
+src/auth/hmac.rs [in Zed — unsaved: 1 hunk] 🔄
+```
+
+#### Step 9: Prompt Integration
+
+**User in TOS L2 Command Hub types:**
+
+```
+prompt > cargo test
+```
+
+Executes in context where file modifications are tracked.
+
+#### Step 10: Task Completion
+
+**User marks task complete in Kanban:**
+
+```
+prompt > task complete AUTH-REFACTOR-003
+```
+
+**Cortex fires:**
+
+```json
+{
+  "event": "task_completed",
+  "task_id": "AUTH-REFACTOR-003",
+  "file": "src/auth/hmac.rs",
+  "changes_summary": {
+    "lines_added": 3,
+    "lines_removed": 1,
+    "agents_used": ["security-conscious-dev", "code-auditor"],
+    "ai_interactions": 4
+  }
+}
+```
+
+**IDE Integration Service receives:**
+
+```json
+{
+  "type": "action",
+  "target": "ide",
+  "action": "clear_agent_context"
+}
+```
+
+**Zed Extension clears agent context**, returns to default user configuration.
+
+**Dream Memory captures:**
+
+```json
+{
+  "task_id": "AUTH-REFACTOR-003",
+  "title": "Refactor HMAC validation",
+  "resolution": {
+    "agent_decisions": [
+      "Used constant-time comparison (hmac.compare_digest) to prevent timing attacks",
+      "Added cryptographic safety constraints to signature validation"
+    ],
+    "patterns_learned": [
+      "security-conscious-dev persona is effective for cryptographic code",
+      "code-auditor helps catch edge cases in error handling"
+    ],
+    "time_spent": "47 minutes",
+    "file_changes": ["src/auth/hmac.rs"]
+  }
+}
+```
+
+---
+
+

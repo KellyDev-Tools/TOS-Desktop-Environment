@@ -194,7 +194,416 @@ The Brain broadcasts state updates as JSON deltas to minimize bandwidth. A delta
 - **Query:** `log_query:{"surface": "browser", "since": "-10m", "limit": 50}`
 - **Response:** `{"query_id": "uuid", "results": [{"ts": 1709299400, "level": "INFO", "source": "browser", "event": "navigation", "data": "https://..."}]}`
 
-### 3.4 Face Disconnected Mode
+### 3.4 Cortex Integration with External Systems
+
+#### 3.4.1 Key Design Principles
+
+##### 3.4.1.1Terminal First, Always
+
+IDEs are Level 3 (Application Focus) applications. The **terminal at Level 2** is the primary interaction surface. IDEs are *augmentations*, not replacements.
+
+##### 3.4.1.2STAGE, NEVER RUN
+
+All IDE actions are staged in the prompt before execution. Users see what will change. Users approve before changes happen.
+
+##### 3.4.1.3Modular Stacking
+
+Agent personas are **composable stacks** of identity, constraints, and efficiency rules. New agents don't require code changes. Agents are **first-class marketplace items**.
+
+##### 3.4.1.4Transparent Orchestration
+
+Users can see:
+- Which agents are active (for the current task)
+- What IDE operations are staged
+- Which files are being modified
+- What task context is being used
+
+##### 3.4.1.5IDE Polyglot Support
+
+Users can use **any IDE they prefer**. TOS doesn't mandate Zed, Vim, or VS Code. The same workflow works with any supported IDE.
+
+##### 3.4.1.6Unified AI Voice
+
+The **same AI persona** speaks across:
+- TOS chat (Level 2)
+- IDE suggestions (Level 3)
+- Terminal completions (Level 2)
+
+---
+
+
+
+#### 3.4.2 Core Architecture Decision
+
+##### 3.4.2.1Problem Statement
+
+**Original Approach:**
+- TOS would include a built-in code editor pane at Level 2
+- Requires maintenance of syntax highlighting, LSP integration, multi-cursor, refactoring
+- ~5,000 lines of new code; opportunity cost vs. TOS's core mission
+
+**IDE Integration Dilemma:**
+- Separate "IDE Integration Protocol" + Cortex = two orchestration systems
+- Agents cannot directly invoke IDE actions
+- IDE state is external to Cortex context
+- Redundant infrastructure for state management and IPC
+
+##### 3.4.2.2Decision: IDE Integration as Cortex Subsystem
+
+**IDEs are not external tools—they are orchestration components within Cortex.**
+
+```
+┌──────────────────────────────────────────┐
+│            Cortex Layer                  │
+│ ┌──────────────┐      ┌────────────────┐ │
+│ │ Assistants   │      │ Curators       │ │
+│ │ + Agents     │      │ - Filesystem   │ │
+│ │              │      │ - Terminal     │ │
+│ │              │      │ - Git          │ │
+│ │              │      │ - IDE State ✨ │ │
+│ └──────────────┘      └────────────────┘ │
+│                                          │
+│ ┌──────────────────────────────────────┐ │
+│ │ Action Executors                     │ │
+│ │ - Terminal (shell commands)          │ │
+│ │ - Workflow (agent sequencing)        │ │
+│ │ - IDE (editor operations) ✨         │ │
+│ └──────────────────────────────────────┘ │
+└──────────────────────────────────────────┘
+```
+
+**Benefits:**
+- ✅ Agents directly invoke IDE actions
+- ✅ IDE state is a queryable context source
+- ✅ Single IPC protocol (Cortex API)
+- ✅ Scalable: new IDEs integrate without core changes
+
+##### 3.4.2.3Scope: What TOS Does NOT Build
+
+TOS **removes** from its responsibility:
+- ❌ Full-featured code editor (syntax highlighting, multi-cursor, refactoring)
+- ❌ Language-specific IDE features
+- ❌ LSP Management (`.tos-language` modules are deprecated for LSP and used only for simple Level 2 syntax highlighting)
+
+---
+
+
+
+#### 3.4.3 IDE Integration Model
+
+##### 3.4.3.1Three-Layer Integration
+
+```
+┌──────────────────────────────────────┐
+│ Layer 1: IDE Plugin/Extension        │
+│ (Vim plugin, Zed extension, etc.)    │
+└──────────────────────────────────────┘
+↓ (IPC: sockets/shared memory)
+┌──────────────────────────────────────┐
+│ Layer 2: IDE Integration Service     │
+│ (TOS daemon subprocess)              │
+└──────────────────────────────────────┘
+↓ (Cortex API: MCP/JSON-RPC)
+┌──────────────────────────────────────┐
+│ Layer 3: Cortex (TOS Brain)          │
+└──────────────────────────────────────┘
+```
+
+##### 3.4.3.2Supported IDEs (Priority Order)
+
+**Phase 1 (MVP):**
+1. **Neovim** (Lua plugin) — simplest, terminal-native, testing ground
+2. **Zed** (Rust extension) — native ecosystem, strong AI integration
+
+**Phase 2:**
+3. **Vim** (VimScript plugin) — similar to Neovim but older API
+4. **Emacs** (elisp package) — Lisp community support
+
+**Phase 3 (Community & Fallbacks):**
+5. **VS Code** (TypeScript extension)
+6. **Local Mobile Fallback (Native Android Editor):** A lightweight, native Android text editor that registers via the `IDE Integration Protocol` to ensure offline, local editing works when no desktop instance can be streamed to the Handheld/XR profiles.
+
+---
+
+
+
+#### 3.4.4 Cortex Expansion
+
+##### 3.4.4.1New Curator: IDE State Curator
+
+**Purpose:** Expose current editor state to Cortex agents.
+
+**Provided Context:**
+| Field | Type | Purpose |
+|:---|:---|:---|
+| `current_file` | object | What is being edited |
+| `cursor_position` | object | Where is cursor |
+| `selection` | string | Selected text |
+| `unsaved_changes` | object | Unsaved state (hunk counts) |
+| `diagnostics` | array | Lint/error info provided entirely by the IDE |
+
+##### 3.4.4.2New Action Target: IDE Action Executor
+
+**Purpose:** Execute orchestrated operations in the IDE. Uses context-aware matching instead of absolute line numbers to mitigate race conditions.
+
+**Action Types:**
+
+| Action | Parameters | Description | Confirm? |
+|:---|:---|:---|:---|
+| `open_file` | `path, search_pattern?` | Open file at position | No |
+| `goto_line` | `search_pattern` | Jump to match | No |
+| `select_range` | `start_pattern, end_pattern` | Select text range | No |
+| `insert_text` | `search_pattern, expected_context_before, expected_context_after, text` | Insert text safely | Yes |
+| `replace_range` | `search_pattern, expected_context_before, expected_context_after, text` | Replace text safely | Yes |
+| `open_diff` | `target_file, proposed_content` | Open IDE's native diff viewer for Vibe Coder review | Yes |
+| `run_command` | `command, context?` | Run IDE command (format, lint, build) | Yes |
+| `save_all` | `none` | Trigger save across all buffers | No |
+
+**Race Condition Handling:** If an agent attempts `insert_text` but the `expected_context_before` no longer matches the active buffer (e.g., user kept typing), the IDE Plugin returns an `action_error`. The Cortex intercepts this, interrupts the agent, and triggers a re-read of the `IDEStateCurator` to try again.
+
+---
+
+
+
+#### 3.4.5 IDE State Curator
+
+(See previous draft for Data Model and Polling Updates. No structural changes needed beyond adding hashed state verifications for race-condition tracking.)
+
+---
+
+
+
+#### 3.4.6 IDE Action Executor
+
+##### 3.4.6.1Confirmation & Safety
+
+**Staging Philosophy:** "STAGE, NEVER RUN"
+
+All destructive IDE actions are **staged in the prompt** before execution. 
+
+When the Vibe Coder AI proposes a change, it executes an `open_diff` action. The IDE opens a native diff view, and the user accepts or rejects the change directly in the IDE UI or via the TOS prompt. 
+
+##### 3.4.6.2 Context Mismatch Error Recovery
+
+**Race Condition Handling:**
+If an agent attempts `insert_text` but the `expected_context_before` no longer matches the active buffer (e.g., user kept typing), the error recovery loop triggers:
+1. IDE Plugin detects context mismatch.
+2. Returns `action_error` with expected/actual context.
+3. Cortex catches the error.
+4. If `retry_count < 3`:
+   - Force agent to re-read IDEStateCurator (fresh state).
+   - Agent re-plans action with current context.
+   - Retry action execution.
+5. If `retry_count >= 3`:
+   - Fail with user-friendly error chip.
+   - Show suggestions (Did you mean X? Try Y?).
+
+---
+
+
+
+#### 3.4.7 Cross-Device Session Handoff
+
+To preserve work when jumping between devices (e.g., moving from laptop to phone), the `tos-sessiond` requires an explicit handshake with the IDE.
+
+**The Protocol (Handoff Flow):**
+1. User requests session handoff (`session_handoff:<sector_id>`).
+2. Brain queries: `IDEStateCurator.unsaved_changes()`.
+3. If there are unsaved files:
+   - Dispatch `save_all` action → wait for result.
+4. Check `save_all` result:
+   - **success**: Continue to step 5.
+   - **partial_success**: Abort, show error chip with failed files.
+   - **error**: Abort, show error chip with recovery options (`[Fix & Retry]` or `[Force Handoff]`).
+5. Capture file state, context, agents.
+6. Generate handoff token.
+7. Mobile device receives & resumes session.
+
+---
+
+
+
+#### 3.4.8 Implementation Architecture
+
+##### 3.4.8.1System Components
+
+```
+┌─────────────────────────────────────────────────┐
+│            TOS Brain (Rust)                     │
+│                                                 │
+│  ┌──────────────────────────────────────────┐   │
+│  │ Cortex Layer                             │   │
+│  │ ├─ Assistants (LLM backends)             │   │
+│  │ ├─ Curators                              │   │
+│  │ │  ├─ Filesystem                         │   │
+│  │ │  ├─ Terminal                           │   │
+│  │ │  ├─ Git                                │   │
+│  │ │  └─ IDE State ✨                       │   │
+│  │ ├─ Agents (instruction stacks)           │   │
+│  │ └─ Action Executors                      │   │
+│  │    ├─ Terminal (shell)                   │   │
+│  │    ├─ Workflow (agents)                  │   │
+│  │    └─ IDE ✨                             │   │
+│  └──────────────────────────────────────────┘   │
+│                                                 │
+│  IPC: Cortex API (MCP / JSON-RPC)               │
+└─────────────────────────────────────────────────┘
+         ↓ ↑ (socket: ide-integration.sock)
+┌─────────────────────────────────────────────────┐
+│   IDE Integration Service (Rust daemon)         │
+│                                                 │
+│  ┌──────────────────────────────────────────┐   │
+│  │ IDE Plugin Bridge                        │   │
+│  │ ├─ Receive state from IDE plugins        │   │
+│  │ ├─ Aggregate multi-IDE state             │   │
+│  │ └─ Route Cortex actions to IDEs          │   │
+│  └──────────────────────────────────────────┘   │
+│                                                 │
+│  IPC: Plugin sockets (per IDE)                  │
+└─────────────────────────────────────────────────┘
+         ↓ ↑ (socket: per IDE)
+┌─────────────────────────────────────────────────┐
+│      IDE Instances (Zed, Vim, Neovim, etc.)    │
+│                                                 │
+│  ┌──────────────┐ ┌──────────┐ ┌──────────┐    │
+│  │ Zed+Extension│ │ Vim+Plugin│ │Neovim etc│    │
+│  │ ├─ Monitor   │ │├─ Monitor │ │├─ Monitor │   │
+│  │ │  cursor    │ ││ state    │ ││ state   │    │
+│  │ ├─ Listen    │ │├─ Listen  │ │├─ Listen  │   │
+│  │ │  actions   │ ││ for acts │ ││ for acts│    │
+│  │ └─ Execute   │ │└─ Execute │ │└─ Execute│    │
+│  │    in IDE    │ │   in IDE  │ │   in IDE │    │
+│  └──────────────┘ └──────────┘ └──────────┘    │
+└─────────────────────────────────────────────────┘
+```
+
+##### 3.4.8.2File & Module Organization
+
+```
+TOS codebase (Rust)
+├── crates/
+│   ├── tos-brain/
+│   │   └── src/
+│   │       ├── cortex/
+│   │       │   ├── curators/
+│   │       │   │   ├── filesystem.rs
+│   │       │   │   ├── terminal.rs
+│   │       │   │   ├── git.rs
+│   │       │   │   └── ide_state.rs ✨ (NEW)
+│   │       │   ├── executors/
+│   │       │   │   ├── terminal.rs
+│   │       │   │   ├── workflow.rs
+│   │       │   │   └── ide.rs ✨ (NEW)
+│   │       │   └── agent_stack.rs
+│   │       │
+│   │       └── face/
+│   │           ├── pane_types/
+│   │           │   ├── terminal.rs
+│   │           │   ├── file_context.rs ✨ (NEW)
+│   │           │   └── ...
+│   │           │
+│   │           └── views/
+│   │               ├── editor.rs ❌ (REMOVED)
+│   │               └── ...
+│   │
+│   └── tos-ide-integration/ ✨ (NEW crate)
+│       ├── src/
+│       │   ├── lib.rs
+│       │   ├── service.rs (main daemon)
+│       │   ├── plugin_bridge.rs
+│       │   ├── protocol.rs (IDE IPC protocol)
+│       │   ├── ide/
+│       │   │   ├── mod.rs
+│       │   │   ├── zed.rs
+│       │   │   ├── neovim.rs
+│       │   │   ├── vim.rs
+│       │   │   └── emacs.rs
+│       │   └── action_router.rs
+│       │
+│       └── plugins/ ✨ (IDE plugin code)
+│           ├── zed-extension/
+│           │   ├── Cargo.toml
+│           │   ├── src/
+│           │   │   └── lib.rs
+│           │   └── extension.toml
+│           │
+│           ├── nvim-plugin/
+│           │   ├── lua/
+│           │   │   ├── tos-integration/
+│           │   │   │   ├── init.lua
+│           │   │   │   ├── state_reporter.lua
+│           │   │   │   ├── action_dispatcher.lua
+│           │   │   │   └── protocol.lua
+│           │   │   └── ...
+│           │   └── plugin/tos-integration.lua
+│           │
+│           ├── vim-plugin/
+│           │   ├── plugin/tos.vim
+│           │   ├── autoload/tos/
+│           │   │   ├── state.vim
+│           │   │   ├── protocol.vim
+│           │   │   └── actions.vim
+│           │   └── ...
+│           │
+│           └── emacs/
+│               ├── tos-integration.el
+│               └── ...
+```
+
+##### 3.4.8.3Socket Protocol: IDE ↔ IDE Integration Service
+
+**Socket Location:** `~/.tos/ide-{IDE_NAME}.sock` (Unix domain socket)
+
+**Message Format:** Line-delimited JSON
+
+**Handshake (IDE Plugin → Service):**
+```json
+// IDE plugin connects
+{"type": "register", "ide": "zed", "version": "1.0", "pid": 1234}
+
+// Service acknowledges
+{"type": "ready", "service_version": "0.1"}
+```
+
+**State Reports (IDE Plugin → Service, continuous):**
+```json
+// On cursor move
+{"type": "state_update", "event": "cursor_moved", "file": "src/main.rs", "line": 42, "col": 10}
+
+// On file save
+{"type": "state_update", "event": "file_saved", "file": "src/main.rs"}
+
+// On unsaved changes
+{"type": "state_update", "event": "buffer_modified", "file": "src/main.rs", "hunk_count": 3}
+```
+
+**Action Commands (Service → IDE Plugin):**
+```json
+// Open file at line
+{"type": "action", "id": "act-42", "action": "open_file", "path": "src/main.rs", "line": 42}
+
+// IDE plugin executes, sends back result
+{"type": "action_result", "id": "act-42", "status": "success", "message": "File opened"}
+
+// On error
+{"type": "action_result", "id": "act-42", "status": "error", "error": "File not found: src/main.rs"}
+```
+
+##### 3.4.8.4 IDE Integration Service Daemon Specification
+
+The IDE Integration Service handles state aggregation and multi-IDE coordination:
+1. **Daemon Lifecycle**: Started by Brain on startup. Restarts automatically on failure.
+2. **Socket Protocol**: Line-delimited JSON over Unix domain sockets (`~/.tos/ide-{IDE_NAME}.sock`).
+3. **IDE Registration**: Plugins explicitly connect, pass PID, and maintain a heartbeat.
+4. **State Aggregation**: The service tracks the *active* IDE based on the most recent focus or typing event and aggregates that state to the `IDEStateCurator`.
+5. **Action Routing**: Dispatches `Cortex` actions to the currently active IDE plugin.
+6. **Error Handling**: Handles disconnected sockets, IDE crashes, and plugin timeouts gracefully, notifying the Brain of IDE unavailability.
+
+---
+
+
+
+### 3.5 Face Disconnected Mode
 
 The Face must operate gracefully when no Brain is reachable. This section defines the connection lifecycle, visual states, degraded capabilities, and reconnection logic for a Face that has lost contact with its Brain — or never had one.
 

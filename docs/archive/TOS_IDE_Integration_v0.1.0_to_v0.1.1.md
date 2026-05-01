@@ -1,4 +1,4 @@
-# TOS IDE Integration & Cortex Architecture updates from TOS v0.1 to TOS v0.1.1
+# TOS IDE Integration & Cortex Architecture updates from TOS v0.1.0 to TOS v0.1.1
  
 **Date:** April 30, 2026  
 **Status:** Design Phase (Ready for Implementation)  

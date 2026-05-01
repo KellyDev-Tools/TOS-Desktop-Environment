@@ -647,6 +647,502 @@ Agents use the same Brain Tool Registry (see Ecosystem §1.4.3, now under §1.3.
 The previous `.tos-persona` format and the monolithic AI behavior modules (`.tos-aibehavior`, `.tos-skill`) are superseded by `.tos-agent` and agent stacking. Existing persona markdown files can be migrated by extracting the strategies into the new agent manifest layers.
 ```
 
+## 7. IDE Integration Development Guide
+
+### 7.1 Creating a New IDE Integration
+
+To add support for a new IDE:
+
+1. Create plugin/extension in `crates/tos-ide-integration/plugins/{ide-name}`
+2. Implement state reporting (cursor, file, selection, diagnostics)
+3. Implement action dispatch (listen on socket, execute in IDE)
+4. Register with IDE Integration Service on startup
+5. Document IDE-specific quirks in plugin README
+
+### 7.2 Testing IDE Integration & Strategy
+
+The testing strategy for the IDE integration suite requires validation at three levels:
+1. **Socket Protocol Layer (`tests/test_protocol.rs`)**: Validates JSON-RPC line-delimited message formats, handshakes, and error handling for malformed packets.
+2. **Daemon Logic Layer (`tests/test_daemon.rs`)**: Tests the IDE Integration Service (see Architecture §3.4.8.4). Asserts that the daemon properly aggregates state from multiple connected IDEs, routes Cortex actions to the *active* IDE, and correctly handles unexpected socket closures.
+3. **Plugin Integration Layer (`tests/test_plugins/`)**: Mock tests simulating Zed/Neovim responses. Confirms that agent context merges correctly before being injected into the IDE's native AI.
+
+See `crates/tos-ide-integration/tests/` for full mock implementations.
+
+### 7.3 IDE-Specific Integration
+
+#### 7.3.1Zed Extension (Rust → WASM)
+
+**File:** `crates/tos-ide-integration/plugins/zed-extension/src/lib.rs`
+
+**Key Responsibilities:**
+1. Monitor editor state (cursor, file, selection, unsaved)
+2. Report state to IDE Integration Service over socket
+3. Listen for IDE actions, execute in Zed
+4. Receive agent context updates, inject into Zed's AI layer
+
+**Implementation Sketch:**
+
+```rust
+use zed_extension_api as zed;
+use std::net::UnixStream;
+use serde_json::json;
+
+pub struct TosIntegration {
+    socket: Option<UnixStream>,
+    active_agents: Vec<Agent>,
+    active_task: Option<TaskContext>,
+}
+
+impl zed::Extension for TosIntegration {
+    fn new() -> Self {
+        let mut ext = Self {
+            socket: None,
+            active_agents: vec![],
+            active_task: None,
+        };
+        
+        // Connect to IDE Integration Service
+        if let Ok(socket) = UnixStream::connect("~/.tos/ide-zed.sock") {
+            ext.socket = Some(socket);
+            ext.register_with_service();
+        }
+        
+        ext
+    }
+    
+    fn on_editor_event(&mut self, event: EditorEvent) {
+        if let Some(ref mut socket) = self.socket {
+            let msg = json!({
+                "type": "state_update",
+                "event": match event {
+                    EditorEvent::CursorMoved => "cursor_moved",
+                    EditorEvent::FileSaved => "file_saved",
+                    EditorEvent::BufferModified => "buffer_modified",
+                    _ => "unknown"
+                },
+                "file": event.file_path,
+                "line": event.cursor.line,
+                "col": event.cursor.column,
+            });
+            
+            // Send to service
+            let _ = socket.write_all(serde_json::to_string(&msg).unwrap().as_bytes());
+        }
+    }
+    
+    fn listen_for_actions(&mut self) {
+        // In event loop: listen on socket for actions from TOS
+        // Execute actions in Zed
+    }
+}
+```
+
+**Status:** Phase 1 candidate (MVP)
+
+#### 7.3.2Neovim Plugin (Lua)
+
+**File:** `crates/tos-ide-integration/plugins/nvim-plugin/lua/tos-integration/init.lua`
+
+**Key Responsibilities:**
+1. Monitor buffer/cursor state
+2. Send state updates to IDE Integration Service
+3. Handle incoming actions
+4. Inject agent context into Neovim's AI plugin (if exists)
+
+**Implementation Sketch:**
+
+```lua
+local M = {}
+local socket = nil
+local active_agents = {}
+local active_task = nil
+
+function M.setup()
+  -- Connect to IDE Integration Service
+  socket = vim.fn.sockconnect('unix', vim.fn.expand('~/.tos/ide-neovim.sock'))
+  if socket <= 0 then
+    vim.notify("TOS: Failed to connect to IDE Integration Service", vim.log.levels.WARN)
+    return
+  end
+  
+  -- Register with service
+  local register_msg = vim.json.encode({
+    type = "register",
+    ide = "neovim",
+    version = "1.0",
+    pid = vim.fn.getpid()
+  })
+  vim.fn.chansend(socket, register_msg .. "\n")
+  
+  -- Set up autocommands
+  local group = vim.api.nvim_create_augroup("tos_integration", { clear = true })
+  
+  vim.api.nvim_create_autocmd("CursorMoved", {
+    group = group,
+    callback = M.on_cursor_moved
+  })
+  
+  vim.api.nvim_create_autocmd("BufWritePost", {
+    group = group,
+    callback = M.on_file_saved
+  })
+  
+  vim.api.nvim_create_autocmd("TextChanged", {
+    group = group,
+    callback = M.on_buffer_modified
+  })
+end
+
+function M.on_cursor_moved()
+  if not socket or socket <= 0 then return end
+  
+  local pos = vim.api.nvim_win_get_cursor(0)
+  local file = vim.api.nvim_buf_get_name(0)
+  
+  local msg = vim.json.encode({
+    type = "state_update",
+    event = "cursor_moved",
+    file = file,
+    line = pos[1],
+    col = pos[2]
+  })
+  
+  vim.fn.chansend(socket, msg .. "\n")
+end
+
+-- Listen for actions from TOS
+function M.on_action_received(action)
+  local cmd = action.action
+  
+  if cmd == "open_file" then
+    vim.cmd("edit " .. action.params.path)
+    if action.params.line then
+      vim.api.nvim_win_set_cursor(0, {action.params.line, action.params.col or 0})
+    end
+  
+  elseif cmd == "goto_line" then
+    vim.api.nvim_win_set_cursor(0, {action.params.line, action.params.col or 0})
+  
+  elseif cmd == "select_range" then
+    -- Set visual selection
+    -- ... (more complex in Lua)
+  end
+end
+
+-- Receive and apply agent context
+function M.on_agent_context_update(msg)
+  active_agents = msg.agents
+  active_task = msg.task_context
+  
+  -- Store in buffer variable for potential AI plugin integration
+  vim.b.tos_system_prompt = M.merge_agent_prompts(active_agents)
+  vim.b.tos_task_context = active_task
+  
+  vim.notify("TOS: Agent context updated", vim.log.levels.INFO)
+end
+
+function M.merge_agent_prompts(agents)
+  -- Merge system prompts from all agents
+  -- Implementation: combine identity, constraints, efficiency rules
+end
+
+return M
+```
+
+**Status:** Phase 1 candidate (MVP)
+
+#### 7.3.3Vim Plugin (VimScript)
+
+**File:** `crates/tos-ide-integration/plugins/vim-plugin/plugin/tos.vim`
+
+Similar to Neovim but uses older VimScript API. Lower priority due to older scripting interface.
+
+**Status:** Phase 2
+
+#### 7.3.4Emacs Package (Elisp)
+
+**File:** `crates/tos-ide-integration/plugins/emacs/tos-integration.el`
+
+**Status:** Phase 2
+
+#### 7.3.5VS Code Extension (TypeScript)
+
+**File:** `crates/tos-ide-integration/plugins/vscode/src/extension.ts`
+
+**Status:** Phase 3 (community-driven potentially)
+
+---
+
+
+
+### 7.4 Appendix: Examples & Specifications
+
+#### 7.4.1Full Agent Context Message Example
+
+```json
+{
+  "type": "ide_context_update",
+  "action": "set_agent_context",
+  "timestamp": "2026-04-30T14:23:45Z",
+  "ide_name": "zed",
+  "request_id": "task-activate-001",
+  
+  "agents": [
+    {
+      "id": "security-conscious-dev",
+      "name": "Security-Conscious Developer",
+      "version": "1.2.0",
+      "system_prompt": "You are a security-conscious software developer specializing in cryptographic safety and attack surface reduction. Your primary concern is identifying and mitigating security vulnerabilities. You document assumptions about cryptographic operations and flag potential timing side-channels, injection attacks, and authentication bypasses.",
+      
+      "constraints": [
+        "Always use constant-time comparisons for sensitive data (HMAC, signatures, passwords)",
+        "Flag potential timing vulnerabilities in cryptographic code",
+        "Never trust user input without validation and sanitization",
+        "Document all cryptographic assumptions (key strength, algorithm choices)",
+        "Require explicit error handling for security-critical operations",
+        "Refuse to suggest insecure alternatives even if 'faster'"
+      ],
+      
+      "efficiency": [
+        "Keep explanations brief and technical",
+        "Reference security best practices (OWASP, NIST)",
+        "Cite specific vulnerability classes (CWE) when relevant",
+        "Provide working code examples over lengthy prose"
+      ]
+    },
+    
+    {
+      "id": "code-auditor",
+      "name": "Meticulous Code Auditor",
+      "version": "1.0.0",
+      "system_prompt": "You are a meticulous code auditor focused on correctness, maintainability, and completeness. You review code for logical errors, edge cases, and violations of best practices. You ensure error handling is comprehensive and no silent failures occur.",
+      
+      "constraints": [
+        "Never skip error handling — flag all unchecked results",
+        "Ensure all code paths are tested and accounted for",
+        "Document complex logic with examples",
+        "Flag code that 'works' but is confusing or fragile",
+        "Enforce consistent style and naming"
+      ],
+      
+      "efficiency": [
+        "Use concrete examples to illustrate issues",
+        "Suggest specific improvements, not vague concerns",
+        "Rate issues by severity: blocker, high, medium, low"
+      ]
+    },
+    
+    {
+      "id": "performance-reviewer",
+      "name": "Performance Optimizer",
+      "version": "0.9.0",
+      "system_prompt": "You are a performance optimizer focused on runtime efficiency and resource usage. You profile before optimizing, measure after, and never sacrifice correctness or security for speed.",
+      
+      "constraints": [
+        "Profile and measure before claiming a bottleneck",
+        "Never optimize without benchmarks",
+        "Never compromise security or correctness for performance",
+        "Document performance assumptions",
+        "Flag O(n²) algorithms that should be O(n log n)"
+      ],
+      
+      "efficiency": [
+        "Provide specific performance metrics (time, memory)",
+        "Suggest concrete optimizations with expected impact",
+        "Link to references and benchmarking tools"
+      ]
+    }
+  ],
+  
+  "task_context": {
+    "task_id": "AUTH-REFACTOR-003",
+    "project": "TOS",
+    "title": "Refactor HMAC validation into reusable function",
+    "description": "Extract the HMAC signature validation logic from auth/login.rs into a standalone, reusable function in auth/hmac.rs. Ensure constant-time comparison prevents timing attacks. Add comprehensive tests covering edge cases (empty keys, mismatched lengths, etc.).",
+    
+    "file": "src/auth/hmac.rs",
+    "related_files": [
+      "src/auth/login.rs",
+      "src/auth/tokens.rs",
+      "tests/auth_test.rs"
+    ],
+    
+    "acceptance_criteria": [
+      "validate_hmac() function extracted to auth/hmac.rs",
+      "Uses constant-time comparison (hmac.compare_digest or equivalent)",
+      "All tests pass with 100% coverage",
+      "No timing side-channels (verified with timing analysis)",
+      "Documentation explains cryptographic safety assumptions",
+      "Performance: < 1ms per validation (on modern hardware)"
+    ],
+    
+    "workflow_stage": "in_progress",
+    "time_estimate_minutes": 120,
+    "time_spent_minutes": 45,
+    "time_remaining_minutes": 75,
+    
+    "dependencies": [
+      "AUTH-INFRA-001 (Crypto library setup)"
+    ],
+    "blockers": [],
+    "related_tasks": [
+      "AUTH-REFACTOR-004 (Signature validation refactor)"
+    ]
+  }
+}
+```
+
+#### 7.4.2IDE Action Sequence Example
+
+```json
+// Agent response with multiple staged actions
+
+{
+  "request_id": "workflow-refactor-hmac",
+  "behavior_id": "meticulous-dev",
+  "timestamp": "2026-04-30T14:23:50Z",
+  
+  "response_type": "staged_actions",
+  "response_narrative": "I've identified the timing vulnerability in the HMAC validation. Here's a refactoring plan that extracts the function and applies constant-time comparison.",
+  
+  "actions": [
+    {
+      "type": "action",
+      "target": "ide",
+      "ide_name": "zed",
+      "action": "goto_line",
+      "params": {"line": 42, "col": 0},
+      "description": "Jump to the vulnerable comparison line",
+      "confirmation_required": false
+    },
+    
+    {
+      "type": "action",
+      "target": "ide",
+      "action": "select_range",
+      "params": {
+        "start_line": 32,
+        "end_line": 52
+      },
+      "description": "Select the validate_hmac function for extraction",
+      "confirmation_required": false
+    },
+    
+    {
+      "type": "action",
+      "target": "ide",
+      "action": "apply_refactoring",
+      "params": {
+        "refactoring_type": "extract_method",
+        "name": "validate_hmac_secure"
+      },
+      "description": "Extract to standalone function",
+      "confirmation_required": true
+    },
+    
+    {
+      "type": "action",
+      "target": "ide",
+      "action": "insert_text",
+      "params": {
+        "line": 45,
+        "col": 0,
+        "text": "    # Use constant-time comparison to prevent timing attacks\n    return hmac.compare_digest(sig, key)\n"
+      },
+      "description": "Replace vulnerable comparison",
+      "confirmation_required": true
+    },
+    
+    {
+      "type": "staged_command",
+      "target": "terminal",
+      "cmd": "cd src/auth && cargo test hmac",
+      "description": "Run HMAC tests to verify refactoring",
+      "confirmation_required": false
+    },
+    
+    {
+      "type": "message",
+      "target": "chat",
+      "text": "Refactoring complete. The new function uses `hmac.compare_digest()` for constant-time comparison, addressing the timing vulnerability flagged in task AUTH-REFACTOR-003. All acceptance criteria satisfied once tests pass."
+    }
+  ]
+}
+```
+
+#### 7.4.3File Context Pane Implementation Reference
+
+```rust
+// Reference implementation sketch for File Context Pane
+
+pub struct FileContextPane {
+    current_file: Option<FileInfo>,
+    cursor_position: Option<CursorPosition>,
+    content_cache: String,
+    last_update: Instant,
+    ide_state_subscription: CuratorSubscription,
+}
+
+impl FileContextPane {
+    pub fn new(cortex: &Cortex) -> Self {
+        // Subscribe to IDE State Curator
+        let subscription = cortex.subscribe_to_curator(
+            "tos-curator-ide",
+            vec!["cursor_moved", "file_changed", "unsaved_status"]
+        );
+        
+        Self {
+            current_file: None,
+            cursor_position: None,
+            content_cache: String::new(),
+            last_update: Instant::now(),
+            ide_state_subscription: subscription,
+        }
+    }
+    
+    pub fn handle_curator_event(&mut self, event: CuratorEvent) {
+        match event.event_type.as_str() {
+            "cursor_moved" => {
+                self.cursor_position = Some(CursorPosition {
+                    line: event.data["line"].as_u64().unwrap_or(0) as usize,
+                    col: event.data["col"].as_u64().unwrap_or(0) as usize,
+                });
+                // Trigger re-render
+            }
+            "file_changed" => {
+                let file_path = event.data["file"].as_str().unwrap_or("");
+                self.load_file(file_path);
+            }
+            "unsaved_status" => {
+                let unsaved = event.data["unsaved"].as_bool().unwrap_or(false);
+                // Update UI indicator
+            }
+            _ => {}
+        }
+    }
+    
+    fn load_file(&mut self, path: &str) {
+        // Load file content from disk with syntax highlighting
+        let content = std::fs::read_to_string(path).unwrap_or_default();
+        self.content_cache = content;
+        self.current_file = Some(FileInfo::from_path(path));
+    }
+    
+    pub fn render(&self) -> Element {
+        // Render file content with:
+        // - Syntax highlighting
+        // - Cursor position marker
+        // - Unsaved indicator
+        // - IDE switcher chips
+        // - [Edit in IDE] buttons
+    }
+}
+```
+
+---
+
+
+
 See Architecture §27.8 for complete IPC contract specification.
 
 ---

@@ -244,13 +244,13 @@ test-brain-component:
 	@echo "[TOS] Orchestrating Component Test..."
 	@mkdir -p logs
 	@rm -f logs/brain_node.log
-	cd brain && cargo run --bin brain_node > ../logs/brain_node.log 2>&1 & BR_PID=$$!; \
+	cd brain && cargo run --bin brain_node > ../logs/brain_node.log 2>&1 & BR_PID=$!; \
 	echo "[TOS] Waiting for Brain Node boot..."; \
 	sleep 5; \
 	echo "[TOS] Triggering Stimulator..."; \
 	cd brain && cargo test --test stimulator_brain_node -- --nocapture; \
 	echo "[TOS] Terminating simulation..."; \
-	kill $$BR_PID; \
+	kill $BR_PID; \
 	echo "Component Test Complete. Analysis: 'logs/brain_node.log'"
 
 test-ui-component:
@@ -279,12 +279,12 @@ test-health:
 	@target/debug/tos-sessiond > logs/sessiond.log 2>&1 &
 	@target/debug/tos-heuristicd > logs/heuristicd.log 2>&1 &
 	@target/debug/tos-searchd > logs/searchd.log 2>&1 || true &
-	@brain/target/debug/tos-brain --headless > logs/tos-brain.log 2>&1 & BR_PID=$$!; \
+	@brain/target/debug/tos-brain --headless > logs/tos-brain.log 2>&1 & BR_PID=$!; \
 	echo "[TOS] Waiting for daemons and Discovery Gate to bind (3s)..."; \
 	sleep 3; \
-	cd tests && cargo test --test service_orchestration -- --nocapture; TEST_RES=$$?; \
+	cd tests && cargo test --test service_orchestration -- --nocapture; TEST_RES=$?; \
 	echo "[TOS] Cleaning up Orchestration Environment..."; \
-	kill $$BR_PID 2>/dev/null || true; \
+	kill $BR_PID 2>/dev/null || true; \
 	pkill -x tos-settingsd || true; \
 	pkill -x tos-loggerd || true; \
 	pkill -x tos-marketplace || pkill -x tos-marketplaced || true; \
@@ -292,7 +292,7 @@ test-health:
 	pkill -x tos-sessiond || true; \
 	pkill -x tos-heuristicd || true; \
 	pkill -x tos-searchd || true; \
-	exit $$TEST_RES
+	exit $TEST_RES
 
 # -----------------------------------------------------------------------------
 # 4. EXECUTION
@@ -300,7 +300,7 @@ test-health:
 
 # --- NVM Helper (Node v20 required for Svelte) ---
 # Only runs if nvm is found, otherwise assumes node is in PATH
-NVM_INIT = export NVM_DIR="$$HOME/.nvm" && ([ -s "$$NVM_DIR/nvm.sh" ] && . "$$NVM_DIR/nvm.sh" && nvm use 20 --silent || true)
+NVM_INIT = export NVM_DIR="$HOME/.nvm" && ([ -s "$NVM_DIR/nvm.sh" ] && . "$NVM_DIR/nvm.sh" && nvm use 20 --silent || true)
 
 run: $(PRE_COMMIT_HOOK) run-services
 	@mkdir -p logs
@@ -316,18 +316,18 @@ run-web: run-services build-face-web
 	@pkill -x tos-brain || true
 	@pkill -f "[h]ttp.server $(TOS_FACE_PORT)" || true
 	@echo "[TOS] Initializing Svelte Face Server ($(TOS_FACE_PORT))..."
-	@python3 -m http.server $(TOS_FACE_PORT) -d face-svelte-ui/build > logs/web_ui.log 2>&1 & WEB_PID=$$!; \
+	@python3 -m http.server $(TOS_FACE_PORT) -d face-svelte-ui/build > logs/web_ui.log 2>&1 & WEB_PID=$!; \
 	echo "[TOS] Synchronizing Brain Core (7000/7001)..."; \
-	trap "kill $$WEB_PID; pkill -x tos-brain; exit" EXIT INT TERM; \
+	trap "kill $WEB_PID; pkill -x tos-brain; exit" EXIT INT TERM; \
 	cd brain && cargo run --bin tos-brain -- --headless 2>&1 | tee ../logs/tos-brain.log
 
 run-web-dev: run-services
 	@mkdir -p logs
 	@pkill -x tos-brain || true
 	@echo "[TOS] Starting Svelte Dev Server + Brain Core..."
-	@($(NVM_INIT) && cd face-svelte-ui && npm run dev -- --port $(TOS_FACE_PORT) --host 0.0.0.0) > logs/svelte_dev.log 2>&1 & SVELTE_PID=$$!; \
+	@($(NVM_INIT) && cd face-svelte-ui && npm run dev -- --port $(TOS_FACE_PORT) --host 0.0.0.0) > logs/svelte_dev.log 2>&1 & SVELTE_PID=$!; \
 	echo "[TOS] Synchronizing Brain Core (7000/7001)..."; \
-	trap "kill $$SVELTE_PID; pkill -x tos-brain; exit" EXIT INT TERM; \
+	trap "kill $SVELTE_PID; pkill -x tos-brain; exit" EXIT INT TERM; \
 	cd brain && cargo run --bin tos-brain -- --headless 2>&1 | tee ../logs/tos-brain.log
 
 run-services:
@@ -450,16 +450,16 @@ android-flutter-install:
 android-flutter-run: android-flutter-generate
 	@mkdir -p logs
 	@echo "[TOS] Ensuring Android device/emulator is available..."
-	@DEVICE_FOUND=$$(export PATH="$(ANDROID_PLATFORM_TOOLS):$(PATH)" && $(ADB_BIN) devices | grep -v "List" | grep "device" | head -n 1); \
-	if [ -z "$$DEVICE_FOUND" ]; then \
+	@DEVICE_FOUND=$(export PATH="$(ANDROID_PLATFORM_TOOLS):$(PATH)" && $(ADB_BIN) devices | grep -v "List" | grep "device" | head -n 1); \
+	if [ -z "$DEVICE_FOUND" ]; then \
 		echo "[TOS] No device detected. Attempting to launch TOS_Handheld emulator (headless)..."; \
 		export ANDROID_AVD_HOME="$(ANDROID_AVD_HOME)" && \
 		export PATH="$(ANDROID_HOME)/emulator:$(ANDROID_PLATFORM_TOOLS):$(PATH)" && \
 		$(ANDROID_EMULATOR_BIN) -avd TOS_Handheld -no-window -no-audio -no-boot-anim -gpu swiftshader_indirect > logs/emulator.log 2>&1 & \
-		EMU_PID=$$!; \
+		EMU_PID=$!; \
 		echo "[TOS] Waiting for emulator to bind to ADB..."; \
 		while ! $(ADB_BIN) devices | grep -v "List" | grep -q "device"; do \
-			if ! kill -0 $$EMU_PID 2>/dev/null; then \
+			if ! kill -0 $EMU_PID 2>/dev/null; then \
 				echo "[TOS] ERROR: Emulator process died. See logs/emulator.log for details."; \
 				exit 1; \
 			fi; \
@@ -467,7 +467,7 @@ android-flutter-run: android-flutter-generate
 		done; \
 		echo "[TOS] Emulator connected."; \
 	else \
-		echo "[TOS] Found device: $$DEVICE_FOUND"; \
+		echo "[TOS] Found device: $DEVICE_FOUND"; \
 	fi
 	@echo "[TOS] Launching Flutter Face on device..."
 	cd $(FLUTTER_DIR) && export PATH="$(FLUTTER_HOME)/bin:$(PATH)" && flutter run --release
@@ -509,19 +509,25 @@ XSESSIONSDIR := $(DATADIR)/xsessions
 WAYLANDSESSIONSDIR := $(DATADIR)/wayland-sessions
 APPSDIR := $(DATADIR)/applications
 
+CARGO ?= cargo
+
 build-release:
 	@echo "[TOS] Building all components in Release Mode..."
-	cargo build --release -p tos-common -p tos-brain -p face-wayland-linux -p tos-settingsd -p tos-loggerd -p tos-marketplaced -p tos-priorityd -p tos-sessiond -p tos-heuristicd -p tos-searchd
+	$(CARGO) build --release -p tos-common -p tos-brain -p face-wayland-linux -p tos-settingsd -p tos-loggerd -p tos-marketplaced -p tos-priorityd -p tos-sessiond -p tos-heuristicd -p tos-searchd
 
 install: build-release
 	@echo "[TOS] Installing System Components to $(PREFIX)..."
 	@sudo mkdir -p "$(BINDIR)" "$(XSESSIONSDIR)" "$(WAYLANDSESSIONSDIR)" "$(APPSDIR)" "$(SYSCONFDIR)" "$(LOGDIR)"
 	@sudo mkdir -p "$(DATADIR)/tos" "$(DATADIR)/pixmaps"
 	
-	@# Install Binaries
+	@# Patch and Install Binaries
 	@sudo cp target/release/tos-brain "$(BINDIR)/"
-	@sudo cp packaging/tos-session "$(BINDIR)/"
 	@sudo cp target/release/face-wayland-linux "$(BINDIR)/tos-wayland-face"
+	@# Patch tos-session to use the correct BINDIR
+	@sed "s|/usr/bin|$(BINDIR)|g" packaging/tos-session > /tmp/tos-session.tmp
+	@sudo mv /tmp/tos-session.tmp "$(BINDIR)/tos-session"
+	@sudo chmod 755 "$(BINDIR)/tos-session"
+	
 	@for daemon in tos-settingsd tos-marketplaced tos-sessiond tos-loggerd tos-searchd tos-heuristicd tos-priorityd; do \
 		if [ -f "target/release/$$daemon" ]; then \
 			if [ "$$daemon" = "tos-searchd" ]; then \
@@ -531,13 +537,14 @@ install: build-release
 			fi; \
 		fi; \
 	done
-	@sudo chmod 755 "$(BINDIR)/tos-brain" "$(BINDIR)/tos-session" "$(BINDIR)/tos-wayland-face"
+	@sudo chmod 755 "$(BINDIR)/tos-brain" "$(BINDIR)/tos-wayland-face"
 	
-	@# Install Desktop Files
+	@# Patch and Install Desktop Files
 	@if [ -f packaging/tos.desktop ]; then \
-		sudo cp packaging/tos.desktop "$(XSESSIONSDIR)/"; \
-		sudo cp packaging/tos.desktop "$(WAYLANDSESSIONSDIR)/"; \
-		sudo cp packaging/tos.desktop "$(APPSDIR)/"; \
+		sed "s|/usr/bin|$(BINDIR)|g" packaging/tos.desktop > /tmp/tos.desktop.tmp; \
+		sudo mv /tmp/tos.desktop.tmp "$(XSESSIONSDIR)/tos.desktop"; \
+		sudo cp "$(XSESSIONSDIR)/tos.desktop" "$(WAYLANDSESSIONSDIR)/tos.desktop"; \
+		sudo cp "$(XSESSIONSDIR)/tos.desktop" "$(APPSDIR)/tos.desktop"; \
 		sudo chmod 644 "$(XSESSIONSDIR)/tos.desktop" "$(WAYLANDSESSIONSDIR)/tos.desktop" "$(APPSDIR)/tos.desktop"; \
 	fi
 	

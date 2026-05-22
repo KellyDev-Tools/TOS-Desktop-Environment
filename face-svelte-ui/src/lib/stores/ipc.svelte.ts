@@ -33,14 +33,18 @@ export function clearPrediction() {
 
 if (typeof window !== 'undefined') {
     const isElectron = 'tosElectron' in window;
-    const saved = localStorage.getItem('tos_remote_host');
+    let saved = localStorage.getItem('tos_remote_host');
+    if (saved && saved.startsWith('ws://')) {
+        saved = saved.replace('ws://', 'wss://');
+        localStorage.setItem('tos_remote_host', saved);
+    }
     const windowHost = window.location.hostname;
     const isLocalhost = windowHost === 'localhost' || windowHost === '127.0.0.1';
     
     if (isElectron) {
         // Under Electron custom protocols (like tos-app://), windowHost is 'renderer'.
-        // Bypass remote migration overrides completely and prioritize saved url, or fallback to ws (not wss).
-        activeWsUrl = saved || 'ws://127.0.0.1:7001';
+        // Bypass remote migration overrides completely and prioritize saved url, or fallback to wss.
+        activeWsUrl = saved || 'wss://127.0.0.1:7001';
         console.log(`[IPC] Electron detected. Initialized activeWsUrl: ${activeWsUrl}`);
     } else {
         if (saved) {

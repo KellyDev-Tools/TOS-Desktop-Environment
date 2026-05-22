@@ -43,7 +43,7 @@ if (-not (Test-Path $SvelteBuild)) {
 }
 
 # 3. Set environment variable for Electron
-$env:TOS_BRAIN_WS = "ws://${BrainHost}:${BrainPort}"
+$env:TOS_BRAIN_WS = "wss://${BrainHost}:${BrainPort}"
 Write-Host "TOS_BRAIN_WS env var set to: $env:TOS_BRAIN_WS" -ForegroundColor Gray
 
 # 4. Start Electron app

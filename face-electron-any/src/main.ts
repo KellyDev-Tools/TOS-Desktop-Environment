@@ -28,7 +28,7 @@ import { registerDiscoveryHandlers, runFullDiscovery } from './brain-discovery';
 // ─────────────────────────────────────────────────────────────────────────────
 
 const IS_DEV = process.argv.includes('--dev');
-const BRAIN_WS_URL = process.env.TOS_BRAIN_WS ?? 'ws://127.0.0.1:7001';
+const BRAIN_WS_URL = process.env.TOS_BRAIN_WS ?? 'wss://127.0.0.1:7001';
 
 /** Path to the prebuilt Svelte UI renderer */
 function getRendererPath(): string {
@@ -439,4 +439,29 @@ app.on('web-contents-created', (_event, contents) => {
         shell.openExternal(url);
         return { action: 'deny' };
     });
+});
+
+// Allow self-signed certificates for local/LAN Brain connections
+app.on('certificate-error', (event, _webContents, url, _error, _certificate, callback) => {
+    try {
+        const parsedUrl = new URL(url);
+        const host = parsedUrl.hostname;
+        if (
+            host === '127.0.0.1' ||
+            host === 'localhost' ||
+            host === '::1' ||
+            host.startsWith('192.168.') ||
+            host.startsWith('10.') ||
+            host.startsWith('172.16.') ||
+            host.endsWith('.local')
+        ) {
+            console.log(`[Electron] Allowing self-signed certificate for: ${url}`);
+            event.preventDefault();
+            callback(true);
+            return;
+        }
+    } catch (e) {
+        console.error('[Electron] Error parsing URL in certificate-error handler:', e);
+    }
+    callback(false);
 });

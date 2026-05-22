@@ -172,6 +172,14 @@ if [ "$IS_WINDOWS" = false ]; then
         arch|manjaro|endeavouros)
             install_arch
             ;;
+        nixos)
+            echo "=========================================================="
+            echo "Detected NixOS!"
+            echo "Please run inside a Nix development shell instead of installing global packages."
+            echo "You can launch the development shell with:"
+            echo "  nix-shell -p gnumake rustc cargo pkg-config openssl alsa-lib libxkbcommon wayland"
+            echo "=========================================================="
+            ;;
         *)
             echo "Unsupported OS: $OS. Please install dependencies manually."
             echo "Required: wayland, wayland-protocols, libxkbcommon, rust/cargo."

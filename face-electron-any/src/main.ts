@@ -28,6 +28,9 @@ import { registerDiscoveryHandlers, runFullDiscovery } from './brain-discovery';
 // ─────────────────────────────────────────────────────────────────────────────
 
 const IS_DEV = process.argv.includes('--dev');
+if (IS_DEV) {
+    app.commandLine.appendSwitch('ignore-certificate-errors');
+}
 const BRAIN_WS_URL = process.env.TOS_BRAIN_WS ?? 'wss://127.0.0.1:7001';
 
 /** Path to the prebuilt Svelte UI renderer */

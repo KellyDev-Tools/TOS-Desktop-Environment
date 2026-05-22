@@ -80,9 +80,97 @@
 		}
 	}
 
-	function cleanAnsi(text: string): string {
+	function escapeHtml(text: string): string {
+		return text
+			.replace(/&/g, '&amp;')
+			.replace(/</g, '&lt;')
+			.replace(/>/g, '&gt;')
+			.replace(/"/g, '&quot;')
+			.replace(/'/g, '&#039;');
+	}
+
+	function cleanAnsiHtml(text: string): string {
 		if (!text) return '';
-		return text.replace(/[\u001b\u009b][[()#;?]*(?:[0-9]{1,4}(?:;[0-9]{0,4})*)?[0-9A-ORZcf-nqry=><]/g, '');
+
+		// Strip cursor positioning, screen clears, etc., but keep styling 'm' sequences
+		let clean = text.replace(/\x1b\[\?[0-9]+[hl]/g, ''); 
+		clean = clean.replace(/\x1b\[[0-9]*[A-IK-ORZcf-nqry=><]/g, ''); 
+
+		if (!clean.includes('\x1b')) {
+			return escapeHtml(clean);
+		}
+
+		const escapeCodes: Record<string, string> = {
+			'0': 'reset',
+			'1': 'font-weight: bold',
+			'4': 'text-decoration: underline',
+			'30': 'color: #1e1e1e', 
+			'31': 'color: var(--color-danger)', 
+			'32': 'color: var(--color-success)', 
+			'33': 'color: var(--color-warning)', 
+			'34': 'color: var(--color-primary)', 
+			'35': 'color: #cc99cc', 
+			'36': 'color: #00ffff', 
+			'37': 'color: var(--color-text)', 
+			'90': 'color: var(--color-text-muted)', 
+			'91': 'color: #ff5555', 
+			'92': 'color: #55ff55', 
+			'93': 'color: #ffff55', 
+			'94': 'color: #5555ff', 
+			'95': 'color: #ff55ff', 
+			'96': 'color: #55ffff', 
+			'97': 'color: var(--color-text-bright)', 
+		};
+
+		const parts = clean.split(/\x1b\[/);
+		let html = escapeHtml(parts[0]);
+		let openSpans = 0;
+
+		for (let i = 1; i < parts.length; i++) {
+			const part = parts[i];
+			const mIdx = part.indexOf('m');
+			if (mIdx === -1) {
+				html += '[' + escapeHtml(part);
+				continue;
+			}
+
+			const codeString = part.substring(0, mIdx);
+			const content = part.substring(mIdx + 1);
+			const codes = codeString.split(';');
+
+			const hasReset = codes.includes('0') || codeString === '';
+
+			if (hasReset) {
+				while (openSpans > 0) {
+					html += '</span>';
+					openSpans--;
+				}
+			}
+
+			const styles: string[] = [];
+			for (const rawCode of codes) {
+				if (rawCode === '0' || rawCode === '') continue;
+				const normalizedCode = parseInt(rawCode, 10).toString();
+				const style = escapeCodes[normalizedCode];
+				if (style) {
+					styles.push(style);
+				}
+			}
+
+			if (styles.length > 0) {
+				html += `<span style="${styles.join(';')}">`;
+				openSpans++;
+			}
+
+			html += escapeHtml(content);
+		}
+
+		while (openSpans > 0) {
+			html += '</span>';
+			openSpans--;
+		}
+
+		return html;
 	}
 </script>
 
@@ -214,7 +302,7 @@
 			{:else}
 				<div class="terminal-container" transition:fade={{ duration: 150 }}>
 					{#each termOutput as line}
-						<div class="term-line" style="color: {priorityColor(line.priority)}">{cleanAnsi(line.text || '')}</div>
+						<div class="term-line" style="color: {priorityColor(line.priority)}">{@html cleanAnsiHtml(line.text || '')}</div>
 					{/each}
 					<div class="cursor-blink">_</div>
 				</div>

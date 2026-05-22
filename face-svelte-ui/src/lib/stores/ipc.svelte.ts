@@ -32,31 +32,38 @@ export function clearPrediction() {
 }
 
 if (typeof window !== 'undefined') {
+    const isElectron = 'tosElectron' in window;
     const saved = localStorage.getItem('tos_remote_host');
     const windowHost = window.location.hostname;
     const isLocalhost = windowHost === 'localhost' || windowHost === '127.0.0.1';
     
-    if (saved) {
-        // Migration: If saved is localhost but we are accessing remotely, override to current host
-        try {
-            const savedUrl = new URL(saved);
-            const savedHost = savedUrl.hostname;
-            const savedIsLocal = savedHost === 'localhost' || savedHost === '127.0.0.1';
-            
-            if (savedIsLocal && !isLocalhost) {
-                console.info(`[IPC] Remote access detected (${windowHost}). Overriding local saved host (${savedHost}).`);
-                activeWsUrl = `ws://${windowHost}:7001`;
-            } else {
-                activeWsUrl = saved;
+    if (isElectron) {
+        // Under Electron custom protocols (like tos-app://), windowHost is 'renderer'.
+        // Bypass remote migration overrides completely and prioritize saved url, or fallback to ws (not wss).
+        activeWsUrl = saved || 'ws://127.0.0.1:7001';
+        console.log(`[IPC] Electron detected. Initialized activeWsUrl: ${activeWsUrl}`);
+    } else {
+        if (saved) {
+            // Migration: If saved is localhost but we are accessing remotely, override to current host
+            try {
+                const savedUrl = new URL(saved);
+                const savedHost = savedUrl.hostname;
+                const savedIsLocal = savedHost === 'localhost' || savedHost === '127.0.0.1';
+                
+                if (savedIsLocal && !isLocalhost) {
+                    console.info(`[IPC] Remote access detected (${windowHost}). Overriding local saved host (${savedHost}).`);
+                    activeWsUrl = `ws://${windowHost}:7001`;
+                } else {
+                    activeWsUrl = saved;
+                }
+            } catch {
+                activeWsUrl = DEFAULT_WS_URL;
             }
-        } catch {
+        } else {
             activeWsUrl = DEFAULT_WS_URL;
         }
-    } else {
-        activeWsUrl = DEFAULT_WS_URL;
+        console.log(`[IPC] Initialized with Brain URL: ${activeWsUrl}`);
     }
-    
-    console.log(`[IPC] Initialized with Brain URL: ${activeWsUrl}`);
 }
 
 const SYNC_INTERVAL_MS = 1000;
@@ -177,21 +184,50 @@ function resetHeartbeat() {
 // --- WebSocket Lifecycle ---
 
 export function connect(customUrl?: string): void {
-    if (customUrl) {
-        setActiveWsUrl(customUrl);
-    }
-
     if (ws && ws.readyState === WebSocket.OPEN) return;
     if (connectionState === 'connecting') return;
 
-    const targetUrl = activeWsUrl || DEFAULT_WS_URL;
+    if (!customUrl && typeof window !== 'undefined' && 'tosElectron' in window) {
+        const electron = (window as any).tosElectron;
+        connectionState = 'connecting';
+        electron.getBrainUrl().then((url: string) => {
+            if (url) {
+                console.info(`[IPC] Connecting to Electron-provided Brain URL: ${url}`);
+                activeWsUrl = url;
+                proceedConnect(url);
+            } else {
+                proceedConnect(activeWsUrl || DEFAULT_WS_URL);
+            }
+        }).catch((err: any) => {
+            console.error('[IPC] Failed to get Brain URL from Electron:', err);
+            proceedConnect(activeWsUrl || DEFAULT_WS_URL);
+        });
+        return;
+    }
+
+    if (customUrl) {
+        setActiveWsUrl(customUrl);
+    }
+    proceedConnect(activeWsUrl || DEFAULT_WS_URL);
+}
+
+function proceedConnect(targetUrl: string): void {
+    if (ws && ws.readyState === WebSocket.OPEN) return;
+
+    if (ws) {
+        try {
+            ws.close();
+        } catch {}
+        ws = null;
+    }
 
     connectionState = 'connecting';
     console.log('[IPC] Connecting to Brain...', targetUrl);
 
     try {
         ws = new WebSocket(targetUrl);
-    } catch {
+    } catch (err) {
+        console.error('[IPC] Failed to create WebSocket:', err);
         connectionState = 'disconnected';
         scheduleReconnect();
         return;

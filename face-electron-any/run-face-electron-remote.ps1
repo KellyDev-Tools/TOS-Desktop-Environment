@@ -13,7 +13,7 @@ Write-Host "Mode:        $(If ($DevMode) { 'Development' } Else { 'Production' }
 Write-Host "=============================================" -ForegroundColor Cyan
 
 # 1. Probe the remote Brain host to see if it is reachable
-Write-Host "Probing remote Brain at $BrainHost:$BrainPort..." -NoNewline
+Write-Host "Probing remote Brain at ${BrainHost}:${BrainPort}..." -NoNewline
 try {
     $tcp = New-Object System.Net.Sockets.TcpClient
     $connect = $tcp.BeginConnect($BrainHost, $BrainPort, $null, $null)
@@ -23,7 +23,7 @@ try {
         Write-Host " [REACHABLE] ✅" -ForegroundColor Green
     } else {
         Write-Host " [UNREACHABLE] ❌" -ForegroundColor Yellow
-        Write-Warning "The remote Brain at $BrainHost:$BrainPort did not respond. Is it running on the Linux host?"
+        Write-Warning "The remote Brain at ${BrainHost}:${BrainPort} did not respond. Is it running on the Linux host?"
         Write-Warning "Proceeding anyway..."
     }
     $tcp.Close()
@@ -43,7 +43,7 @@ if (-not (Test-Path $SvelteBuild)) {
 }
 
 # 3. Set environment variable for Electron
-$env:TOS_BRAIN_WS = "ws://$BrainHost:$BrainPort"
+$env:TOS_BRAIN_WS = "ws://${BrainHost}:${BrainPort}"
 Write-Host "TOS_BRAIN_WS env var set to: $env:TOS_BRAIN_WS" -ForegroundColor Gray
 
 # 4. Start Electron app

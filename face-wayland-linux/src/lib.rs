@@ -26,6 +26,7 @@ pub struct LinuxRenderer {
 pub struct SurfaceState {
     pub buffer: WaylandBuffer,
     pub wl_surface: Option<wayland_client::protocol::wl_surface::WlSurface>,
+    pub wl_buffer: Option<wayland_client::protocol::wl_buffer::WlBuffer>,
     pub depth: u8,
 }
 
@@ -170,31 +171,35 @@ impl LinuxRenderer {
                 .expect("Failed to create PixmapMut from Wayland buffer pointer")
         };
 
-        // Clear with near-black (LCARS vibe)
-        pixmap.fill(Color::from_rgba8(10, 10, 15, 255));
+        // Clear with bright red for verification
+        pixmap.fill(Color::from_rgba8(255, 0, 0, 255));
 
         if let Some(ref font) = self.font {
-            let scale = PxScale::from(16.0);
+            let scale = PxScale::from(20.0); // Slightly larger
             let scaled_font = font.as_scaled(scale);
             let mut paint = Paint::default();
             paint.set_color(Color::from_rgba8(0, 240, 255, 255)); // Cyan / LCARS accent
 
-            let x_offset = 20.0f32;
-            let mut y_offset = 30.0f32;
+            let x_offset = 40.0f32;
+            let mut y_offset = 60.0f32;
 
             for line in text.lines() {
                 let mut x = x_offset;
                 for c in line.chars() {
-                    let glyph = scaled_font.scaled_glyph(c);
-                    if let Some(_outline) = font.outline_glyph(glyph) {
-                        // Drawing logic...
-                        let rect = Rect::from_xywh(x, y_offset - 12.0, 8.0, 14.0).unwrap();
-                        pixmap.fill_rect(rect, &paint, Transform::identity(), None);
-                    }
-                    x += 9.0;
+                    let _glyph = scaled_font.scaled_glyph(c);
+                    // Even if we don't have the outline, draw a block to show something is there
+                    let rect = Rect::from_xywh(x, y_offset - 15.0, 10.0, 18.0).unwrap();
+                    pixmap.fill_rect(rect, &paint, Transform::identity(), None);
+                    x += 12.0;
                 }
-                y_offset += 18.0;
+                y_offset += 24.0;
             }
+        } else {
+            // Draw a big warning box if font failed
+            let mut paint = Paint::default();
+            paint.set_color(Color::from_rgba8(255, 0, 0, 255));
+            let rect = Rect::from_xywh(100.0, 100.0, 200.0, 50.0).unwrap();
+            pixmap.fill_rect(rect, &paint, Transform::identity(), None);
         }
     }
 }
@@ -214,6 +219,7 @@ impl Renderer for LinuxRenderer {
                 self.surfaces.lock().unwrap().insert(handle_id, SurfaceState {
                     buffer,
                     wl_surface,
+                    wl_buffer: None,
                     depth: config.depth,
                 });
             }
@@ -229,7 +235,7 @@ impl Renderer for LinuxRenderer {
         let mut surfaces = self.surfaces.lock().unwrap();
         if let Some(state) = surfaces.get_mut(&handle.0) {
             let buf = &mut state.buffer;
-            tracing::debug!("Synchronizing Wayland Buffer FD: {}", buf.fd);
+            tracing::debug!("Updating Wayland Surface {} (FD: {})", handle.0, buf.fd);
 
             if let Some(text) = content.text_data() {
                 self.render_text_to_buffer(buf, text);
@@ -243,13 +249,23 @@ impl Renderer for LinuxRenderer {
                             data.len(),
                         );
                     }
-                    tracing::debug!("Copied {} bytes to Wayland SHM", data.len());
+                    tracing::debug!("Copied {} pixels to Wayland SHM", data.len());
                 }
             }
 
             if let (Some(ref mut shell), Some(surface)) = (self.shell.as_mut(), state.wl_surface.as_ref()) {
-                shell.attach_buffer(surface, buf.fd, buf.width as i32, buf.height as i32);
+                if state.wl_buffer.is_none() {
+                    state.wl_buffer = Some(shell.create_buffer(buf.fd, buf.width as i32, buf.height as i32));
+                }
+                
+                if let Some(ref wl_buffer) = state.wl_buffer {
+                    shell.attach_buffer(surface, wl_buffer, buf.width as i32, buf.height as i32);
+                }
+            } else {
+                tracing::warn!("Cannot attach buffer: Shell or Surface missing for handle {}", handle.0);
             }
+        } else {
+            tracing::error!("Attempted to update non-existent surface handle: {}", handle.0);
         }
     }
 

@@ -1,4 +1,4 @@
-64r6#!/bin/bash
+#!/bin/bash
 # /usr/bin/tos-session - Canonical Wayland OS entry point
 
 # 1. Environment Configuration

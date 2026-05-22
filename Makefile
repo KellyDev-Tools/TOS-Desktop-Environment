@@ -19,7 +19,7 @@ TOS_FACE_PORT ?= 8080
 .PHONY: help build-all build-brain build-faces build-face-web build-face-electron build-protocol build-services \
         check check-brain fmt lint docs \
         test test-all test-core test-shell test-ai test-sec test-system test-brain-component test-ui-component test-self test-e2e test-health \
-        run run-web run-web-dev dev-web clean \
+        run run-wayland run-web run-web-dev dev-web clean \
         android-check android-build android-release android-install android-run clean-android android-test \
         android-flutter-generate android-flutter-build android-flutter-install android-flutter-run \
         pack-face-electron-win pack-face-electron-linux pack-face-electron-mac \
@@ -78,6 +78,7 @@ help:
 	@echo ""
 	@echo "\033[1;33mExecution Targets:\033[0m"
 	@echo "  make run             Direct launch of TOS Brain + Terminal Face"
+	@echo "  make run-wayland     Orchestrate full Wayland stack (Brain + Sway/Cage)"
 	@echo "  make run-web         Orchestrate full stack (Brain + Web UI Server)"
 	@echo "  make run-services    Spawn auxiliary background daemons"
 	@echo ""
@@ -330,6 +331,30 @@ run-web-dev: run-services
 	trap "kill $SVELTE_PID; pkill -x tos-brain; exit" EXIT INT TERM; \
 	cd brain && cargo run --bin tos-brain -- --headless 2>&1 | tee ../logs/tos-brain.log
 
+run-wayland: build-brain build-services
+	@echo "[TOS] Checking for Wayland compositor..."
+	@if ! command -v sway >/dev/null 2>&1 && ! command -v cage >/dev/null 2>&1; then \
+		echo "[TOS] ERROR: No suitable Wayland compositor found (tried sway, cage)."; \
+		echo "[TOS] Please install sway or cage: sudo apt install sway cage"; \
+		exit 1; \
+	fi
+	cd face-wayland-linux && cargo build
+	@mkdir -p logs
+	@pkill -x tos-brain || true
+	@# Generate a local sway config that uses absolute paths to the project binaries
+	@sed "s|/usr/bin/tos-wayland-face|$(shell pwd)/target/debug/face-wayland-linux|g" packaging/sway.config > logs/sway.config.local
+	@echo "[TOS] Launching Wayland Session..."
+	@# Launch brain in background with orchestration (spawns daemons)
+	@./target/debug/tos-brain --headless --orchestrate > logs/tos-brain.log 2>&1 & BR_PID=$$!; \
+	echo "[TOS] Waiting for Brain to initialize..."; \
+	sleep 2; \
+	trap "kill $$BR_PID 2>/dev/null; pkill -x sway; pkill -x cage; exit" EXIT INT TERM; \
+	if command -v sway >/dev/null 2>&1; then \
+		sway --config logs/sway.config.local > logs/sway.log 2>&1; \
+	else \
+		cage -- ./target/debug/face-wayland-linux > logs/face-wayland.log 2>&1; \
+	fi
+
 run-services:
 	@echo "[TOS] Initializing Auxiliary Daemons..."
 	@mkdir -p logs
@@ -522,6 +547,7 @@ install: build-release
 	
 	@# Patch and Install Binaries
 	@sudo cp target/release/tos-brain "$(BINDIR)/"
+	@sudo cp target/release/tos "$(BINDIR)/"
 	@sudo cp target/release/face-wayland-linux "$(BINDIR)/tos-wayland-face"
 	@# Patch tos-session to use the correct BINDIR
 	@sed "s|/usr/bin|$(BINDIR)|g" packaging/tos-session > /tmp/tos-session.tmp
@@ -533,12 +559,7 @@ install: build-release
 			sudo cp "target/release/$$daemon" "$(BINDIR)/"; \
 		fi; \
 	done
-	@sudo chmod 755 "$(BINDIR)/tos-brain" "$(BINDIR)/tos-wayland-face"
-	@for daemon in tos-settingsd tos-marketplaced tos-sessiond tos-loggerd tos-searchd tos-heuristicd tos-priorityd; do \
-		if [ -f "$(BINDIR)/$$daemon" ]; then \
-			sudo chmod 755 "$(BINDIR)/$$daemon"; \
-		fi; \
-	done
+	@sudo chmod 755 "$(BINDIR)"/tos*
 	
 	@# Patch and Install Desktop Files
 	@if [ -f packaging/tos.desktop ]; then \

@@ -30,6 +30,8 @@ pub struct WaylandState {
     pub xdg_shell: Option<XdgShell>,
     pub dmabuf: Option<zwp_linux_dmabuf_v1::ZwpLinuxDmabufV1>,
     pub output_state: OutputState,
+    pub layer_surfaces: Vec<LayerSurface>,
+    pub windows: Vec<XdgWindow>,
 }
 
 impl WaylandShell {
@@ -44,7 +46,8 @@ impl WaylandShell {
         let conn = match Connection::connect_to_env() {
             Ok(c) => c,
             Err(e) => {
-                eprintln!("Wayland Connection failed: {:?}", e);
+                let display = std::env::var("WAYLAND_DISPLAY").unwrap_or_else(|_| "NOT SET".to_string());
+                eprintln!("Wayland Connection failed: {:?} (WAYLAND_DISPLAY={})", e, display);
                 return None;
             }
         };
@@ -91,6 +94,8 @@ impl WaylandShell {
             xdg_shell,
             dmabuf,
             output_state,
+            layer_surfaces: Vec::new(),
+            windows: Vec::new(),
         };
 
         Some(Self {
@@ -116,47 +121,61 @@ impl WaylandShell {
                 None,
             );
             layer_surface.set_size(width, height);
+            // Anchor to all corners to fill screen (common for shell faces)
+            use smithay_client_toolkit::shell::wlr_layer::Anchor;
+            layer_surface.set_anchor(Anchor::TOP | Anchor::LEFT | Anchor::RIGHT | Anchor::BOTTOM);
+            
             surface.commit();
             tracing::info!("Wayland: Real Layer Surface created ({}x{})", width, height);
+            eprintln!("[FACE-WAYLAND] Real Layer Surface created ({}x{})", width, height);
+            self.state.layer_surfaces.push(layer_surface);
         } else if let Some(ref xdg_shell) = self.state.xdg_shell {
+            eprintln!("[FACE-WAYLAND] Creating fallback XDG Window...");
             let window = xdg_shell.create_window(surface.clone(), WindowDecorations::RequestServer, &self.queue_handle);
             window.set_title(title.to_string());
             window.set_app_id("org.tos.native-shell".to_string());
             surface.commit();
             tracing::info!("Wayland: Fallback XDG Window created ({}x{})", width, height);
+            eprintln!("[FACE-WAYLAND] Fallback XDG Window created.");
+            self.state.windows.push(window);
         }
         surface
     }
 
-    pub fn attach_buffer(&mut self, surface: &wl_surface::WlSurface, fd: std::os::unix::io::RawFd, width: i32, height: i32) {
+    pub fn attach_buffer(&mut self, surface: &wl_surface::WlSurface, buffer: &wl_buffer::WlBuffer, width: i32, height: i32) {
+        // Attach, damage, and commit
+        surface.attach(Some(buffer), 0, 0);
+        surface.damage(0, 0, width, height);
+        surface.commit();
+        
+        // eprintln!("[FACE-WAYLAND] Buffer attached and committed.");
+        tracing::debug!("Wayland: Buffer attached and committed ({}x{})", width, height);
+    }
+
+    pub fn create_buffer(&mut self, fd: std::os::unix::io::RawFd, width: i32, height: i32) -> wl_buffer::WlBuffer {
         use wayland_client::protocol::wl_shm;
         use std::os::unix::io::BorrowedFd;
         
         let size = width * height * 4;
         
         // Prefer DMABUF for Stage 5.2 performance requirements
-        let buffer = if let Some(dmabuf_buffer) = self.create_dmabuf_buffer(fd, width, height) {
-            tracing::debug!("Wayland: Using DMABUF for surface attachment");
+        if let Some(dmabuf_buffer) = self.create_dmabuf_buffer(fd, width, height) {
+            tracing::debug!("Wayland: Created DMABUF buffer object");
             dmabuf_buffer
         } else {
             // Fallback to SHM (Stage 5.1 path)
-            tracing::debug!("Wayland: DMABUF unavailable, falling back to SHM");
+            tracing::debug!("Wayland: DMABUF unavailable, creating SHM buffer object");
             let borrowed_fd = unsafe { BorrowedFd::borrow_raw(fd) };
             let pool = self.state.shm.wl_shm().create_pool(borrowed_fd, size, &self.queue_handle, ());
             pool.create_buffer(0, width, height, width * 4, wl_shm::Format::Argb8888, &self.queue_handle, ())
-        };
-
-        // Attach, damage, and commit
-        surface.attach(Some(&buffer), 0, 0);
-        surface.damage(0, 0, width, height);
-        surface.commit();
-        
-        tracing::debug!("Wayland: Buffer attached and committed ({}x{})", width, height);
+        }
     }
 
     pub fn create_dmabuf_buffer(&mut self, fd: std::os::unix::io::RawFd, width: i32, height: i32) -> Option<wl_buffer::WlBuffer> {
         use std::os::unix::io::BorrowedFd;
         
+        // let dmabuf = self.state.dmabuf.as_ref()?;
+        return None;
         let dmabuf = self.state.dmabuf.as_ref()?;
         let params = dmabuf.create_params(&self.queue_handle, ());
         

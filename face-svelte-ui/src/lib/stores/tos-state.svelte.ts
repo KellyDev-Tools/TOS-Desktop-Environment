@@ -32,6 +32,11 @@ export interface Participant {
     cursor_y?: number;
 }
 
+export interface SearchResult {
+    source_sector: string;
+    matches: string[];
+}
+
 export interface Hub {
     id: string;
     mode: 'Command' | 'Directory' | 'Activity' | 'Search' | 'Ai';
@@ -43,6 +48,9 @@ export interface Hub {
     json_context?: Record<string, any> | null;
     shell_listing?: { path: string; entries: { name: string; is_dir: boolean; size: number }[] } | null;
     activity_listing?: { processes: ProcessEntry[] } | null;
+    search_results?: SearchResult[] | null;
+    ai_history?: { role: string; content: string; timestamp: string }[] | null;
+    active_thoughts?: { id: string; behavior_id: string; title: string; content: string; status: 'Thinking' | 'Decided' | 'Actioned' | 'Failed'; timestamp: string }[] | null;
     split_layout?: SplitNode | null;
     focused_pane_id?: string | null;
     is_running: boolean;

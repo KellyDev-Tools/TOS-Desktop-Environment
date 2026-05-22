@@ -107,6 +107,13 @@ export async function createFaceWindow(config: PlatformConfig): Promise<void> {
 
     mainWindow = new BrowserWindow(windowOptions);
 
+    // Track renderer console logs and output them to the main process console
+    mainWindow.webContents.on('console-message', (event, level, message, line, sourceId) => {
+        const levels = ['DEBUG', 'INFO', 'WARN', 'ERROR'];
+        const lvl = levels[level] || 'INFO';
+        console.log(`[Renderer Console] [${lvl}] ${message} (at ${path.basename(sourceId)}:${line})`);
+    });
+
     // Override Content-Security-Policy for custom protocol loads
     mainWindow.webContents.session.webRequest.onHeadersReceived((details, callback) => {
         callback({
@@ -117,7 +124,7 @@ export async function createFaceWindow(config: PlatformConfig): Promise<void> {
                     "script-src 'self' 'unsafe-inline' 'unsafe-eval' tos-app:; " +
                     "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com tos-app:; " +
                     "font-src 'self' https://fonts.gstatic.com data:; " +
-                    "connect-src 'self' ws://127.0.0.1:* wss://127.0.0.1:* http://127.0.0.1:* ws://192.168.*:* wss://192.168.*:* http://192.168.*:* ws://10.*:* wss://10.*:* http://10.*:* ws://172.16.*:* wss://172.16.*:* http://172.16.*:* ws://*.local:* wss://*.local:* tos-app:; " +
+                    "connect-src 'self' ws: wss: http: https: tos-app:; " +
                     "img-src 'self' data: blob: tos-app:;"
                 ],
             },
@@ -362,6 +369,25 @@ protocol.registerSchemesAsPrivileged([
 
 app.whenReady().then(async () => {
     const config = getPlatformConfig();
+
+    // Trust self-signed certificates for LAN and loopback connections (specifically for wss://)
+    session.defaultSession.setCertificateVerifyProc((request, callback) => {
+        const { hostname } = request;
+        if (
+            hostname === '127.0.0.1' ||
+            hostname === 'localhost' ||
+            hostname === '::1' ||
+            hostname.startsWith('192.168.') ||
+            hostname.startsWith('10.') ||
+            hostname.startsWith('172.16.') ||
+            hostname.endsWith('.local')
+        ) {
+            console.log(`[Electron Proc] Trusting self-signed certificate for local/LAN host: ${hostname}`);
+            callback(0); // Trust it
+        } else {
+            callback(-3); // Fallback to default Chromium verification
+        }
+    });
 
     console.log(`[TOS Electron] Platform: ${config.platform}`);
     console.log(`[TOS Electron] Renderer: ${config.rendererBuildPath}`);

@@ -183,6 +183,24 @@
 		<!-- Classic Dual-Column View (Fallback) -->
 		<!-- Left Column: Context Chips -->
 		<div class="left-column">
+			{#if activeHub?.staged_command}
+				<div aria-roledescription="chip" class="context-chip glass-panel staging-chip" transition:slide>
+					<div aria-roledescription="chip" class="chip-title" style="color: var(--color-warning)">COMMAND STAGING // PENDING EMISSION</div>
+					<div class="staged-content-wrapper">
+						<div class="staged-cmd-box">
+							<span class="staged-prompt-symbol">&gt;</span>
+							<span class="staged-cmd">{activeHub.staged_command}</span>
+						</div>
+						{#if activeHub.ai_explanation}
+							<div class="staged-explanation" transition:fade>
+								<span class="explanation-icon">✦</span>
+								<span class="staged-hint">{activeHub.ai_explanation}</span>
+							</div>
+						{/if}
+					</div>
+				</div>
+			{/if}
+
 			{#if activeHub?.json_context}
 				{@const ctx = activeHub.json_context}
 				<div aria-roledescription="chip" class="context-chip glass-panel" transition:slide>
@@ -208,18 +226,6 @@
 				{@const dir = activeHub.shell_listing}
 				<div aria-roledescription="chip" class="context-chip glass-panel" transition:slide>
 					<div aria-roledescription="chip" class="chip-title" style="color: var(--color-primary)">DIR PREVIEW // {dir.path}</div>
-					
-					{#if activeHub?.staged_command}
-						<div class="staging-banner" transition:fade>
-							<div class="banner-tag">STAGING</div>
-							<div class="staged-content">
-								<span class="staged-cmd">{activeHub.staged_command}</span>
-								{#if activeHub.ai_explanation}
-									<span class="staged-hint">— {activeHub.ai_explanation}</span>
-								{/if}
-							</div>
-						</div>
-					{/if}
 
 					<div class="directory-list">
 						{#each dir.entries as entry, i}
@@ -238,7 +244,7 @@
 				</div>
 			{/if}
 
-			{#if !activeHub?.json_context && !activeHub?.shell_listing}
+			{#if !activeHub?.json_context && !activeHub?.shell_listing && !activeHub?.staged_command}
 				<div aria-roledescription="chip" class="context-chip glass-panel empty-chip">
 					<div class="empty-text">AWAITING CONTEXT EXPORT...</div>
 				</div>
@@ -440,47 +446,7 @@
 		opacity: 0.5;
 	}
 
-	/* Staging Banner */
-	.staging-banner {
-		margin: var(--space-sm) 0;
-		padding: var(--space-sm) var(--space-md);
-		background: linear-gradient(90deg, rgba(var(--color-primary-rgb), 0.15), transparent);
-		border-left: 3px solid var(--color-primary);
-		border-radius: var(--radius-sm);
-		display: flex;
-		flex-direction: column;
-		gap: 2px;
-	}
 
-	.banner-tag {
-		font-size: 0.65rem;
-		font-weight: 800;
-		letter-spacing: 0.1em;
-		color: var(--color-primary);
-		opacity: 0.8;
-	}
-
-	.staged-content {
-		display: flex;
-		align-items: baseline;
-		gap: var(--space-sm);
-		overflow: hidden;
-	}
-
-	.staged-cmd {
-		font-family: var(--font-mono);
-		font-size: 0.9rem;
-		color: var(--color-text-bright);
-		white-space: nowrap;
-	}
-
-	.staged-hint {
-		font-size: 0.75rem;
-		color: var(--color-text-dim);
-		white-space: nowrap;
-		overflow: hidden;
-		text-overflow: ellipsis;
-	}
 
 
 
@@ -697,5 +663,61 @@
 	@keyframes searchPulseAnimation {
 		0%, 100% { transform: scale(1); opacity: 0.4; }
 		50% { transform: scale(1.1); opacity: 0.8; }
+	}
+
+	/* Premium Dedicated Command Staging Chip */
+	.staging-chip {
+		flex: 0 0 auto !important;
+		margin-bottom: var(--space-md);
+		border-left: 3px solid var(--color-warning) !important;
+		background: linear-gradient(90deg, rgba(247, 168, 51, 0.15), transparent) !important;
+	}
+
+	.staged-content-wrapper {
+		margin-top: var(--space-sm);
+		display: flex;
+		flex-direction: column;
+		gap: var(--space-xs);
+	}
+
+	.staged-cmd-box {
+		display: flex;
+		align-items: center;
+		gap: var(--space-sm);
+		font-family: var(--font-mono);
+		font-size: 0.95rem;
+		background: rgba(0, 0, 0, 0.3);
+		padding: var(--space-xs) var(--space-sm);
+		border-radius: var(--radius-sm);
+		border: 1px solid rgba(255, 255, 255, 0.05);
+	}
+
+	.staged-prompt-symbol {
+		color: var(--color-warning);
+		font-weight: bold;
+	}
+
+	.staged-cmd {
+		color: var(--color-text-bright);
+		word-break: break-all;
+	}
+
+	.staged-explanation {
+		display: flex;
+		align-items: flex-start;
+		gap: var(--space-xs);
+		padding: 4px 8px;
+	}
+
+	.explanation-icon {
+		color: var(--color-warning);
+		font-size: 0.8rem;
+		margin-top: 2px;
+	}
+
+	.staged-hint {
+		font-size: 0.75rem;
+		color: var(--color-text-dim);
+		line-height: 1.4;
 	}
 </style>

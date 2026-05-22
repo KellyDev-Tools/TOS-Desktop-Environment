@@ -33,8 +33,8 @@ const BRAIN_WS_URL = process.env.TOS_BRAIN_WS ?? 'ws://127.0.0.1:7001';
 /** Path to the prebuilt Svelte UI renderer */
 function getRendererPath(): string {
     if (IS_DEV) {
-        // __dirname is dist/, so go up 4 levels: dist → electron → platform → src → alpha-2
-        return path.resolve(__dirname, '..', '..', '..', '..', 'svelte_ui', 'build');
+        // __dirname is dist/, so go up 2 levels: dist → face-electron-any → face-svelte-ui
+        return path.resolve(__dirname, '..', '..', 'face-svelte-ui', 'build');
     }
     // In production, the renderer is bundled as an extra resource
     return path.join(process.resourcesPath, 'renderer');

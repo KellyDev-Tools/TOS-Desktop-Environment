@@ -114,7 +114,7 @@ export async function createFaceWindow(config: PlatformConfig): Promise<void> {
                     "script-src 'self' 'unsafe-inline' 'unsafe-eval' tos-app:; " +
                     "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com tos-app:; " +
                     "font-src 'self' https://fonts.gstatic.com data:; " +
-                    "connect-src 'self' ws://127.0.0.1:* wss://127.0.0.1:* http://127.0.0.1:* tos-app:; " +
+                    "connect-src 'self' ws://127.0.0.1:* wss://127.0.0.1:* http://127.0.0.1:* ws://192.168.*:* wss://192.168.*:* http://192.168.*:* ws://10.*:* wss://10.*:* http://10.*:* ws://172.16.*:* wss://172.16.*:* http://172.16.*:* ws://*.local:* wss://*.local:* tos-app:; " +
                     "img-src 'self' data: blob: tos-app:;"
                 ],
             },

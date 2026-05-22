@@ -107,9 +107,10 @@ Do not commit code that breaks any of these gates.
 
 This project is developed across multiple environments to support various platform-specific interfaces (such as `face-wayland-linux`).
 
-* **Linux Project Workspace**: `tim@192.168.68.77 /8TB/tos/`
+* **Linux Project Workspace**: `tim@192.168.68.77 /8TB/tos/` (NixOS System)
   * This is the primary Linux development workspace, which is linked to the same origin GitHub repository.
   * When developing and testing Linux UI components or running Linux-specific build targets, you should ensure coordination with this remote repository.
+  * **Persistent Workspace Session**: The NixOS system hosts a persistent `tmux` session (typically named `tos`). Developers and agents should attach to this session (`tmux attach -t tos`) to run services, monitor logs, and execute build targets in the background.
 
 ---
 

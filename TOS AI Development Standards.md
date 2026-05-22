@@ -101,4 +101,16 @@ Do not commit code that breaks any of these gates.
 4. **Run the gates.** After any Rust change: `make check` then `make test`. After any Svelte/TS change: `make build-face-web` then `make test`. Don't wait to be asked.
 5. **Commit when green.** Once all gates pass, immediately create a commit using the `type(scope): description` format. Do not leave passing work uncommitted.
 
+---
+
+## 6. Multi-Environment & Linux UI Development
+
+This project is developed across multiple environments to support various platform-specific interfaces (such as `face-wayland-linux`).
+
+* **Linux Project Workspace**: `tim@192.168.68.77 /8TB/tos/`
+  * This is the primary Linux development workspace, which is linked to the same origin GitHub repository.
+  * When developing and testing Linux UI components or running Linux-specific build targets, you should ensure coordination with this remote repository.
+
+---
+
 Now that you have read and understood this document, go start working on the next item in TOS_v0.1_Roadmap.md.

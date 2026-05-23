@@ -22,9 +22,11 @@
 		y: number;
 		sectorIndex: number;
 		sectorName: string;
-	}>({ open: false, x: 0, y: 0, sectorIndex: 0, sectorName: '' });
+		sectorId: string;
+		frozen: boolean;
+	}>({ open: false, x: 0, y: 0, sectorIndex: 0, sectorName: '', sectorId: '', frozen: false });
 
-	function openContextMenu(e: MouseEvent | CustomEvent, index: number, name: string) {
+	function openContextMenu(e: MouseEvent | CustomEvent, index: number, name: string, id: string, frozen: boolean) {
 		e.preventDefault();
 		const ev = e instanceof CustomEvent ? e.detail : e;
 		cmState = {
@@ -32,7 +34,9 @@
 			x: ev.clientX,
 			y: ev.clientY,
 			sectorIndex: index,
-			sectorName: name
+			sectorName: name,
+			sectorId: id,
+			frozen: frozen
 		};
 	}
 
@@ -95,8 +99,8 @@
 	<div class="sector-grid">
 		{#each sectors as sector, i}
 			<button
-				use:longpress={{ onLongPress: (e) => openContextMenu(e as CustomEvent, i, sector.name) }}
-				oncontextmenu={(e: any) => openContextMenu(e, i, sector.name)}
+				use:longpress={{ onLongPress: (e) => openContextMenu(e as CustomEvent, i, sector.name, sector.id, sector.frozen) }}
+				oncontextmenu={(e: any) => openContextMenu(e, i, sector.name, sector.id, sector.frozen)}
 				class="sector-tile {getBorderClass(sector)}"
 				class:active={i === activeIndex}
 				class:drag-hover={dragHoverSector === i}
@@ -146,6 +150,17 @@
 				<div class="sector-meta">STATUS: ACTIVE</div>
 			</button>
 		{/each}
+
+		<!-- Add Sector Card -->
+		<button
+			class="sector-tile sector-add-tile"
+			onclick={() => ipc.sendCommand("sector_create:")}
+			title="Create New Sector (Ctrl+T)"
+		>
+			<div class="add-icon">+</div>
+			<div class="add-label">CREATE NEW SECTOR</div>
+			<div class="add-meta">Spawns an isolated sandbox workspace</div>
+		</button>
 	</div>
 
 	<div class="overview-actions">
@@ -160,6 +175,8 @@
 			y={cmState.y}
 			sectorIndex={cmState.sectorIndex}
 			sectorName={cmState.sectorName}
+			sectorId={cmState.sectorId}
+			frozen={cmState.frozen}
 			onClose={() => cmState.open = false}
 		/>
 	{/if}
@@ -614,5 +631,45 @@
 	@keyframes scaleIn {
 		from { opacity: 0; transform: scale(0.95); }
 		to { opacity: 1; transform: scale(1); }
+	}
+
+	.sector-add-tile {
+		border: 2px dashed rgba(0, 229, 255, 0.3) !important;
+		background: rgba(0, 229, 255, 0.02) !important;
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		justify-content: center;
+		min-height: 180px;
+		color: var(--color-primary) !important;
+		text-align: center !important;
+		transition: all 0.3s ease;
+	}
+
+	.sector-add-tile:hover {
+		border-color: var(--color-primary) !important;
+		background: rgba(0, 229, 255, 0.08) !important;
+		transform: translateY(-4px);
+		box-shadow: 0 8px 24px rgba(0, 229, 255, 0.15) !important;
+	}
+
+	.add-icon {
+		font-size: 2.5rem;
+		font-weight: 300;
+		margin-bottom: 12px;
+		line-height: 1;
+	}
+
+	.add-label {
+		font-family: var(--font-display);
+		font-weight: 700;
+		font-size: 0.8rem;
+		letter-spacing: 0.1em;
+	}
+
+	.add-meta {
+		font-size: 0.65rem;
+		opacity: 0.6;
+		margin-top: 4px;
 	}
 </style>

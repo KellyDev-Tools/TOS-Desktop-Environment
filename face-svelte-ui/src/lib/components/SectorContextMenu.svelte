@@ -2,11 +2,13 @@
 	import { fade } from 'svelte/transition';
 	import { sendCommand } from '$lib/stores/ipc.svelte';
 	
-	let { x = 0, y = 0, sectorIndex = 0, sectorName = '', onClose }: {
+	let { x = 0, y = 0, sectorIndex = 0, sectorName = '', sectorId = '', frozen = false, onClose }: {
 		x: number;
 		y: number;
 		sectorIndex: number;
 		sectorName: string;
+		sectorId: string;
+		frozen: boolean;
 		onClose: () => void;
 	} = $props();
 
@@ -15,6 +17,10 @@
 			await sendCommand(`session_save:${sectorIndex}`);
 		} else if (action === 'load_session') {
 			await sendCommand(`session_load:${sectorIndex}`);
+		} else if (action === 'freeze_sector') {
+			await sendCommand(`sector_freeze:${sectorId}`);
+		} else if (action === 'close_sector') {
+			await sendCommand(`sector_close:${sectorId}`);
 		}
 		onClose();
 	}
@@ -37,6 +43,12 @@
 	<div class="menu-body">
 		<button class="menu-btn" onclick={() => performAction('save_session')}>[SAVE] Save Session As...</button>
 		<button class="menu-btn" onclick={() => performAction('load_session')}>[LOAD] Load Session</button>
+		<button class="menu-btn" onclick={() => performAction('freeze_sector')}>
+			{frozen ? '[UNFREEZE] Unfreeze Sector' : '[FREEZE] Freeze Sector'}
+		</button>
+		<button class="menu-btn" style="color: var(--color-danger);" onclick={() => performAction('close_sector')}>
+			[CLOSE] Close Sector
+		</button>
 	</div>
 </div>
 

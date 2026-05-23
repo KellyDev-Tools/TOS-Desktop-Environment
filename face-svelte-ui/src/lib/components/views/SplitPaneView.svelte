@@ -2,6 +2,7 @@
 	import { getTosState, splitFocus, submitCommand } from '$lib/stores/ipc.svelte';
 	import type { SplitPane, Hub } from '$lib/stores/tos-state.svelte';
 	import EditorPane from '../editor/EditorPane.svelte';
+	import XtermTerminal from '../XtermTerminal.svelte';
 	import WorkflowManager from './WorkflowManager.svelte';
 
 	let { pane, activeHub }: { pane: SplitPane; activeHub: Hub | null } = $props();
@@ -69,15 +70,8 @@
 
 	<div class="pane-content">
 		{#if pane.content === 'Terminal'}
-			<div class="terminal-container">
-				{#each termOutput as line}
-					<div class="term-line" style="color: {priorityColor(line.priority)}">
-						{@html renderTermLine(line.text)}
-					</div>
-				{/each}
-				{#if isFocused}
-					<div class="cursor-blink">_</div>
-				{/if}
+			<div class="terminal-container" style="padding: 0;">
+				<XtermTerminal />
 			</div>
 		{:else if typeof pane.content === 'object' && 'Editor' in pane.content}
 			<EditorPane editorState={pane.content.Editor} activeHub={activeHub} paneId={pane.id} paneCwd={pane.cwd} />

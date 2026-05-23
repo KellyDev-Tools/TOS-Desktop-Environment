@@ -4,6 +4,7 @@
 
 	import SplitLayout from './SplitLayout.svelte';
 	import AiChat from './AiChat.svelte';
+	import XtermTerminal from '../XtermTerminal.svelte';
 	import WarningChip from '../WarningChip.svelte';
 	import TacticalContextMenu from '../TacticalContextMenu.svelte';
 	import { getPromptMode } from '$lib/stores/ui.svelte';
@@ -306,11 +307,8 @@
 					</div>
 				</div>
 			{:else}
-				<div class="terminal-container" transition:fade={{ duration: 150 }}>
-					{#each termOutput as line}
-						<div class="term-line" style="color: {priorityColor(line.priority)}">{@html cleanAnsiHtml(line.text || '')}</div>
-					{/each}
-					<div class="cursor-blink">_</div>
+				<div class="terminal-container" style="padding: 0;" transition:fade={{ duration: 150 }}>
+					<XtermTerminal />
 				</div>
 			{/if}
 		</div>

@@ -14,6 +14,7 @@ pub struct PtyShell {
     writer: Box<dyn Write + Send>,
     master: Box<dyn MasterPty + Send>,
     _child: Box<dyn Child + Send + Sync>,
+    ipc: Arc<Mutex<Option<std::sync::Weak<crate::brain::ipc_handler::IpcHandler>>>>,
 }
 
 impl PtyShell {
@@ -97,6 +98,9 @@ impl PtyShell {
         let reader = pair.master.try_clone_reader()?;
         let writer = pair.master.take_writer()?;
 
+        let ipc = Arc::new(Mutex::new(None));
+        let ipc_clone = ipc.clone();
+
         let state_clone = state.clone();
         let ai_clone = ai.clone();
         let heuristic_clone = heuristic.clone();
@@ -110,6 +114,7 @@ impl PtyShell {
                 heuristic_clone,
                 sid_clone,
                 hid_clone,
+                ipc_clone,
             );
         });
 
@@ -120,11 +125,16 @@ impl PtyShell {
             writer,
             master: pair.master,
             _child: child,
+            ipc,
         })
     }
 
-    pub fn write(&mut self, data: &str) -> anyhow::Result<()> {
-        self.writer.write_all(data.as_bytes())?;
+    pub fn set_ipc(&self, ipc: &Arc<crate::brain::ipc_handler::IpcHandler>) {
+        *self.ipc.lock().unwrap() = Some(Arc::downgrade(ipc));
+    }
+
+    pub fn write(&mut self, data: &[u8]) -> anyhow::Result<()> {
+        self.writer.write_all(data)?;
         self.writer.flush()?;
         Ok(())
     }
@@ -239,6 +249,7 @@ fn read_loop(
     _heuristic: Arc<crate::services::HeuristicService>,
     sector_id: uuid::Uuid,
     hub_id: uuid::Uuid,
+    ipc_weak_container: Arc<Mutex<Option<std::sync::Weak<crate::brain::ipc_handler::IpcHandler>>>>,
 ) {
     let mut osc_parser = OscParser::new();
     let mut line_buffer = String::new();
@@ -249,6 +260,16 @@ fn read_loop(
             Ok(0) | Err(_) => break,
             Ok(n) => {
                 let data = &buffer[..n];
+
+                // Hex encode raw PTY output bytes and broadcast them
+                let hex_data = hex::encode(data);
+                let broadcast_msg = format!("pty_output:{}", hex_data);
+                if let Some(ipc_weak) = &*ipc_weak_container.lock().unwrap() {
+                    if let Some(ipc) = ipc_weak.upgrade() {
+                        ipc.broadcast(&broadcast_msg);
+                    }
+                }
+
                 let text = String::from_utf8_lossy(data);
                 line_buffer.push_str(&text);
 

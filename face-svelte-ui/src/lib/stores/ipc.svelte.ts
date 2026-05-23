@@ -23,6 +23,17 @@ let activeWsUrl = $state<string | null>(null);
 const DEFAULT_WS_HOST = '127.0.0.1';
 const DEFAULT_WS_URL = `wss://${DEFAULT_WS_HOST}:7001`;
 
+type IpcRawListener = (message: string) => void;
+const rawListeners = new Set<IpcRawListener>();
+
+export function addRawListener(listener: IpcRawListener): void {
+    rawListeners.add(listener);
+}
+
+export function removeRawListener(listener: IpcRawListener): void {
+    rawListeners.delete(listener);
+}
+
 export function getPrediction(): string {
     return prediction;
 }
@@ -251,6 +262,15 @@ function proceedConnect(targetUrl: string): void {
         // Setup global passive listener for pushed state_delta
         ws!.onmessage = (event) => {
             if (typeof event.data === 'string') {
+                // Dispatch to raw listeners first
+                rawListeners.forEach(listener => {
+                    try {
+                        listener(event.data);
+                    } catch (e) {
+                        console.error('[IPC] Raw listener error:', e);
+                    }
+                });
+
                 if (event.data.startsWith('state_delta:')) {
                     handleStateDelta(event.data.substring(12));
                 } else if (event.data.startsWith('ai_prediction_received:')) {

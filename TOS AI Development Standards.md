@@ -105,12 +105,13 @@ Do not commit code that breaks any of these gates.
 
 ## 6. Multi-Environment & Linux UI Development
 
-This project is developed across multiple environments to support various platform-specific interfaces (such as `face-wayland-linux`).
+This project is developed across multiple environments to support various platform-specific interfaces (such as `face-wayland-linux`) or the tos brain and services.
 
 * **Linux Project Workspace**: `tim@192.168.68.77 /8TB/tos/` (NixOS System)
   * This is the primary Linux development workspace, which is linked to the same origin GitHub repository.
   * When developing and testing Linux UI components or running Linux-specific build targets, you should ensure coordination with this remote repository.
   * **Persistent Workspace Session**: The NixOS system hosts a persistent `tmux` session (typically named `tos`). Developers and agents should attach to this session (`tmux attach -t tos`) to run services, monitor logs, and execute build targets in the background.
+  * **NixOS Dev & Testing Rule**: All compilation checks (`make check`), testing (`make test`), linting, and background services must be executed within the persistent NixOS tmux session (`tmux attach -t tos`) to ensure high-fidelity Linux compatibility and avoid raw local/Windows platform issues.
 
 ---
 

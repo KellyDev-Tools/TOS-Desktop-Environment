@@ -5,11 +5,13 @@ use crate::services::MarketplaceService;
 use std::sync::{Arc, Mutex};
 use std::time::Instant;
 use uuid::Uuid;
+use tokio::sync::mpsc::UnboundedSender;
 
 pub struct IpcHandler {
     state: Arc<Mutex<TosState>>,
     shell: Arc<Mutex<crate::brain::shell::ShellApi>>,
     services: Arc<crate::services::ServiceManager>,
+    broadcasters: Mutex<Vec<UnboundedSender<String>>>,
 }
 
 impl IpcHandler {
@@ -22,7 +24,20 @@ impl IpcHandler {
             state,
             shell,
             services,
+            broadcasters: Mutex::new(Vec::new()),
         }
+    }
+
+    pub fn register_broadcaster(&self, sender: UnboundedSender<String>) {
+        let mut broadcasters = self.broadcasters.lock().unwrap();
+        broadcasters.push(sender);
+    }
+
+    pub fn broadcast(&self, message: &str) {
+        let mut broadcasters = self.broadcasters.lock().unwrap();
+        broadcasters.retain(|sender| {
+            sender.send(message.to_string()).is_ok()
+        });
     }
 
     /// Standardized Message Format: prefix:payload;payload...
@@ -178,6 +193,25 @@ impl IpcHandler {
             "dir_pick_dir" => self.handle_dir_pick(args.first().copied()),
             "dir_navigate" => self.handle_dir_navigate(args.first().copied()),
             "ai_predict_command" => self.handle_ai_predict_command(payload),
+            "ai_prediction_received" => {
+                self.broadcast(request);
+                "OK".to_string()
+            }
+            "pty_output" => {
+                self.broadcast(request);
+                "OK".to_string()
+            }
+            "terminal_input_hex" => {
+                if let Ok(bytes) = hex::decode(payload) {
+                    let mut shell = self.shell.lock().unwrap();
+                    match shell.write(&bytes) {
+                        Ok(_) => "OK".to_string(),
+                        Err(e) => format!("ERROR: Failed to write to terminal: {}", e),
+                    }
+                } else {
+                    "ERROR: Invalid hex".to_string()
+                }
+            }
             "ai_thought_stage" => self.handle_ai_thought_stage(payload),
             "ai_queue_push" => self.handle_ai_queue_push(payload),
             "ai_queue_get" => self.handle_ai_queue_get(),
@@ -623,7 +657,7 @@ impl IpcHandler {
         }
 
         let mut shell = self.shell.lock().unwrap();
-        if let Err(e) = shell.write(&format!("{}\n", command)) {
+        if let Err(e) = shell.write(format!("{}\n", command).as_bytes()) {
             let msg = format!("ERROR: Failed to write to shell: {}", e);
             tracing::error!("{}", msg);
             // Revert is_running

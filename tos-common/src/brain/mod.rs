@@ -32,7 +32,16 @@ impl Brain {
         let mut state_val = TosState::default();
         let live_path = sessions_dir.join("_live.tos-session");
         let mut restored = false;
-        if !cfg!(test) {
+
+        let is_test = cfg!(test) || std::env::current_exe()
+            .ok()
+            .map(|path| {
+                let s = path.to_string_lossy();
+                s.contains("/deps/") || s.contains("\\deps\\")
+            })
+            .unwrap_or(false);
+
+        if !is_test {
             if let Ok(content) = std::fs::read_to_string(&live_path) {
                 if let Ok(mut live_state) = serde_json::from_str::<TosState>(&content) {
                     // §13.2: Reset transient execution state on restore to avoid stale 'is_running' flags.
@@ -76,6 +85,7 @@ impl Brain {
             services.clone(),
         ));
 
+        shell.lock().unwrap().set_ipc(&ipc);
         services.set_ipc(ipc.clone());
 
         let mut loaded_settings = None;

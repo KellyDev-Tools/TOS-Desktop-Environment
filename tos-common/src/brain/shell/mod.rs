@@ -32,7 +32,7 @@ impl ShellApi {
             _hub_id: hub_id,
         })
     }
-    pub fn write(&mut self, _data: &str) -> anyhow::Result<()> {
+    pub fn write(&mut self, _data: &[u8]) -> anyhow::Result<()> {
         Ok(())
     }
     pub fn resize(&self, _rows: u16, _cols: u16) -> anyhow::Result<()> {

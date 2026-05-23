@@ -253,6 +253,7 @@ impl RemoteServer {
         let ws_stream = accept_async(socket).await?;
         let (mut ws_tx, mut ws_rx) = ws_stream.split();
         let (mpsc_tx, mut mpsc_rx) = tokio::sync::mpsc::unbounded_channel::<String>();
+        self.ipc.register_broadcaster(mpsc_tx.clone());
 
         let push_ipc = self.ipc.clone();
         let push_tx = mpsc_tx.clone();

@@ -131,6 +131,28 @@
 		animFrameId = requestAnimationFrame(measureFps);
 	}
 
+	$effect(() => {
+		const level = typeof tosState.current_level === 'string'
+			? tosState.current_level.toLowerCase()
+			: tosState.current_level;
+
+		if (level === 1 || level === 'globaloverview' || level === 'global') {
+			if (getCurrentMode() !== 'global') setCurrentMode('global');
+		} else if (level === 2 || level === 'commandhub' || level === 'hubs') {
+			if (getCurrentMode() !== 'hubs') setCurrentMode('hubs');
+		} else if (level === 3 || level === 'applicationfocus' || level === 'sectors') {
+			if (getCurrentMode() !== 'sectors') setCurrentMode('sectors');
+		} else if (level === 4 || level === 'detailview' || level === 'detail') {
+			if (getCurrentMode() !== 'detail') setCurrentMode('detail');
+		} else if (level === 5 || level === 'bufferview' || level === 'buffer') {
+			if (getCurrentMode() !== 'buffer') setCurrentMode('buffer');
+		} else if (level === 6 || level === 'marketplace') {
+			if (getCurrentMode() !== 'marketplace') setCurrentMode('marketplace');
+		} else if (level === 'logs') {
+			if (getCurrentMode() !== 'logs') setCurrentMode('logs');
+		}
+	});
+
 	onMount(() => {
 		connect();
 		animFrameId = requestAnimationFrame(measureFps);
@@ -296,7 +318,7 @@
 			<div class="header-section header-left">
 				<button class="bezel-btn bezel-item" title="Toggle Left Sidebar" aria-label="Toggle Left Sidebar" onclick={() => toggleSidebarLeft()}>◀</button>
 				<div class="lcars-title-area">
-					<span class="lcars-prefix">{tosState.sys_prefix || 'ALPHA-2.2 // INTEL-DRIVEN'}</span>
+					<span class="lcars-prefix">{tosState.sys_prefix || 'BETA-0 // INTEL-DRIVEN'}</span>
 				</div>
 				
 				<!-- Sector Chip with Popover -->
@@ -334,7 +356,7 @@
 
 			<!-- Right Section: System Controls -->
 			<div class="header-section header-right">
-				<button class="bezel-btn bezel-item" title="Toggle Terminal Overlay (Ctrl+T)" aria-label="Toggle Terminal Overlay (Ctrl+T)" onclick={() => toggleTerminalToFront()}>👁</button>
+				<button class="bezel-btn bezel-item" title="Toggle Terminal Overlay (Ctrl+Shift+T)" aria-label="Toggle Terminal Overlay (Ctrl+Shift+T)" onclick={() => toggleTerminalToFront()}>👁</button>
 				<button class="bezel-btn bezel-item" title="Marketplace (⊞)" aria-label="Marketplace (⊞)" onclick={() => { setCurrentMode('marketplace'); sendCommand('set_mode:marketplace'); }}>⊞</button>
 				<button 
 					class="bezel-btn bezel-item" 

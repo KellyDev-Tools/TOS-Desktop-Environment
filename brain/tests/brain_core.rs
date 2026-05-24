@@ -109,3 +109,58 @@ async fn test_mode_switching() {
         assert_eq!(state.sectors[0].hubs[0].mode, CommandHubMode::Ai);
     }
 }
+
+#[tokio::test]
+async fn test_sector_auto_relabel_and_focus() {
+    let brain = Brain::new().expect("Failed to initialize Brain");
+
+    // 1. Initial active sector index should be 0, name should be "Primary"
+    {
+        let state = brain.state.lock().unwrap();
+        assert_eq!(state.active_sector_index, 0);
+        assert_eq!(state.sectors[0].name, "Primary");
+    }
+
+    // 2. Create sector with an empty/blank name - should auto-label to "Sector 2" and auto-focus
+    let res = brain.ipc.handle_request("sector_create:");
+    assert_eq!(res, "SECTOR_CREATED: Sector 2");
+
+    {
+        let state = brain.state.lock().unwrap();
+        assert_eq!(state.sectors.len(), 2);
+        assert_eq!(state.sectors[1].name, "Sector 2");
+        assert_eq!(state.active_sector_index, 1, "New sector should be auto-focused");
+    }
+
+    // 3. Create another sector with blank name - should auto-label to "Sector 3" and focus it
+    let res = brain.ipc.handle_request("sector_create:   ");
+    assert_eq!(res, "SECTOR_CREATED: Sector 3");
+
+    {
+        let state = brain.state.lock().unwrap();
+        assert_eq!(state.sectors.len(), 3);
+        assert_eq!(state.sectors[2].name, "Sector 3");
+        assert_eq!(state.active_sector_index, 2);
+    }
+}
+
+#[tokio::test]
+async fn test_sector_limit_ipc() {
+    let brain = Brain::new().expect("Failed to initialize Brain");
+
+    // 1. Initial state has 1 sector
+    let first_id = {
+        let state = brain.state.lock().unwrap();
+        state.sectors[0].id.to_string()
+    };
+
+    // 2. Try closing the last sector via IPC - should return failure message
+    let res = brain.ipc.handle_request(&format!("sector_close:{}", first_id));
+    assert!(res.contains("ERROR") || res.contains("FAILED") || res.contains("cannot close the last remaining sector"), "IPC response: {}", res);
+
+    {
+        let state = brain.state.lock().unwrap();
+        assert_eq!(state.sectors.len(), 1, "Sector count should still be 1");
+    }
+}
+

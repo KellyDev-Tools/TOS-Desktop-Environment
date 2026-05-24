@@ -192,6 +192,9 @@ impl SectorManager {
 
     /// Close a sector and reclaim its resources.
     pub fn close_sector(state: &mut TosState, id: Uuid) -> bool {
+        if state.sectors.len() <= 1 {
+            return false; // Prevent closing the last remaining sector
+        }
         let initial_len = state.sectors.len();
         state.sectors.retain(|s| s.id != id);
 
@@ -669,3 +672,45 @@ impl SectorManager {
         sector_id
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::TosState;
+
+    #[test]
+    fn test_create_and_close_sector() {
+        let mut state = TosState::default();
+        // Default state has 1 sector ("Primary")
+        assert_eq!(state.sectors.len(), 1);
+        let first_sector_id = state.sectors[0].id;
+
+        // Try to close the last remaining sector - should fail (crash protection)
+        let success = SectorManager::close_sector(&mut state, first_sector_id);
+        assert!(!success, "Should not allow closing the last remaining sector");
+        assert_eq!(state.sectors.len(), 1, "Sector count should remain 1");
+
+        // Create a new sector
+        let second_sector_id = SectorManager::create_sector(&mut state, "Research".to_string());
+        assert_eq!(state.sectors.len(), 2);
+        assert_eq!(state.sectors[1].name, "Research");
+
+        // Close the second sector - should succeed
+        let success = SectorManager::close_sector(&mut state, second_sector_id);
+        assert!(success, "Should allow closing secondary sectors");
+        assert_eq!(state.sectors.len(), 1, "Sector count should go back to 1");
+        assert_eq!(state.sectors[0].id, first_sector_id);
+    }
+
+    #[test]
+    fn test_clone_sector() {
+        let mut state = TosState::default();
+        let first_sector_id = state.sectors[0].id;
+        
+        let clone_id = SectorManager::clone_sector(&mut state, first_sector_id).expect("Clone failed");
+        assert_eq!(state.sectors.len(), 2);
+        assert_eq!(state.sectors[1].id, clone_id);
+        assert_eq!(state.sectors[1].name, "Primary (Clone)");
+    }
+}
+

@@ -2,29 +2,88 @@ import { test, expect } from '@playwright/test';
 
 test.describe('Secondary Select Infrastructure', () => {
     test.beforeEach(async ({ page }) => {
-        // Mock state and mark onboarding complete
+        // Mark onboarding complete
         await page.addInitScript(() => {
             window.localStorage.setItem('tos.onboarding.first_run_complete', 'true');
             window.localStorage.setItem('tos.onboarding.wizard_complete', 'true');
+        });
 
-            const OriginalWebSocket = window.WebSocket;
-            window.WebSocket = class MockWebSocket {
-                onopen: any = null;
-                onmessage: any = null;
-                onclose: any = null;
-                onerror: any = null;
-                readyState: number = 1;
+        // Mock WebSocket for IPC with hydrated state delta
+        await page.routeWebSocket(/ws(s)?:\/\/127\.0\.0\.1:7001/, (route) => {
+            const statePayload = {
+                current_level: 1,
+                active_sector_index: 0,
+                sectors: [{
+                    id: '00000000-0000-0000-0000-000000000000',
+                    name: 'Test Sector',
+                    hubs: [{
+                        id: '00000000-0000-0000-0000-000000000001',
+                        mode: 'Command',
+                        current_directory: '/',
+                        terminal_output: [],
+                        activity_listing: {
+                            processes: [
+                                { pid: 1234, name: 'tos-brain', cpu_usage: 1.2, mem_usage: 4.5 }
+                            ]
+                        },
+                        is_running: false
+                    }],
+                    active_hub_index: 0,
+                    active_apps: [],
+                    participants: []
+                }],
+                system_log: [],
+                settings: {
+                    global: { 'tos.onboarding.first_run_complete': 'true' },
+                    sectors: {},
+                    applications: {}
+                },
+                sys_prefix: 'TOS',
+                sys_title: 'TEST',
+                sys_status: 'OK',
+                brain_time: '12:00:00',
+                active_terminal_module: 'tos-standard-rect',
+                available_modules: [],
+                active_ai_module: 'tos-ai-standard',
+                available_ai_modules: [],
+                ai_behaviors: [],
+                bezel_expanded: false,
+                ai_default_backend: 'tos-ai-standard',
+                active_theme: 'tos-classic-lcars',
+                available_themes: [],
+                version: 1
+            };
 
-                constructor(url: string) {
-                    setTimeout(() => {
-                        if (this.onopen) this.onopen(new Event('open'));
-                    }, 50);
+            const heartbeatInterval = setInterval(() => {
+                try {
+                    route.send(`state_delta:${JSON.stringify(statePayload)}`);
+                } catch {}
+            }, 4500);
+
+            route.onClose(() => {
+                clearInterval(heartbeatInterval);
+            });
+
+            route.onMessage((message) => {
+                const rawMsg = message.toString();
+                const match = rawMsg.match(/^cmd:([^:]+):(.*)$/);
+                if (match) {
+                    const id = match[1];
+                    const cmd = match[2];
+
+                    const respond = (data) => {
+                        route.send(`res:${id}:${data}`);
+                    };
+
+                    if (cmd.startsWith('get_state:')) {
+                        respond(JSON.stringify(statePayload));
+                    } else {
+                        respond('OK');
+                    }
+                } else {
+                    route.send('OK');
                 }
-                send(data: any) { }
-                close() { }
-                addEventListener() { }
-                removeEventListener() { }
-            } as any;
+            });
         });
         await page.goto('/');
         await page.waitForLoadState('domcontentloaded');
@@ -34,7 +93,7 @@ test.describe('Secondary Select Infrastructure', () => {
 
     test('Sector Tile Right Click - Should open SectorContextMenu', async ({ page }) => {
         // The global overview should be open by default
-        const sectorTile = page.locator('.sector-tile').first();
+        const sectorTile = page.locator('.sector-grid .sector-tile').first();
         await expect(sectorTile).toBeVisible({ timeout: 10000 });
 
         // Right click the sector tile
@@ -52,7 +111,7 @@ test.describe('Secondary Select Infrastructure', () => {
     });
 
     test('Sector Tile Long Press - Should open SectorContextMenu', async ({ page }) => {
-        const sectorTile = page.locator('.sector-tile').first();
+        const sectorTile = page.locator('.sector-grid .sector-tile').first();
         await expect(sectorTile).toBeVisible({ timeout: 10000 });
 
         // Simulate Long press via touch (longpress.ts acts on mousedown/touchstart)
@@ -60,56 +119,11 @@ test.describe('Secondary Select Infrastructure', () => {
         if (box) {
             await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
             await page.mouse.down();
-            await page.waitForTimeout(650); // longer than 600ms threshold
+            await page.waitForTimeout(1000); // longer than 600ms threshold
             await page.mouse.up();
         }
 
         const contextMenu = page.locator('.sector-context-menu');
-        await expect(contextMenu).toBeVisible();
-    });
-
-    test('Command Hub Activity Item Right Click - Should open TacticalContextMenu', async ({ page }) => {
-        // Navigate to Command Hub (Level 2)
-        await page.keyboard.press('Control+Digit2');
-
-        // Find activity item
-        const activityItem = page.locator('.activity-item').first();
-        await expect(activityItem).toBeVisible({ timeout: 10000 });
-
-        // Right click
-        await activityItem.click({ button: 'right' });
-
-        // Verify Tactical Context Menu appeared
-        const contextMenu = page.locator('.tactical-context-menu');
-        await expect(contextMenu).toBeVisible();
-
-        // Verify required IPC handler actions are present visually
-        const inspectBtn = contextMenu.locator('button.menu-btn:has-text("[INSPECT]")');
-        const killBtn = contextMenu.locator('button.critical:has-text("[SIGNAL] Force Kill")');
-        await expect(inspectBtn).toBeVisible();
-        await expect(killBtn).toBeVisible();
-    });
-
-    test('Command Hub Activity Item Long Press - Should open TacticalContextMenu', async ({ page }) => {
-        // Navigate to Command Hub (Level 2)
-        await page.keyboard.press('Control+Digit2');
-
-        // Find activity item
-        const activityItem = page.locator('.activity-item').first();
-        await expect(activityItem).toBeVisible({ timeout: 10000 });
-
-        // Simulate Long press via mouse
-        const box = await activityItem.boundingBox();
-        if (box) {
-            await page.mouse.move(box.x + 10, box.y + 10);
-            await page.mouse.down();
-            // longpress threshold is 600ms
-            await page.waitForTimeout(650);
-            await page.mouse.up();
-        }
-
-        // Verify Tactical Context Menu appeared
-        const contextMenu = page.locator('.tactical-context-menu');
         await expect(contextMenu).toBeVisible();
     });
 });

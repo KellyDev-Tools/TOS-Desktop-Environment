@@ -9,8 +9,7 @@
 	const tosState = $derived(getTosState());
 	let isFirstRun = $state(false);
 
-	import { onMount } from 'svelte';
-	onMount(() => {
+	$effect(() => {
 		const local = localStorage.getItem('tos.onboarding.first_run_complete');
 		const remote = tosState.settings.global['tos.onboarding.first_run_complete'];
 		isFirstRun = local !== 'true' && remote !== 'true';
@@ -22,7 +21,7 @@
 	const steps = [
 		{
 			title: 'TRUST CONFIGURATION',
-			desc: 'Alpha-2.2 introduces non-blocking Command Trust. Choose your default system security posture before we begin.',
+			desc: 'Beta-0 introduces non-blocking Command Trust. Choose your default system security posture before we begin.',
 			action: 'Step 0 of 8'
 		},
 		{

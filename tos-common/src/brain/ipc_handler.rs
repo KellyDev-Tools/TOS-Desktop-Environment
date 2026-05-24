@@ -990,9 +990,20 @@ impl IpcHandler {
     fn handle_sector_create(&self, name: Option<&str>) -> String {
         // Dynamic Sector Allocation
         let mut state = self.state.lock().unwrap();
-        let name = name.unwrap_or("New Sector");
-        crate::brain::sector::SectorManager::create_sector(&mut state, name.to_string());
-        format!("SECTOR_CREATED: {}", name)
+        let name_str = name.unwrap_or("New Sector");
+        let sector_name = if name_str.trim().is_empty() {
+            format!("Sector {}", state.sectors.len() + 1)
+        } else {
+            name_str.to_string()
+        };
+        let new_id = crate::brain::sector::SectorManager::create_sector(&mut state, sector_name.clone());
+        
+        // Auto-focus/activate the new sector
+        if let Some(pos) = state.sectors.iter().position(|s| s.id == new_id) {
+            state.active_sector_index = pos;
+        }
+        
+        format!("SECTOR_CREATED: {}", sector_name)
     }
 
     fn handle_sector_create_from_template(&self, json_payload: &str) -> String {
@@ -1063,8 +1074,11 @@ impl IpcHandler {
         if let Some(id_str) = id_str {
             if let Ok(id) = Uuid::parse_str(id_str) {
                 let mut state = self.state.lock().unwrap();
-                crate::brain::sector::SectorManager::close_sector(&mut state, id);
-                return format!("SECTOR_CLOSED: {}", id);
+                if crate::brain::sector::SectorManager::close_sector(&mut state, id) {
+                    return format!("SECTOR_CLOSED: {}", id);
+                } else {
+                    return "ERROR: Cannot close the last remaining sector".to_string();
+                }
             }
         }
         "ERROR: Invalid sector ID for close".to_string()

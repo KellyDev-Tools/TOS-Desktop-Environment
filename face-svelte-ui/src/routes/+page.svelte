@@ -132,24 +132,19 @@
 	}
 
 	$effect(() => {
-		const level = typeof tosState.current_level === 'string'
-			? tosState.current_level.toLowerCase()
-			: tosState.current_level;
-
-		if (level === 1 || level === 'globaloverview' || level === 'global') {
+		const level = tosState.current_level;
+		if (level === 1 || level === 'GlobalOverview') {
 			if (getCurrentMode() !== 'global') setCurrentMode('global');
-		} else if (level === 2 || level === 'commandhub' || level === 'hubs') {
+		} else if (level === 2 || level === 'CommandHub') {
 			if (getCurrentMode() !== 'hubs') setCurrentMode('hubs');
-		} else if (level === 3 || level === 'applicationfocus' || level === 'sectors') {
+		} else if (level === 3 || level === 'ApplicationFocus') {
 			if (getCurrentMode() !== 'sectors') setCurrentMode('sectors');
-		} else if (level === 4 || level === 'detailview' || level === 'detail') {
+		} else if (level === 4 || level === 'DetailView') {
 			if (getCurrentMode() !== 'detail') setCurrentMode('detail');
-		} else if (level === 5 || level === 'bufferview' || level === 'buffer') {
+		} else if (level === 5 || level === 'BufferView') {
 			if (getCurrentMode() !== 'buffer') setCurrentMode('buffer');
-		} else if (level === 6 || level === 'marketplace') {
+		} else if (level === 6 || level === 'Marketplace') {
 			if (getCurrentMode() !== 'marketplace') setCurrentMode('marketplace');
-		} else if (level === 'logs') {
-			if (getCurrentMode() !== 'logs') setCurrentMode('logs');
 		}
 	});
 

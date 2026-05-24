@@ -119,7 +119,7 @@ test.describe('Secondary Select Infrastructure', () => {
         if (box) {
             await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
             await page.mouse.down();
-            await page.waitForTimeout(1000); // longer than 600ms threshold
+            await page.waitForTimeout(650); // longer than 600ms threshold
             await page.mouse.up();
         }
 

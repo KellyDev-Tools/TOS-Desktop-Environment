@@ -215,14 +215,6 @@ test.describe('Marketplace Integration Tests', () => {
         const permissionModal = page.locator('.modal-overlay:has-text("REVIEW PERMISSIONS")');
         await expect(permissionModal).toBeVisible();
 
-        // Scroll the permissions review container to the bottom to unlock the install button
-        const permReview = page.locator('.perm-review');
-        await permReview.evaluate(el => {
-            el.scrollTop = el.scrollHeight;
-            // Dispatch scroll event to make sure Svelte handles it
-            el.dispatchEvent(new Event('scroll'));
-        });
-
         // Confirm install
         const confirmBtn = permissionModal.locator('button:has-text("ACCEPT & INSTALL")');
         await confirmBtn.click();

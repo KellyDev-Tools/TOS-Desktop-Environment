@@ -25,12 +25,9 @@
 		sectorId: string;
 		frozen: boolean;
 	}>({ open: false, x: 0, y: 0, sectorIndex: 0, sectorName: '', sectorId: '', frozen: false });
-	let suppressNextPrimaryClick = $state(false);
 
 	function openContextMenu(e: MouseEvent | CustomEvent, index: number, name: string, id: string, frozen: boolean) {
 		e.preventDefault();
-		if ('stopPropagation' in e) e.stopPropagation();
-		suppressNextPrimaryClick = true;
 		const ev = e instanceof CustomEvent ? e.detail : e;
 		cmState = {
 			open: true,
@@ -43,17 +40,10 @@
 		};
 	}
 
-	async function handleSectorClick(e: MouseEvent, index: number) {
-		if (e.button !== 0) return;
-		if (suppressNextPrimaryClick) {
-			suppressNextPrimaryClick = false;
-			return;
-		}
-		// Optimistic local transition for responsiveness.
+	async function handleSectorClick(index: number) {
+		console.log(`[GlobalOverview] Sector ${index} clicked`);
 		setCurrentMode('hubs');
 		await ipc.switchSector(index);
-		// Commit hierarchy level in Brain so state_delta doesn't snap back to global.
-		await ipc.setMode('hubs');
 	}
 
 	async function handleSystemReset() {
@@ -114,7 +104,7 @@
 				class="sector-tile {getBorderClass(sector)}"
 				class:active={i === activeIndex}
 				class:drag-hover={dragHoverSector === i}
-				onclick={(e) => handleSectorClick(e, i)}
+				onclick={() => handleSectorClick(i)}
 				ondragover={(e: any) => handleDragOver(e, i)}
 				ondragleave={handleDragLeave}
 				ondrop={(e: any) => handleDrop(e, i)}

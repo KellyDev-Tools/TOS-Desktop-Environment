@@ -389,8 +389,8 @@
 					<div class="viewport-header">
 						<div class="viewport-title">{viewTitle}</div>
 						<div class="viewport-controls">
-							<button class="bezel-btn" title="Add Sector" aria-label="Add Sector">+</button>
-							<button class="bezel-btn" title="Close Sector" aria-label="Close Sector">−</button>
+							<button class="bezel-btn" title="Add Sector" aria-label="Add Sector" onclick={() => sendCommand("sector_create:")}>+</button>
+							<button class="bezel-btn" title="Close Sector" aria-label="Close Sector" onclick={() => { if (activeSector) sendCommand(`sector_close:${activeSector.id}`); }}>−</button>
 						</div>
 					</div>
 

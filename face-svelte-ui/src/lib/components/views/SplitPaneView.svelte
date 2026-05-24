@@ -70,7 +70,7 @@
 
 	<div class="pane-content">
 		{#if pane.content === 'Terminal'}
-			<div class="terminal-container" style="padding: 0;">
+			<div class="terminal-container" style="padding: 0; overflow: hidden; border: none; background: transparent; height: 100%;">
 				<XtermTerminal />
 			</div>
 		{:else if typeof pane.content === 'object' && 'Editor' in pane.content}

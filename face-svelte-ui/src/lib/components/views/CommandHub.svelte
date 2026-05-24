@@ -307,7 +307,7 @@
 					</div>
 				</div>
 			{:else}
-				<div class="terminal-container" style="padding: 0;" transition:fade={{ duration: 150 }}>
+				<div class="terminal-container" style="padding: 0; overflow: hidden; border: none; background: transparent; height: 100%;" transition:fade={{ duration: 150 }}>
 					<XtermTerminal />
 				</div>
 			{/if}

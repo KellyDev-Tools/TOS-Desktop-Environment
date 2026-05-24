@@ -78,20 +78,30 @@
             sendCommand(`terminal_input_hex:${hex}`);
         });
 
+        let lastRows = 0;
+        let lastCols = 0;
+        let resizeTimeout: ReturnType<typeof setTimeout>;
+
         // Setup resize listener
         const resizeObserver = new ResizeObserver(() => {
-            try {
-                fitAddon?.fit();
-                if (term) {
-                    sendCommand(`terminal_resize:${term.rows};${term.cols}`);
+            clearTimeout(resizeTimeout);
+            resizeTimeout = setTimeout(() => {
+                try {
+                    fitAddon?.fit();
+                    if (term && (term.rows !== lastRows || term.cols !== lastCols)) {
+                        lastRows = term.rows;
+                        lastCols = term.cols;
+                        sendCommand(`terminal_resize:${term.rows};${term.cols}`);
+                    }
+                } catch (e) {
+                    console.error('[Terminal Fit Error]', e);
                 }
-            } catch (e) {
-                console.error('[Terminal Fit Error]', e);
-            }
+            }, 100);
         });
         resizeObserver.observe(terminalElement);
 
         return () => {
+            clearTimeout(resizeTimeout);
             onDataDisposable.dispose();
             removeRawListener(socketListener);
             resizeObserver.disconnect();

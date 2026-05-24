@@ -51,6 +51,24 @@ let mainWindow: BrowserWindow | null = null;
 let tray: Tray | null = null;
 let windowStateManager: WindowStateManager | null = null;
 
+/**
+ * Writes to stdout only when the stream is writable, and swallows broken-pipe
+ * errors so renderer console forwarding cannot crash the main process.
+ */
+function safeMainLog(message: string): void {
+    try {
+        if (process.stdout && process.stdout.writable) {
+            process.stdout.write(`${message}\n`);
+        }
+    } catch (error: unknown) {
+        const err = error as NodeJS.ErrnoException;
+        if (err?.code !== 'EPIPE') {
+            // Keep non-EPIPE failures visible during development.
+            console.error('[Electron] safeMainLog failure:', err);
+        }
+    }
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
 // Platform Configuration
 // ─────────────────────────────────────────────────────────────────────────────
@@ -111,7 +129,7 @@ export async function createFaceWindow(config: PlatformConfig): Promise<void> {
     mainWindow.webContents.on('console-message', (event, level, message, line, sourceId) => {
         const levels = ['DEBUG', 'INFO', 'WARN', 'ERROR'];
         const lvl = levels[level] || 'INFO';
-        console.log(`[Renderer Console] [${lvl}] ${message} (at ${path.basename(sourceId)}:${line})`);
+        safeMainLog(`[Renderer Console] [${lvl}] ${message} (at ${path.basename(sourceId)}:${line})`);
     });
 
     // Override Content-Security-Policy for custom protocol loads

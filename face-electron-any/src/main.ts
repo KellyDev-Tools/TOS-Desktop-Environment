@@ -33,6 +33,54 @@ if (IS_DEV) {
 }
 const BRAIN_WS_URL = process.env.TOS_BRAIN_WS ?? 'wss://127.0.0.1:7001';
 
+function installSafeConsole(): void {
+    const writeSafe = (line: string) => {
+        try {
+            if (process.stdout?.writable) {
+                process.stdout.write(line + '\n');
+            }
+        } catch (error: unknown) {
+            const err = error as NodeJS.ErrnoException;
+            if (err?.code !== 'EPIPE') {
+                throw error;
+            }
+        }
+    };
+
+    const originalError = console.error.bind(console);
+    const originalWarn = console.warn.bind(console);
+
+    console.log = (...args: unknown[]) => {
+        try {
+            const rendered = args.map((arg) => (typeof arg === 'string' ? arg : String(arg))).join(' ');
+            writeSafe(rendered);
+        } catch {
+            // Never let logging kill the main process.
+        }
+    };
+
+    console.warn = (...args: unknown[]) => {
+        try {
+            const rendered = args.map((arg) => (typeof arg === 'string' ? arg : String(arg))).join(' ');
+            writeSafe(rendered);
+        } catch {
+            // Fallback only for unexpected serialization failures.
+            try { originalWarn(...args); } catch {}
+        }
+    };
+
+    console.error = (...args: unknown[]) => {
+        try {
+            const rendered = args.map((arg) => (typeof arg === 'string' ? arg : String(arg))).join(' ');
+            writeSafe(rendered);
+        } catch {
+            try { originalError(...args); } catch {}
+        }
+    };
+}
+
+installSafeConsole();
+
 /** Path to the prebuilt Svelte UI renderer */
 function getRendererPath(): string {
     if (IS_DEV) {
@@ -107,12 +155,8 @@ export async function createFaceWindow(config: PlatformConfig): Promise<void> {
 
     mainWindow = new BrowserWindow(windowOptions);
 
-    // Track renderer console logs and output them to the main process console
-    mainWindow.webContents.on('console-message', (event, level, message, line, sourceId) => {
-        const levels = ['DEBUG', 'INFO', 'WARN', 'ERROR'];
-        const lvl = levels[level] || 'INFO';
-        console.log(`[Renderer Console] [${lvl}] ${message} (at ${path.basename(sourceId)}:${line})`);
-    });
+    // Disabled renderer console forwarding to avoid broken stdout/stderr pipes
+    // crashing the main process on some Windows launch paths.
 
     // Override Content-Security-Policy for custom protocol loads
     mainWindow.webContents.session.webRequest.onHeadersReceived((details, callback) => {

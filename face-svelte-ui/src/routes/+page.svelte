@@ -29,7 +29,6 @@
 	import BrainStatus from '$lib/components/modules/BrainStatus.svelte';
 	import Telemetry from '$lib/components/modules/Telemetry.svelte';
 	import Minimap from '$lib/components/modules/Minimap.svelte';
-	import PriorityStack from '$lib/components/modules/PriorityStack.svelte';
 	import MiniLog from '$lib/components/modules/MiniLog.svelte';
 
 	// Overlays
@@ -214,6 +213,35 @@
 		sendCommand(`set_mode:${m}`);
 	}
 
+	async function saveSession() {
+		if (!activeSector) return;
+		const name = prompt("ENTER SESSION NAME FOR " + activeSector.name.toUpperCase() + ":", activeSector.name.toLowerCase() + "-session");
+		if (!name) return;
+		const response = await sendCommand(`session_save:${activeSector.id}:${name}`);
+		alert(response || "SESSION SAVED");
+		sessionPopoverOpen = false;
+	}
+
+	async function exportSession() {
+		if (!activeSector) return;
+		const name = activeSector.name.toLowerCase() + "-session";
+		const response = await sendCommand(`session_export:${activeSector.id}:${name}`);
+		if (response && response.startsWith('SESSION_EXPORT: ')) {
+			const json = response.substring('SESSION_EXPORT: '.length);
+			const blob = new Blob([json], { type: 'application/json' });
+			const url = URL.createObjectURL(blob);
+			const a = document.createElement('a');
+			a.href = url;
+			a.download = `${name}.json`;
+			a.click();
+			URL.revokeObjectURL(url);
+		} else {
+			alert("EXPORT FAILED");
+		}
+		sessionPopoverOpen = false;
+	}
+
+
 	// View title derived from mode
 	const viewTitle = $derived(
 		mode === 'global' ? 'GLOBAL OVERVIEW' :
@@ -313,10 +341,10 @@
 			<div class="header-section header-left">
 				<button class="bezel-btn bezel-item" title="Toggle Left Sidebar" aria-label="Toggle Left Sidebar" onclick={() => toggleSidebarLeft()}>◀</button>
 				<div class="lcars-title-area">
-					<span class="lcars-prefix">{tosState.sys_prefix || 'BETA-0 // INTEL-DRIVEN'}</span>
+					<span class="lcars-view-title">{viewTitle}</span>
 				</div>
 				
-				<!-- Sector Chip with Popover -->
+				<!-- Sector Chip with Integrated Context Controls -->
 				{#if tosState.sectors[tosState.active_sector_index]}
 					{@const activeSec = tosState.sectors[tosState.active_sector_index]}
 					<div aria-roledescription="chip" class="sector-chip-wrapper">
@@ -325,17 +353,32 @@
 							{activeSec.name.toUpperCase()}
 						</button>
 						
+						<!-- Nested Context-Sensitive Controls -->
+						<div class="sector-actions">
+							{#if mode === 'hubs'}
+								<button class="sector-action-btn" title="Split terminal pane" aria-label="Split terminal pane" onclick={() => splitCreate()}>+</button>
+								<button class="sector-action-btn" title="Close focused split pane" aria-label="Close focused split pane" onclick={() => splitClose()}>−</button>
+							{:else}
+								<button class="sector-action-btn" title="Add Sector" aria-label="Add Sector" onclick={() => sendCommand("sector_create:")}>+</button>
+								<button class="sector-action-btn" title="Close Sector" aria-label="Close Sector" onclick={() => { if (activeSector) sendCommand(`sector_close:${activeSector.id}`); }}>−</button>
+							{/if}
+						</div>
+						
 						{#if sessionPopoverOpen}
 							<div class="session-popover glass-panel" transition:fade={{duration: 200}}>
-								<div class="popover-header">SESSION_MANAGER</div>
+								<div class="popover-header">NAMED_SESSIONS</div>
 								<div class="popover-actions">
-									<button class="popover-btn" onclick={() => { /* sessionSave(); */ sessionPopoverOpen = false; }}>SAVE_SESSION</button>
-									<button class="popover-btn" onclick={() => { /* sessionExport(); */ sessionPopoverOpen = false; }}>EXPORT_JSON</button>
-									<div class="divider"></div>
-									<div class="popover-label">NAMED_SESSIONS</div>
 									<div class="session-list">
 										<div class="session-item empty">NO_NAMED_SESSIONS</div>
 									</div>
+									<div class="divider"></div>
+									<div class="popover-label">SESSION PERSISTENCE</div>
+									<button class="popover-btn" onclick={saveSession}>
+										✦ SAVE SESSION
+									</button>
+									<button class="popover-btn" onclick={exportSession}>
+										📡 EXPORT CONTEXT
+									</button>
 								</div>
 							</div>
 						{/if}
@@ -402,14 +445,7 @@
 		<section class="lcars-content-area">
 			<div class="lcars-content-bezel">
 				<div class="glass-panel viewport" id="main-viewport">
-					<!-- Viewport Header -->
-					<div class="viewport-header">
-						<div class="viewport-title">{viewTitle}</div>
-						<div class="viewport-controls">
-							<button class="bezel-btn" title="Add Sector" aria-label="Add Sector" onclick={() => sendCommand("sector_create:")}>+</button>
-							<button class="bezel-btn" title="Close Sector" aria-label="Close Sector" onclick={() => { if (activeSector) sendCommand(`sector_close:${activeSector.id}`); }}>−</button>
-						</div>
-					</div>
+
 
 					<!-- Viewport Content -->
 					<div class="viewport-content" class:bezel-zoomed={tosState.bezel_expanded}>
@@ -530,7 +566,6 @@
 		<!-- Right Sidebar -->
 		<aside class="lcars-sidebar lcars-sidebar-right" class:expanded={sidebarRight}>
 			<div class="sidebar-modules clutter-reduction">
-				<PriorityStack />
 				<MiniLog />
 			</div>
 			<div class="sidebar-spacer"></div>
@@ -677,6 +712,11 @@
 		width: 12rem;
 	}
 
+	.lcars-sidebar:not(.expanded) .sidebar-modules,
+	.lcars-sidebar:not(.expanded) .sidebar-spacer {
+		display: none;
+	}
+
 	.sidebar-top {
 		display: flex;
 		flex-direction: column;
@@ -750,6 +790,9 @@
 	.sector-chip-wrapper {
 		position: relative;
 		margin-left: 1rem;
+		display: flex;
+		align-items: center;
+		gap: var(--space-xs);
 	}
 
 	.sector-name-chip {
@@ -880,26 +923,41 @@
 		position: relative;
 	}
 
-	.viewport-header {
-		display: flex;
-		justify-content: space-between;
-		align-items: center;
-		padding: var(--space-sm) var(--space-md);
-		border-bottom: 1px solid var(--color-border);
-		flex-shrink: 0;
-	}
-
-	.viewport-title {
+	.lcars-view-title {
 		font-family: var(--font-display);
-		font-size: 0.95rem;
+		font-size: 0.85rem;
 		font-weight: 700;
+		color: var(--color-primary);
 		letter-spacing: 0.08em;
-		color: var(--color-text);
+		text-transform: uppercase;
 	}
 
-	.viewport-controls {
-		display: flex;
+	.sector-actions {
+		display: inline-flex;
+		align-items: center;
 		gap: var(--space-xs);
+		margin-left: var(--space-xs);
+	}
+
+	.sector-action-btn {
+		width: 1.4rem;
+		height: 1.4rem;
+		border-radius: 50%;
+		border: 1px solid var(--color-primary);
+		background: transparent;
+		color: var(--color-primary);
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		font-size: 0.75rem;
+		font-weight: 700;
+		cursor: pointer;
+		transition: all 0.2s ease;
+	}
+
+	.sector-action-btn:hover {
+		background: var(--color-primary);
+		color: #000;
 	}
 
 	.viewport-content {

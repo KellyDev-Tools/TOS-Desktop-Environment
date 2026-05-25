@@ -7,7 +7,8 @@
 	import XtermTerminal from '../XtermTerminal.svelte';
 	import WarningChip from '../WarningChip.svelte';
 	import TacticalContextMenu from '../TacticalContextMenu.svelte';
-	import { getPromptMode } from '$lib/stores/ui.svelte';
+	import FileContextMenu from '../FileContextMenu.svelte';
+	import { getPromptMode, setCurrentMode } from '$lib/stores/ui.svelte';
 	import { longpress } from '$lib/actions/longpress';
 
 	const tosState = $derived(getTosState());
@@ -34,6 +35,8 @@
 		return 'inherit';
 	}
 
+
+
 	let cmState = $state<{
 		open: boolean;
 		x: number;
@@ -47,6 +50,48 @@
 		processName: '',
 		processPid: 0
 	});
+
+	let fileCmState = $state<{
+		open: boolean;
+		x: number;
+		y: number;
+		name: string;
+		path: string;
+		isDir: boolean;
+	}>({
+		open: false,
+		x: 0,
+		y: 0,
+		name: '',
+		path: '',
+		isDir: false
+	});
+
+	function handleFileContextMenu(e: MouseEvent | CustomEvent, entry: any, index: number) {
+		e.preventDefault();
+		const ev = e instanceof CustomEvent ? e.detail : e;
+		fileCmState = {
+			open: true,
+			x: ev.clientX,
+			y: ev.clientY,
+			name: entry.name,
+			path: entry.path || `${activeHub?.shell_listing?.path}/${entry.name}`,
+			isDir: entry.is_dir
+		};
+	}
+
+	function handleStagePath(path: string) {
+		const input = document.getElementById('cmd-input') as HTMLInputElement | null;
+		if (input) {
+			const space = input.value && !input.value.endsWith(' ') ? ' ' : '';
+			input.value += space + path;
+			navigator.clipboard.writeText(path).catch(() => {});
+			input.focus();
+			input.dispatchEvent(new Event('input', { bubbles: true }));
+		} else {
+			navigator.clipboard.writeText(path).catch(() => {});
+		}
+	}
 
 	function handleContextMenu(e: MouseEvent | CustomEvent, proc: any) {
 		e.preventDefault();
@@ -177,12 +222,16 @@
 
 <div class="command-hub command-hub-view">
 	<WarningChip />
-
 	{#if splitLayout}
 		<SplitLayout node={splitLayout} {activeHub} />
 	{:else}
-		<!-- Classic Dual-Column View (Fallback) -->
-		<!-- Left Column: Context Chips -->
+		<!-- Terminal Canvas Layer (Back Layer, Full Bleed) -->
+		<div class="terminal-canvas-layer">
+			<XtermTerminal />
+		</div>
+
+		<!-- Chip Column Overlays (Middle Layer, Floating Above Terminal) -->
+		<!-- Left Column: Context Overlays -->
 		<div class="left-column">
 			{#if activeHub?.staged_command}
 				<div aria-roledescription="chip" class="context-chip glass-panel staging-chip" transition:slide>
@@ -225,93 +274,97 @@
 
 			{#if activeHub?.shell_listing}
 				{@const dir = activeHub.shell_listing}
-				<div aria-roledescription="chip" class="context-chip glass-panel" transition:slide>
-					<div aria-roledescription="chip" class="chip-title" style="color: var(--color-primary)">DIR PREVIEW // {dir.path}</div>
-
-					<div class="directory-list">
-						{#each dir.entries as entry, i}
-							<button 
-								class="dir-entry interactive" 
-								onclick={() => handleEntryClick(i, entry.is_dir)}
-							>
-								<span class="dir-type" class:is-dir={entry.is_dir}>{entry.is_dir ? '[DIR]' : ''}</span>
-								<span class="dir-name" class:is-dir={entry.is_dir}>{entry.name}</span>
-								{#if !entry.is_dir}
-									<span class="dir-size">{(entry.size / 1024).toFixed(1)} KB</span>
-								{/if}
-							</button>
-						{/each}
-					</div>
+				<div aria-roledescription="chip" class="dir-preview-header">
+					<div aria-roledescription="chip" class="chip-title" style="color: var(--color-primary); margin-bottom: var(--space-sm);">DIR PREVIEW // {dir.path}</div>
 				</div>
-			{/if}
-
-			{#if !activeHub?.json_context && !activeHub?.shell_listing && !activeHub?.staged_command}
-				<div aria-roledescription="chip" class="context-chip glass-panel empty-chip">
-					<div class="empty-text">AWAITING CONTEXT EXPORT...</div>
-				</div>
-			{/if}
-		</div>
-
-		<!-- Right Column: Dedicated Panel based on promptMode -->
-		<div class="right-column">
-			{#if getPromptMode() === 'ai'}
-				<div class="ai-panel-wrapper" transition:fade={{ duration: 150 }}>
-					<AiChat />
-				</div>
-			{:else if getPromptMode() === 'search'}
-				<div class="search-panel-container glass-panel" transition:fade={{ duration: 150 }}>
-					<div class="search-panel-header">
-						<span class="search-panel-title">✦ SECTOR QUERY ANALYSIS ENGINE // SEARCH_RESULTS</span>
-						<span class="search-panel-meta">
-							{activeHub?.search_results?.reduce((acc, r) => acc + r.matches.length, 0) || 0} HITS IDENTIFIED
-						</span>
-					</div>
-					
-					<div class="search-panel-body">
-						{#if !activeHub?.search_results || activeHub.search_results.length === 0}
-							<div class="search-empty">
-								<div class="search-empty-icon">🔍</div>
-								<div class="search-empty-text">AWAITING QUERY EMISSION...</div>
-								<div class="search-empty-sub">Type a search pattern in the [SEARCH] prompt.</div>
-							</div>
-						{:else}
-							{#each activeHub.search_results as result}
-								<div class="search-group glass-panel">
-									<div class="group-header">
-										<span class="group-dot"></span>
-										<span class="group-title">{result.source_sector.toUpperCase()}</span>
-										<span class="group-count">{result.matches.length} MATCHES</span>
-									</div>
-									<div class="group-list">
-										{#each result.matches as m}
-											{@const parts = m.match(/(.*)\s+\[(FILE|DIR)\]$/) || [m, m, 'FILE']}
-											{@const path = parts[1]}
-											{@const type = parts[2]}
-											<button 
-												class="search-item interactive" 
-												onclick={() => handleSearchResultClick(path, type === 'DIR')}
-											>
-												<span class="item-icon" class:is-dir={type === 'DIR'}>
-													{type === 'DIR' ? '📁' : '📄'}
-												</span>
-												<span class="item-path">{path}</span>
-												<span class="item-badge" class:badge-dir={type === 'DIR'} class:badge-file={type === 'FILE'}>
-													{type}
-												</span>
-											</button>
-										{/each}
-									</div>
+				{#each dir.entries as entry, i}
+					<button 
+						aria-roledescription="chip" 
+						class="dir-entry-chip glass-panel interactive" 
+						onclick={() => handleEntryClick(i, entry.is_dir)}
+						use:longpress={{ onLongPress: (e) => handleFileContextMenu(e as CustomEvent, entry, i) }}
+						oncontextmenu={(e: any) => handleFileContextMenu(e, entry, i)}
+						transition:slide
+					>
+						<div class="dir-entry-layout">
+							<span class="dir-icon">{entry.is_dir ? '📁' : '📄'}</span>
+							<div class="dir-info">
+								<div class="dir-name-row">
+									<span class="dir-name-text" class:is-dir={entry.is_dir}>{entry.name}</span>
 								</div>
-							{/each}
-						{/if}
-					</div>
-				</div>
-			{:else}
-				<div class="terminal-container" style="padding: 0; overflow: hidden; border: none; background: transparent; height: 100%;" transition:fade={{ duration: 150 }}>
-					<XtermTerminal />
-				</div>
+								<div class="dir-meta-row">
+									{#if entry.is_dir}
+										<span class="dir-badge">DIR</span>
+									{:else}
+										<span class="dir-badge file">FILE</span>
+										<span class="dir-size-text">{(entry.size / 1024).toFixed(1)} KB</span>
+									{/if}
+								</div>
+							</div>
+						</div>
+					</button>
+				{/each}
 			{/if}
+
+
 		</div>
+
+		<!-- Right Column: Panel Overlays -->
+		{#if getPromptMode() === 'ai' || getPromptMode() === 'search'}
+			<div class="right-column">
+				{#if getPromptMode() === 'ai'}
+					<div class="ai-panel-wrapper" transition:fade={{ duration: 150 }}>
+						<AiChat />
+					</div>
+				{:else if getPromptMode() === 'search'}
+					<div class="search-panel-container glass-panel" transition:fade={{ duration: 150 }}>
+						<div class="search-panel-header">
+							<span class="search-title">TACTICAL SYSTEM SEARCH</span>
+							<button class="bezel-btn mini" onclick={() => { activeHub.search_results = []; }} title="Clear Search">CLEAR</button>
+						</div>
+						
+						<div class="search-panel-body">
+							{#if !activeHub?.search_results || activeHub.search_results.length === 0}
+								<div class="search-empty">
+									<div class="search-empty-icon">🔍</div>
+									<div class="search-empty-text">AWAITING QUERY EMISSION...</div>
+									<div class="search-empty-sub">Type a search pattern in the [SEARCH] prompt.</div>
+								</div>
+							{:else}
+								{#each activeHub.search_results as result}
+									<div class="search-group glass-panel">
+										<div class="group-header">
+											<span class="group-dot"></span>
+											<span class="group-title">{result.source_sector.toUpperCase()}</span>
+											<span class="group-count">{result.matches.length} MATCHES</span>
+										</div>
+										<div class="group-list">
+											{#each result.matches as m}
+												{@const parts = m.match(/(.*)\s+\[(FILE|DIR)\]$/) || [m, m, 'FILE']}
+												{@const path = parts[1]}
+												{@const type = parts[2]}
+												<button 
+													class="search-item interactive" 
+													onclick={() => handleSearchResultClick(path, type === 'DIR')}
+												>
+													<span class="item-icon" class:is-dir={type === 'DIR'}>
+														{type === 'DIR' ? '📁' : '📄'}
+													</span>
+													<span class="item-path">{path}</span>
+													<span class="item-badge" class:badge-dir={type === 'DIR'} class:badge-file={type === 'FILE'}>
+														{type}
+													</span>
+												</button>
+											{/each}
+										</div>
+									</div>
+								{/each}
+							{/if}
+						</div>
+					</div>
+				{/if}
+			</div>
+		{/if}
 	{/if}
 
 	{#if cmState.open}
@@ -323,53 +376,93 @@
 			onClose={() => cmState.open = false} 
 		/>
 	{/if}
+
+	{#if fileCmState.open}
+		<FileContextMenu 
+			x={fileCmState.x} 
+			y={fileCmState.y} 
+			name={fileCmState.name} 
+			path={fileCmState.path} 
+			isDir={fileCmState.isDir} 
+			onClose={() => fileCmState.open = false} 
+			onStage={handleStagePath}
+		/>
+	{/if}
 </div>
 
 
 <style>
 	.command-hub {
 		position: relative;
-		display: grid;
-		grid-template-columns: 1fr 1.5fr;
-		gap: var(--space-md);
+		width: 100%;
 		height: 100%;
-		padding: var(--space-md);
+		overflow: hidden;
 		animation: scaleIn 0.4s cubic-bezier(0.16, 1, 0.3, 1);
 	}
 
+	.terminal-canvas-layer {
+		position: absolute;
+		inset: 0;
+		z-index: 1;
+		width: 100%;
+		height: 100%;
+	}
+
 	.left-column {
+		position: absolute;
+		left: var(--space-md);
+		top: var(--space-md);
+		bottom: var(--space-md);
+		width: 330px;
+		z-index: 10;
 		display: flex;
 		flex-direction: column;
+		gap: var(--space-md);
 		overflow-y: auto;
-		min-width: 0;
+		pointer-events: none;
+	}
+
+	.left-column > * {
+		pointer-events: auto;
 	}
 
 	.right-column {
+		position: absolute;
+		right: var(--space-md);
+		top: var(--space-md);
+		bottom: var(--space-md);
+		width: 440px;
+		z-index: 10;
 		display: flex;
 		flex-direction: column;
-		min-width: 0;
-		height: 100%;
-		min-height: 0;
+		height: calc(100% - 2 * var(--space-md));
 		overflow: hidden;
+		pointer-events: auto;
 	}
 
 	.context-chip {
-		padding: var(--space-md);
-		flex: 1;
+		padding: var(--space-sm) var(--space-md);
+		flex-shrink: 0;
+		background: rgba(11, 22, 34, 0.85);
+		backdrop-filter: blur(12px);
+		border: 1px solid var(--color-border);
+		border-radius: var(--radius-md);
+		box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
 	}
 
 	.empty-chip {
 		display: flex;
 		align-items: center;
 		justify-content: center;
+		flex-shrink: 0;
+		background: rgba(11, 22, 34, 0.85);
+		backdrop-filter: blur(12px);
+		border: 1px solid var(--color-border);
+		border-radius: var(--radius-md);
+		box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
 	}
 
-	.empty-text {
-		opacity: 0.4;
-		font-style: italic;
-		font-weight: 300;
-		font-size: 0.85rem;
-	}
+
 
 	.ctx-state {
 		display: inline-block;
@@ -387,73 +480,185 @@
 		color: var(--color-text-dim);
 	}
 
-	/* Directory Listing */
-	.directory-list {
-		margin-top: var(--space-sm);
-		display: flex;
-		flex-direction: column;
+	.dir-preview-header {
+		padding: 0 var(--space-xs);
+		flex: 0 0 auto;
 	}
 
-	.dir-entry {
-		display: flex;
-		align-items: center;
-		gap: var(--space-sm);
-		font-family: var(--font-mono);
-		font-size: 0.8rem;
-		padding: 0.25rem 0.5rem;
-		border-radius: var(--radius-sm);
+	.dir-entry-chip {
 		width: 100%;
 		text-align: left;
-		background: transparent;
-		border: none;
+		background: var(--glass-bg);
+		border: 1px solid var(--glass-border);
 		color: inherit;
-		cursor: default;
-	}
-
-	.dir-entry.interactive {
 		cursor: pointer;
-		transition: background var(--transition-fast), transform var(--transition-fast);
+		margin-bottom: var(--space-xs);
+		padding: var(--space-sm) var(--space-md);
+		border-radius: var(--radius-sm);
+		transition: transform var(--transition-fast), background var(--transition-fast), border-color var(--transition-fast);
+		flex: 0 0 auto;
 	}
 
-	.dir-entry.interactive:hover {
+	.dir-entry-chip:hover {
 		background: rgba(255, 255, 255, 0.05);
+		border-color: rgba(255, 255, 255, 0.2);
 		transform: translateX(4px);
 	}
 
-	.dir-entry.interactive:active {
+	.dir-entry-chip:active {
 		background: rgba(var(--color-primary-rgb), 0.2);
 		transform: translateX(2px);
 	}
 
-	.dir-type {
-		min-width: 2.5rem;
-		color: var(--color-text-muted);
+	.dir-entry-layout {
+		display: flex;
+		align-items: center;
+		gap: var(--space-md);
 	}
 
-	.dir-type.is-dir {
-		color: var(--color-primary);
+	.dir-icon {
+		font-size: 1.25rem;
+		flex-shrink: 0;
 	}
 
-	.dir-name {
+	.dir-info {
+		display: flex;
+		flex-direction: column;
+		gap: 2px;
+		min-width: 0;
+		flex: 1;
+	}
+
+	.dir-name-row {
+		display: flex;
+		align-items: center;
+		min-width: 0;
+	}
+
+	.dir-name-text {
+		font-family: var(--font-mono);
+		font-size: 0.85rem;
 		white-space: nowrap;
 		overflow: hidden;
 		text-overflow: ellipsis;
+		color: var(--color-text);
 	}
 
-	.dir-name.is-dir {
+	.dir-name-text.is-dir {
+		color: var(--color-primary);
+		font-weight: 600;
+	}
+
+	.dir-meta-row {
+		display: flex;
+		align-items: center;
+		gap: var(--space-sm);
+	}
+
+	.dir-badge {
+		font-size: 0.55rem;
+		font-family: var(--font-display);
 		font-weight: 700;
+		letter-spacing: 0.05em;
+		padding: 1px 6px;
+		background: rgba(247, 168, 51, 0.15);
+		color: var(--color-primary);
+		border: 1px solid rgba(247, 168, 51, 0.3);
+		border-radius: 3px;
 	}
 
-	.dir-size {
-		margin-left: auto;
-		opacity: 0.5;
+	.dir-badge.file {
+		background: rgba(204, 153, 204, 0.15);
+		color: var(--color-secondary);
+		border-color: rgba(204, 153, 204, 0.3);
 	}
 
+	.dir-size-text {
+		font-size: 0.65rem;
+		font-family: var(--font-mono);
+		color: var(--color-text-dim);
+	}
 
+	/* Activity Listing */
+	.activity-list {
+		display: flex;
+		flex-direction: column;
+		gap: var(--space-sm);
+		margin-top: var(--space-sm);
+	}
 
+	.activity-item {
+		padding: var(--space-sm);
+		background: rgba(0, 0, 0, 0.2);
+		border-radius: var(--radius-sm);
+		border: 1px solid var(--color-border);
+		transition: opacity var(--transition-fast), background var(--transition-fast), transform var(--transition-fast);
+		display: flex;
+		gap: var(--space-sm);
+		align-items: center;
+		width: 100%;
+		text-align: left;
+		color: inherit;
+		cursor: default;
+	}
 
+	.activity-item.interactive {
+		cursor: pointer;
+	}
 
-	/* Terminal */
+	.activity-item.interactive:hover {
+		background: rgba(255, 255, 255, 0.05);
+		transform: translateX(4px);
+	}
+
+	.activity-item.interactive:active {
+		background: rgba(var(--color-primary-rgb), 0.2);
+		transform: translateX(2px);
+	}
+
+	.proc-thumb {
+		width: 32px;
+		height: 32px;
+		flex-shrink: 0;
+		border-radius: 4px;
+		border: 1px solid rgba(255, 255, 255, 0.1);
+	}
+
+	.proc-thumb.snapshot {
+		object-fit: cover;
+	}
+
+	.proc-thumb.icon {
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		background: rgba(255, 255, 255, 0.05);
+		font-size: 1.2rem;
+		color: var(--color-text-dim);
+	}
+
+	.proc-info {
+		flex: 1;
+		display: flex;
+		flex-direction: column;
+		min-width: 0;
+	}
+
+	.proc-meta {
+		font-size: 0.8rem;
+	}
+
+	.proc-pid {
+		color: var(--color-accent);
+		font-weight: 600;
+	}
+
+	.proc-stats {
+		font-family: var(--font-mono);
+		font-size: 0.7rem;
+		opacity: 0.6;
+		margin-top: 0.15rem;
+	}
 	.terminal-container {
 		font-family: var(--font-mono);
 		font-size: 0.85rem;

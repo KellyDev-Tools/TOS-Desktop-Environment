@@ -14,6 +14,8 @@ setopt PUSHD_IGNORE_DUPS
 setopt PUSHD_SILENT
 
 # Git Aliases
+alias ga='git add'
+alias gaa='git add --all'
 alias gap='git add --patch'
 alias gar='git apply --reject'
 alias gbv='git branch -vv'
@@ -37,8 +39,28 @@ alias gsli='git status --ignored'
 
 alias gl='git log --oneline --decorate -n 10'
 
-alias gcm='git commit -m "__CURSOR__"'
-alias gcs='git __CURSOR__ --compact-summary'
+# Dynamic Abbreviation Expansions with cursor placement (expands on Space)
+typeset -A abbreviations
+abbreviations=(
+  "gcm" "git commit -m \"\""
+  "gcs" "git  --compact-summary"
+)
+
+abbrev-expand() {
+  local last_word="${LBUFFER##* }"
+  if [[ -n "${abbreviations[$last_word]}" ]]; then
+    LBUFFER="${LBUFFER%$last_word}${abbreviations[$last_word]}"
+    if [[ "$last_word" == "gcm" ]]; then
+      (( CURSOR -= 1 ))
+    elif [[ "$last_word" == "gcs" ]]; then
+      (( CURSOR -= 19 ))
+    fi
+  else
+    zle self-insert
+  fi
+}
+zle -N abbrev-expand
+bindkey ' ' abbrev-expand
 
 alias grh='git reset --hard'
 alias grm='git reset --mixed'

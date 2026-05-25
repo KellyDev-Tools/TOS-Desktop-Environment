@@ -22,6 +22,23 @@ alias gs='git status --short'
 alias gsi='git status --short --ignored'
 alias gsl='git status'
 alias gsli='git status --ignored'
+alias ga='git add'
+alias gaa='git add --all'
+
+# Smart interactive helper functions for gcm and gcs
+gcm() {
+    if [ -z "$1" ]; then
+        printf "Commit message: "
+        read -r msg
+        git commit -m "$msg"
+    else
+        git commit -m "$*"
+    fi
+}
+
+gcs() {
+    git "$@" --compact-summary
+}
 
 alias gl='git log --oneline --decorate -n 10'
 

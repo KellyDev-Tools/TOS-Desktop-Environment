@@ -3,12 +3,23 @@
     import { FitAddon } from 'xterm-addon-fit';
     import { WebLinksAddon } from 'xterm-addon-web-links';
     import 'xterm/css/xterm.css';
-    import { addRawListener, removeRawListener, sendCommand, getPrediction } from '../stores/ipc.svelte';
+    import { addRawListener, removeRawListener, sendCommand, getPrediction, clearPrediction } from '../stores/ipc.svelte';
 
     let terminalElement = $state<HTMLDivElement | null>(null);
     let term: Terminal | null = null;
     let fitAddon: FitAddon | null = null;
     let predictionText = $derived(getPrediction());
+
+    function acceptPrediction() {
+        if (predictionText) {
+            const encoder = new TextEncoder();
+            const hex = Array.from(encoder.encode(predictionText))
+                .map((b) => b.toString(16).padStart(2, '0'))
+                .join('');
+            sendCommand(`terminal_input_hex:${hex}`);
+            clearPrediction();
+        }
+    }
 
     $effect(() => {
         if (!terminalElement) return;
@@ -21,7 +32,7 @@
 
         term = new Terminal({
             cursorBlink: true,
-            fontFamily: 'Outfit, Inter, monospace',
+            fontFamily: 'Fira Code, JetBrains Mono, Courier New, Courier, monospace',
             fontSize: 13,
             theme: {
                 background: colorBg,
@@ -54,6 +65,49 @@
 
         term.open(terminalElement);
         fitAddon.fit();
+
+        // Intercept Tab key to support prediction acceptance and prevent focus navigation loss
+        term.attachCustomKeyEventHandler((e) => {
+            if (e.key === 'Tab') {
+                e.preventDefault();
+                if (e.type === 'keydown') {
+                    if (predictionText) {
+                        // Accept prediction: hex-encode predictionText and send to backend
+                        const encoder = new TextEncoder();
+                        const hex = Array.from(encoder.encode(predictionText))
+                            .map((b) => b.toString(16).padStart(2, '0'))
+                            .join('');
+                        sendCommand(`terminal_input_hex:${hex}`);
+                        clearPrediction();
+                    } else {
+                        // Send Tab key hex (09) to terminal for standard shell autocompletion
+                        sendCommand(`terminal_input_hex:09`);
+                    }
+                }
+                return false;
+            }
+            return true;
+        });
+
+        // Handle font loading delay: re-set fontFamily to clear cached cell measurements and refit
+        const forceFontRemeasure = () => {
+            try {
+                if (term && fitAddon) {
+                    const currentFont = term.options.fontFamily;
+                    term.options.fontFamily = 'monospace';
+                    term.options.fontFamily = currentFont;
+                    fitAddon.fit();
+                    term.refresh(0, term.rows - 1);
+                }
+            } catch (e) {
+                console.error('[Terminal Font Re-measure Error]', e);
+            }
+        };
+
+        if (typeof document !== 'undefined' && document.fonts) {
+            document.fonts.ready.then(forceFontRemeasure);
+        }
+        const fontTimeout = setTimeout(forceFontRemeasure, 500);
 
         // Socket listener: hex-decode pty_output bytes and write to xterm.js
         const socketListener = (message: string) => {
@@ -102,6 +156,7 @@
 
         return () => {
             clearTimeout(resizeTimeout);
+            clearTimeout(fontTimeout);
             onDataDisposable.dispose();
             removeRawListener(socketListener);
             resizeObserver.disconnect();
@@ -113,7 +168,9 @@
 <div class="xterm-wrapper">
     <div bind:this={terminalElement} class="terminal-container"></div>
     {#if predictionText}
-        <div class="autocomplete-chip">
+        <!-- svelte-ignore a11y_click_events_have_key_events -->
+        <!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
+        <div class="autocomplete-chip" onclick={acceptPrediction} role="button" tabindex="0">
             <span class="prediction-text">{predictionText}</span>
             <span class="tab-badge">Tab to Accept</span>
         </div>
@@ -158,9 +215,23 @@
         font-size: 11px;
         color: var(--color-primary);
         box-shadow: 0 4px 12px rgba(0, 229, 255, 0.15);
-        pointer-events: none;
+        pointer-events: auto;
+        cursor: pointer;
         z-index: 10;
         animation: pulse 1.5s infinite alternate;
+        transition: all 0.2s ease;
+    }
+
+    .autocomplete-chip:hover {
+        background: var(--color-primary);
+        color: var(--color-bg);
+        border-color: var(--color-primary);
+        box-shadow: 0 4px 16px var(--color-primary);
+    }
+
+    .autocomplete-chip:hover .tab-badge {
+        background: var(--color-bg);
+        color: var(--color-primary);
     }
 
     .tab-badge {
@@ -170,6 +241,7 @@
         border-radius: 3px;
         font-weight: bold;
         font-size: 9px;
+        transition: all 0.2s ease;
     }
 
     @keyframes pulse {

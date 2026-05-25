@@ -22,11 +22,25 @@ alias gs='git status --short'
 alias gsi='git status --short --ignored'
 alias gsl='git status'
 alias gsli='git status --ignored'
+alias ga='git add'
+alias gaa='git add --all'
+
+# Smart interactive helper functions for gcm and gcs
+gcm() {
+    if [ -z "$1" ]; then
+        echo -n "Commit message: "
+        read -r msg
+        git commit -m "$msg"
+    else
+        git commit -m "$*"
+    fi
+}
+
+gcs() {
+    git "$@" --compact-summary
+}
 
 alias gl='git log --oneline --decorate -n 10'
-
-alias gcm='git commit -m "__CURSOR__"'
-alias gcs='git __CURSOR__ --compact-summary'
 
 alias grh='git reset --hard'
 alias grm='git reset --mixed'

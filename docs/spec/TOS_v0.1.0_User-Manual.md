@@ -19,7 +19,7 @@ TOS uses a 4-level depth system to allow rapid transitions between high-level ov
 | **LVL 1** | **Global Overview** | Tactical map of all active system sectors. | Sector tiles + System Output Area (Brain console) |
 | **LVL 2** | **Command Hub** | The primary workspace for shell and data interaction. | Dual-column chip-terminal |
 | **LVL 3** | **Application Focus** | Dedicated window surface for a single graphical process. | Chrome-window overlay |
-| **LVL 4** | **Deep Inspection & Recovery** | Detail View (metadata), Buffer View (hex dump, privileged), and Tactical Reset (God Mode wireframe recovery). | Property chips / hex viewer / wireframe map |
+| **LVL 4** | **System Monitor & Recovery** | Process Monitor (btop-style sector-scoped system monitor), Buffer View (hex dump, privileged), and Tactical Reset (btop-style global system monitor with emergency recovery). | modular dashboard / hex viewer / btop-style monitor |
 
 **Navigation is always vertical** — Zoom In or Zoom Out. There is no lateral level navigation.
 
@@ -32,11 +32,10 @@ The mode selector at the left side of the Persistent Unified Prompt switches the
 - **[CMD] Command Mode** — Standard interactive PTY terminal. Chips populate with command history, autocomplete suggestions, and tool flags.
 - **[SEARCH] Search Mode** — Semantic or global filesystem indexing with instant results. Chips populate with search scopes, filters, and quick-action buttons.
 - **[AI] AI Augmentation** — Natural language shell queries with AI explanation and command staging. The AI never executes commands without your confirmation from the prompt.
-- **Directory Context** — Triggered automatically by `ls` or `cd`. Shows real-time file and folder chips for rapid prompt building. File and image previews where applicable.
-- **Activity Context** — Triggered automatically by `top` or `ps`. Shows process-handling action chips (kill, renice, monitor):
-  - **Live View:** 10Hz snapshots for active, graphical applications.
-  - **Resource View:** App icon and name for inactive or non-graphical applications.
-  - **System View:** Symbolic placeholders for background and system processes.
+
+**Dynamic Chip Overlays** — In CMD mode, the chip columns react to terminal output without changing the mode selector:
+- **Directory chips** — Triggered by `ls` or `cd`. Shows file and folder chips for rapid prompt building. File and image previews where applicable.
+- **Process chips** — Triggered by `ps`, `top`, `htop`. Shows PID and process name chips. Tap a PID to inspect it in the Level 4 Process Monitor.
 
 ---
 
@@ -44,7 +43,7 @@ The mode selector at the left side of the Persistent Unified Prompt switches the
 
 The bottom bezel is the permanent command interface — it is always visible, always accessible, and always ready. It has three sections:
 
-- **Left (Origin):** Universal Mode Selector (CMD, SEARCH, AI, ACTIVITY). Not removable.
+- **Left (Origin):** Universal Mode Selector (CMD, SEARCH, AI). Not removable.
 - **Center:** The active command input field. Always reflects the command about to be executed.
 - **Right:** Microphone (voice input) and Stop/Kill switch.
 
@@ -450,13 +449,13 @@ Session files (`.tos-session`) are portable — copy them to another machine and
 
 ---
 
-## 14. Deep Inspection & Recovery (LVL 4)
+## 14. System Monitor & Recovery (LVL 4)
 
 Level 4 provides three sub-views:
 
-- **Detail View** — Structured metadata: CPU/memory, event history, config, security audit.
+- **Process Monitor** — btop-style interactive system monitor showing CPU/memory graphs, process tree, disk I/O, and network stats. Scoped to the current sector's process tree. Select processes to signal, renice, clone, or move to another sector. When entered from a Level 2 process chip, pre-focuses on the selected PID.
 - **Buffer View** — Hex dump of the target process's memory (read-only, disabled by default, requires privilege elevation).
-- **Tactical Reset (God Mode)** — Low-overhead wireframe diagnostics of the entire system. Press `Ctrl+Alt+Backspace` from anywhere, or use the bezel button.
+- **Tactical Reset (God Mode)** — Full-system btop-style monitor showing all sectors, all services, all processes. Press `Ctrl+Alt+Backspace` from anywhere, or use the bezel button. After privilege elevation, Force Kill, Clone to Sector, and Move to Sector become available.
 
 During Tactical Reset, the prompt is locked and the Expanded Bezel is disabled. Force Kill and other destructive actions require re-authentication. Remote guests cannot initiate or interact with Tactical Reset.
 

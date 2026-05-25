@@ -555,7 +555,7 @@ The Ecosystem's background services and IPC integrations are the bedrock of the 
 The Brain's system-level hardware APIs and core connection protocols must be initialized before the UI can visualize them or the Ecosystem can sync them securely.
 
 **Wayland DMABUF Logic & Compositing Pipelines** (Zero-copy surface attachment)
-- **Blocks [FACE]:** Activity Context Live Thumbnails. The UI cannot render 10Hz live application previews on process chips without the backend compositor extracting and routing the DMABUF handles.
+- **Blocks [FACE]:** Live Thumbnails. The UI cannot render 10Hz live application previews on Level 1 sector tiles and the Level 4 Process Monitor without the backend compositor extracting and routing the DMABUF handles.
 
 **Multi-Sensory Audio Pipeline** (Initialization of OS audio sinks via `cpal`/`rodio`)
 - **Blocks [FACE]:** Multi-Sensory Audio Hooks. The Svelte frontend cannot trigger earcons upon zooming/mode-switching if the backend Rust audio sink is not open.

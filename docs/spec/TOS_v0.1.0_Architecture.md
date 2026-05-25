@@ -871,7 +871,7 @@ All services communicate with the Brain via IPC. The Brain maintains authoritati
 | **1** | **Global Overview** | Bird's-eye view of all sectors, with System Output Area (Brain console) rendered as a terminal output module layer below the tiles. |
 | **2** | **Command Hub** | Central control for a sector, with full terminal and prompt. |
 | **3** | **Application Focus** | Full-screen application surface wrapped in the Tactical Bezel. |
-| **4** | **Deep Inspection & Recovery** | Unified diagnostic level with three sub-views: Detail View (structured metadata), Buffer View (raw hex dump, privileged), and Tactical Reset (God Mode wireframe recovery). |
+| **4** | **System Monitor & Recovery** | Unified diagnostic level with three sub-views: Process Monitor (btop-style sector-scoped system monitor), Buffer View (raw hex dump, privileged), and Tactical Reset (btop-style global system monitor with emergency recovery). |
 
 **Lifecycle:** Level 4 sub-views are transient; Tactical Reset flushes all inspection buffers and provides a global recovery environment.
 
@@ -935,7 +935,7 @@ Selecting a sector tile smoothly expands its borders into the full Command Hub. 
 **Expanded:** Reveals a command strip with:
 - **Navigation:** Zoom Out (if applicable), Home.
 - **Sector Management:** New Sector, Import Sector, Remote Connection.
-- **System:** Settings, Updates, Security Dashboard.
+- **System:** Settings, Updates, Security Dashboard, System Processes (Level 4 Tactical Reset).
 - **Terminal Controls:** Bring Terminal to Front, Scroll Terminal Up/Down, Clear Terminal.
 - **Collaboration:** Share Overview, Active Sessions, Invite Users.
 - **View Controls:** Toggle Mini-Map, Toggle Sector Labels, Arrange Tiles.
@@ -982,7 +982,7 @@ When the user zooms into a sector, the System Output Area is replaced by the sec
 
 The Bottom Bezel Segment houses the Persistent Unified Prompt. Visible across all levels and modes. **Strictly static — no configurable slots.**
 
-- **Left Section (Origin):** Universal Mode Selector (CMD, SEARCH, AI, ACTIVITY). An integral part of the prompt assembly, not a dockable module.
+- **Left Section (Origin):** Universal Mode Selector (CMD, SEARCH, AI). An integral part of the prompt assembly, not a dockable module.
 - **Center Section:** The input field. Always reflects the current staged command across all interaction modes.
 - **Right Section:** Mic and Stop buttons for voice-first interaction and command termination.
 - **Visual State by Level:**
@@ -991,7 +991,7 @@ The Bottom Bezel Segment houses the Persistent Unified Prompt. Visible across al
 |---|---|---|
 | **Expanded** | Level 2 | Fully visible and interactive. |
 | **Collapsed & Expandable** | Level 3 | Tapping or hovering expands the prompt temporarily. |
-| **Collapsed & Locked** | Level 4 (Detail / Buffer) | Visible but not interactive; focus is inspection. |
+| **Collapsed & Locked** | Level 4 (Process / Buffer) | Visible but not interactive; focus is inspection. |
 | **Disabled** | Level 4 (Tactical Reset) | Hidden or locked; Tactical Reset takes priority. |
 
 ### 7.2 Terminal Output as Primary Canvas
@@ -1004,15 +1004,15 @@ The output area occupies the full width between the left and right chip regions.
 
 ### 7.3 Context-Aware Terminal Augmentation
 
-TOS treats the **Terminal Canvas** and the **Dual-Sided Chip Layout** as a unified interface. The system context dictates what appears in the terminal and how chips are populated:
+TOS treats the **Terminal Canvas** and the **Dual-Sided Chip Layout** as a unified interface. The Brain's output scraper detects command families in terminal output and dynamically populates the chip overlay without changing the Mode Selector state:
 
 | Context | Terminal Canvas | Chip Layout Integration |
 |---------|-----------------|------------------------|
 | **Command** | Standard shell `stdout`/`stderr`. | Chips show command history, autocomplete suggestions, tool flags. |
 | **Search** | Semantic or exact search results. | Chips populate with search scopes, filters, quick-action buttons. |
 | **AI** | The LLM's rationale, thought process, or raw output. | Chips act as command staging buttons for AI-suggested shell operations. |
-| **Directory** | Raw directory listing (`ls` / `cd`). | Chips populate with interactive file and folder paths. Chips also provide file or image previews when applicable. |
-| **Activity** | Raw process table (`top` / `ps`). | Chips populate with process-handling actions (kill, renice, monitor). Running apps show 10Hz live thumbnails. |
+| **Directory** (chip overlay) | Raw directory listing (`ls` / `cd`). | Chips populate with interactive file and folder paths. Chips also provide file or image previews when applicable. Does not change the Mode Selector. |
+| **Process** (chip overlay) | Process-related output (`ps`, `top`, `htop`, `kill`). | Chips populate with PID and process name entries. Tapping a PID chip navigates to Level 4 Process Monitor (§9.1), pre-focused on that process. Does not change the Mode Selector. |
 
 ### 7.4 Dual-Sided Chip Layout
 
@@ -1042,7 +1042,7 @@ Long-press (>500ms) or right-click on a chip summons a glassmorphism context men
 
 #### 7.5.1 File & Directory Chips
 
-- **[Inspect Path]:** Transition to Level 4 Detail View for metadata and cryptographic verification.
+- **[Inspect Path]:** Transition to Level 4 for metadata and cryptographic verification.
 - **[Open With...]:** Select from compatible Application Models.
 - **[Stage Action]:** Copy path to the active command prompt without submitting.
 - **[Trust Tier...]:** Manually elevate or restrict the path's security context.
@@ -1054,7 +1054,9 @@ Long-press (>500ms) or right-click on a chip summons a glassmorphism context men
 - **[Renice Priority]:** Adjust process priority (LCARS levels 1–5).
 - **[Inspect Buffer]:** Transition to Level 4 Buffer View.
 - **[Isolate Process]:** Force the process into a more restrictive sandbox tier.
-- **[Clone to Sector]:** Duplicate the process state in a new terminal sector.
+- **[Inspect Process]:** Navigate to Level 4 Process Monitor (§9.1), pre-focused on this PID.
+- **[Clone to Sector]:** Duplicate the process state to an existing or new sector (sector picker dialog).
+- **[Move to Sector]:** Re-parent the process to an existing or new sector. The process continues running in the target sector.
 
 ### 7.6 Autocomplete Overlay
 
@@ -1062,20 +1064,20 @@ The Autocomplete Overlay is an expanded presentation of the Right Region chip co
 
 Because it is an expansion of the Right Region, it occupies the same Chip Layer (§7.4.1) and is dismissed and rebuilt whenever a context switch occurs (§7.7). It is dismissed manually by tapping outside the overlay, pressing Escape, or executing a command.
 
-### 7.7 Context-Aware Mode Switching
+### 7.7 Context-Aware Chip Overlay
 
-Certain shell commands signal an intent to change the active context. TOS can detect these and switch the Mode Selector (§7.1) accordingly. This behaviour is user-configurable per sector: **Off**, **Suggest**, or **Auto**.
+Certain shell commands produce output that the Brain's output scraper recognizes. When detected, the chip overlay populates with contextual chips **without changing the Mode Selector state**. The mode stays on CMD. This behaviour is user-configurable per sector: **Off**, **Suggest**, or **Auto**.
 
 | Command Family | Example Commands | Resulting Context |
 |---|---|---|
-| Filesystem | `ls`, `cd`, `cp`, `mv`, `find`, etc. | Directory |
-| Process Management | `kill`, `ps`, `top`, `htop`, etc. | Activity |
+| Filesystem | `ls`, `cd`, `cp`, `mv`, `find`, etc. | Directory chip overlay (file/folder chips) |
+| Process Management | `ps`, `top`, `htop`, etc. | Process chip overlay (PID/name chips → Level 4) |
 
-**Off:** No automatic switching. Mode stays as-is.
-**Suggest:** A chip appears in the Right Region offering the switch. The user taps to confirm.
-**Auto:** The context switch fires immediately, accompanied by a mode-transition earcon (Visual Design §3) and a brief visual indicator on the Mode Selector.
+**Off:** No chip overlay reaction. Output renders normally.
+**Suggest:** A chip appears in the Right Region offering the contextual overlay. The user taps to populate.
+**Auto:** The chip overlay populates immediately.
 
-**Effect on the Chip Layer:** A context switch — whether confirmed by the user in Suggest mode or automatic in Auto mode — immediately drives chip column repopulation as defined in §7.3. The Left Region reflects the new context's static options; the Right Region reflects its predictive action set. Any open Autocomplete Overlay (§7.6) is dismissed and rebuilt for the new context.
+**Effect on the Chip Layer:** The overlay populates the chip columns as defined in §7.3. The Left Region reflects the context's static options (paths or process tree); the Right Region reflects its predictive action set (file actions or process signals/inspection links). Any open Autocomplete Overlay (§7.6) is dismissed and rebuilt. The Mode Selector indicator does not change.
 
 ### 7.8 Terminal Foreground Toggle
 
@@ -1143,7 +1145,7 @@ A module that customizes an application's integration at Level 3. Provides:
 - Custom bezel actions.
 - Zoom behaviour (e.g., internal app zoom).
 - Legacy decoration policy (Suppress, Overlay, Native).
-- Thumbnail for Activity Mode.
+- Thumbnail for Level 1 sector tile and Level 4 Process Monitor.
 - Searchable content (for unified search).
 - Opt-out from deep inspection.
 
@@ -1153,21 +1155,53 @@ An **Inspect** button in the expanded bezel zooms to Level 4 for the current app
 
 ---
 
-## 9. Deep Inspection & Recovery – Level 4
+## 9. System Monitor & Recovery – Level 4
 
-Level 4 provides all deep diagnostic, inspection, and recovery tools in a unified interface. Three sub-views serve distinct purposes: forensic inspection, raw data analysis, and emergency recovery.
+Level 4 provides all deep diagnostic, system monitoring, and emergency recovery tools in a unified interface. Three sub-views serve distinct purposes: forensic system monitoring, raw data analysis, and emergency recovery.
 
-### 9.1 Detail View
+### 9.1 Process Monitor (Sector-Scoped)
 
-A modal overlay presenting structured metadata:
-- **System Resources:** CPU, memory, uptime, network/disk I/O.
-- **Event History:** Scrollable timeline of lifecycle events, commands, inspections (from TOS Log).
-- **Configuration:** Environment variables, args, app settings.
-- **Metadata:** Surface UUID, PID, parent, session ownership.
-- **Security:** Permissions, sandbox status, audit excerpts.
-- **Collaboration:** Active guests, recent guest actions.
+A btop-style interactive system monitor presenting the focused application and its parent sector's process tree. The view is composed of modular panes arranged in a dashboard layout.
 
-Interactive elements (e.g., PID) can jump to Activity Mode or log searches. Export as JSON/plain text.
+#### 9.1.1 Layout
+
+| Pane | Content | Position |
+|---|---|---|
+| **CPU Graph** | Per-core utilization over time (CSS-rendered line graphs or Unicode Braille-pattern equivalents). Auto-scaling. | Top-left |
+| **Memory Graph** | RAM and swap usage over time. | Top-right |
+| **Process Tree** | Hierarchical parent-child process list for the sector. Sortable by CPU, MEM, PID, user. Filterable by name. Keyboard-navigable with process following (lock onto a PID). | Center (primary, largest pane) |
+| **Disk I/O** | Read/write rates per disk. | Bottom-left |
+| **Network** | Up/down rate graphs with auto-scaling. | Bottom-right |
+
+Pane arrangement is user-configurable. Panes can be toggled on/off. The layout uses clean border boxes to visually separate metrics (LCARS-styled).
+
+#### 9.1.2 Scope
+
+- **Entry from Level 3 (inspecting an app):** The process tree is pre-filtered to show the focused application's process subtree, expanded within the parent sector's full process tree.
+- **Entry from a process chip at Level 2:** The process tree scrolls to and highlights the selected PID.
+- **Scope is always the parent sector's process tree** — not global. For global scope, use Tactical Reset (§9.3).
+
+#### 9.1.3 Process Interaction
+
+Each process row supports:
+- **Select:** Click to highlight. Details (env vars, args, open files) appear in the Metadata Panel (§9.1.4).
+- **Signal:** Right-click or chip → send SIGINT, SIGTERM, SIGKILL.
+- **Renice:** Adjust priority (LCARS levels 1–5).
+- **Isolate:** Force into a more restrictive sandbox tier.
+- **Clone to Sector:** Duplicate to an existing or new sector (sector picker dialog).
+- **Move to Sector:** Re-parent the process to an existing or new sector (sector picker dialog).
+- **Inspect Buffer:** Transition to Buffer View (§9.2) for the selected PID.
+
+#### 9.1.4 Metadata Panel
+
+When a process is selected, a collapsible side panel shows structured metadata:
+- PID, PPID, user, session ownership
+- Environment variables and args
+- Permissions and sandbox status
+- Event history (from TOS Log)
+- Security audit excerpts
+
+Export as JSON/plain text.
 
 ### 9.2 Buffer View
 
@@ -1177,18 +1211,20 @@ Hex dump viewer of the target surface's process memory (read-only). Features:
 - Unavailable on Android; apps may opt out via manifest.
 - **Disabled by default;** requires explicit privilege elevation (§9.5).
 
-### 9.3 Tactical Reset (God Mode)
+### 9.3 Tactical Reset (Global System Monitor & Recovery)
 
-The Tactical Reset sub-view is the system's ultimate fallback and diagnostic layer — a low-overhead, wireframe visualization that bypasses standard sectoral rendering logic.
+The Tactical Reset is the system's ultimate diagnostic layer — a btop-style global system monitor that shows **all** Brain sectors, services, and associated OS processes. It uses the same modular pane layout as the Process Monitor (§9.1) but with global scope.
 
 #### 9.3.1 Global Resource Diagnostics
-- **Visualization:** Non-textured, high-contrast wireframe map showing all Brain sectors, services, and associated OS processes.
+
+- **Layout:** Same btop-style pane arrangement as §9.1.1 (CPU, Memory, Process Tree, Disk I/O, Network), but the process tree shows **every process across all sectors and system services**.
+- **Sector Grouping:** The process tree groups processes by sector. Each sector is a collapsible node showing its process subtree. TOS system services appear under a "System" group.
 - **Resource Monitoring:** Real-time CPU, memory, and I/O pressure gauges for every active PID.
-- **Emergency Management:** Integrated "Force Kill" capabilities that send `SIGKILL` directly via the Brain's root-tier services.
+- **Emergency Management:** After privilege elevation (§9.5), integrated "Force Kill" capabilities that send `SIGKILL` directly via the Brain's root-tier services. Also: Clone to Sector, Move to Sector (§9.3.4).
 - **Recovery Logic:** Triggering a Tactical Reset flushes all transient diagnostic buffers and resets the Face-Brain IPC sync to a known stable state.
 
 #### 9.3.2 Initiation
-- **Manual Trigger:** Bezel "Tactical Reset" button or `Ctrl+Alt+Backspace`.
+- **Manual Trigger:** Bezel "Tactical Reset" button, `Ctrl+Alt+Backspace`, or **Level 1 Global Overview bezel → System Processes**.
 - **Safety Fallback:** Automatically triggered if the Face detects sustained latency >500ms or if the Brain reports a service-level deadlock.
 
 #### 9.3.3 Security & Privilege Isolation
@@ -1199,18 +1235,30 @@ The Tactical Reset sub-view is the system's ultimate fallback and diagnostic lay
 - **Expanded Bezel Disabled:** The Expanded Bezel Command Surface trigger is disabled during Tactical Reset.
 - **Remote Constraint:** Guests are strictly prohibited from initiating or interacting with Tactical Reset. It is a **Host-Only** capability.
 
+#### 9.3.4 Cross-Sector Process Management (Requires Elevation)
+
+After privilege elevation, the following actions become available on any process in the global tree:
+
+| Action | Description |
+|---|---|
+| **Force Kill** | Sends SIGKILL. Re-authentication required. |
+| **Clone to Sector** | Opens a sector picker: select an existing sector or create new. Duplicates the process state to the target sector. |
+| **Move to Sector** | Opens a sector picker: select an existing sector or create new. Re-parents the process (PID, PTY, process group) to the target sector's hub. The process continues running. |
+| **Renice** | Adjust priority. |
+| **Isolate** | Force into a more restrictive sandbox tier. |
+
 ### 9.4 Sub-View Switching
 
-Users navigate between Level 4 sub-views via bezel controls or keyboard shortcuts. An **Inspect** button enters Detail View; a **Buffer** button (visible only when deep inspection is enabled) enters Buffer View; the Tactical Reset trigger enters God Mode. Exiting any sub-view returns to Level 3.
+Users navigate between Level 4 sub-views via bezel controls or keyboard shortcuts. An **Inspect** button enters Process Monitor; a **Buffer** button (visible only when deep inspection is enabled) enters Buffer View; the Tactical Reset trigger enters God Mode. Exiting any sub-view returns to Level 3.
 
 ### 9.5 Privilege Elevation & Platform Restrictions
 
 - Buffer View is **disabled by default**.
-- Enabling requires explicit elevation (`sudo tos enable-deep-inspection` or Polkit dialog on Linux; biometric prompt on Android for Detail View extended metadata; Buffer View generally unavailable on Android).
+- Enabling requires explicit elevation (`sudo tos enable-deep-inspection` or Polkit dialog on Linux; biometric prompt on Android for Process Monitor extended metadata; Buffer View generally unavailable on Android).
 - When enabled, a 🔓 indicator appears in the bezel; clicking it disables deep inspection immediately.
 - All enable/disable events and Buffer View accesses are audited.
 
-| Platform | Detail View | Buffer View | Tactical Reset |
+| Platform | Process Monitor | Buffer View | Tactical Reset |
 |----------|-------------|-------------|----------------|
 | Linux Wayland | Full | With sudo/Polkit | Full |
 | Android XR | Partial (no raw memory) | Not available | Limited (no Force Kill) |
@@ -1548,7 +1596,7 @@ All physical input is normalized into **semantic events**, which are then mapped
 |----------|--------|
 | Navigation | `zoom_in`, `zoom_out`, `next_element`, `next_viewport`, `home`, `command_hub` |
 | Selection | `select`, `secondary_select`, `multi_select_toggle`, `drag_start`, `drop` |
-| Mode Control | `cycle_mode`, `set_mode_command`, `set_mode_directory`, `set_mode_activity`, `set_mode_search`, `set_mode_ai`, `toggle_hidden_files` |
+| Mode Control | `cycle_mode`, `set_mode_command`, `set_mode_directory`, `set_mode_search`, `set_mode_ai`, `toggle_hidden_files` |
 | Bezel Control | `toggle_bezel_expanded`, `split_view`, `close_viewport`, `inspect` |
 | System | `open_hub`, `open_global_overview`, `tactical_reset_sector`, `tactical_reset_system`, `open_settings`, `toggle_minimap` |
 | Text Input | `text_input`, `command_history_prev`, `autocomplete_request` |
@@ -1894,7 +1942,7 @@ The Global TOS Log Sector provides a unified view transparently merging:
 
 ### 19.2 Access Methods
 
-- **Per-Surface (Level 4):** Scrollable timeline in Detail View.
+- **Per-Surface (Level 4):** Scrollable timeline in Process Monitor.
 - **Global TOS Log Sector:** A dedicated Sector/Command Hub (Level 2) providing full interactive filtering, searching, and exporting.
 - **Prompt Queries:** Commands like `log --surface browser --since 10min`.
 
@@ -2040,7 +2088,7 @@ All IPC messages from bezel buttons and UI controls must use **action identifier
 ✅ Correct: `<button onclick="window.ipc.postMessage('zoom_out')">ZOOM OUT</button>`
 ❌ Incorrect: `<button onclick="window.ipc.postMessage(this.innerText)">ZOOM OUT</button>`
 
-**Prompt Interception Layer:** The `prompt_submit:` message is an exception. The Brain performs a "sniffing" pass on the submitted string to detect `ls` or `cd` and trigger mode switches. This logic lives entirely in the Brain's command dispatcher.
+**Prompt Interception Layer:** The `prompt_submit:` message is an exception. The Brain performs a "sniffing" pass on the submitted string to detect command families (`ls`/`cd` for directory context, `ps`/`top`/`htop` for process context) and trigger chip overlay population. This does not change the Mode Selector state. This logic lives entirely in the Brain's command dispatcher.
 
 ### 25.2 Reserved IPC Prefixes
 
@@ -2061,8 +2109,12 @@ All IPC messages from bezel buttons and UI controls must use **action identifier
 | `dir_context:` | Open context menu (target;x;y) | Semicolon (`;`) |
 | `dir_clear_select` | Deselect all files | N/A |
 | `dir_action_copy`, `dir_action_paste`, `dir_action_delete` | Batch file operations | N/A |
-| `app_toggle_select:` | Toggle app in Activity mode | N/A |
-| `app_batch_kill`, `app_batch_signal:` | Batch process management | Semicolon (`;`) |
+| `l4_process_signal:<pid>:<signal>` | Send signal to process in Level 4 monitor | N/A |
+| `l4_process_clone:<pid>:<sector_id>` | Clone process to sector (existing or `new`) | N/A |
+| `l4_process_move:<pid>:<sector_id>` | Move process to sector (existing or `new`) | N/A |
+| `l4_process_renice:<pid>:<priority>` | Adjust process priority | N/A |
+| `l4_process_isolate:<pid>` | Force process into restrictive sandbox | N/A |
+| `l4_inspect:<pid>` | Navigate to Level 4 Process Monitor focused on PID | N/A |
 | `zoom_in`, `zoom_out`, `zoom_to:` | Zoom actions | N/A |
 | `sector_close:`, `sector_freeze:`, `sector_unfreeze:`, `sector_clone:` | Sector management | N/A |
 | `play_audio:` | Trigger specific earcon | N/A |
@@ -2252,7 +2304,7 @@ Notifications appear in the **Right Lateral Bezel** and unfurl inward:
 4. **Input Hub & Semantic Events** — Normalize raw input into semantic actions (§14); implement Voice Confirmation fallback (§17.2.7).
 5. **Sector Concept & Management** — Multiple sectors. Sector Tile Context Menu (§6.5) with confirmation and lifecycle controls.
 6. **Directory Mode** — Local and remote directory listing as terminal overlay. Remote Directory Fallback (§24.3) with SSH fallback logic.
-7. **Activity Mode** — Visual process management via `ps` parsing.
+7. **Level 4 System Monitor** — btop-style process management with sector-scoped and global views. Process chip overlay for CMD mode output scraping.
 8. **SEARCH Mode** — Unified search domain integration.
 9. **Terminal Output Module API** — Define interface for high-speed rendering. Support metadata-driven highlighting based on line priority.
 10. **Theme Module API** — CSS variable injection and multi-sensory asset loading.

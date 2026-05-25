@@ -254,4 +254,27 @@ test.describe('TOS Alpha-2.2 UI Component Paces', () => {
         const secondTile = page.locator('.sector-grid .sector-tile:not(.sector-add-tile)').nth(1);
         await expect(secondTile).toContainText(/Sector 2/i);
     });
+
+    test('sector tile primary click and secondary context menu should be stable', async ({ page }) => {
+        await page.goto('/');
+
+        const firstTile = page.locator('.sector-grid .sector-tile:not(.sector-add-tile)').first();
+        await expect(firstTile).toBeVisible();
+
+        // Primary click should transition from Global Overview to Level 2 (Command Hub).
+        await firstTile.click({ button: 'left' });
+        await expect(page.locator('text=COMMAND HUB')).toBeVisible({ timeout: 5000 });
+
+        // Return to level 1 and verify secondary click opens a persistent context menu.
+        await page.keyboard.press('Control+Digit1');
+        await expect(page.locator('text=GLOBAL OVERVIEW')).toBeVisible({ timeout: 5000 });
+
+        await firstTile.click({ button: 'right' });
+        const contextMenu = page.locator('.sector-context-menu');
+        await expect(contextMenu).toBeVisible({ timeout: 3000 });
+
+        // Regression guard: menu should not immediately close/flicker off.
+        await page.waitForTimeout(250);
+        await expect(contextMenu).toBeVisible();
+    });
 });

@@ -48,13 +48,13 @@ Stories covering the five-level zoom model, sector management, and the core navi
 
 ## 2. Command Hub & Persistent Unified Prompt
 
-Stories covering the four hub modes, the always-visible prompt, and context-aware chip layout.
+Stories covering the three hub modes, the always-visible prompt, and dynamic chip overlays.
 
 | ID | As a… | I want to… | So that… |
 |---|---|---|---|
 | HUB-01 | developer | switch between CMD, SEARCH, and AI modes from the prompt without lifting my hands from the keyboard | I stay in flow regardless of what I need to do next |
 | HUB-02 | developer | have the hub automatically enter Directory Mode when I type `ls` or `cd` | I get rich file chips without changing my natural shell habits |
-| HUB-03 | operator | have the hub automatically enter Activity Mode when I run `top` or `ps` | I can act on processes directly from the chip layout without a secondary tool |
+| HUB-03 | operator | have the output scraper dynamically populate process chips when I run process-related commands (e.g., top, ps) | I can act on processes directly from the chip layout without a secondary tool |
 | HUB-04 | developer | see the left chip region populate with contextual favorites and pinned paths | I can stage common commands in one tap |
 | HUB-05 | developer | see the right chip region surface predictive completions and AI-suggested commands | I can accept smart suggestions without retyping |
 | HUB-06 | power user | have the prompt remain visible and accessible at all navigation levels | I never lose my command line no matter how deep I zoom |
@@ -437,7 +437,7 @@ Stories covering frame-rate targets, headless testing, and keyboard/screen reade
 | NAV-07 | Navigation | Remote guest depth visibility |
 | HUB-01 | Command Hub | Keyboard mode switching |
 | HUB-02 | Command Hub | Auto Directory Mode on ls / cd |
-| HUB-03 | Command Hub | Auto Activity Mode on top / ps |
+| HUB-03 | Command Hub | Process chip overlay on top / ps |
 | HUB-04 | Command Hub | Left chip region context favorites |
 | HUB-05 | Command Hub | Right chip predictive completions |
 | HUB-06 | Command Hub | Prompt visible at all levels |

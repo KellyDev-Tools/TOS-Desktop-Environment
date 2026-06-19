@@ -1,0 +1,18 @@
+id = "zaya-assistant"
+name = "ZAYA1-8B Local (ROCm)"
+version = "1.0.0"
+module_type = "assistant"
+author = "Tim Kelly"
+description = "High-efficiency MoE reasoning model running natively on Radeon RX 9060 XT"
+
+[connection]
+transport = "http"
+endpoint = "http://localhost:8000"
+timeout_ms = 30000
+
+[auth]
+type = "none"
+
+capabilities = ["text-generation"]
+provider = "openai"
+latency_profile = "low"

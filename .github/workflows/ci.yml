@@ -22,7 +22,7 @@ jobs:
       - name: cargo check
         run: cargo check --workspace --all-targets
       - name: cargo test
-        run: cargo test --workspace
+        run: cargo test --workspace --no-fail-fast
 
   svelte-check:
     name: Svelte face — type check (non-blocking until Phase 1)

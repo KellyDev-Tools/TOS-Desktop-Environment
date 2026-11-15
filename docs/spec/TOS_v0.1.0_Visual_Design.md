@@ -4,6 +4,8 @@
 
 **Version:** 0.1.0
 
+> **Direction update — 2026-11-15:** TOS is being refocused as an ambient layer inside a host desktop (see the [Architecture Specification](./TOS_v0.1.0_Architecture.md), Direction Update). This document becomes **more** central, not less: the zoom/slide motion language and visual hierarchy defined here are the core of the background terminal, chips overlay, and prompt overlay. Apply it to those three surfaces first. See [TOS_Scope-Split.md](./TOS_Scope-Split.md) and [TOS_Roadmap.md](./TOS_Roadmap.md).
+
 ---
 
 ## Table of Contents

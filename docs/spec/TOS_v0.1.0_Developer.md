@@ -4,6 +4,8 @@
 
 **Version:** 0.1.0
 
+> **Direction update — 2026-11-15:** TOS is being refocused as an ambient layer inside a host desktop (see the [Architecture Specification](./TOS_v0.1.0_Architecture.md), Direction Update). Project structure changes per the Scope Split: `face-wayland-linux` is removed, the Electron and Android faces are parked, and the Svelte face is the source of the new ambient face. CI (GitHub Actions) is being added to the testing strategy. This reference remains authoritative for `tos-common` and Brain development. See [TOS_Scope-Split.md](./TOS_Scope-Split.md) and [TOS_Roadmap.md](./TOS_Roadmap.md).
+
 ---
 
 ## Table of Contents

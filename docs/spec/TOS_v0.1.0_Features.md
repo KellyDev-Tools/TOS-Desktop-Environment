@@ -4,6 +4,8 @@
 
 **Version:** 0.1.0
 
+> **Direction update — 2026-11-15:** TOS is being refocused as an ambient layer inside a host desktop (see the [Architecture Specification](./TOS_v0.1.0_Architecture.md), Direction Update). The Expanded Bezel (Section 1) becomes the **chips overlay**, the Command Hub becomes the **prompt overlay**, and session persistence (Section 2) stays Brain-side. Marketplace (Section 5) and Kanban agent orchestration (Section 7) are **parked**. See [TOS_Scope-Split.md](./TOS_Scope-Split.md) and [TOS_Roadmap.md](./TOS_Roadmap.md).
+
 ---
 
 ## Table of Contents

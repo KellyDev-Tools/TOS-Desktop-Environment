@@ -601,8 +601,18 @@ impl AiModule for GenericAiModule {
             .take()
             .ok_or_else(|| anyhow::anyhow!("Failed to open stdin"))?;
         let request_json = serde_json::to_string(&request)?;
-        stdin.write_all(request_json.as_bytes())?;
-        stdin.write_all(b"\n")?;
+        // A module may answer without consuming the request (or exit
+        // immediately); a broken pipe here is not fatal — the response
+        // read below is the source of truth, and a dead module still
+        // fails there via its exit status / unparseable output.
+        for chunk in [request_json.as_bytes(), b"\n".as_slice()] {
+            if let Err(e) = stdin.write_all(chunk) {
+                if e.kind() != std::io::ErrorKind::BrokenPipe {
+                    return Err(e.into());
+                }
+                break;
+            }
+        }
         drop(stdin);
 
         let output = child.wait_with_output()?;
@@ -786,9 +796,18 @@ async fn mcp_stdio_call(
         "params": params
     });
 
-    stdin.write_all(serde_json::to_string(&request)?.as_bytes()).await?;
-    stdin.write_all(b"\n").await?;
-    stdin.flush().await?;
+    // Same broken-pipe tolerance as the sync AI path: a fast-exiting
+    // server may already have written its response without reading.
+    let payload = serde_json::to_string(&request)?;
+    for chunk in [payload.as_bytes(), b"\n".as_slice()] {
+        if let Err(e) = stdin.write_all(chunk).await {
+            if e.kind() != std::io::ErrorKind::BrokenPipe {
+                return Err(e.into());
+            }
+            break;
+        }
+    }
+    let _ = stdin.flush().await;
 
     if let Some(line) = reader.next_line().await? {
         let response: serde_json::Value = serde_json::from_str(&line)?;

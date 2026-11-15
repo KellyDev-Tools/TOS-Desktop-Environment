@@ -85,15 +85,30 @@ pub async fn register_with_brain(name: &str, port: u16) -> anyhow::Result<()> {
 #[cfg(feature = "test-utils")]
 pub struct MockBrain {
     pub listener: tokio::net::UnixListener,
+    // Held for the MockBrain's lifetime: every daemon registers through
+    // the single global /tmp/brain.sock, so only one MockBrain may exist
+    // at a time — across test threads *and* test processes. Without this
+    // lock, parallel tests unlink and rebind each other's socket and
+    // daemons register with the wrong mock (or fail EADDRINUSE).
+    _sock_lock: std::fs::File,
 }
 
 #[cfg(feature = "test-utils")]
 impl MockBrain {
     pub async fn new() -> anyhow::Result<Self> {
+        use std::os::unix::io::AsRawFd;
+        let lock = std::fs::OpenOptions::new()
+            .create(true)
+            .write(true)
+            .open("/tmp/tos-mock-brain.lock")?;
+        // Blocking exclusive flock; released when the File drops.
+        if unsafe { libc::flock(lock.as_raw_fd(), libc::LOCK_EX) } != 0 {
+            return Err(anyhow::anyhow!("Failed to lock MockBrain socket"));
+        }
         let path = "/tmp/brain.sock";
         let _ = std::fs::remove_file(path);
         let listener = tokio::net::UnixListener::bind(path)?;
-        Ok(Self { listener })
+        Ok(Self { listener, _sock_lock: lock })
     }
 
     pub async fn handle_one_registration(&self) -> anyhow::Result<(String, u16)> {

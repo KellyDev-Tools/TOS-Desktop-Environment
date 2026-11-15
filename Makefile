@@ -19,7 +19,7 @@ TOS_FACE_PORT ?= 8080
 .PHONY: help build-all build-brain build-faces build-face-web build-face-electron build-protocol build-services \
         check check-brain fmt lint docs \
         test test-all test-core test-shell test-ai test-sec test-system test-brain-component test-ui-component test-self test-e2e test-health \
-        run run-wayland run-web run-web-dev dev-web clean \
+        run run-web run-web-dev dev-web clean \
         android-check android-build android-release android-install android-run clean-android android-test \
         android-flutter-generate android-flutter-build android-flutter-install android-flutter-run \
         pack-face-electron-win pack-face-electron-linux pack-face-electron-mac \
@@ -78,7 +78,6 @@ help:
 	@echo ""
 	@echo "\033[1;33mExecution Targets:\033[0m"
 	@echo "  make run             Direct launch of TOS Brain + Terminal Face"
-	@echo "  make run-wayland     Orchestrate full Wayland stack (Brain + Sway/Cage)"
 	@echo "  make run-web         Orchestrate full stack (Brain + Web UI Server)"
 	@echo "  make run-services    Spawn auxiliary background daemons"
 	@echo ""
@@ -117,7 +116,6 @@ help:
 # -----------------------------------------------------------------------------
 
 build-all: $(PRE_COMMIT_HOOK) build-common build-brain build-services
-	cd face-wayland-linux && cargo build
 	cd face-android-handheld && cargo build
 
 build-brain:
@@ -168,7 +166,6 @@ check: $(PRE_COMMIT_HOOK)
 	cd tos-sessiond && cargo check
 	cd tos-heuristicd && cargo check
 	cd tos-searchd && cargo check
-	cd face-wayland-linux && cargo check
 	cd face-android-handheld && cargo check
 	cd face-android-flutter/rust && cargo check
 	cd scripts/tos-signer && cargo check
@@ -179,7 +176,6 @@ check-brain:
 fmt:
 	cd tos-common && cargo fmt
 	cd brain && cargo fmt
-	cd face-wayland-linux && cargo fmt
 	cd face-android-handheld && cargo fmt
 	cd face-android-flutter/rust && cargo fmt
 	cd scripts/tos-signer && cargo fmt
@@ -187,7 +183,6 @@ fmt:
 lint:
 	cd tos-common && cargo clippy -- -D warnings
 	cd brain && cargo clippy -- -D warnings
-	cd face-wayland-linux && cargo clippy -- -D warnings
 	cd face-android-handheld && cargo clippy -- -D warnings
 	cd face-android-flutter/rust && cargo clippy -- -D warnings
 	cd scripts/tos-signer && cargo clippy -- -D warnings
@@ -195,7 +190,6 @@ lint:
 docs:
 	cd tos-common && cargo doc --no-deps
 	cd brain && cargo doc --no-deps
-	cd face-wayland-linux && cargo doc --no-deps
 	cd face-android-handheld && cargo doc --no-deps
 	cd face-android-flutter/rust && cargo doc --no-deps
 	cd scripts/tos-signer && cargo doc --no-deps
@@ -331,30 +325,6 @@ run-web-dev: run-services
 	trap "kill $SVELTE_PID; pkill -x tos-brain; exit" EXIT INT TERM; \
 	cd brain && cargo run --bin tos-brain -- --headless 2>&1 | tee ../logs/tos-brain.log
 
-run-wayland: build-brain build-services
-	@echo "[TOS] Checking for Wayland compositor..."
-	@if ! command -v sway >/dev/null 2>&1 && ! command -v cage >/dev/null 2>&1; then \
-		echo "[TOS] ERROR: No suitable Wayland compositor found (tried sway, cage)."; \
-		echo "[TOS] Please install sway or cage: sudo apt install sway cage"; \
-		exit 1; \
-	fi
-	cd face-wayland-linux && cargo build
-	@mkdir -p logs
-	@pkill -x tos-brain || true
-	@# Generate a local sway config that uses absolute paths to the project binaries
-	@sed "s|/usr/bin/tos-wayland-face|$(shell pwd)/target/debug/face-wayland-linux|g" packaging/sway.config > logs/sway.config.local
-	@echo "[TOS] Launching Wayland Session..."
-	@# Launch brain in background with orchestration (spawns daemons)
-	@./target/debug/tos-brain --headless --orchestrate > logs/tos-brain.log 2>&1 & BR_PID=$$!; \
-	echo "[TOS] Waiting for Brain to initialize..."; \
-	sleep 2; \
-	trap "kill $$BR_PID 2>/dev/null; pkill -x sway; pkill -x cage; exit" EXIT INT TERM; \
-	if command -v sway >/dev/null 2>&1; then \
-		sway --config logs/sway.config.local > logs/sway.log 2>&1; \
-	else \
-		cage -- ./target/debug/face-wayland-linux > logs/face-wayland.log 2>&1; \
-	fi
-
 run-services:
 	@echo "[TOS] Initializing Auxiliary Daemons..."
 	@mkdir -p logs
@@ -395,7 +365,6 @@ clean:
 	cd tos-sessiond && cargo clean
 	cd tos-heuristicd && cargo clean
 	cd tos-searchd && cargo clean
-	cd face-wayland-linux && cargo clean
 	cd face-android-handheld && cargo clean
 	cd tests && cargo clean
 	rm -rf logs/
@@ -538,7 +507,7 @@ CARGO ?= cargo
 
 build-release:
 	@echo "[TOS] Building all components in Release Mode..."
-	$(CARGO) build --release -p tos-common -p tos-brain -p face-wayland-linux -p tos-settingsd -p tos-loggerd -p tos-marketplaced -p tos-priorityd -p tos-sessiond -p tos-heuristicd -p tos-searchd
+	$(CARGO) build --release -p tos-common -p tos-brain -p tos-settingsd -p tos-loggerd -p tos-marketplaced -p tos-priorityd -p tos-sessiond -p tos-heuristicd -p tos-searchd
 
 install: build-release
 	@echo "[TOS] Installing System Components to $(PREFIX)..."
@@ -548,7 +517,6 @@ install: build-release
 	@# Patch and Install Binaries
 	@sudo cp target/release/tos-brain "$(BINDIR)/"
 	@sudo cp target/release/tos "$(BINDIR)/"
-	@sudo cp target/release/face-wayland-linux "$(BINDIR)/tos-wayland-face"
 	@# Patch tos-session to use the correct BINDIR
 	@sed "s|/usr/bin|$(BINDIR)|g" packaging/tos-session > /tmp/tos-session.tmp
 	@sudo mv /tmp/tos-session.tmp "$(BINDIR)/tos-session"

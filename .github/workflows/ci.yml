@@ -8,14 +8,15 @@ on:
 jobs:
   rust:
     name: Rust — check (all targets) + test
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable
       - uses: Swatinem/rust-cache@v2
-      # tests/sandbox_isolation.rs spawns bubblewrap sandboxes
-      - name: Install bubblewrap (sandbox tests)
-        run: sudo apt-get update && sudo apt-get install -y bubblewrap
+      # System deps: bubblewrap for tests/sandbox_isolation.rs, ALSA +
+      # pkg-config for alsa-sys (audio support in tos-common)
+      - name: Install system dependencies
+        run: sudo apt-get update && sudo apt-get install -y bubblewrap pkg-config libasound2-dev
       # --all-targets also compiles test targets: this is the check that
       # would have caught the face-wayland-linux test drift in Phase 0.
       - name: cargo check
@@ -25,7 +26,7 @@ jobs:
 
   svelte-check:
     name: Svelte face — type check (non-blocking until Phase 1)
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     # Known state at Phase 0: 19 pre-existing type errors, concentrated in
     # CommandHub.svelte / SettingsModal / +page.svelte. Phase 1's done-when
     # requires the slice components clean; then this job becomes blocking.
@@ -45,7 +46,7 @@ jobs:
 
   e2e:
     name: Svelte face — Playwright E2E (non-blocking, baseline)
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     # The suite's last local run failed before any test executed: Chromium
     # could not launch in the NixOS dev shell (missing libglib). CI installs
     # the browser and its system deps properly, so this job establishes the

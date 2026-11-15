@@ -4,6 +4,8 @@
 
 **Version:** 0.1.0
 
+> **Direction update — 2026-11-15:** TOS is being refocused as an ambient layer inside a host desktop (see the [Architecture Specification](./TOS_v0.1.0_Architecture.md), Direction Update). The module system, marketplace, and service-orchestration material in this document is **parked**, not cancelled; boot sequencing for a standalone TOS session is superseded by the host desktop's session. Remote discovery concepts remain relevant — the Brain may run on a server. See [TOS_Scope-Split.md](./TOS_Scope-Split.md) and [TOS_Roadmap.md](./TOS_Roadmap.md).
+
 For system architecture, IPC contracts, and visual hierarchy, see the [Architecture Specification](./TOS_v0.1.0_Architecture.md).
 
 ---

@@ -6,6 +6,68 @@
 
 ---
 
+## Direction Update (2026-11-15): The Ambient Layer
+
+TOS is being refocused. It is no longer being built as a standalone desktop
+environment with its own session and compositor. Instead, TOS becomes an
+**ambient layer that runs inside a host Linux desktop** (GNOME, KDE,
+Hyprland, Sway, COSMIC), which keeps responsibility for window management,
+application launching and lifecycle, notifications, and the login session.
+
+This is a return to this document's founding philosophy (Section 1): *all
+modes are overlays on the terminal*. The overlay is now the whole product.
+
+### Target topology
+
+- **Brain** — unchanged in role: a headless daemon holding sessions,
+  sectors, and state. It may run on the local machine or on a server
+  (e.g. a home server); remote is the default topology, not a special case.
+- **Ambient Face** — one thin face per machine, with three surfaces:
+  - the **terminal as animated background** (the session rendered as the
+    desktop's living wallpaper layer),
+  - a **chips overlay** (glanceable status; from the bezel/warning chips),
+  - a **prompt overlay** (the Command Hub) that zooms or slides in on
+    demand and dismisses just as fast, without stealing the desktop.
+  On Wayland the face is built on the **layer-shell** protocol. GNOME's
+  Mutter does not offer layer-shell to clients, so GNOME uses a shim
+  (Shell extension or desktop-window approach) — see the Scope Split.
+- **Protocol** — narrowed to three streams between Face and Brain:
+  terminal streams, chip state, and prompt commands.
+- **Transport** — inside a mesh VPN (Tailscale/WireGuard) rather than
+  public TLS; the mesh provides identity and encryption.
+- **App placement** — *where an app runs* (host vs server) and *where it
+  displays* (host screen vs XR) are independent choices, routed by the
+  Brain. Server-run GUI apps reach the host via waypipe. Whether placement
+  is an invisible default or an explicit per-launch choice is an open
+  preference-setting experiment (see Scope Split).
+- **XR** — the Quest/spatial platform slot in tos-common is kept. XR is a
+  later face (locally rendered panels with streamed content), not a
+  launch target.
+
+### What this supersedes in this document
+
+- Any material assuming a **TOS-owned session, compositor, or GDM
+  integration** — delegated to the host desktop.
+- **Section 8 (Application Focus, Level 3)** as a TOS-owned level —
+  applications belong to the host desktop; TOS routes and reflects them.
+- **Section 12 (Remote Sectors)** is reframed: remote describes where the
+  Brain runs, not a special sector type.
+- **Section 22 (Marketplace)** and the dedicated **settings/session
+  daemons** (Section 23 IPC) — parked or delegated per the Scope Split.
+
+### What remains authoritative
+
+Section 1 (philosophy), Section 3 (Brain & Face process architecture and
+IPC contracts), Section 10 (sectors and the tree model), Section 24
+(Shell API), Section 25 (bezel/chip contracts — now the chips overlay),
+and Section 26 (terminal output rendering).
+
+See [TOS_Scope-Split.md](./TOS_Scope-Split.md) for the component-by-component
+Keep / Delegate / Park / Drop assessment and [TOS_Roadmap.md](./TOS_Roadmap.md)
+for the phased plan.
+
+---
+
 ## Table of Contents
 
 1. [Core Philosophy: Terminal First](#1-core-philosophy-terminal-first)

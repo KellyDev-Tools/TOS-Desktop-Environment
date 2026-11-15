@@ -4,6 +4,8 @@
 
 **Version:** 0.1.0
 
+> **Direction update — 2026-11-15:** TOS is being refocused as an ambient layer inside a host desktop (see the [Architecture Specification](./TOS_v0.1.0_Architecture.md), Direction Update). This manual describes the earlier standalone-environment experience and is **superseded in framing**: TOS now runs inside your existing desktop, which keeps its own windows, apps, and shortcuts. The navigation hierarchy, Command Hub, and prompt concepts carry over to the background + overlay model. See [TOS_Scope-Split.md](./TOS_Scope-Split.md) and [TOS_Roadmap.md](./TOS_Roadmap.md).
+
 ## 1. System Philosophy: The Augmented Desktop Entity
 
 TOS (**Terminal On Steroids**) is not a static workspace; it is a **dynamic augmented desktop entity**. Inspired by LCARS design principles, it prioritizes hierarchical depth, multi-sensory feedback, and context-aware rendering. The command line is not one feature among many — it is the permanent heart of the system. Every visual augmentation exists to empower the terminal, never to replace it.

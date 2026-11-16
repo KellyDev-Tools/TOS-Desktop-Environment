@@ -7,6 +7,25 @@
 
 export type HierarchyLevel = 1 | 2 | 3 | 4 | 5 | 6;
 
+/**
+ * The Brain serializes HierarchyLevel with serde's default for fieldless
+ * enums: the variant *name* ("CommandHub"), not the numeric discriminant.
+ * Normalize whatever crosses the IPC boundary (name, number, or anything
+ * else) to the numeric union this store declares.
+ */
+export function normalizeHierarchyLevel(raw: unknown): HierarchyLevel {
+    if (typeof raw === 'number' && raw >= 1 && raw <= 6) return raw as HierarchyLevel;
+    switch (raw) {
+        case 'GlobalOverview': return 1;
+        case 'CommandHub': return 2;
+        case 'ApplicationFocus': return 3;
+        case 'DetailView': return 4;
+        case 'BufferView': return 5;
+        case 'Marketplace': return 6;
+        default: return 1;
+    }
+}
+
 export interface TerminalLine {
     text: string;
     priority: number;

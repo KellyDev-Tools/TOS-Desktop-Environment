@@ -21,12 +21,8 @@
 
 	const splitLayout = $derived(activeHub?.split_layout);
 
-	// Terminal output — prefer hub-level, fall back to global
-	const termOutput = $derived(
-		activeHub?.terminal_output?.length
-			? activeHub.terminal_output
-			: (tosState.terminal_output || [])
-	);
+	// Terminal output lives on the hub; there is no global copy on TosState.
+	const termOutput = $derived(activeHub?.terminal_output ?? []);
 
 	function priorityColor(p: number): string {
 		if (p >= 3) return 'var(--color-warning)';
@@ -320,7 +316,7 @@
 					<div class="search-panel-container glass-panel" transition:fade={{ duration: 150 }}>
 						<div class="search-panel-header">
 							<span class="search-title">TACTICAL SYSTEM SEARCH</span>
-							<button class="bezel-btn mini" onclick={() => { activeHub.search_results = []; }} title="Clear Search">CLEAR</button>
+							<button class="bezel-btn mini" onclick={() => { if (activeHub) activeHub.search_results = []; }} title="Clear Search">CLEAR</button>
 						</div>
 						
 						<div class="search-panel-body">

@@ -132,17 +132,17 @@
 
 	$effect(() => {
 		const level = tosState.current_level;
-		if (level === 1 || level === 'GlobalOverview') {
+		if (level === 1) {
 			if (getCurrentMode() !== 'global') setCurrentMode('global');
-		} else if (level === 2 || level === 'CommandHub') {
+		} else if (level === 2) {
 			if (getCurrentMode() !== 'hubs') setCurrentMode('hubs');
-		} else if (level === 3 || level === 'ApplicationFocus') {
+		} else if (level === 3) {
 			if (getCurrentMode() !== 'sectors') setCurrentMode('sectors');
-		} else if (level === 4 || level === 'DetailView') {
+		} else if (level === 4) {
 			if (getCurrentMode() !== 'detail') setCurrentMode('detail');
-		} else if (level === 5 || level === 'BufferView') {
+		} else if (level === 5) {
 			if (getCurrentMode() !== 'buffer') setCurrentMode('buffer');
-		} else if (level === 6 || level === 'Marketplace') {
+		} else if (level === 6) {
 			if (getCurrentMode() !== 'marketplace') setCurrentMode('marketplace');
 		}
 	});

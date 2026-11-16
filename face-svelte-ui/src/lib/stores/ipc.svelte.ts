@@ -4,7 +4,7 @@
  * Uses Svelte 5 runes for reactive connection state.
  */
 
-import { getDefaultState, type TosState } from './tos-state.svelte';
+import { getDefaultState, normalizeHierarchyLevel, type TosState } from './tos-state.svelte';
 
 export type ConnectionState = 'disconnected' | 'connecting' | 'connected';
 
@@ -180,6 +180,7 @@ const HEARTBEAT_TIMEOUT_MS = 5000;
 function handleStateDelta(payload: string) {
     try {
         const parsed = JSON.parse(payload) as TosState;
+        parsed.current_level = normalizeHierarchyLevel(parsed.current_level);
         Object.assign(tosState, parsed);
         lastSyncTime = Date.now();
         resetHeartbeat();

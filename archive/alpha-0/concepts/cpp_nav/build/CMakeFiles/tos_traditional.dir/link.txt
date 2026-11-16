@@ -1,1 +1,0 @@
-/usr/bin/c++ CMakeFiles/tos_traditional.dir/src/SpatialNavigator.cpp.o CMakeFiles/tos_traditional.dir/src/main.cpp.o -o tos_traditional 

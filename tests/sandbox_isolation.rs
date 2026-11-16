@@ -3,8 +3,26 @@ use std::io::Read;
 use std::fs;
 use tempfile::tempdir;
 
+
+/// Same environment guard tos-common's sandbox tests use: these tests
+/// spawn real bubblewrap sandboxes, which need working unprivileged
+/// user namespaces + proc mounts. Where the host forbids that (some
+/// containers, CI runners), skip loudly instead of failing — the tests
+/// still run in full on hosts where bwrap works.
+fn bwrap_available() -> bool {
+    std::process::Command::new("bwrap")
+        .args(&["--unshare-all", "--proc", "/proc", "--dev", "/dev", "--", "true"])
+        .status()
+        .map(|s| s.success())
+        .unwrap_or(false)
+}
+
 #[test]
 fn test_sandbox_default_isolation() {
+    if !bwrap_available() {
+        println!("Skipping sandbox test: bwrap is not functional in this environment");
+        return;
+    }
     // Test that a basic command runs and has limited visibility
     let result = SandboxManager::spawn_sandboxed_process("ls", &["/"]);
     assert!(result.is_ok(), "Failed to spawn sandboxed ls: {:?}", result.err());
@@ -25,6 +43,10 @@ fn test_sandbox_default_isolation() {
 
 #[test]
 fn test_sandbox_network_isolation() {
+    if !bwrap_available() {
+        println!("Skipping sandbox test: bwrap is not functional in this environment");
+        return;
+    }
     // Default profile should NOT have network access.
     // We'll try to ping localhost (which might still work) or check if /sys/class/net is empty-ish.
     // A better check is trying to use a network-requiring command if available, 

@@ -11,7 +11,6 @@ members = [
     "tos-searchd",
     "tos-sessiond",
     "tos-settingsd",
-    "face-wayland-linux",
     "face-android-handheld",
     "face-android-flutter/rust",
     "tests", "scripts/tos-signer",

@@ -73,7 +73,7 @@ test.describe('TOS Alpha-2.2 UI Component Paces', () => {
                     const id = match[1];
                     const cmd = match[2];
 
-                    const respond = (data) => {
+                    const respond = (data: string) => {
                         route.send(`res:${id}:${data}`);
                     };
 

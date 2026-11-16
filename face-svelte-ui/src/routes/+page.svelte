@@ -17,6 +17,14 @@
 		type ViewMode, type PromptMode
 	} from '$lib/stores/ui.svelte';
 
+	// Ambient face surfaces (Phase 1 slice): the layer-shell host loads
+	// this same build once per surface with ?surface=background|chips|prompt,
+	// and each load renders only its own surface. No parameter = the full
+	// app, unchanged (dev server, Electron face).
+	const surface = typeof window !== 'undefined'
+		? new URLSearchParams(window.location.search).get('surface')
+		: null;
+
 	// View Components
 	import GlobalOverview from '$lib/components/views/GlobalOverview.svelte';
 	import CommandHub from '$lib/components/views/CommandHub.svelte';
@@ -24,6 +32,9 @@
 	import Marketplace from '$lib/components/views/Marketplace.svelte';
 	import DetailInspector from '$lib/components/views/DetailInspector.svelte';
 	import LogView from '$lib/components/views/LogView.svelte';
+
+	import XtermTerminal from '$lib/components/XtermTerminal.svelte';
+	import WarningChip from '$lib/components/WarningChip.svelte';
 
 	// Module Components
 	import BrainStatus from '$lib/components/modules/BrainStatus.svelte';
@@ -330,6 +341,20 @@
 
 <svelte:window onkeydown={handleGlobalKeydown} />
 
+{#if surface === 'background'}
+	<div class="surface-root surface-background">
+		<XtermTerminal />
+	</div>
+{:else if surface === 'chips'}
+	<div class="surface-root surface-chips">
+		<ExpandedBezel />
+		<WarningChip />
+	</div>
+{:else if surface === 'prompt'}
+	<div class="surface-root surface-prompt">
+		<CommandHub />
+	</div>
+{:else}
 <div class="lcars-container">
 	<!-- Cinematic Background (Removed) -->
 
@@ -576,8 +601,27 @@
 <SettingsModal />
 <PortalModal />
 <ConfirmationOverlay />
+{/if}
 
 <style>
+	/* Ambient face surfaces (Phase 1): each fills its layer-shell window.
+	   Chips and prompt sit on transparent windows — no app background. */
+	.surface-root {
+		position: fixed;
+		inset: 0;
+		overflow: hidden;
+	}
+	.surface-chips,
+	.surface-prompt {
+		background: transparent;
+	}
+	.surface-prompt {
+		display: flex;
+		align-items: flex-start;
+		justify-content: center;
+		padding-top: 10vh;
+	}
+
 	/* Heuristic Chips */
 	.heuristic-chips {
 		position: absolute;

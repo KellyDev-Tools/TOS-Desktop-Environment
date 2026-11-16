@@ -1,0 +1,21 @@
+[Unit]
+Description=TOS Brain — headless session and terminal daemon
+# The Brain is an ordinary user service: it runs inside your normal
+# GNOME/KDE/etc. session, needs no display, and owns no session or
+# window management (that stays with the host DE, per the Phase 1
+# direction). It serves:
+#   /tmp/brain.sock  — Discovery Gate (daemon registration, port map)
+#   TCP 7000         — anchor / remote server
+#   WS  7001         — face connections
+# Config: --config > $TOS_CONFIG > ~/.config/tos/tos.toml > ./tos.toml
+# > built-in defaults. State lives under the XDG config/data dirs.
+
+[Service]
+Type=simple
+ExecStart=%h/.local/bin/tos-brain
+Restart=on-failure
+RestartSec=2
+Environment=RUST_LOG=info
+
+[Install]
+WantedBy=default.target

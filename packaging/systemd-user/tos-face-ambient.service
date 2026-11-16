@@ -1,0 +1,19 @@
+[Unit]
+Description=TOS ambient face — layer-shell background, chips, and prompt
+# Runs inside the graphical session only, and wants the Brain (but the
+# face tolerates the Brain restarting — it reconnects on its own).
+# Requires a layer-shell compositor (KDE Plasma, Sway, Hyprland,
+# COSMIC). GNOME/Mutter has no layer-shell for regular clients; the
+# GNOME path is a Phase 4 shim, not this unit.
+After=graphical-session.target tos-brain.service
+Wants=tos-brain.service
+PartOf=graphical-session.target
+
+[Service]
+Type=simple
+ExecStart=%h/.local/bin/tos-face-ambient --ui %h/.local/share/tos/face/index.html
+Restart=on-failure
+RestartSec=2
+
+[Install]
+WantedBy=graphical-session.target

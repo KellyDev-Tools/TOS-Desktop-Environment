@@ -27,6 +27,7 @@ use gtk4::{Application, ApplicationWindow};
 use gtk4_layer_shell::{Edge, KeyboardMode, Layer, LayerShell};
 use surfaces::{FaceCommand, Keyboard, LayerKind, Surface, SurfaceSpec};
 use webkit6::prelude::*;
+use webkit6::{NetworkSession, TLSErrorsPolicy};
 
 const APP_ID: &str = "net.kellydev.tos.face.ambient";
 
@@ -114,6 +115,19 @@ fn as_url(value: &str) -> String {
 fn build_ui(app: &Application, ui_base: &str) {
     let (tx, rx) = mpsc::channel::<FaceCommand>();
     spawn_command_listener(tx);
+
+    // The Brain serves its face socket (7001) over TLS with a
+    // self-signed certificate it generates itself (rcgen) — there is no
+    // CA-issued cert for a loopback service, so the system trust store
+    // can never validate it and WebKit would refuse the connection.
+    // This face only ever loads the local UI bundle and talks to that
+    // loopback Brain, so TLS errors are ignored on the (default)
+    // network session its web views use. Revisit in Roadmap Phase 2,
+    // where remote Brains move to mesh-VPN transport instead of public
+    // TLS with self-signed certs.
+    if let Some(session) = NetworkSession::default() {
+        session.set_tls_errors_policy(TLSErrorsPolicy::Ignore);
+    }
 
     let mut prompt_window: Option<ApplicationWindow> = None;
     for surface in Surface::all() {

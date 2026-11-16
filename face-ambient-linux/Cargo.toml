@@ -1,0 +1,11 @@
+[package]
+name = "tos-face-ambient"
+version = "0.1.0"
+edition = "2021"
+description = "TOS ambient face for Linux: layer-shell host for the background terminal, chips, and prompt surfaces (Phase 1 slice)"
+license = "MIT"
+
+[dependencies]
+gtk4 = { version = "0.11", features = ["v4_14"] }
+gtk4-layer-shell = "0.8.1"
+webkit6 = "0.6.1"

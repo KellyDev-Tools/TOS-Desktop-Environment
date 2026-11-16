@@ -16,7 +16,18 @@ jobs:
       # System deps: bubblewrap for tests/sandbox_isolation.rs, ALSA +
       # pkg-config for alsa-sys (audio support in tos-common)
       - name: Install system dependencies
-        run: sudo apt-get update && sudo apt-get install -y bubblewrap pkg-config libasound2-dev
+        # GTK/WebKitGTK packages are for face-ambient-linux (Phase 1);
+        # gtk4-layer-shell is not packaged in Ubuntu 24.04, so it is
+        # built from source in the next step.
+        run: sudo apt-get update && sudo apt-get install -y bubblewrap pkg-config libasound2-dev libgtk-4-dev libwebkitgtk-6.0-dev libsoup-3.0-dev libwayland-dev wayland-protocols gobject-introspection meson ninja-build
+      - name: Build gtk4-layer-shell (not packaged in 24.04)
+        run: |
+          git clone --depth 1 --branch v1.3.0 https://github.com/wmww/gtk4-layer-shell.git /tmp/gtk4-layer-shell
+          cd /tmp/gtk4-layer-shell
+          meson setup build -Dexamples=false -Ddocs=false -Dtests=false -Dvapi=false
+          ninja -C build
+          sudo ninja -C build install
+          sudo ldconfig
       # --all-targets also compiles test targets: this is the check that
       # would have caught the face-wayland-linux test drift in Phase 0.
       - name: cargo check

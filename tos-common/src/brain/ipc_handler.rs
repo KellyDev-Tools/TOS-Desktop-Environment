@@ -40,6 +40,22 @@ impl IpcHandler {
         });
     }
 
+    /// Replay the retained terminal scrollback to a single freshly
+    /// connected client (Phase 1.5), as ordinary `pty_output` messages
+    /// chunked like live output, so its terminal repaints the ongoing
+    /// session instead of starting blank. No-op before any output.
+    pub fn replay_terminal_to(&self, sender: &UnboundedSender<String>) {
+        let bytes = self.shell.lock().unwrap().scrollback_snapshot();
+        for chunk in bytes.chunks(16 * 1024) {
+            if sender
+                .send(format!("pty_output:{}", hex::encode(chunk)))
+                .is_err()
+            {
+                break;
+            }
+        }
+    }
+
     /// Standardized Message Format: prefix:payload;payload...
     /// Also supports WebSocket wrapper: cmd:id:prefix:payload
     pub fn handle_request(&self, request: &str) -> String {

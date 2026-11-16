@@ -254,6 +254,9 @@ impl RemoteServer {
         let (mut ws_tx, mut ws_rx) = ws_stream.split();
         let (mpsc_tx, mut mpsc_rx) = tokio::sync::mpsc::unbounded_channel::<String>();
         self.ipc.register_broadcaster(mpsc_tx.clone());
+        // Phase 1.5: repaint this face's terminal from the retained
+        // scrollback; the session itself never went away.
+        self.ipc.replay_terminal_to(&mpsc_tx);
 
         let push_ipc = self.ipc.clone();
         let push_tx = mpsc_tx.clone();

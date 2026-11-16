@@ -32,6 +32,9 @@ impl ShellApi {
             _hub_id: hub_id,
         })
     }
+    pub fn scrollback_snapshot(&self) -> Vec<u8> {
+        Vec::new()
+    }
     pub fn write(&mut self, _data: &[u8]) -> anyhow::Result<()> {
         Ok(())
     }

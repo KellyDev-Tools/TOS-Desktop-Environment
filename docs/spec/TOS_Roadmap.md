@@ -71,12 +71,31 @@ Done when:
 
 - [ ] Cold start to usable background terminal works inside a host DE session
 - [ ] The prompt summons and dismisses with the intended motion, every time, without focus loss or resize loops
-- [ ] One terminal session persists across face restarts (Brain keeps the session)
+- [x] One terminal session persists across face restarts (Brain keeps the session) — delivered in Phase 1.5, below
 - [ ] `svelte-check` is clean for all slice components
 - [ ] The E2E slice tests pass green in CI and locally on NixOS
 - [ ] A full day of ordinary use produces no Brain crash — any panic found gets a test before it gets a fix
 
 Explicitly not in this phase: remote Brain, GUI app launching, search daemon, AI views, editor, marketplace, any second face.
+
+## Phase 1.5 — Session persistence across face restarts
+
+A small phase pulled forward from Phase 1's done-when list (and a precondition for Phase 2's reconnect story): a face restart must not blank the terminal.
+
+Finding that shaped it: the shell was already Brain-owned and outlived faces — what was missing was the *display*. A reconnecting face paints only what it receives, and the Brain replayed nothing, so the ongoing session looked brand new.
+
+Work:
+
+- Retain the raw PTY output in the Brain (`ScrollbackBuffer`, 256 KiB, newline-aware trim) — appended in the read loop before each broadcast.
+- On a new face connection, replay the retained output to that client alone as ordinary `pty_output`, before its live stream continues.
+- Un-pin the slice E2E persistence test (it was a documented `test.fail()` during Phase 1) and hold it green in CI.
+
+Done when:
+
+- [x] A face restart (reload, crash, WebView bounce) repaints the terminal with the session's prior output, up to the stated 256 KiB limit
+- [x] The slice E2E persistence test passes unpinned, locally and in CI
+
+Explicitly not in this phase: persistence across *Brain* restarts (the buffer is in-memory; state restore already brings back the hub model, and seeding the buffer from it is a later refinement), per-hub shells, and the remote/reconnect behaviour Phase 2 defines.
 
 ## Phase 2 — Make remote the default topology
 

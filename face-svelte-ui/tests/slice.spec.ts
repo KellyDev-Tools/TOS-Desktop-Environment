@@ -145,14 +145,11 @@ test.describe('Phase 1 slice — ambient face against a real Brain', () => {
     });
 
     test('terminal session persists across a face restart', async ({ page }) => {
-        // KNOWN PHASE 1 GAP (verified 2026-11-15): the Brain spawns a
-        // fresh PTY for each face connection and does not replay
-        // scrollback, so output from before a face restart is lost.
-        // The roadmap's Phase 1 done-when requires the Brain to keep
-        // the session. Marked test.fail() until that lands — when the
-        // Brain gains reattach/replay this test starts passing and the
-        // marker must be removed.
-        test.fail();
+        // Phase 1.5: the shell is Brain-owned and outlives any face;
+        // the Brain retains the raw output (ScrollbackBuffer) and
+        // replays it to a face when it (re)connects, so the terminal
+        // repaints the ongoing session — output from before the
+        // restart is still on screen after it.
         await page.goto(`${FACE_URL}/?surface=background`);
         await expect(page.locator('.surface-background .xterm')).toBeVisible();
         await runInTerminal(page, `echo ${MARKER_CMD}`);

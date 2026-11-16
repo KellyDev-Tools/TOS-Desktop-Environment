@@ -6,6 +6,61 @@ use std::sync::{Arc, Mutex};
 use std::thread;
 use crate::shell::{OscEvent, OscParser};
 
+/// Cap on the raw scrollback the Brain retains per shell (Phase 1.5).
+pub const SCROLLBACK_CAP_BYTES: usize = 256 * 1024;
+
+/// Raw PTY output history retained by the Brain (Phase 1.5).
+///
+/// The shell process itself is Brain-owned and outlives any face, but
+/// a terminal widget can only paint what it receives — without this
+/// buffer a (re)connecting face starts from a blank screen even
+/// though its session is intact. The read loop appends every chunk
+/// here before broadcasting it; when a new face connects, the IPC
+/// layer replays the snapshot to that client alone (see
+/// `IpcHandler::replay_terminal_to`).
+///
+/// Trimming prefers a newline boundary so a replay does not begin
+/// mid-line where avoidable; it can still begin mid escape-sequence
+/// after very long unbroken output, which terminals tolerate as a
+/// transient glitch at the top of the replayed history.
+pub struct ScrollbackBuffer {
+    cap: usize,
+    data: std::collections::VecDeque<u8>,
+}
+
+impl ScrollbackBuffer {
+    pub fn new(cap: usize) -> Self {
+        Self {
+            cap,
+            data: std::collections::VecDeque::new(),
+        }
+    }
+
+    pub fn append(&mut self, bytes: &[u8]) {
+        self.data.extend(bytes.iter().copied());
+        if self.data.len() > self.cap {
+            let excess = self.data.len() - self.cap;
+            let cut = (excess..self.data.len())
+                .find(|&i| self.data[i] == b'\n')
+                .map(|i| i + 1)
+                .unwrap_or(excess);
+            self.data.drain(..cut);
+        }
+    }
+
+    pub fn snapshot(&self) -> Vec<u8> {
+        self.data.iter().copied().collect()
+    }
+
+    pub fn len(&self) -> usize {
+        self.data.len()
+    }
+
+    pub fn is_empty(&self) -> bool {
+        self.data.is_empty()
+    }
+}
+
 /// §15.2: PTY-backed Shell Implementation (Desktop Only)
 pub struct PtyShell {
     _state: Arc<Mutex<TosState>>,
@@ -15,6 +70,7 @@ pub struct PtyShell {
     master: Box<dyn MasterPty + Send>,
     _child: Box<dyn Child + Send + Sync>,
     ipc: Arc<Mutex<Option<std::sync::Weak<crate::brain::ipc_handler::IpcHandler>>>>,
+    scrollback: Arc<Mutex<ScrollbackBuffer>>,
 }
 
 impl PtyShell {
@@ -100,6 +156,8 @@ impl PtyShell {
 
         let ipc = Arc::new(Mutex::new(None));
         let ipc_clone = ipc.clone();
+        let scrollback = Arc::new(Mutex::new(ScrollbackBuffer::new(SCROLLBACK_CAP_BYTES)));
+        let scrollback_clone = scrollback.clone();
 
         let state_clone = state.clone();
         let ai_clone = ai.clone();
@@ -115,6 +173,7 @@ impl PtyShell {
                 sid_clone,
                 hid_clone,
                 ipc_clone,
+                scrollback_clone,
             );
         });
 
@@ -126,7 +185,15 @@ impl PtyShell {
             master: pair.master,
             _child: child,
             ipc,
+            scrollback,
         })
+    }
+
+    /// The retained raw output history, oldest first (Phase 1.5).
+    /// Replayed to a face when it (re)connects so its terminal can
+    /// repaint the ongoing session.
+    pub fn scrollback_snapshot(&self) -> Vec<u8> {
+        self.scrollback.lock().unwrap().snapshot()
     }
 
     pub fn set_ipc(&self, ipc: &Arc<crate::brain::ipc_handler::IpcHandler>) {
@@ -250,6 +317,7 @@ fn read_loop(
     sector_id: uuid::Uuid,
     hub_id: uuid::Uuid,
     ipc_weak_container: Arc<Mutex<Option<std::sync::Weak<crate::brain::ipc_handler::IpcHandler>>>>,
+    scrollback: Arc<Mutex<ScrollbackBuffer>>,
 ) {
     let mut osc_parser = OscParser::new();
     let mut line_buffer = String::new();
@@ -260,6 +328,11 @@ fn read_loop(
             Ok(0) | Err(_) => break,
             Ok(n) => {
                 let data = &buffer[..n];
+
+                // Retain before broadcasting (Phase 1.5): anything in
+                // the buffer is by construction never lost to a face
+                // that connects later.
+                scrollback.lock().unwrap().append(data);
 
                 // Hex encode raw PTY output bytes and broadcast them
                 let hex_data = hex::encode(data);
@@ -399,5 +472,45 @@ fn read_loop(
                 }
             }
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn scrollback_round_trips_appended_bytes() {
+        let mut buf = ScrollbackBuffer::new(1024);
+        assert!(buf.is_empty());
+        buf.append(b"hello ");
+        buf.append(b"world\n");
+        assert_eq!(buf.snapshot(), b"hello world\n");
+        assert_eq!(buf.len(), 12);
+    }
+
+    #[test]
+    fn scrollback_trims_to_cap_keeping_the_tail() {
+        let mut buf = ScrollbackBuffer::new(8);
+        buf.append(b"0123456789");
+        assert!(buf.len() <= 8);
+        assert_eq!(buf.snapshot(), b"23456789");
+    }
+
+    #[test]
+    fn scrollback_trim_prefers_a_newline_boundary() {
+        let mut buf = ScrollbackBuffer::new(10);
+        // 16 bytes total; cap 10 -> excess 6; the first newline at or
+        // after index 6 is at index 10, so the cut lands just past it
+        // and the replay starts at a line boundary.
+        buf.append(b"aaaa\nbbbbb\nccccc");
+        assert_eq!(buf.snapshot(), b"ccccc");
+    }
+
+    #[test]
+    fn scrollback_handles_chunks_larger_than_cap() {
+        let mut buf = ScrollbackBuffer::new(4);
+        buf.append(b"abcdefghij");
+        assert_eq!(buf.snapshot(), b"ghij");
     }
 }

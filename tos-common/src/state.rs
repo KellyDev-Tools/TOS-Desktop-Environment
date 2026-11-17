@@ -692,6 +692,12 @@ impl SplitPane {
 pub struct DirectoryListing {
     pub path: String,
     pub entries: Vec<DirectoryEntry>,
+    /// Monotonic counter bumped every time the Brain (re)issues this
+    /// listing. Chip systems key on it: a higher generation is a new
+    /// chip set being issued, and sets from older generations are
+    /// deprecated in favour of it.
+    #[serde(default)]
+    pub generation: u64,
 }
 
 /// A single entry in a directory listing.

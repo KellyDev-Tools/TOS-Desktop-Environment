@@ -61,6 +61,73 @@ impl ScrollbackBuffer {
     }
 }
 
+/// Input/output activity shared between the PTY writer, the read
+/// loop, and the command-completion watcher (Phase 1.6).
+pub struct PtyActivity {
+    /// Last write that submitted a command (contained CR or LF).
+    last_input_ms: std::sync::atomic::AtomicU64,
+    /// Last chunk read from the PTY.
+    last_output_ms: std::sync::atomic::AtomicU64,
+    /// A command was submitted and has not yet been seen to finish.
+    command_pending: std::sync::atomic::AtomicBool,
+}
+
+/// Monotonic milliseconds for activity timestamps.
+fn activity_now_ms() -> u64 {
+    static EPOCH: std::sync::OnceLock<std::time::Instant> = std::sync::OnceLock::new();
+    EPOCH.get_or_init(std::time::Instant::now).elapsed().as_millis() as u64
+}
+
+/// Phase 1.6: command-completion watcher. When a command has been
+/// submitted (its input contained Enter) and the PTY then goes
+/// quiet, the command has finished — whatever shell this is, with
+/// no OSC integration required. On completion, sync the hub's cwd
+/// from the shell process itself (Linux /proc/<pid>/cwd: exact for
+/// any shell) and re-issue the directory listing as a new
+/// generation, so chip systems see fresh chips after every command
+/// — `ls`, `pwd`, anything.
+fn completion_watcher(
+    state: Arc<Mutex<TosState>>,
+    sector_id: uuid::Uuid,
+    hub_id: uuid::Uuid,
+    child_pid: Option<u32>,
+    activity: Arc<PtyActivity>,
+    alive: Arc<std::sync::atomic::AtomicBool>,
+) {
+    use std::sync::atomic::Ordering;
+    while alive.load(Ordering::Relaxed) {
+        thread::sleep(std::time::Duration::from_millis(100));
+        if !activity.command_pending.load(Ordering::SeqCst) {
+            continue;
+        }
+        let now = activity_now_ms();
+        let quiet_out = now.saturating_sub(activity.last_output_ms.load(Ordering::SeqCst));
+        let quiet_in = now.saturating_sub(activity.last_input_ms.load(Ordering::SeqCst));
+        if quiet_out < 300 || quiet_in < 300 {
+            continue;
+        }
+        activity.command_pending.store(false, Ordering::SeqCst);
+
+        let mut state_lock = state.lock().unwrap();
+        if let Some(pid) = child_pid {
+            if let Ok(real_cwd) = std::fs::read_link(format!("/proc/{pid}/cwd")) {
+                if let Some(sector) = state_lock.sectors.iter_mut().find(|s| s.id == sector_id) {
+                    if let Some(hub) = sector.hubs.iter_mut().find(|h| h.id == hub_id) {
+                        if hub.current_directory != real_cwd {
+                            hub.current_directory = real_cwd;
+                        }
+                    }
+                }
+            }
+        }
+        crate::brain::sector::SectorManager::refresh_listing_for(
+            &mut state_lock,
+            sector_id,
+            hub_id,
+        );
+    }
+}
+
 /// §15.2: PTY-backed Shell Implementation (Desktop Only)
 pub struct PtyShell {
     _state: Arc<Mutex<TosState>>,
@@ -71,6 +138,15 @@ pub struct PtyShell {
     _child: Box<dyn Child + Send + Sync>,
     ipc: Arc<Mutex<Option<std::sync::Weak<crate::brain::ipc_handler::IpcHandler>>>>,
     scrollback: Arc<Mutex<ScrollbackBuffer>>,
+    activity: Arc<PtyActivity>,
+    alive: Arc<std::sync::atomic::AtomicBool>,
+}
+
+impl Drop for PtyShell {
+    fn drop(&mut self) {
+        // Stop the command-completion watcher thread.
+        self.alive.store(false, std::sync::atomic::Ordering::Relaxed);
+    }
 }
 
 impl PtyShell {
@@ -150,6 +226,7 @@ impl PtyShell {
         cmd.args(args);
         cmd.cwd(cwd);
         let child = pair.slave.spawn_command(cmd)?;
+        let child_pid = child.process_id();
 
         let reader = pair.master.try_clone_reader()?;
         let writer = pair.master.take_writer()?;
@@ -158,6 +235,14 @@ impl PtyShell {
         let ipc_clone = ipc.clone();
         let scrollback = Arc::new(Mutex::new(ScrollbackBuffer::new(SCROLLBACK_CAP_BYTES)));
         let scrollback_clone = scrollback.clone();
+        let activity = Arc::new(PtyActivity {
+            last_input_ms: std::sync::atomic::AtomicU64::new(0),
+            last_output_ms: std::sync::atomic::AtomicU64::new(0),
+            command_pending: std::sync::atomic::AtomicBool::new(false),
+        });
+        let activity_clone = activity.clone();
+        let alive = Arc::new(std::sync::atomic::AtomicBool::new(true));
+        let alive_clone = alive.clone();
 
         let state_clone = state.clone();
         let ai_clone = ai.clone();
@@ -174,8 +259,27 @@ impl PtyShell {
                 hid_clone,
                 ipc_clone,
                 scrollback_clone,
+                activity_clone,
             );
         });
+
+        // Phase 1.6: watch for command completion so the directory
+        // listing (and the chips fed by it) refreshes after every
+        // command, in any shell.
+        {
+            let watcher_state = state.clone();
+            let watcher_activity = activity.clone();
+            thread::spawn(move || {
+                completion_watcher(
+                    watcher_state,
+                    sector_id,
+                    hub_id,
+                    child_pid,
+                    watcher_activity,
+                    alive_clone,
+                );
+            });
+        }
 
         Ok(Self {
             _state: state,
@@ -186,6 +290,8 @@ impl PtyShell {
             _child: child,
             ipc,
             scrollback,
+            activity,
+            alive,
         })
     }
 
@@ -201,6 +307,17 @@ impl PtyShell {
     }
 
     pub fn write(&mut self, data: &[u8]) -> anyhow::Result<()> {
+        // Phase 1.6: a write containing Enter submits a command —
+        // the completion watcher uses this (plus output quiescence)
+        // to know when to re-issue the directory listing.
+        if data.contains(&b'\r') || data.contains(&b'\n') {
+            self.activity
+                .last_input_ms
+                .store(activity_now_ms(), std::sync::atomic::Ordering::SeqCst);
+            self.activity
+                .command_pending
+                .store(true, std::sync::atomic::Ordering::SeqCst);
+        }
         self.writer.write_all(data)?;
         self.writer.flush()?;
         Ok(())
@@ -318,6 +435,7 @@ fn read_loop(
     hub_id: uuid::Uuid,
     ipc_weak_container: Arc<Mutex<Option<std::sync::Weak<crate::brain::ipc_handler::IpcHandler>>>>,
     scrollback: Arc<Mutex<ScrollbackBuffer>>,
+    activity: Arc<PtyActivity>,
 ) {
     let mut osc_parser = OscParser::new();
     let mut line_buffer = String::new();
@@ -333,6 +451,9 @@ fn read_loop(
                 // the buffer is by construction never lost to a face
                 // that connects later.
                 scrollback.lock().unwrap().append(data);
+                activity
+                    .last_output_ms
+                    .store(activity_now_ms(), std::sync::atomic::Ordering::SeqCst);
 
                 // Hex encode raw PTY output bytes and broadcast them
                 let hex_data = hex::encode(data);
@@ -408,13 +529,20 @@ fn read_loop(
                                     hub_id,
                                 );
                             }
-                            OscEvent::DirectoryListing(listing) => {
+                            OscEvent::DirectoryListing(mut listing) => {
                                 if let Some(sector) =
                                     state_lock.sectors.iter_mut().find(|s| s.id == sector_id)
                                 {
                                     if let Some(hub) =
                                         sector.hubs.iter_mut().find(|h| h.id == hub_id)
                                     {
+                                        // A pushed listing is a new chip
+                                        // issuance too — stamp the next
+                                        // generation (Phase 1.6).
+                                        listing.generation = hub
+                                            .shell_listing
+                                            .as_ref()
+                                            .map_or(1, |l| l.generation + 1);
                                         hub.shell_listing = Some(listing);
                                     }
                                 }

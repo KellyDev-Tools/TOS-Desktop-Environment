@@ -79,10 +79,10 @@ jobs:
       # The real-Brain specs (Phase 1 slice, chip lifecycle) have their
       # own blocking job below — they need a real Brain binary, which
       # this baseline job does not build.
-      - run: npx playwright test --grep-invert "Phase 1 slice|chip lifecycle"
+      - run: npx playwright test --grep-invert "Phase 1 slice|chip lifecycle|Phase 2 — remote config"
 
   e2e-slice:
-    name: Svelte face — Playwright E2E, Phase 1 slice (blocking)
+    name: Svelte face — Playwright E2E, gated specs (blocking)
     runs-on: ubuntu-24.04
     # The real-Brain specs run against a REAL tos-brain binary (no
     # WebSocket mocking): the Phase 1 slice spec drives the built face
@@ -112,4 +112,4 @@ jobs:
         run: cargo build -p tos-brain
       - run: npm ci
       - run: npx playwright install --with-deps chromium
-      - run: npx playwright test tests/slice.spec.ts tests/chips-lifecycle.spec.ts --workers=1
+      - run: npx playwright test tests/slice.spec.ts tests/chips-lifecycle.spec.ts tests/remote.spec.ts --workers=1

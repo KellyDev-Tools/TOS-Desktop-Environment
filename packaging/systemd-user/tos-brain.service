@@ -1,5 +1,6 @@
 [Unit]
 Description=TOS Brain — headless session and terminal daemon
+PartOf=tos.target
 # The Brain is an ordinary user service: it runs inside your normal
 # GNOME/KDE/etc. session, needs no display, and owns no session or
 # window management (that stays with the host DE, per the Phase 1
@@ -18,4 +19,4 @@ RestartSec=2
 Environment=RUST_LOG=info
 
 [Install]
-WantedBy=default.target
+WantedBy=tos.target

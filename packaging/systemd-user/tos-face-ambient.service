@@ -5,15 +5,24 @@ Description=TOS ambient face — layer-shell background, chips, and prompt
 # Requires a layer-shell compositor (KDE Plasma, Sway, Hyprland,
 # COSMIC). GNOME/Mutter has no layer-shell for regular clients; the
 # GNOME path is a Phase 4 shim, not this unit.
-After=graphical-session.target tos-brain.service
-Wants=tos-brain.service
-PartOf=graphical-session.target
+After=graphical-session.target tos-brain.service tos-face-ui.service
+Wants=tos-brain.service tos-face-ui.service
+PartOf=graphical-session.target tos.target
+# Skip cleanly (instead of restart-looping) when started without a
+# graphical Wayland session, e.g. `systemctl --user start tos.target`
+# from a bare TTY or SSH login — the Brain and UI server still start.
+ConditionEnvironment=WAYLAND_DISPLAY
 
 [Service]
 Type=simple
-ExecStart=%h/.local/bin/tos-face-ambient --ui %h/.local/share/tos/face/index.html
+# The UI is served over loopback HTTP by tos-face-ui.service: the
+# build's ES module imports do not load from a file path in WebKitGTK.
+ExecStart=%h/.local/bin/tos-face-ambient --ui http://127.0.0.1:18701/
+# WebKitGTK on many systems (found on NixOS) renders nothing with the
+# DMABUF renderer enabled; the software path is reliable.
+Environment=WEBKIT_DISABLE_DMABUF_RENDERER=1
 Restart=on-failure
 RestartSec=2
 
 [Install]
-WantedBy=graphical-session.target
+WantedBy=tos.target

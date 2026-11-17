@@ -1,0 +1,10 @@
+[Unit]
+Description=TOS — Brain, face UI server, and ambient face
+# The simple way to start (and stop) TOS: this target pulls in the
+# Brain, the face UI server, and the ambient face; each service is
+# PartOf it, so stopping the target stops all three.
+Wants=tos-brain.service tos-face-ui.service tos-face-ambient.service
+After=tos-brain.service tos-face-ui.service tos-face-ambient.service
+
+[Install]
+WantedBy=default.target

@@ -82,7 +82,10 @@ if (typeof window !== 'undefined') {
 }
 
 const SYNC_INTERVAL_MS = 1000;
-const RECONNECT_DELAY_MS = 2000;
+const RECONNECT_BASE_MS = 1000;
+const RECONNECT_MAX_MS = 30_000;
+let reconnectAttempts = 0;
+let hasConnectedBefore = false;
 
 export function getActiveWsUrl(): string | null {
     return activeWsUrl;
@@ -265,7 +268,25 @@ function proceedConnect(targetUrl: string): void {
 
     ws.onopen = () => {
         connectionState = 'connected';
+        reconnectAttempts = 0;
         console.log('[IPC] ✅ Connected to Brain');
+
+        if (hasConnectedBefore) {
+            // A reconnect, not the first connect. The Brain replays
+            // its scrollback to every new connection (Phase 1.5);
+            // tell raw listeners to reset first so the replay lands
+            // as the whole truth instead of appending to the frozen
+            // pre-drop content. Dispatched synchronously here, before
+            // any replay message can arrive.
+            rawListeners.forEach((listener) => {
+                try {
+                    listener('tos:reconnected');
+                } catch (e) {
+                    console.error('[IPC] Raw listener error:', e);
+                }
+            });
+        }
+        hasConnectedBefore = true;
 
         // Immediate first sync to get full state, which also starts the heartbeat
         sendCommand('get_state:').then(res => {
@@ -327,10 +348,36 @@ function cleanup(): void {
 
 function scheduleReconnect(): void {
     if (reconnectTimer) return;
+    // Exponential backoff with jitter: 1s, 2s, 4s, … capped at 30s.
+    // A fixed 2s retry hammers a down Brain and drains a laptop on
+    // a dropped network; the cap keeps recovery prompt after sleep.
+    const backoff = Math.min(RECONNECT_BASE_MS * 2 ** reconnectAttempts, RECONNECT_MAX_MS);
+    const delay = backoff * (0.8 + Math.random() * 0.4);
+    reconnectAttempts += 1;
     reconnectTimer = setTimeout(() => {
         reconnectTimer = null;
         connect();
-    }, RECONNECT_DELAY_MS);
+    }, delay);
+}
+
+// Wake triggers: sleep/wake and network returns often leave a
+// half-open socket and a pending backoff timer. On 'online' or on
+// the face becoming visible again, retry immediately instead of
+// waiting out the backoff.
+if (typeof window !== 'undefined') {
+    const wakeReconnect = () => {
+        if (connectionState !== 'disconnected') return;
+        if (reconnectTimer) {
+            clearTimeout(reconnectTimer);
+            reconnectTimer = null;
+        }
+        reconnectAttempts = 0;
+        connect();
+    };
+    window.addEventListener('online', wakeReconnect);
+    document.addEventListener('visibilitychange', () => {
+        if (document.visibilityState === 'visible') wakeReconnect();
+    });
 }
 
 // --- Convenience Helpers ---

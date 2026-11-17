@@ -97,6 +97,35 @@ Done when:
 
 Explicitly not in this phase: persistence across *Brain* restarts (the buffer is in-memory; state restore already brings back the hub model, and seeding the buffer from it is a later refinement), per-hub shells, and the remote/reconnect behaviour Phase 2 defines.
 
+## Phase 1.6 — Accelerator chips: the overlay earns its place
+
+Placed before Phase 2 by decision (2026-11-17): the chip system is base to the whole idea, and remote (Phase 2) only carries whatever interaction exists — so the interaction comes first.
+
+The model, stated plainly:
+
+- **The terminal stays a completely normal terminal.** Normal output, any terminal app runs as it would anywhere else. Nothing is captured, converted, or reinterpreted.
+- **The chip system is a touch-friendly accelerator that overlays.** Its whole goal is to increase access and reduce typing. Chips are generated from context the Brain already holds — never from transforming terminal output — and tapping a chip does the typing (or the acting) for you.
+- **The prompt input acts independently of the terminal.** It is not docked onto the terminal view; the terminal is background and context, not the container. (Both points surfaced in the Phase 1 smoke test: the chips strip was empty at rest and the prompt was just a second terminal.)
+
+Constraint that shapes the slice: **many of the chip system's information providers are frozen.** The satellite daemons (searchd, heuristicd, priorityd, marketplaced, loggerd) stay parked in this phase. V1 chips feed only from live Brain state and the services already running inside the Brain process.
+
+Work:
+
+- Keep the directory listing fresh in the Brain: refresh `shell_listing` when the shell's cwd changes and when a command completes, not only when a hub enters Directory mode — so the chips always describe the directory the terminal is actually in.
+- Chips surface: alongside the always-on status/sector bar, render **directory accelerator chips** from the listing — tap a directory to `cd` into it, tap a file to insert its path — plus **cwd breadcrumb chips** (tap an ancestor to go there).
+- Prompt surface: rebuild input-first — the dedicated CMD input bar as the overlay's primary, independent element, with the hub view as context. (SEARCH and AI modes stay inert: their providers are frozen.)
+- Point the slice E2E at the new behaviour: chips for a known directory are present at rest, and tapping a directory chip changes the terminal's working directory.
+
+Done when:
+
+- [ ] The chips strip is never empty at rest: status chips plus the current directory's accelerator chips
+- [ ] Tapping a directory chip `cd`s the terminal; tapping a file chip inserts its path — measurably less typing for the same navigation
+- [ ] Directory chips track the terminal's cwd across `cd` and across commands that change the directory's contents
+- [ ] The prompt summons as an independent input-first overlay, not a terminal with a bar attached
+- [ ] The slice E2E covers the above and stays green in CI
+
+Explicitly not in this phase: heuristic suggestion chips (heuristicd), search chips (searchd), priority ordering (priorityd), marketplace chips (marketplaced) — each arrives when its provider unfreezes; parsing or transforming terminal output into chips, in any form.
+
 ## Phase 2 — Make remote the default topology
 
 Goal: the same ambient face, unchanged in feel, talking to a Brain on tkserver. Your workspace follows you; the layer stays thin and local.

@@ -4,6 +4,10 @@ TOS does not need more features. It needs one route that works end to end, feels
 
 The companion decision document is `docs/spec/TOS_Scope-Split.md` in the TOS repo (PR #2, branch `docs/scope-split-ambient-layer`). This roadmap assumes that split: keep Brain and tos-common, delegate session and app management to GNOME/KDE, drop the Wayland face and `archive/`, park everything else.
 
+**Source of truth:** the spec suite (`docs/spec/TOS_v0.1.1_Architecture.md` and its companions) defines what TOS is. This roadmap sequences the work to get there; on any question of definition or behaviour, the spec governs and this document defers to it.
+
+**Lifecycle:** this roadmap is a campaign document. It serves one goal — the ambient layer, trusted in daily use — and when that goal is reached it will be *replaced* by a successor roadmap of greater refinement, not extended indefinitely; phase numbers scope to this document. Before it is retired, anything still open is harvested: open decisions and unmet done-when checks carry into the successor, and anything that has turned out to be a definition moves into the spec. Nothing durable should live only in this document — git preserves it, but preservation is not the same as being carried forward. When the final phase completes, the roadmap is **cleared**: this file persists as an empty placeholder between goals — a standing slot, holding no plan — until the next campaign's roadmap is written into it. The cleared campaigns remain in git history.
+
 ## Success is a boring first slice, not a big launch
 
 Success, in order:
@@ -108,6 +112,8 @@ The model, stated plainly:
 - **The prompt input acts independently of the terminal.** It is not docked onto the terminal view; the terminal is background and context, not the container. (Both points surfaced in the Phase 1 smoke test: the chips strip was empty at rest and the prompt was just a second terminal.)
 
 Constraint that shapes the slice: **many of the chip system's information providers are frozen.** The satellite daemons (searchd, heuristicd, priorityd, marketplaced, loggerd) stay parked in this phase. V1 chips feed only from live Brain state and the services already running inside the Brain process.
+
+The operative definition of this model is the spec — Architecture 0.1.1, the Spec 0.1.1 note and §7.7. The summary above is the phase's working statement; where the two differ, the spec governs.
 
 Work:
 

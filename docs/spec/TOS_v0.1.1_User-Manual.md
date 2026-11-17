@@ -2,9 +2,11 @@
 
 **Purpose:** This document is the comprehensive guide for users interacting with the TOS environment. It covers the UI hierarchy, command systems, and workflow optimization.
 
-**Version:** 0.1.0
+**Version:** 0.1.1
 
-> **Direction update — 2026-11-15:** TOS is being refocused as an ambient layer inside a host desktop (see the [Architecture Specification](./TOS_v0.1.0_Architecture.md), Direction Update). This manual describes the earlier standalone-environment experience and is **superseded in framing**: TOS now runs inside your existing desktop, which keeps its own windows, apps, and shortcuts. The navigation hierarchy, Command Hub, and prompt concepts carry over to the background + overlay model. See [TOS_Scope-Split.md](./TOS_Scope-Split.md) and [TOS_Roadmap.md](./TOS_Roadmap.md).
+> **Spec 0.1.1 — 2026-11-17:** Carried forward from 0.1.0; the 0.1.1 revision defines the chip system as a logical dynamic user experience and lives in the [Architecture Specification](./TOS_v0.1.1_Architecture.md) (front note, §7.7) and the [Feature Specifications](./TOS_v0.1.1_Features.md) (§1). The 0.1.0 text is preserved in git history.
+
+> **Direction update — 2026-11-15:** TOS is being refocused as an ambient layer inside a host desktop (see the [Architecture Specification](./TOS_v0.1.1_Architecture.md), Direction Update). This manual describes the earlier standalone-environment experience and is **superseded in framing**: TOS now runs inside your existing desktop, which keeps its own windows, apps, and shortcuts. The navigation hierarchy, Command Hub, and prompt concepts carry over to the background + overlay model. See [TOS_Scope-Split.md](./TOS_Scope-Split.md) and [TOS_Roadmap.md](./TOS_Roadmap.md).
 
 ## 1. System Philosophy: The Augmented Desktop Entity
 

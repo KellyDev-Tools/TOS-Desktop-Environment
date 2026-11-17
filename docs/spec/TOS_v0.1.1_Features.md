@@ -1,10 +1,12 @@
 # TOS Feature Specifications
 
-**Purpose:** This document consolidates the detailed specifications for major TOS features that extend the core architecture. Each section is self-contained and cross-references the [Architecture Specification](./TOS_v0.1.0_Architecture.md) and [Ecosystem Specification](./TOS_v0.1.0_Ecosystem.md) as needed.
+**Purpose:** This document consolidates the detailed specifications for major TOS features that extend the core architecture. Each section is self-contained and cross-references the [Architecture Specification](./TOS_v0.1.1_Architecture.md) and [Ecosystem Specification](./TOS_v0.1.1_Ecosystem.md) as needed.
 
-**Version:** 0.1.0
+**Version:** 0.1.1
 
-> **Direction update — 2026-11-15:** TOS is being refocused as an ambient layer inside a host desktop (see the [Architecture Specification](./TOS_v0.1.0_Architecture.md), Direction Update). The Expanded Bezel (Section 1) becomes the **chips overlay**, the Command Hub becomes the **prompt overlay**, and session persistence (Section 2) stays Brain-side. Marketplace (Section 5) and Kanban agent orchestration (Section 7) are **parked**. See [TOS_Scope-Split.md](./TOS_Scope-Split.md) and [TOS_Roadmap.md](./TOS_Roadmap.md).
+> **Spec 0.1.1 — 2026-11-17:** Carried forward from 0.1.0; the 0.1.1 revision defines the chip system as a logical dynamic user experience and lives in the [Architecture Specification](./TOS_v0.1.1_Architecture.md) (front note, §7.7) and the [Feature Specifications](./TOS_v0.1.1_Features.md) (§1). The 0.1.0 text is preserved in git history.
+
+> **Direction update — 2026-11-15:** TOS is being refocused as an ambient layer inside a host desktop (see the [Architecture Specification](./TOS_v0.1.1_Architecture.md), Direction Update). The Expanded Bezel (Section 1) becomes the **chips overlay**, the Command Hub becomes the **prompt overlay**, and session persistence (Section 2) stays Brain-side. Marketplace (Section 5) and Kanban agent orchestration (Section 7) are **parked**. See [TOS_Scope-Split.md](./TOS_Scope-Split.md) and [TOS_Roadmap.md](./TOS_Roadmap.md).
 
 ---
 
@@ -29,6 +31,8 @@
 The Persistent Unified Prompt exists at every level. It is always visible, always reachable. But in its collapsed state it is just an input — it does not surface output, context chips, or navigation. The Expanded Bezel Command Surface unlocks the full power of the prompt without requiring the user to navigate anywhere.
 
 This is not a new level. It is a persistent overlay state that sits above whatever level the user is currently on. It can be invoked at Level 1 while surveying sectors, at Level 3 while a graphical app is in focus, or anywhere in between. The user's current view zooms back spatially to make room. Output appears. Action chips offer what to do next. The user decides whether to dive in or dismiss and continue.
+
+> **0.1.1 clarification:** In the ambient layer this surface is the chips + prompt overlays, and the chip system follows Architecture §7.7 as revised in 0.1.1: chips are issued in generations from Brain-held state (never from terminal output), the prompt input is an independent overlay element rather than part of the bezel, and command output is never rendered into the overlay — it stays in the terminal (§1.6 as revised).
 
 ### 1.2 Triggers
 
@@ -96,24 +100,15 @@ If the active PTY is currently running a command, the prompt area displays three
 
 The Stop button is always visible regardless of which chip is selected.
 
-### 1.6 Output Display
+### 1.6 Output Stays in the Terminal
 
-When a command completes, its output is rendered by the active Terminal Output Module in an overlay panel that expands upward from the prompt. Maximum height: 40% of the viewport. Long outputs are scrollable within the panel.
+Command output is rendered by the terminal itself — full width, normal semantics, exactly as in any terminal. The overlay never captures, re-renders, or panels output (0.1.0's output panel is removed by the 0.1.1 chip model: the terminal is the output surface, and it is not the overlay's business).
 
-#### 1.6.1 Action Chips
-
-| Chip | Action |
-|:---|:---|
-| **[→ Command Hub]** | Zooms into the sector's Level 2 Command Hub with the output visible. The bezel collapses. |
-| **[⊞ Split View]** | Opens a split layout — output and terminal on one side, current Level 3 app on the other. |
-| **[✕ Dismiss]** | Collapses the bezel. Output is saved to the sector's terminal history. |
-| **[⧉ Keep Open]** | Pins the output panel open and returns focus to the background view. |
-
-Action chips appear after output completes, not during streaming.
+What changes when a command completes is the **chip set**: the Brain issues a new chip request (Architecture §7.7), the previous set is deprecated and lowered in priority, and the fresh set describes the now-current context — the directory the terminal is in, its entries, and session state. Action chips, when offered, derive from that same Brain-held state — the busy-PTY set in §1.5.2 (Stop / New Terminal / Wait) is the model example: offered because the Brain knows the PTY is busy, not because anything was read from the screen.
 
 #### 1.6.2 Error Output
 
-If the command exits with a non-zero code, the output panel border renders in amber. The AI Passive Observer chip (if installed and active) may surface a correction or explanation chip alongside the standard action chips.
+If the command exits with a non-zero code, the terminal's own rendering stands; the Brain knows the exit status as session state and may reflect it in the status chips. An AI Passive Observer chip (if installed and active — the AI provider is parked in the current system) may surface a correction or explanation chip alongside the state-derived chips.
 
 ### 1.7 Dismiss Behaviour
 

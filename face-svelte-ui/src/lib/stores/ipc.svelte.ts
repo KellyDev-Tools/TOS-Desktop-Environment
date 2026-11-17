@@ -516,6 +516,31 @@ export async function dirNavigate(path: string): Promise<void> {
     await sendCommand(`dir_navigate:${path}`);
 }
 
+// --- Terminal Typing Helpers (Phase 1.6) ---
+//
+// The accelerator chips and the prompt surface's input act on the
+// terminal by *typing into it* — the terminal stays a completely
+// normal terminal, and a chip tap is indistinguishable from the
+// user typing the same text.
+
+/** Type text into the terminal exactly as if the user typed it. */
+export async function sendTerminalText(text: string): Promise<void> {
+    const hex = Array.from(new TextEncoder().encode(text))
+        .map((b) => b.toString(16).padStart(2, '0'))
+        .join('');
+    await sendCommand(`terminal_input_hex:${hex}`);
+}
+
+/** Type a command into the terminal and run it (text + Enter). */
+export async function sendTerminalCommand(command: string): Promise<void> {
+    await sendTerminalText(command + '\n');
+}
+
+/** Single-quote a string for safe typing into a POSIX shell. */
+export function shellQuote(text: string): string {
+    return `'${text.replace(/'/g, `'\\''`)}'`;
+}
+
 /**
  * Generic IPC sender used by some legacy or high-level components.
  * Formats as "method:payload" and dispatches via sendCommand.

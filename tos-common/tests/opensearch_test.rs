@@ -19,7 +19,7 @@ async fn test_opensearch_xml_retrieval() {
     ).unwrap()));
 
     let ipc = Arc::new(IpcHandler::new(state, shell, services));
-    let server = RemoteServer::new(ipc);
+    let server = RemoteServer::new(ipc, tos_common::config::RemoteConfig::default());
     
     let xml = server.generate_opensearch_xml();
     assert!(xml.contains("<OpenSearchDescription"));

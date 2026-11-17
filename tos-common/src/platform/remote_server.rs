@@ -23,30 +23,107 @@ use webrtc::interceptor::registry::Registry;
 /// via mDNS as specified in §12.1 and §5.2.
 pub struct RemoteServer {
     ipc: Arc<IpcHandler>,
+    config: crate::config::RemoteConfig,
     webrtc_sessions: Arc<tokio::sync::Mutex<std::collections::HashMap<uuid::Uuid, Arc<webrtc::peer_connection::RTCPeerConnection>>>>,
 }
 
 impl RemoteServer {
     /// Creates a new RemoteServer instance with the provided IPC handler.
-    pub fn new(ipc: Arc<IpcHandler>) -> Self {
-        Self { 
+    pub fn new(ipc: Arc<IpcHandler>, config: crate::config::RemoteConfig) -> Self {
+        Self {
             ipc,
+            config,
             webrtc_sessions: Arc::new(tokio::sync::Mutex::new(std::collections::HashMap::new())),
         }
     }
 
+    /// The host the network listeners effectively bind to.
+    ///
+    /// Remote access off means loopback only, whatever bind_address
+    /// says — fail closed, so a Brain is never reachable from the
+    /// network unless remote access was explicitly enabled. Remote
+    /// access on binds the configured address; a wildcard stays
+    /// dual-stack `[::]`, as before Phase 2.
+    fn effective_bind_host(config: &crate::config::RemoteConfig) -> String {
+        if !config.remote_access {
+            return "127.0.0.1".to_string();
+        }
+        match config.bind_address.trim() {
+            "" | "0.0.0.0" | "::" | "[::]" => "[::]".to_string(),
+            other => other.to_string(),
+        }
+    }
+
+    /// Format a host:port bind address, bracketing IPv6 hosts.
+    fn bind_addr(host: &str, port: u16) -> String {
+        if host.contains(':') && !host.starts_with('[') {
+            format!("[{}]:{}", host, port)
+        } else {
+            format!("{}:{}", host, port)
+        }
+    }
+
+    /// Subject alt names for the self-signed TLS certificate: the
+    /// loopback identities, plus — when remote access is on — the
+    /// configured bind identity (e.g. the tailnet IP a face will
+    /// dial) and this machine's hostname, so a face connecting by
+    /// that name or address finds it in the certificate.
+    fn tls_subject_alt_names(config: &crate::config::RemoteConfig) -> Vec<String> {
+        let mut sans: Vec<String> = vec![
+            "localhost".into(),
+            "127.0.0.1".into(),
+            "[::1]".into(),
+            "tos-brain.local".into(),
+        ];
+        if config.remote_access {
+            let bind = config.bind_address.trim();
+            if !bind.is_empty()
+                && bind != "0.0.0.0"
+                && bind != "::"
+                && !sans.iter().any(|s| s == bind)
+            {
+                sans.push(bind.to_string());
+            }
+            if let Ok(host) = std::fs::read_to_string("/proc/sys/kernel/hostname") {
+                let host = host.trim().to_string();
+                if !host.is_empty() && !sans.contains(&host) {
+                    sans.push(host);
+                }
+            }
+        }
+        sans
+    }
+
     /// §12.1: Start the Remote Server daemons
-    pub async fn run(&self, port: u16) -> anyhow::Result<()> {
-        let tcp_addr = format!("[::]:{}", port);
-        let ws_addr = format!("[::]:{}", port + 1); // e.g. 7001 for WebSocket
-        let uds_path = "/tmp/brain.sock";
+    pub async fn run(&self) -> anyhow::Result<()> {
+        let host = Self::effective_bind_host(&self.config);
+        let tcp_addr = Self::bind_addr(&host, self.config.anchor_port);
+        let ws_addr = Self::bind_addr(&host, self.config.ws_port);
+        let uds_path = self.config.uds_path.as_str();
+        if self.config.remote_access {
+            tracing::info!(
+                "[REMOTE_SERVER] Remote access ON — binding {} (config bind_address: {})",
+                host,
+                self.config.bind_address
+            );
+        } else {
+            tracing::info!(
+                "[REMOTE_SERVER] Remote access OFF — network listeners are loopback-only"
+            );
+        }
 
         // Bind with retry — previous Brain instance may have just been killed
         let tcp_listener = Self::bind_with_retry(&tcp_addr).await?;
         let ws_listener = Self::bind_with_retry(&ws_addr).await?;
 
-        // §5.2: Advertise TOS Brain via mDNS (_tos-brain._tcp)
-        let _mdns_handle = self.register_mdns(port);
+        // §5.2: Advertise TOS Brain via mDNS (_tos-brain._tcp) — only
+        // when remote access is on and discovery is enabled; a
+        // loopback-only Brain has no business announcing itself.
+        let _mdns_handle = if self.config.remote_access && self.config.mdns_enabled {
+            self.register_mdns(self.config.anchor_port)
+        } else {
+            None
+        };
 
         // Remove existing UDS if present (exists(), not is_file() — sockets aren't regular files)
         if std::path::Path::new(uds_path).exists() {
@@ -60,19 +137,24 @@ impl RemoteServer {
 
         let ipc_clone = self.ipc.clone();
 
-        let tls_config = Self::generate_tls_config()?;
-        let _tls_acceptor = TlsAcceptor::from(Arc::new(tls_config));
+        // Build the TLS acceptor ONCE and share it with both accept
+        // loops. (Before Phase 2 the loops regenerated a fresh
+        // self-signed certificate for every connection.)
+        let tls_config = Self::generate_tls_config(&Self::tls_subject_alt_names(&self.config))?;
+        let tls_acceptor = TlsAcceptor::from(Arc::new(tls_config));
 
-        let server = Arc::new(Self::new(self.ipc.clone()));
+        let server = Arc::new(Self::new(self.ipc.clone(), self.config.clone()));
         
         // Spawn TCP daemon
         let tcp_server = server.clone();
+        let tcp_tls = tls_acceptor.clone();
         tokio::spawn(async move {
             loop {
                 if let Ok((socket, _)) = tcp_listener.accept().await {
                     let h_server = tcp_server.clone();
+                    let conn_tls = tcp_tls.clone();
                     tokio::spawn(async move {
-                        if let Ok(tls_stream) = h_server.tls_acceptor().accept(socket).await {
+                        if let Ok(tls_stream) = conn_tls.accept(socket).await {
                             if let Err(e) = h_server.handle_tcp_client(tls_stream).await {
                                 tracing::error!("[REMOTE_SERVER] TCP Client error: {}", e);
                             }
@@ -86,13 +168,15 @@ impl RemoteServer {
 
         // Spawn WebSocket daemon
         let ws_server = server.clone();
+        let ws_tls = tls_acceptor.clone();
         tokio::spawn(async move {
             loop {
                 if let Ok((socket, addr)) = ws_listener.accept().await {
                     tracing::info!("[REMOTE_SERVER] WS Client connecting from {}", addr);
                     let h_server = ws_server.clone();
+                    let conn_tls = ws_tls.clone();
                     tokio::spawn(async move {
-                        match h_server.tls_acceptor().accept(socket).await {
+                        match conn_tls.accept(socket).await {
                             Ok(tls_stream) => {
                                 if let Err(e) = h_server.handle_ws_client(tls_stream, addr).await {
                                     tracing::error!("[REMOTE_SERVER] WS Client error ({}): {}", addr, e);
@@ -149,16 +233,11 @@ impl RemoteServer {
         unreachable!()
     }
 
-    fn generate_tls_config() -> anyhow::Result<ServerConfig> {
+    fn generate_tls_config(sans: &[String]) -> anyhow::Result<ServerConfig> {
         // §12.1: Ensure a crypto provider is installed for rustls 0.23+
         let _ = rustls::crypto::ring::default_provider().install_default();
 
-        let cert = generate_simple_self_signed(vec![
-            "localhost".into(),
-            "127.0.0.1".into(),
-            "[::1]".into(),
-            "tos-brain.local".into(),
-        ])?;
+        let cert = generate_simple_self_signed(sans.to_vec())?;
         let key = PrivateKeyDer::Pkcs8(cert.signing_key.serialize_der().into());
         let cert_der = CertificateDer::from(cert.cert.der().to_vec());
         let mut config = ServerConfig::builder()
@@ -193,11 +272,6 @@ impl RemoteServer {
             }
         }
         Ok(())
-    }
-
-    fn tls_acceptor(&self) -> TlsAcceptor {
-        let tls_config = Self::generate_tls_config().expect("Failed to generate TLS config");
-        TlsAcceptor::from(Arc::new(tls_config))
     }
 
     async fn handle_tcp_client(&self, socket: tokio_rustls::server::TlsStream<TcpStream>) -> anyhow::Result<()> {
@@ -467,5 +541,61 @@ impl RemoteServer {
   <Url type="application/json" method="GET" template="http://localhost:7000/search?q={searchTerms}"/>
   <Url type="text/html" method="GET" template="http://localhost:7000/search?q={searchTerms}"/>
 </OpenSearchDescription>"#.to_string()
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::config::RemoteConfig;
+
+    fn cfg(remote_access: bool, bind: &str) -> RemoteConfig {
+        RemoteConfig {
+            remote_access,
+            bind_address: bind.to_string(),
+            ..RemoteConfig::default()
+        }
+    }
+
+    #[test]
+    fn remote_off_forces_loopback_even_with_a_bind_address() {
+        // Fail closed: a configured tailnet bind must not expose the
+        // Brain while remote access is off.
+        assert_eq!(
+            RemoteServer::effective_bind_host(&cfg(false, "100.64.0.7")),
+            "127.0.0.1"
+        );
+    }
+
+    #[test]
+    fn remote_on_binds_the_configured_address() {
+        assert_eq!(
+            RemoteServer::effective_bind_host(&cfg(true, "100.64.0.7")),
+            "100.64.0.7"
+        );
+    }
+
+    #[test]
+    fn remote_on_wildcard_stays_dual_stack() {
+        assert_eq!(
+            RemoteServer::effective_bind_host(&cfg(true, "0.0.0.0")),
+            "[::]"
+        );
+    }
+
+    #[test]
+    fn bind_addr_brackets_ipv6_only() {
+        assert_eq!(RemoteServer::bind_addr("127.0.0.1", 7001), "127.0.0.1:7001");
+        assert_eq!(RemoteServer::bind_addr("[::]", 7001), "[::]:7001");
+        assert_eq!(RemoteServer::bind_addr("::1", 7001), "[::1]:7001");
+    }
+
+    #[test]
+    fn cert_covers_the_tailnet_bind_only_when_remote_is_on() {
+        let on = RemoteServer::tls_subject_alt_names(&cfg(true, "100.64.0.7"));
+        assert!(on.iter().any(|s| s == "100.64.0.7"));
+        let off = RemoteServer::tls_subject_alt_names(&cfg(false, "100.64.0.7"));
+        assert!(!off.iter().any(|s| s == "100.64.0.7"));
+        assert!(off.iter().any(|s| s == "localhost"));
     }
 }

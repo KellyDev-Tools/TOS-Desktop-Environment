@@ -171,6 +171,9 @@ test.describe('Phase 1 slice — ambient face against a real Brain', () => {
         await expect(page.getByTestId('accel-chip-dir').filter({ hasText: 'alpha-dir' })).toBeVisible();
         await expect(page.getByTestId('accel-chip-file').filter({ hasText: 'notes.txt' })).toBeVisible();
         await expect(page.getByTestId('accel-crumb').first()).toBeVisible();
+        // Phase 2: the chips status truthfully scopes the connection —
+        // this Brain is loopback, so LOCAL.
+        await expect(page.getByTestId('accel-scope')).toHaveText('LOCAL');
     });
 
     test('prompt surface input runs commands in the terminal', async ({ page }) => {

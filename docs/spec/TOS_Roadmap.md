@@ -164,6 +164,8 @@ Done when:
 - [ ] No public TLS or certificate workaround is required — connection works on the tailnet only
 - [ ] Chips truthfully show connection state (local / remote / disconnected) at a glance
 
+**Status (2026-11-17, PR #14): the config foundation is built.** The pre-audit's four traps are addressed in code: the Brain now honours its `[remote]` config (ports, bind address, remote-access toggle, mDNS gate, UDS path — remote off means loopback-only, fail closed); the TLS acceptor is built once instead of per connection, and the self-signed certificate covers the configured bind identity (e.g. the tailnet IP) plus the machine hostname; the face's two plain-`ws://` paths now use `wss://`; and chips show LOCAL / REMOTE / DISCONNECTED (the LOCAL case is asserted in the slice E2E). A new gated spec (`tests/remote.spec.ts`) proves the bind behaviour against a real Brain on a non-loopback address. Still open for this phase: the tkserver end-to-end run (needs the Brain deployed on tkserver with `remote_access = true` and `bind_address` set to its tailnet IP — the same `tos.toml` shape the spec uses), the three-stream narrowing, and the reconnect/sleep-wake behaviour.
+
 ## Phase 3 — Placement: run location is not display location
 
 Goal: launching from the prompt can place an app sensibly across host and server, and you learn by using it whether placement should be invisible or explicit.

@@ -67,7 +67,7 @@ if (typeof window !== 'undefined') {
                 
                 if (savedIsLocal && !isLocalhost) {
                     console.info(`[IPC] Remote access detected (${windowHost}). Overriding local saved host (${savedHost}).`);
-                    activeWsUrl = `ws://${windowHost}:7001`;
+                    activeWsUrl = `wss://${windowHost}:7001`;
                 } else {
                     activeWsUrl = saved;
                 }
@@ -101,6 +101,20 @@ export function setActiveWsUrl(url: string) {
 }
 
 // --- Public Reactive Getters ---
+export type ConnectionScope = 'local' | 'remote' | 'disconnected';
+
+export function getConnectionScope(): ConnectionScope {
+    if (connectionState !== 'connected') return 'disconnected';
+    try {
+        const host = new URL(activeWsUrl ?? DEFAULT_WS_URL).hostname;
+        return host === 'localhost' || host === '127.0.0.1' || host === '::1'
+            ? 'local'
+            : 'remote';
+    } catch {
+        return 'local';
+    }
+}
+
 export function getConnectionState(): ConnectionState {
     return connectionState;
 }

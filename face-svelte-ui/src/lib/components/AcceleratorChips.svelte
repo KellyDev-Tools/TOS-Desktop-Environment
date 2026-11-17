@@ -10,6 +10,7 @@
 	import {
 		getTosState,
 		getConnectionState,
+		getConnectionScope,
 		sendTerminalCommand,
 		sendTerminalText,
 		shellQuote
@@ -17,6 +18,7 @@
 
 	const tosState = $derived(getTosState());
 	const conn = $derived(getConnectionState());
+	const scope = $derived(getConnectionScope());
 	const activeSector = $derived(tosState.sectors[tosState.active_sector_index]);
 	const activeHub = $derived(activeSector?.hubs[activeSector.active_hub_index]);
 	const listing = $derived(activeHub?.shell_listing ?? null);
@@ -49,10 +51,13 @@
 	<div class="accel-status" title="Brain connection">
 		<span class="status-dot" class:online={conn === 'connected'}></span>
 		<span class="status-label">{activeSector?.name ?? 'TOS'}</span>
+		{#if conn === 'connected'}
+			<span class="status-scope" data-testid="accel-scope">{scope === 'remote' ? 'REMOTE' : 'LOCAL'}</span>
+		{/if}
 	</div>
 
 	{#if conn !== 'connected'}
-		<span class="accel-note">CONNECTING…</span>
+		<span class="accel-note">{conn === 'connecting' ? 'CONNECTING…' : 'DISCONNECTED'}</span>
 	{:else if listing}
 		<nav class="accel-crumbs" aria-label="Current directory">
 			{#each crumbs as crumb (crumb.path)}
@@ -114,6 +119,11 @@
 		height: 8px;
 		border-radius: 50%;
 		background: #ff5252;
+	}
+	.status-scope {
+		font-size: 10px;
+		letter-spacing: 0.08em;
+		opacity: 0.75;
 	}
 	.status-dot.online {
 		background: #69f0ae;

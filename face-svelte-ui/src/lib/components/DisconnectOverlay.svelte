@@ -25,7 +25,7 @@
 
 	function handleConnect() {
 		if (!hostInput || !portInput) return;
-		const uri = `ws://${hostInput}:${portInput}`;
+		const uri = `wss://${hostInput}:${portInput}`;
 		connect(uri);
 	}
 

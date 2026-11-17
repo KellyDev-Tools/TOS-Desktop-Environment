@@ -17,9 +17,12 @@ async fn main() -> anyhow::Result<()> {
     let mut face = Face::new(state.clone(), ipc.clone());
 
     // 3. Start Remote Server in background to receive stimulus
-    let server = RemoteServer::new(ipc.clone());
+    let server = RemoteServer::new(
+        ipc.clone(),
+        tos_common::config::TosConfig::load().remote.clone(),
+    );
     tokio::spawn(async move {
-        if let Err(e) = server.run(7000).await {
+        if let Err(e) = server.run().await {
             tracing::error!("[BRAIN_NODE] Server failure: {}", e);
         }
     });

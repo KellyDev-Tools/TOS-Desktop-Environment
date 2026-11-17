@@ -8,10 +8,17 @@ async fn test_dynamic_service_registration() {
     let ipc = brain.ipc.clone();
     
     // 2. Start UDS Server (Discovery Gate)
-    let server = tos_common::platform::RemoteServer::new(ipc.clone());
+    let server = tos_common::platform::RemoteServer::new(
+        ipc.clone(),
+        tos_common::config::RemoteConfig {
+            anchor_port: 27000,
+            ws_port: 27001,
+            ..Default::default()
+        },
+    );
     tokio::spawn(async move {
-        // Use a test-specific port to avoid collisions
-        let _ = server.run(27000).await;
+        // Test-specific ports to avoid collisions (carried in the config)
+        let _ = server.run().await;
     });
 
     // Wait for UDS to be ready

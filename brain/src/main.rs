@@ -48,17 +48,24 @@ async fn main() -> anyhow::Result<()> {
     let capture_backend = renderer.get_capture_backend();
     brain.services.capture.set_backend(capture_backend);
 
-    // 3. Start IPC Server (TCP 7000, WS 7001)
-    let server = RemoteServer::new(ipc.clone());
+    // 3. Start IPC Server — ports, bind, and remote access come from
+    // the loaded config's [remote] section (Phase 2: the config is
+    // actually honoured now; remote off means loopback-only).
+    let tos_config = tos_common::config::TosConfig::load();
+    let remote_cfg = tos_config.remote.clone();
+    let server = RemoteServer::new(ipc.clone(), remote_cfg.clone());
     tokio::spawn(async move {
-        if let Err(e) = server.run(7000).await {
+        if let Err(e) = server.run().await {
             tracing::error!("[BRAIN] IPC Server failure: {}", e);
         }
     });
 
     let elapsed = start_time.elapsed();
     tracing::info!("[BRAIN] TOS Daemon initialized in {:.2?}", elapsed);
-    tracing::info!("[BRAIN] Serving IPC on 7000/7001. Press Ctrl+C to stop.");
+    tracing::info!(
+        "[BRAIN] Serving IPC on {}/{} (remote_access={}). Press Ctrl+C to stop.",
+        remote_cfg.anchor_port, remote_cfg.ws_port, remote_cfg.remote_access
+    );
 
     // Park the main loop until Ctrl+C
     tokio::signal::ctrl_c().await?;

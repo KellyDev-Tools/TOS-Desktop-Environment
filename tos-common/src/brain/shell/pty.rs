@@ -398,6 +398,15 @@ fn read_loop(
                                     // §4.7: Automatic skill activation from CWD signals
                                     ai.check_context_signals(&mut state_lock, &path_buf);
                                 }
+
+                                // Phase 1.6: the accelerator chips track the
+                                // shell's directory — refresh the listing
+                                // for the new cwd.
+                                crate::brain::sector::SectorManager::refresh_listing_for(
+                                    &mut state_lock,
+                                    sector_id,
+                                    hub_id,
+                                );
                             }
                             OscEvent::DirectoryListing(listing) => {
                                 if let Some(sector) =
@@ -425,6 +434,15 @@ fn read_loop(
                                         hub.is_running = false;
                                     }
                                 }
+
+                                // Phase 1.6: a completed command may have
+                                // changed the directory's contents — keep
+                                // the accelerator chips' listing fresh.
+                                crate::brain::sector::SectorManager::refresh_listing_for(
+                                    &mut state_lock,
+                                    sector_id,
+                                    hub_id,
+                                );
                             }
                             OscEvent::JsonContext(json) => {
                                 if let Some(sector) =

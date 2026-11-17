@@ -35,6 +35,8 @@
 
 	import XtermTerminal from '$lib/components/XtermTerminal.svelte';
 	import WarningChip from '$lib/components/WarningChip.svelte';
+	import AcceleratorChips from '$lib/components/AcceleratorChips.svelte';
+	import PromptInputBar from '$lib/components/PromptInputBar.svelte';
 
 	// Module Components
 	import BrainStatus from '$lib/components/modules/BrainStatus.svelte';
@@ -347,11 +349,13 @@
 	</div>
 {:else if surface === 'chips'}
 	<div class="surface-root surface-chips">
+		<AcceleratorChips />
 		<ExpandedBezel />
 		<WarningChip />
 	</div>
 {:else if surface === 'prompt'}
 	<div class="surface-root surface-prompt">
+		<PromptInputBar />
 		<CommandHub />
 	</div>
 {:else}
@@ -615,11 +619,14 @@
 	.surface-prompt {
 		background: transparent;
 	}
+	/* Phase 1.6: the prompt surface is input-first — the independent
+	   input bar sits at the top, the hub view is context below it. */
 	.surface-prompt {
 		display: flex;
-		align-items: flex-start;
-		justify-content: center;
-		padding-top: 10vh;
+		flex-direction: column;
+		align-items: stretch;
+		justify-content: flex-start;
+		padding-top: 0;
 	}
 
 	/* Heuristic Chips */

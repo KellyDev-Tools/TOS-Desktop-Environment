@@ -118,13 +118,15 @@ Work:
 
 Done when:
 
-- [ ] The chips strip is never empty at rest: status chips plus the current directory's accelerator chips
-- [ ] Tapping a directory chip `cd`s the terminal; tapping a file chip inserts its path — measurably less typing for the same navigation
-- [ ] Directory chips track the terminal's cwd across `cd` and across commands that change the directory's contents
-- [ ] The prompt summons as an independent input-first overlay, not a terminal with a bar attached
+- [x] The chips strip is never empty at rest: status chips plus the current directory's accelerator chips
+- [x] Tapping a directory chip `cd`s the terminal; tapping a file chip inserts its path — measurably less typing for the same navigation
+- [x] Directory chips track the terminal's cwd across `cd` and across commands that change the directory's contents
+- [x] The prompt summons as an independent input-first overlay, not a terminal with a bar attached
 - [ ] The slice E2E covers the above and stays green in CI
 
 Explicitly not in this phase: heuristic suggestion chips (heuristicd), search chips (searchd), priority ordering (priorityd), marketplace chips (marketplaced) — each arrives when its provider unfreezes; parsing or transforming terminal output into chips, in any form.
+
+**Status (2026-11-17): built, pending merge + CI.** Brain: `SectorManager::refresh_listing_for` refreshes the shell hub's listing at startup, on OSC 7 cwd changes, and on OSC 9002 command completions (entries sorted directories-first); OSC 7 paths are percent-decoded. One dependency to know: cwd tracking rides on the shell reporting OSC 7 — fish does natively; a shell that never reports it leaves the chips on the last known directory. Face: the chips surface renders an `AcceleratorChips` strip (status segment, cwd breadcrumbs, entry chips) and the prompt surface leads with an independent `PromptInputBar`. Two implementation calls worth recording: chips act by **typing into the terminal** (`terminal_input_hex`) rather than through the older model-based `dir_pick` commands, because the accelerator contract is about the real shell — the Brain's model catches up via OSC 7; and a file chip inserts the file's shell-quoted **name** (what you would type in that directory), not its absolute path. Also fixed on the way: a fresh session's hub now starts in the user's home directory instead of `/`. Slice E2E is 8 tests (chips at rest, prompt input, chip-tap `cd`, plus the Phase 1/1.5 suite) — green locally; the CI box above is checked when the PR's CI passes. Still Timothy's, unchanged from Phase 1: summon/dismiss motion and focus feel, and a full day of use.
 
 ### What the Phase 1 smoke test established (2026-11-16, Timothy's NixOS box)
 

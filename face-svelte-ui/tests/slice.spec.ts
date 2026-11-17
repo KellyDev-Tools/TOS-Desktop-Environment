@@ -112,9 +112,22 @@ test.describe('Phase 1 slice — ambient face against a real Brain', () => {
     });
 
     test.afterAll(async () => {
-        brain?.kill('SIGTERM');
-        if (stateDir) fs.rmSync(stateDir, { recursive: true, force: true });
-        if (fixtureDir) fs.rmSync(fixtureDir, { recursive: true, force: true });
+        // Wait for the Brain to actually exit before removing its
+        // dirs: on shutdown the shell writes history into HOME (the
+        // fixture dir), and removing it mid-write races to ENOTEMPTY
+        // — which is how this hook failed in CI while all 8 tests
+        // passed. maxRetries covers any straggler writes.
+        if (brain) {
+            const exited = new Promise((resolve) => brain.once('exit', resolve));
+            brain.kill('SIGTERM');
+            await Promise.race([
+                exited,
+                new Promise((r) => setTimeout(r, 5_000)).then(() => brain.kill('SIGKILL'))
+            ]);
+        }
+        const rmOpts = { recursive: true, force: true, maxRetries: 5, retryDelay: 200 } as const;
+        if (stateDir) fs.rmSync(stateDir, rmOpts);
+        if (fixtureDir) fs.rmSync(fixtureDir, rmOpts);
     });
 
     test('background surface connects and shows a live shell', async ({ page }) => {

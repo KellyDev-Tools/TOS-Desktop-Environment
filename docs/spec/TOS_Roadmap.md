@@ -6,6 +6,8 @@ The companion decision document is `docs/spec/TOS_Scope-Split.md` in the TOS rep
 
 **Source of truth:** the spec suite (`docs/spec/TOS_v0.1.1_Architecture.md` and its companions) defines what TOS is. This roadmap sequences the work to get there; on any question of definition or behaviour, the spec governs and this document defers to it.
 
+**Lifecycle:** this roadmap is a campaign document. It serves one goal — the ambient layer, trusted in daily use — and when that goal is reached it will be *replaced* by a successor roadmap of greater refinement, not extended indefinitely; phase numbers scope to this document. Before it is retired, anything still open is harvested: open decisions and unmet done-when checks carry into the successor, and anything that has turned out to be a definition moves into the spec. Nothing durable should live only in this document — git preserves it, but preservation is not the same as being carried forward.
+
 ## Success is a boring first slice, not a big launch
 
 Success, in order:

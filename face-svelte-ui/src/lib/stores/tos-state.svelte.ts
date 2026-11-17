@@ -65,7 +65,7 @@ export interface Hub {
     staged_command?: string | null;
     ai_explanation?: string | null;
     json_context?: Record<string, any> | null;
-    shell_listing?: { path: string; entries: { name: string; is_dir: boolean; size: number }[] } | null;
+    shell_listing?: { path: string; entries: { name: string; is_dir: boolean; size: number }[]; generation?: number } | null;
     activity_listing?: { processes: ProcessEntry[] } | null;
     search_results?: SearchResult[] | null;
     ai_history?: { role: string; content: string; timestamp: string }[] | null;

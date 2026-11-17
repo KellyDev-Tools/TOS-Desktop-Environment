@@ -63,12 +63,12 @@ make restart-gdm
 ## Documentation
 - [Scope Split (2026-11-15)](./docs/spec/TOS_Scope-Split.md) — Keep / Delegate / Park / Drop for every component
 - [Roadmap](./docs/spec/TOS_Roadmap.md) — the phased plan from the current state to the ambient layer
-- [Architecture Specification](./docs/spec/TOS_v0.1.0_Architecture.md) — see its Direction Update for the target topology
-- [Developer Reference](./docs/spec/TOS_v0.1.0_Developer.md)
-- [Feature Specifications](./docs/spec/TOS_v0.1.0_Features.md)
-- [Ecosystem Specification](./docs/spec/TOS_v0.1.0_Ecosystem.md)
-- [Visual Design Specification](./docs/spec/TOS_v0.1.0_Visual_Design.md)
-- [User Manual](./docs/spec/TOS_v0.1.0_User-Manual.md)
+- [Architecture Specification](./docs/spec/TOS_v0.1.1_Architecture.md) — see its Direction Update for the target topology
+- [Developer Reference](./docs/spec/TOS_v0.1.1_Developer.md)
+- [Feature Specifications](./docs/spec/TOS_v0.1.1_Features.md)
+- [Ecosystem Specification](./docs/spec/TOS_v0.1.1_Ecosystem.md)
+- [Visual Design Specification](./docs/spec/TOS_v0.1.1_Visual_Design.md)
+- [User Manual](./docs/spec/TOS_v0.1.1_User-Manual.md)
 - [Packaging & Release Guide](./docs/guides/Packaging-and-Release.md)
 
 ## Status

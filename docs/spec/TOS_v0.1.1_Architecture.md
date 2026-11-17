@@ -2,7 +2,7 @@
 
 **Purpose:** This document is the single source of truth for the architecture and visual design of **TOS** (**Terminal On Steroids**). It defines system structure, process boundaries, IPC contracts, the visual hierarchy, rendering model, input abstraction, security, and all platform behaviour. The terminal and command line are the absolute centre of every design decision. All features exist to augment the terminal, never to bypass it.
 
-**Version:** 0.1.0
+**Version:** 0.1.1
 
 ---
 
@@ -103,6 +103,22 @@ for the phased plan.
 
 ---
 
+---
+
+## Spec 0.1.1 (2026-11-17): The Chip System as a Logical Dynamic User Experience
+
+Version 0.1.1 revises one subsystem — the chip system — to the model settled during the Phase 1.6 work (see the Roadmap). Nothing else in this document changes; where the chip sections (§7, §25.1, §28) conflict with this note, this note governs.
+
+The chip system is a **logical dynamic user experience**:
+
+- **Logical** — chips are derived by rule from context the Brain already holds: the current working directory, its listing, and session state. They are never scraped, parsed, or otherwise derived from terminal output, and the terminal itself stays a completely normal terminal — any app runs as-is, its output untouched.
+- **Dynamic** — chip sets are issued as **chip requests** in generations. Every completed command — even a `pwd` that changes nothing — produces a new request; previous sets are deprecated and lowered in priority until they fall off the visible chips (§7.7).
+- **An accelerator, touch-first** — the chip layer's whole goal is to increase access and reduce typing. Tapping a chip does the typing for you: a directory chip enters `cd`, a file chip inserts the name, a breadcrumb chip goes to that ancestor.
+- **Independent prompt** — the prompt input is its own overlay surface, summoned and dismissed on demand. It is not docked to the terminal or housed in the bezel (§7.1 note).
+- **Providers** — the current chip system feeds only from live Brain state. The predictive, AI, search, and marketplace chip families described later in this document await their parked providers (Scope Split) and are marked as such where they appear.
+
+The 0.1.0 text is preserved in git history; this file is its renamed, revised successor.
+
 ## 1. Core Philosophy: Terminal First
 
 TOS was born from the acronym **Terminal On Steroids** — a vision to take the raw power of the command line and amplify it across every platform, from desktop to VR to mobile. The terminal is not just one mode among many; it is the **primary and permanent interface**. Every action a user takes — whether clicking a file, speaking a command, or gesturing in VR — must ultimately be expressible as a command line that appears in the **Persistent Unified Prompt** and is executed by the underlying shell.
@@ -133,7 +149,7 @@ TOS is built around a strictly vertical hierarchy of **levels**, a tree of **sec
   - **Configurability:** All Top, Left, and Right slots are user-definable via the Settings panel or direct manipulation. Any system tool can be docked to any slot.
 - **Platform backends** (Wayland, OpenXR, Android) providing rendering, input, and system services via three core traits: `Renderer`, `InputSource`, `SystemServices`.
 - **Remote connectivity** via the TOS Remote Server protocol, enabling remote sectors, collaboration, and web portals.
-- **Module system** for Application Models, Sector Types, AI backends, Terminal Output Modules, Theme Modules, and Shell Modules, all sandboxed and permissioned (see [Ecosystem Specification](./TOS_v0.1.0_Ecosystem.md)).
+- **Module system** for Application Models, Sector Types, AI backends, Terminal Output Modules, Theme Modules, and Shell Modules, all sandboxed and permissioned (see [Ecosystem Specification](./TOS_v0.1.1_Ecosystem.md)).
 - A set of **auxiliary services** running as independent processes communicating via IPC.
 - A **system-level terminal output** at Level 1 displaying the Brain's own console, powered by the terminal output module system.
 
@@ -920,7 +936,7 @@ All Cortex manifests are hot‑loaded from `~/.local/share/tos/cortex/` and conf
 | **Update Daemon** | Atomic update check, download, and staging. Coordination of the "Yellow Alert" status. | `update_check`, `update_apply` |
 | **Heuristic Service** | Predictive fillers, autocomplete-to-chip logic, typo correction, heuristic sector labeling. | `heuristic_query` |
 | **Audio & Haptic Engine** | Mix three-layer audio, play earcons, trigger haptic patterns. | `play_earcon`, `trigger_haptic` |
-| **Session Service** | Session persistence and workspace memory (live state auto-save, named sessions). | See [Features Specification §2](./TOS_v0.1.0_Features.md) |
+| **Session Service** | Session persistence and workspace memory (live state auto-save, named sessions). | See [Features Specification §2](./TOS_v0.1.1_Features.md) |
 
 All services communicate with the Brain via IPC. The Brain maintains authoritative state and routes messages as needed.
 
@@ -937,7 +953,7 @@ All services communicate with the Brain via IPC. The Brain maintains authoritati
 
 **Lifecycle:** Level 4 sub-views are transient; Tactical Reset flushes all inspection buffers and provides a global recovery environment.
 
-The Expanded Bezel Command Surface (see [Features Specification §1](./TOS_v0.1.0_Features.md)) is a cross-cutting overlay state — not a level. It is available at all levels except Tactical Reset (God Mode):
+The Expanded Bezel Command Surface (see [Features Specification §1](./TOS_v0.1.1_Features.md)) is a cross-cutting overlay state — not a level. It is available at all levels except Tactical Reset (God Mode):
 
 | Level | Expanded Bezel Available? |
 |-------|--------------------------|
@@ -1044,6 +1060,8 @@ When the user zooms into a sector, the System Output Area is replaced by the sec
 
 The Bottom Bezel Segment houses the Persistent Unified Prompt. Visible across all levels and modes. **Strictly static — no configurable slots.**
 
+> **0.1.1 clarification:** In the ambient layer (Direction Update), the prompt is an **independent overlay surface**, summoned and dismissed on demand — it is not housed in, or docked to, the bezel or the terminal. The bezel-housed assembly described in this section is the standalone framing; the mode selector and input travel with the overlay. See the Spec 0.1.1 note at the front of this document.
+
 - **Left Section (Origin):** Universal Mode Selector (CMD, SEARCH, AI). An integral part of the prompt assembly, not a dockable module.
 - **Center Section:** The input field. Always reflects the current staged command across all interaction modes.
 - **Right Section:** Mic and Stop buttons for voice-first interaction and command termination.
@@ -1066,15 +1084,15 @@ The output area occupies the full width between the left and right chip regions.
 
 ### 7.3 Context-Aware Terminal Augmentation
 
-TOS treats the **Terminal Canvas** and the **Dual-Sided Chip Layout** as a unified interface. The Brain's output scraper detects command families in terminal output and dynamically populates the chip overlay without changing the Mode Selector state:
+TOS treats the **Terminal Canvas** and the **Dual-Sided Chip Layout** as a unified interface. The Brain populates the chip overlay from state it already holds — the hub's mode, its current working directory and that directory's listing, and session state — and issues a new chip set whenever that state changes (see §7.7). Terminal output itself is never read, scraped, or reinterpreted to produce chips: the output is the terminal's, and it renders normally. Chip population does not change the Mode Selector state:
 
 | Context | Terminal Canvas | Chip Layout Integration |
 |---------|-----------------|------------------------|
 | **Command** | Standard shell `stdout`/`stderr`. | Chips show command history, autocomplete suggestions, tool flags. |
 | **Search** | Semantic or exact search results. | Chips populate with search scopes, filters, quick-action buttons. |
 | **AI** | The LLM's rationale, thought process, or raw output. | Chips act as command staging buttons for AI-suggested shell operations. |
-| **Directory** (chip overlay) | Raw directory listing (`ls` / `cd`). | Chips populate with interactive file and folder paths. Chips also provide file or image previews when applicable. Does not change the Mode Selector. |
-| **Process** (chip overlay) | Process-related output (`ps`, `top`, `htop`, `kill`). | Chips populate with PID and process name entries. Tapping a PID chip navigates to Level 4 Process Monitor (§9.1), pre-focused on that process. Does not change the Mode Selector. |
+| **Directory** (chip overlay) | Raw directory listing (`ls` / `cd`). | Chips populate from the Brain's listing of the hub's current directory — the same chips whether or not `ls` was ever run. Does not change the Mode Selector. |
+| **Process** (chip overlay) | Process-related output (`ps`, `top`, `htop`, `kill`). | Chips populate with PID and process name entries drawn from Brain session state. (This family is not part of the current chip system — it arrives with its provider; see §7.7.) Tapping a PID chip navigates to Level 4 Process Monitor (§9.1), pre-focused on that process. Does not change the Mode Selector. |
 
 ### 7.4 Dual-Sided Chip Layout
 
@@ -1082,9 +1100,9 @@ The chip columns are a terminal-layer feature — they float above the PTY outpu
 
 **Left Region — Context & Options:** Surfaces static or slowly changing context relevant to the current mode: Favorites, Pinned Paths, Directory Nav trees, File targets, Search Filters, and Application Model hooks. This region changes in response to mode switches (§7.7) but remains relatively stable within a session. Can be toggled off via a bezel control.
 
-**Right Region — Priority Stack & Actions:** Highly dynamic and predictive. Driven by the Priority Indicator engine, this region surfaces Command Completions, AI-suggested commands, Actionable alerts, and Process kill-switches. Content updates continuously as the user types or as system state changes. The Autocomplete Overlay (§7.6) is an expanded presentation of this region.
+**Right Region — Priority Stack & Actions:** Highly dynamic. Driven by the chip lifecycle (§7.7) — each new chip set takes the foreground and older sets decay — this region surfaces Actionable alerts, Process kill-switches, and the current context's actions. Predictive content (command completions, AI-suggested commands) belongs to parked providers (priorityd, heuristicd, the AI module) and is not part of the current chip system. Content updates as Brain state changes. The Autocomplete Overlay (§7.6) is an expanded presentation of this region.
 
-**Interaction model:** Tapping a Left Region chip stages or populates the command prompt with the chip's value. Tapping a Right Region chip appends its action or argument at the cursor position, or replaces the current token. Chips for flags that accept arguments expand into secondary chips listing possible values.
+**Interaction model:** Chips are accelerators: tapping one performs the typing it represents in the terminal itself. Tapping a directory chip enters `cd` for that directory; tapping a file chip inserts its name at the cursor; tapping a breadcrumb chip goes to that ancestor directory. Tapping a Right Region chip performs its action or inserts its argument at the cursor position. The prompt (§7.1) is a separate input surface; chips do not route through it.
 
 #### 7.4.1 Viewport Layer Model
 
@@ -1126,20 +1144,26 @@ The Autocomplete Overlay is an expanded presentation of the Right Region chip co
 
 Because it is an expansion of the Right Region, it occupies the same Chip Layer (§7.4.1) and is dismissed and rebuilt whenever a context switch occurs (§7.7). It is dismissed manually by tapping outside the overlay, pressing Escape, or executing a command.
 
-### 7.7 Context-Aware Chip Overlay
+### 7.7 Chip Requests and the Chip Lifecycle
 
-Certain shell commands produce output that the Brain's output scraper recognizes. When detected, the chip overlay populates with contextual chips **without changing the Mode Selector state**. The mode stays on CMD. This behaviour is user-configurable per sector: **Off**, **Suggest**, or **Auto**.
+The chip overlay is populated by **chip requests**. A chip request is the Brain issuing a new chip set from state it already holds. The Brain issues a request whenever the context the chips describe changes:
 
-| Command Family | Example Commands | Resulting Context |
-|---|---|---|
-| Filesystem | `ls`, `cd`, `cp`, `mv`, `find`, etc. | Directory chip overlay (file/folder chips) |
-| Process Management | `ps`, `top`, `htop`, etc. | Process chip overlay (PID/name chips → Level 4) |
+- at session start,
+- when the shell's current working directory changes,
+- when a command completes — **every** command, including ones that change nothing, such as `pwd`,
+- when session state the chips display changes (connection, warnings, running processes).
 
-**Off:** No chip overlay reaction. Output renders normally.
-**Suggest:** A chip appears in the Right Region offering the contextual overlay. The user taps to populate.
-**Auto:** The chip overlay populates immediately.
+Each issuance carries a **generation** number, strictly increasing. Chip sets follow a lifecycle in the consumer (face or chip system):
 
-**Effect on the Chip Layer:** The overlay populates the chip columns as defined in §7.3. The Left Region reflects the context's static options (paths or process tree); the Right Region reflects its predictive action set (file actions or process signals/inspection links). Any open Autocomplete Overlay (§7.6) is dismissed and rebuilt. The Mode Selector indicator does not change.
+- The newest set is **current**, at full priority.
+- Every older set is **deprecated** and lowered in priority by one step for each newer request.
+- A set whose priority reaches zero **falls off** the visible chips.
+
+This decay — not a prediction engine — is what "priority" means for chips in 0.1.1. It keeps the freshest context prominent while recent context remains briefly reachable, and it bounds the visible set without any provider daemon.
+
+**What a chip set contains** is determined by the Brain's current context (§7.3): the directory set (status, cwd breadcrumbs, and the current directory's entries) is the baseline set and is never empty while a session is connected. Further families — process chips, search results, AI suggestions, predictive completions — join only when their providers are active; in the current system those providers are parked (Scope Split), so the baseline set is the whole of it.
+
+**How issuance is detected:** the Brain observes command *activity* — a command was submitted and its output has settled — and directory changes. It never inspects command text to decide which chips to offer, and it never reads terminal output: the chips after `ls` describe the directory the Brain already tracks, not the text `ls` printed.
 
 ### 7.8 Terminal Foreground Toggle
 
@@ -1416,8 +1440,8 @@ The split system follows three principles:
 | Content Type | `pane_type` | Description |
 |:---|:---|:---|
 | **Terminal (Command Hub)** | `terminal` | A full Command Hub instance — prompt, chip columns, terminal output module. Shares the sector's shell context. |
-| **Editor** | `editor` | The TOS Editor surface — code/text viewer and editor with live AI context integration. See [Features Specification §6](./TOS_v0.1.0_Features.md). |
-| **Workflow Manager** | `workflow` | The Kanban board and agent terminal orchestration interface. See [Features Specification §7](./TOS_v0.1.0_Features.md). |
+| **Editor** | `editor` | The TOS Editor surface — code/text viewer and editor with live AI context integration. See [Features Specification §6](./TOS_v0.1.1_Features.md). |
+| **Workflow Manager** | `workflow` | The Kanban board and agent terminal orchestration interface. See [Features Specification §7](./TOS_v0.1.1_Features.md). |
 | **Level 3 Application** | `app` | Any running graphical application in Application Focus. |
 
 These can be combined freely. The default desktop layout is a vertical split with `terminal` on the left and `editor` on the right. On mobile, the default is a `tabs` layout with `terminal` as the first tab and `editor` as the second.
@@ -1538,7 +1562,7 @@ These chips operate on the **focused pane** at the time the bezel was opened.
 
 ### 11.9 Split State Persistence
 
-Split layouts are part of the sector's `hub_layout` object and are persisted to the session file as specced in the Session Persistence Specification (see [Features Specification §2](./TOS_v0.1.0_Features.md)). On restore:
+Split layouts are part of the sector's `hub_layout` object and are persisted to the session file as specced in the Session Persistence Specification (see [Features Specification §2](./TOS_v0.1.1_Features.md)). On restore:
 - All panes are recreated with their saved weights and orientations.
 - Terminal panes have their scrollback histories loaded before the shell spawns.
 - Level 3 application panes attempt to relaunch the application in the same position. If the application is no longer running, the pane renders a **[Relaunch]** chip.
@@ -1843,7 +1867,7 @@ Two principles:
 
 #### 17.2.1 Trust Configuration
 
-**First-Run Trust Setup:** During the onboarding flow (see [Features Specification §3](./TOS_v0.1.0_Features.md)), the user is presented with a trust configuration screen for each command class. No defaults are pre-selected. They can skip to defer all classes to WARN.
+**First-Run Trust Setup:** During the onboarding flow (see [Features Specification §3](./TOS_v0.1.1_Features.md)), the user is presented with a trust configuration screen for each command class. No defaults are pre-selected. They can skip to defer all classes to WARN.
 
 **Trust Levels:**
 
@@ -1969,7 +1993,7 @@ All commands, security events, role changes, and deep inspection accesses are lo
 
 TOS implements a robust, modular plugin architecture using platform-specific dynamic libraries distributed via the Marketplace ecosystem.
 
-**All detailed specifications regarding module manifests (`module.toml`), sandboxing rules, terminal UI injection, and module profiles (Shells, Themes, AI Backends, AI Skills, Bezel Components, Language Modules) are documented in the [Ecosystem Specification](./TOS_v0.1.0_Ecosystem.md).**
+**All detailed specifications regarding module manifests (`module.toml`), sandboxing rules, terminal UI injection, and module profiles (Shells, Themes, AI Backends, AI Skills, Bezel Components, Language Modules) are documented in the [Ecosystem Specification](./TOS_v0.1.1_Ecosystem.md).**
 
 ### 18.1 Module Type Summary
 
@@ -2039,13 +2063,13 @@ The Global TOS Log Sector provides a unified view transparently merging:
 
 ## 21. Visual Design, Sensory Interface, and Accessibility
 
-*The specifications for Priority-Weighted Visual Indicators, the Tactical Mini-Map, Auditory/Haptic interfaces, and Accessibility have been consolidated and moved to the [TOS Visual Design Specification](./TOS_v0.1.0_Visual_Design.md).*
+*The specifications for Priority-Weighted Visual Indicators, the Tactical Mini-Map, Auditory/Haptic interfaces, and Accessibility have been consolidated and moved to the [TOS Visual Design Specification](./TOS_v0.1.1_Visual_Design.md).*
 
 ---
 
 ## 22. Sector Templates and Marketplace
 
-Schema for `.tos-template` distribution, AI-assisted discoverability, and the Marketplace package daemon are documented in the [Ecosystem Specification §2](./TOS_v0.1.0_Ecosystem.md).
+Schema for `.tos-template` distribution, AI-assisted discoverability, and the Marketplace package daemon are documented in the [Ecosystem Specification §2](./TOS_v0.1.1_Ecosystem.md).
 
 ---
 
@@ -2150,7 +2174,7 @@ All IPC messages from bezel buttons and UI controls must use **action identifier
 ✅ Correct: `<button onclick="window.ipc.postMessage('zoom_out')">ZOOM OUT</button>`
 ❌ Incorrect: `<button onclick="window.ipc.postMessage(this.innerText)">ZOOM OUT</button>`
 
-**Prompt Interception Layer:** The `prompt_submit:` message is an exception. The Brain performs a "sniffing" pass on the submitted string to detect command families (`ls`/`cd` for directory context, `ps`/`top`/`htop` for process context) and trigger chip overlay population. This does not change the Mode Selector state. This logic lives entirely in the Brain's command dispatcher.
+**Command completion and chips:** Submitted commands are not sniffed or classified. The Brain observes that a command was submitted and when it completes, and then issues a new chip set (a new generation, §7.7) from state it already holds — the hub's cwd and directory listing, and session state. Command text and terminal output are never inspected to populate chips, and chip issuance does not change the Mode Selector state.
 
 ### 25.2 Reserved IPC Prefixes
 
@@ -2327,12 +2351,16 @@ Messages for kanban board, task, and agent orchestration.
 
 ### 28.1 Predictive Path & Command Chips
 
+> **Status in 0.1.1:** Predictive fillers depend on parked providers (the Priority Indicator engine — priorityd — and heuristics). They are **not part of the current chip system**, whose sets are state-derived and lifecycle-ordered (§7.7). This section is retained as the design for when those providers return.
+
 As the user interacts with the Unified Prompt, the Dual-Sided Chip Layout populates with "Intuitive Fillers":
 - **Path Completion (Left Chips):** Typing `/` or starting a path triggers immediate chips for the most frequent/recent child nodes at that path depth.
 - **Parameter Hints (Right Chips):** For known commands (e.g., `git`, `docker`, `npm`), the Priority Indicator engine suggests the most likely next arguments or flags as clickable chips.
 - **Command History Echo:** Suggestions based on commands previously executed within the current sector appear with a subtle "History" icon.
 
 ### 28.2 Implicit Search & Typo Correction
+
+> **Status in 0.1.1:** Depends on the Search Service (parked). Not part of the current chip system (§7.7).
 
 If a user submits a command that results in a "File not found" or "Command not found" state:
 - The Search Service performs a background fuzzy-match.
@@ -2344,6 +2372,8 @@ If a user submits a command that results in a "File not found" or "Command not f
 When creating a new sector, the "New Sector" name is a placeholder. As the user navigates, the system **heuristically renames** the sector based on the `cwd` (e.g., "TOS Core" if in `~/TOS-Desktop-Environment/src`). This can be locked by the user to prevent auto-renaming.
 
 ### 28.4 PTY Output Extraction
+
+> **Excluded in 0.1.1:** The chip system never extracts anything from PTY output (§7.7). Error surfacing, if built, must come from Brain-held state (e.g. exit status), not from mining terminal text. This section records the earlier idea so the exclusion is explicit.
 
 For long terminal outputs (e.g., a build failure):
 - The system highlights the **authoritative error line** with a higher priority (visual weight/color).
@@ -2366,7 +2396,7 @@ Notifications appear in the **Right Lateral Bezel** and unfurl inward:
 4. **Input Hub & Semantic Events** — Normalize raw input into semantic actions (§14); implement Voice Confirmation fallback (§17.2.7).
 5. **Sector Concept & Management** — Multiple sectors. Sector Tile Context Menu (§6.5) with confirmation and lifecycle controls.
 6. **Directory Mode** — Local and remote directory listing as terminal overlay. Remote Directory Fallback (§24.3) with SSH fallback logic.
-7. **Level 4 System Monitor** — btop-style process management with sector-scoped and global views. Process chip overlay for CMD mode output scraping.
+7. **Level 4 System Monitor** — btop-style process management with sector-scoped and global views. Process chip overlay fed by Brain session state (with its provider; §7.7).
 8. **SEARCH Mode** — Unified search domain integration.
 9. **Terminal Output Module API** — Define interface for high-speed rendering. Support metadata-driven highlighting based on line priority.
 10. **Theme Module API** — CSS variable injection and multi-sensory asset loading.
@@ -2387,7 +2417,7 @@ Notifications appear in the **Right Lateral Bezel** and unfurl inward:
 |---|---|
 | **Sector** | A self-contained workspace with its own identity, environment variables, and process tree. |
 | **Command Hub** | The Level 2 interface within a sector, featuring a terminal, prompt, and chip regions. |
-| **Chip** | Contextual UI elements in Level 2 that stage commands or provide quick actions. |
+| **Chip** | A touch-friendly accelerator element issued by the Brain in generations (§7.7) from state it already holds (cwd, directory listing, session state). Tapping a chip performs the typing or action it represents. Older generations are deprecated, decay in priority, and fall off the visible set. |
 | **Bezel Slot** | Defined areas in the Tactical Bezel (Top, Left, Right) where components can be docked. |
 | **Tactical Reset** | A Level 4 sub-view providing emergency wireframe diagnostics and recovery (God Mode). |
 | **Brain** | The logical center of TOS; handles state, command execution, and coordination. |

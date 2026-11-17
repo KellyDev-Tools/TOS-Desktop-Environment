@@ -250,7 +250,7 @@ impl SectorManager {
     /// Build a directory listing for `path` from the local filesystem.
     /// Entries are sorted directories-first, then by name
     /// (case-insensitive), so overlay chip rows are stable.
-    fn build_listing(path: &std::path::Path) -> crate::DirectoryListing {
+    fn build_listing(path: &std::path::Path, generation: u64) -> crate::DirectoryListing {
         let mut entries = Vec::new();
 
         if let Ok(read_dir) = std::fs::read_dir(path) {
@@ -273,6 +273,7 @@ impl SectorManager {
         crate::DirectoryListing {
             path: path.to_string_lossy().to_string(),
             entries,
+            generation,
         }
     }
 
@@ -286,7 +287,8 @@ impl SectorManager {
             }
 
             let path = hub.current_directory.clone();
-            hub.shell_listing = Some(Self::build_listing(&path));
+            let generation = hub.shell_listing.as_ref().map_or(1, |l| l.generation + 1);
+            hub.shell_listing = Some(Self::build_listing(&path, generation));
         }
     }
 
@@ -299,7 +301,8 @@ impl SectorManager {
         if let Some(sector) = state.sectors.iter_mut().find(|s| s.id == sector_id) {
             if let Some(hub) = sector.hubs.iter_mut().find(|h| h.id == hub_id) {
                 let path = hub.current_directory.clone();
-                hub.shell_listing = Some(Self::build_listing(&path));
+                let generation = hub.shell_listing.as_ref().map_or(1, |l| l.generation + 1);
+                hub.shell_listing = Some(Self::build_listing(&path, generation));
             }
         }
     }
@@ -726,10 +729,21 @@ mod tests {
             .shell_listing
             .as_ref()
             .expect("listing populated");
+        assert_eq!(listing.generation, 1, "first refresh issues generation 1");
         assert_eq!(listing.path, fixture.to_string_lossy().to_string());
         let names: Vec<&str> = listing.entries.iter().map(|e| e.name.as_str()).collect();
         assert_eq!(names, vec!["Alpha-dir", "zeta-dir", "middle.txt"]);
         assert!(listing.entries[0].is_dir && !listing.entries[2].is_dir);
+
+        // A second refresh issues the next generation.
+        SectorManager::refresh_listing_for(&mut state, sector_id, hub_id);
+        assert_eq!(
+            state.sectors[0].hubs[0]
+                .shell_listing
+                .as_ref()
+                .map(|l| l.generation),
+            Some(2)
+        );
 
         let _ = std::fs::remove_dir_all(&fixture);
     }

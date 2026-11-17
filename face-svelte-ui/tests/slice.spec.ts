@@ -118,11 +118,16 @@ test.describe('Phase 1 slice — ambient face against a real Brain', () => {
         // — which is how this hook failed in CI while all 8 tests
         // passed. maxRetries covers any straggler writes.
         if (brain) {
-            const exited = new Promise((resolve) => brain.once('exit', resolve));
-            brain.kill('SIGTERM');
+            const brainProc = brain;
+            const exited = new Promise<void>((resolve) => {
+                brainProc.once('exit', () => resolve());
+            });
+            brainProc.kill('SIGTERM');
             await Promise.race([
                 exited,
-                new Promise((r) => setTimeout(r, 5_000)).then(() => brain.kill('SIGKILL'))
+                new Promise<void>((r) => setTimeout(r, 5_000)).then(() => {
+                    brainProc.kill('SIGKILL');
+                })
             ]);
         }
         const rmOpts = { recursive: true, force: true, maxRetries: 5, retryDelay: 200 } as const;

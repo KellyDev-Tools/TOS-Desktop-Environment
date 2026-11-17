@@ -30,6 +30,7 @@ const FACE_URL = 'http://localhost:4173';
 const MARKER_CMD = 'TOS_SLICE_E2E_A1';
 const MARKER_RECONNECT = 'TOS_SLICE_E2E_B2';
 const MARKER_PROMPT = 'TOS_SLICE_E2E_C3';
+const MARKER_PROMPT_INPUT = 'TOS_SLICE_E2E_D4';
 
 test.use({
     ignoreHTTPSErrors: true,
@@ -80,6 +81,7 @@ test.describe('Phase 1 slice — ambient face against a real Brain', () => {
 
     let brain: ChildProcess | undefined;
     let stateDir: string | undefined;
+    let fixtureDir: string | undefined;
 
     test.beforeAll(async () => {
         const bin = brainBinary();
@@ -90,9 +92,17 @@ test.describe('Phase 1 slice — ambient face against a real Brain', () => {
             );
         }
         stateDir = fs.mkdtempSync(path.join(os.tmpdir(), 'tos-slice-e2e-'));
+        // Phase 1.6 fixture: a known directory the chips can list.
+        // A fresh Brain starts its shell hub in the user's home
+        // directory, so pointing HOME at the fixture makes the
+        // initial listing deterministic: one dir + one file.
+        fixtureDir = fs.mkdtempSync(path.join(os.tmpdir(), 'tos-chips-fixture-'));
+        fs.mkdirSync(path.join(fixtureDir, 'alpha-dir'));
+        fs.writeFileSync(path.join(fixtureDir, 'notes.txt'), 'fixture\n');
         brain = spawn(bin, [], {
             env: {
                 ...process.env,
+                HOME: fixtureDir,
                 XDG_CONFIG_HOME: path.join(stateDir, 'config'),
                 XDG_DATA_HOME: path.join(stateDir, 'data')
             },
@@ -104,6 +114,7 @@ test.describe('Phase 1 slice — ambient face against a real Brain', () => {
     test.afterAll(async () => {
         brain?.kill('SIGTERM');
         if (stateDir) fs.rmSync(stateDir, { recursive: true, force: true });
+        if (fixtureDir) fs.rmSync(fixtureDir, { recursive: true, force: true });
     });
 
     test('background surface connects and shows a live shell', async ({ page }) => {
@@ -131,17 +142,49 @@ test.describe('Phase 1 slice — ambient face against a real Brain', () => {
         await expectTerminalContains(page, MARKER_PROMPT);
     });
 
-    test('chips surface mounts its overlay components', async ({ page }) => {
-        // Both chips components are state-conditional: ExpandedBezel
-        // renders only when the Brain reports bezel_expanded, and
-        // WarningChip only when trust warnings exist. On a fresh Brain
-        // the strip is therefore empty at rest — this test pins that
-        // the surface itself mounts and loads cleanly, and that the
-        // bezel appears once state expands it is covered by the mock
-        // specs. If the slice grows an always-on collapsed strip, this
-        // test should assert its content instead.
+    test('chips surface shows accelerator chips for the current directory', async ({ page }) => {
+        // Phase 1.6: the strip is never empty at rest. The Brain
+        // populates the shell hub's listing at startup (the fixture
+        // home: alpha-dir + notes.txt), and the chips surface renders
+        // it as tappable accelerator chips plus cwd breadcrumbs.
         await page.goto(`${FACE_URL}/?surface=chips`);
         await expect(page.locator('.surface-chips')).toBeVisible();
+        await expect(page.getByTestId('accel-chips')).toBeVisible();
+        await expect(page.getByTestId('accel-chip-dir').filter({ hasText: 'alpha-dir' })).toBeVisible();
+        await expect(page.getByTestId('accel-chip-file').filter({ hasText: 'notes.txt' })).toBeVisible();
+        await expect(page.getByTestId('accel-crumb').first()).toBeVisible();
+    });
+
+    test('prompt surface input runs commands in the terminal', async ({ page }) => {
+        // Phase 1.6: the prompt input is independent of the terminal
+        // view — submitting types the command into the real terminal.
+        await page.goto(`${FACE_URL}/?surface=prompt`);
+        const input = page.getByTestId('prompt-input');
+        await expect(input).toBeVisible();
+        await input.click();
+        await page.keyboard.type(`echo ${MARKER_PROMPT_INPUT}`);
+        await page.keyboard.press('Enter');
+        await expectTerminalContains(page, MARKER_PROMPT_INPUT);
+    });
+
+    test('tapping a directory chip cds the terminal', async ({ page }) => {
+        // Phase 1.6, the accelerator contract: a chip tap does the
+        // typing. Tapping alpha-dir on the chips surface types
+        // `cd 'alpha-dir'` into the Brain-owned shell; the terminal
+        // (re)opened afterwards must show the new real cwd in pwd's
+        // output — <fixture>/alpha-dir only ever appears there if
+        // the shell itself moved.
+        await page.goto(`${FACE_URL}/?surface=chips`);
+        const chip = page.getByTestId('accel-chip-dir').filter({ hasText: 'alpha-dir' });
+        await expect(chip).toBeVisible();
+        await chip.click();
+
+        await page.goto(`${FACE_URL}/?surface=background`);
+        await expect(page.locator('.surface-background .xterm')).toBeVisible();
+        await runInTerminal(page, 'pwd');
+        await expect
+            .poll(() => terminalText(page), { timeout: 15_000 })
+            .toMatch(/tos-chips-fixture-[^\s]*\/alpha-dir/);
     });
 
     test('terminal session persists across a face restart', async ({ page }) => {

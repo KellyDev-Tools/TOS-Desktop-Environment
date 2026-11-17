@@ -840,7 +840,11 @@ impl Default for TosState {
                 id: Uuid::new_v4(),
                 mode: CommandHubMode::Command,
                 prompt: String::new(),
-                current_directory: PathBuf::from("/"),
+                // A fresh session starts in the user's home directory,
+                // like any normal terminal — not in "/". (Phase 1.6:
+                // the accelerator chips list this directory at rest.)
+                current_directory: dirs::home_dir()
+                    .unwrap_or_else(|| PathBuf::from("/")),
                 terminal_output: vec![],
                 buffer_limit: 500,
                 shell_listing: None,

@@ -107,7 +107,7 @@ for the phased plan.
 
 ## Spec 0.1.1 (2026-11-17): The Chip System as a Logical Dynamic User Experience
 
-Version 0.1.1 revises one subsystem — the chip system — to the model settled during the Phase 1.6 work (see the Roadmap). Nothing else in this document changes; where the chip sections (§7, §25.1, §28) conflict with this note, this note governs.
+Version 0.1.1 revises one subsystem — the chip system. This note and §7.7 are the operative definition of that system. The Roadmap's Phase 1.6 section records the work that implemented it; on any question of definition or behaviour, **this document governs — the spec is the source of truth**, and plans or summaries defer to it. Nothing else in this document changes; where the chip sections (§7, §25.1, §28) conflict with this note, this note governs.
 
 The chip system is a **logical dynamic user experience**:
 

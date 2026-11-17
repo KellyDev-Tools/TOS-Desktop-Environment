@@ -64,8 +64,8 @@ impl OscParser {
                 let url = &line[pos + 4..actual_end];
                 if let Some(stripped) = url.strip_prefix("file://") {
                     if let Some(path_start) = stripped.find('/') {
-                        let path = &stripped[path_start..];
-                        events.push(OscEvent::Cwd(path.to_string()));
+                        let path = percent_decode(&stripped[path_start..]);
+                        events.push(OscEvent::Cwd(path));
                     } else {
                         // case file://host (root)
                         events.push(OscEvent::Cwd("/".to_string()));
@@ -123,5 +123,51 @@ impl OscParser {
         }
 
         (clean_text, events)
+    }
+}
+
+/// Percent-decode a URL path (OSC 7 file:// URLs encode spaces and
+/// other characters, e.g. `/home/user/My%20Docs`). Invalid or
+/// truncated escapes are left as-is.
+fn percent_decode(s: &str) -> String {
+    let bytes = s.as_bytes();
+    let mut out = Vec::with_capacity(bytes.len());
+    let mut i = 0;
+    while i < bytes.len() {
+        if bytes[i] == b'%' && i + 2 < bytes.len() {
+            if let Ok(b) = u8::from_str_radix(&s[i + 1..i + 3], 16) {
+                out.push(b);
+                i += 3;
+                continue;
+            }
+        }
+        out.push(bytes[i]);
+        i += 1;
+    }
+    String::from_utf8_lossy(&out).to_string()
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn osc7_cwd_is_percent_decoded() {
+        let mut parser = OscParser::new();
+        let (_clean, events) = parser.process("prompt\x1b]7;file://host/home/user/My%20Docs\x07");
+        assert!(
+            matches!(&events[..], [OscEvent::Cwd(p)] if p == "/home/user/My Docs"),
+            "events: {events:?}"
+        );
+    }
+
+    #[test]
+    fn osc7_plain_path_unchanged() {
+        let mut parser = OscParser::new();
+        let (_clean, events) = parser.process("\x1b]7;file://host/tmp\x07");
+        assert!(
+            matches!(&events[..], [OscEvent::Cwd(p)] if p == "/tmp"),
+            "events: {events:?}"
+        );
     }
 }

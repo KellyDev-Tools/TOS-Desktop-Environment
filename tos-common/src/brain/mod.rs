@@ -79,6 +79,14 @@ impl Brain {
             hid,
         )?;
         let shell = Arc::new(Mutex::new(shell_obj));
+
+        // Phase 1.6: populate the shell hub's directory listing up
+        // front, so the accelerator chips have content at rest —
+        // before the shell reports any cwd change.
+        {
+            let mut state_guard = state.lock().unwrap();
+            crate::brain::sector::SectorManager::refresh_listing_for(&mut state_guard, sid, hid);
+        }
         let ipc = Arc::new(IpcHandler::new(
             state.clone(),
             shell.clone(),

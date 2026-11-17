@@ -247,6 +247,35 @@ impl SectorManager {
         }
     }
 
+    /// Build a directory listing for `path` from the local filesystem.
+    /// Entries are sorted directories-first, then by name
+    /// (case-insensitive), so overlay chip rows are stable.
+    fn build_listing(path: &std::path::Path) -> crate::DirectoryListing {
+        let mut entries = Vec::new();
+
+        if let Ok(read_dir) = std::fs::read_dir(path) {
+            for entry in read_dir.flatten() {
+                let name = entry.file_name().to_string_lossy().to_string();
+                let metadata = entry.metadata();
+                let is_dir = metadata.as_ref().map(|m| m.is_dir()).unwrap_or(false);
+                let size = metadata.as_ref().map(|m| m.len()).unwrap_or(0);
+
+                entries.push(crate::DirectoryEntry { name, is_dir, size });
+            }
+        }
+
+        entries.sort_by(|a, b| {
+            b.is_dir
+                .cmp(&a.is_dir)
+                .then_with(|| a.name.to_lowercase().cmp(&b.name.to_lowercase()))
+        });
+
+        crate::DirectoryListing {
+            path: path.to_string_lossy().to_string(),
+            entries,
+        }
+    }
+
     /// Refresh directory listing via local filesystem interrogation.
     pub fn refresh_directory_listing(state: &mut TosState) {
         let idx = state.active_sector_index;
@@ -257,23 +286,21 @@ impl SectorManager {
             }
 
             let path = hub.current_directory.clone();
-            let mut entries = Vec::new();
+            hub.shell_listing = Some(Self::build_listing(&path));
+        }
+    }
 
-            if let Ok(read_dir) = std::fs::read_dir(&path) {
-                for entry in read_dir.flatten() {
-                    let name = entry.file_name().to_string_lossy().to_string();
-                    let metadata = entry.metadata();
-                    let is_dir = metadata.as_ref().map(|m| m.is_dir()).unwrap_or(false);
-                    let size = metadata.as_ref().map(|m| m.len()).unwrap_or(0);
-
-                    entries.push(crate::DirectoryEntry { name, is_dir, size });
-                }
+    /// Refresh the directory listing for one specific hub, whatever its
+    /// mode. Phase 1.6: the accelerator chips track the shell's live
+    /// directory, so the listing refreshes when the shell's cwd changes
+    /// (OSC 7) and when a command completes (OSC 9002) — not only when
+    /// a hub happens to be in Directory mode.
+    pub fn refresh_listing_for(state: &mut TosState, sector_id: uuid::Uuid, hub_id: uuid::Uuid) {
+        if let Some(sector) = state.sectors.iter_mut().find(|s| s.id == sector_id) {
+            if let Some(hub) = sector.hubs.iter_mut().find(|h| h.id == hub_id) {
+                let path = hub.current_directory.clone();
+                hub.shell_listing = Some(Self::build_listing(&path));
             }
-
-            hub.shell_listing = Some(crate::DirectoryListing {
-                path: path.to_string_lossy().to_string(),
-                entries,
-            });
         }
     }
 
@@ -677,6 +704,35 @@ impl SectorManager {
 mod tests {
     use super::*;
     use crate::TosState;
+
+    #[test]
+    fn test_refresh_listing_for_populates_sorted_listing() {
+        // Fixture directory: one file, two dirs (names chosen so the
+        // expected order proves dirs-first + case-insensitive sort).
+        let fixture = std::env::temp_dir().join(format!("tos-listing-test-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&fixture);
+        std::fs::create_dir_all(fixture.join("zeta-dir")).unwrap();
+        std::fs::create_dir_all(fixture.join("Alpha-dir")).unwrap();
+        std::fs::write(fixture.join("middle.txt"), b"x").unwrap();
+
+        let mut state = TosState::default();
+        let sector_id = state.sectors[0].id;
+        let hub_id = state.sectors[0].hubs[0].id;
+        state.sectors[0].hubs[0].current_directory = fixture.clone();
+
+        SectorManager::refresh_listing_for(&mut state, sector_id, hub_id);
+
+        let listing = state.sectors[0].hubs[0]
+            .shell_listing
+            .as_ref()
+            .expect("listing populated");
+        assert_eq!(listing.path, fixture.to_string_lossy().to_string());
+        let names: Vec<&str> = listing.entries.iter().map(|e| e.name.as_str()).collect();
+        assert_eq!(names, vec!["Alpha-dir", "zeta-dir", "middle.txt"]);
+        assert!(listing.entries[0].is_dir && !listing.entries[2].is_dir);
+
+        let _ = std::fs::remove_dir_all(&fixture);
+    }
 
     #[test]
     fn test_create_and_close_sector() {

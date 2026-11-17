@@ -6,24 +6,29 @@ run as ordinary **systemd user services** — no root, no display
 manager integration, no TOS login session. GNOME/KDE keep managing
 windows and apps; TOS haunts the edges.
 
-## Install
+## Install and start
 
 ```sh
 packaging/systemd-user/install.sh
-systemctl --user enable --now tos-brain.service
-systemctl --user enable --now tos-face-ambient.service   # needs a layer-shell compositor
+systemctl --user enable --now tos.target
 ```
 
 The installer builds release binaries into `~/.local/bin`, the face
 UI into `~/.local/share/tos/face/`, and the units into
 `~/.config/systemd/user/`. It is safe to re-run.
 
+`tos.target` is the one simple start: it pulls in the Brain, the face
+UI server, and the ambient face, and each is `PartOf` it — so
+`systemctl --user stop tos.target` stops all three, and enabling the
+target starts TOS at every login.
+
 ## The units
 
-| Unit | What it is | Starts with |
-| --- | --- | --- |
-| `tos-brain.service` | The headless Brain daemon: sessions, terminals, the Discovery Gate | `default.target` (any user session) |
-| `tos-face-ambient.service` | The layer-shell face: background terminal, chips strip, prompt overlay | `graphical-session.target`, wants the Brain |
+| Unit | What it is |
+| --- | --- |
+| `tos-brain.service` | The headless Brain daemon: sessions, terminals, the Discovery Gate |
+| `tos-face-ui.service` | Serves the face build over loopback HTTP (127.0.0.1:18701) — WebKitGTK will not load the build's ES module imports from a file path (found in the 2026-11-16 NixOS smoke test), so the face loads its UI from this server |
+| `tos-face-ambient.service` | The layer-shell face: background terminal, chips strip, prompt overlay. Skips itself when no Wayland session is present |
 
 Summon or dismiss the prompt from any hotkey your DE lets you bind:
 
@@ -46,7 +51,14 @@ settings live under the XDG config/data directories (`~/.config/tos`,
 
 - The face needs a **layer-shell compositor** (KDE Plasma, Sway,
   Hyprland, COSMIC). GNOME/Mutter does not offer layer-shell to
-  regular clients — the GNOME path is a Phase 4 shim.
+  regular clients — the GNOME path is a Phase 4 shim. (The 2026-11-16
+  smoke test ran it under Sway nested inside a GNOME session.)
+- **NixOS + WebKitGTK:** WebKit needs glib-networking's GIO modules
+  for TLS. If the face shows certificate or network errors, point it
+  at them for your user session before starting the target:
+  `systemctl --user set-environment GIO_EXTRA_MODULES=$(echo /nix/store/*-glib-networking-*/lib/gio/modules | awk '{print $NF}')`.
+  The face unit already sets `WEBKIT_DISABLE_DMABUF_RENDERER=1`,
+  which NixOS (and many other systems) needs for the face to render.
 - The Brain currently binds 7000/7001 on **all interfaces** (it was
   built remote-first). Fine on a trusted home LAN; Phase 2 narrows
   this to the tailnet/mesh as the default topology.

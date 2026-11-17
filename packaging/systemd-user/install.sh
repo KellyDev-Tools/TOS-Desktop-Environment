@@ -36,18 +36,21 @@ fi
 
 echo "==> Installing user units to $UNIT_DIR"
 install -Dm644 packaging/systemd-user/tos-brain.service "$UNIT_DIR/tos-brain.service"
+install -Dm644 packaging/systemd-user/tos-face-ui.service "$UNIT_DIR/tos-face-ui.service"
 install -Dm644 packaging/systemd-user/tos-face-ambient.service "$UNIT_DIR/tos-face-ambient.service"
+install -Dm644 packaging/systemd-user/tos.target "$UNIT_DIR/tos.target"
 
 systemctl --user daemon-reload
 
 cat <<'EOF'
 
-Done. Start the slice with:
+Done. Start TOS (Brain, face UI server, and the ambient face) with
+one command — and enable it to start at every login:
 
-    systemctl --user enable --now tos-brain.service
-    systemctl --user enable --now tos-face-ambient.service
+    systemctl --user enable --now tos.target
 
-Check on them with `systemctl --user status tos-brain tos-face-ambient`
+Stop everything with `systemctl --user stop tos.target`. Check on
+them with `systemctl --user status tos-brain tos-face-ui tos-face-ambient`
 and `journalctl --user -u tos-brain -f`.
 
 Bind a hotkey in your DE to summon the prompt:

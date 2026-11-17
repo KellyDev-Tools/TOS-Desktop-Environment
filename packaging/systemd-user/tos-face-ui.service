@@ -1,0 +1,17 @@
+[Unit]
+Description=TOS face UI — static server for the Svelte build (loopback only)
+# The SvelteKit build's ES module imports do not load from a file path
+# in WebKitGTK (found in the 2026-11-16 smoke test on NixOS), so the
+# face UI is served over loopback HTTP and tos-face-ambient loads it
+# from http://127.0.0.1:18701/. Bound to 127.0.0.1 only — this is a
+# local asset server, not a network service.
+PartOf=tos.target
+
+[Service]
+Type=simple
+ExecStart=/usr/bin/python3 -m http.server 18701 --bind 127.0.0.1 --directory %h/.local/share/tos/face
+Restart=on-failure
+RestartSec=2
+
+[Install]
+WantedBy=tos.target

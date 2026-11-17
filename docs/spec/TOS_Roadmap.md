@@ -126,6 +126,16 @@ Done when:
 
 Explicitly not in this phase: heuristic suggestion chips (heuristicd), search chips (searchd), priority ordering (priorityd), marketplace chips (marketplaced) — each arrives when its provider unfreezes; parsing or transforming terminal output into chips, in any form.
 
+### What the Phase 1 smoke test established (2026-11-16, Timothy's NixOS box)
+
+Collected from the first real-hardware run, since several findings shape this phase and the packaging:
+
+- The slice runs end to end on a real machine: Brain plus the three-surface face, terminal fully functional. Session recipe that worked (reference implementation: `scripts/launch-session.sh` on the `smoke-test` branch): Sway as the compositor — nested inside the GNOME host session, since Mutter offers no layer-shell — with the prompt toggle bound to Mod4+Space / Mod4+Return / Ctrl+Space, and the Brain started `--headless --orchestrate`.
+- **The face UI must be served over HTTP** (the launcher used 127.0.0.1:18701): the SvelteKit build's ES module imports do not load from a file path in WebKitGTK. The shipped systemd unit passes a file path (`--ui …/index.html`) — a packaging defect to fix by serving the build on loopback HTTP or having the host serve it.
+- NixOS/WebKit environment requirements for the face: `GIO_EXTRA_MODULES` pointing at glib-networking (TLS inside WebKit), `WEBKIT_DISABLE_DMABUF_RENDERER=1`, and fontconfig available.
+- The two interaction findings that motivate this phase (above): the chips strip empty at rest, and the prompt surface acting as a second terminal rather than an independent input.
+
+
 ## Phase 2 — Make remote the default topology
 
 Goal: the same ambient face, unchanged in feel, talking to a Brain on tkserver. Your workspace follows you; the layer stays thin and local.

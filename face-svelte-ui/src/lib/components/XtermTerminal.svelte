@@ -111,6 +111,13 @@
 
         // Socket listener: hex-decode pty_output bytes and write to xterm.js
         const socketListener = (message: string) => {
+            if (message === 'tos:reconnected') {
+                // The Brain is replaying its scrollback to this
+                // reconnected face; clear so the replay is the whole
+                // truth, not an append over the frozen pre-drop text.
+                term?.clear();
+                return;
+            }
             if (message.startsWith('pty_output:')) {
                 const hexPayload = message.substring(11);
                 // Hex-decode to Uint8Array

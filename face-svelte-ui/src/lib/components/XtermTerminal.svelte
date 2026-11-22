@@ -74,14 +74,38 @@
         // smear. Best-effort: if the canvas renderer cannot start
         // in this web view, keep the DOM renderer rather than
         // ending up with no terminal at all.
+        //
+        // Which renderer actually started is reported, not
+        // assumed: the fallback used to be only a console warning,
+        // which nobody can see on device, and the two renderers
+        // fail differently there — so when it is not canvas, the
+        // fact is written onto the terminal itself.
+        let canvasError: string | null = null;
         try {
             term.loadAddon(new CanvasAddon());
         } catch (e) {
+            canvasError = e instanceof Error ? e.message : String(e);
             console.warn('[Terminal] Canvas renderer unavailable, using DOM renderer', e);
         }
 
         term.open(terminalElement);
         fitAddon.fit();
+
+        // The canvas renderer paints into <canvas> layers inside
+        // .xterm-screen; the DOM renderer builds .xterm-rows.
+        const screenEl = terminalElement.querySelector('.xterm-screen');
+        const activeRenderer = screenEl?.querySelector('canvas')
+            ? 'canvas'
+            : screenEl?.querySelector('.xterm-rows')
+                ? 'dom'
+                : 'unknown';
+        if (activeRenderer !== 'canvas') {
+            term.writeln(
+                `[TOS] terminal renderer: ${activeRenderer.toUpperCase()} — the canvas renderer did not start in this web view` +
+                (canvasError ? ` (${canvasError})` : '') +
+                '. Typed input may paint incorrectly.'
+            );
+        }
 
         // E2E/debug handle: the gated specs read the terminal's
         // buffer through this — the canvas renderer paints to a
@@ -91,6 +115,7 @@
         const xtermEl = terminalElement.querySelector('.xterm');
         if (xtermEl) {
             (xtermEl as unknown as { __tosTerminal?: Terminal }).__tosTerminal = term;
+            (xtermEl as unknown as { __tosRenderer?: string }).__tosRenderer = activeRenderer;
         }
 
         // Intercept Tab key to support prediction acceptance and prevent focus navigation loss

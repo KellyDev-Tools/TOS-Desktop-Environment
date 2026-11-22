@@ -4,7 +4,7 @@ TOS does not need more features. It needs one route that works end to end, feels
 
 The companion decision document is `docs/spec/TOS_Scope-Split.md` in the TOS repo (PR #2, branch `docs/scope-split-ambient-layer`). This roadmap assumes that split: keep Brain and tos-common, delegate session and app management to GNOME/KDE, drop the Wayland face and `archive/`, park everything else.
 
-**Source of truth:** the spec suite (`docs/spec/TOS_v0.1.1_Architecture.md` and its companions) defines what TOS is. This roadmap sequences the work to get there; on any question of definition or behaviour, the spec governs and this document defers to it.
+**Source of truth:** the spec suite (`docs/spec/TOS_v0.1.2_Architecture.md` and its companions) defines what TOS is. This roadmap sequences the work to get there; on any question of definition or behaviour, the spec governs and this document defers to it.
 
 **Lifecycle:** this roadmap is a campaign document. It serves one goal — the ambient layer, trusted in daily use — and when that goal is reached it will be *replaced* by a successor roadmap of greater refinement, not extended indefinitely; phase numbers scope to this document. Before it is retired, anything still open is harvested: open decisions and unmet done-when checks carry into the successor, and anything that has turned out to be a definition moves into the spec. Nothing durable should live only in this document — git preserves it, but preservation is not the same as being carried forward. When the final phase completes, the roadmap is **cleared**: this file persists as an empty placeholder between goals — a standing slot, holding no plan — until the next campaign's roadmap is written into it. The cleared campaigns remain in git history.
 
@@ -113,7 +113,7 @@ The model, stated plainly:
 
 Constraint that shapes the slice: **many of the chip system's information providers are frozen.** The satellite daemons (searchd, heuristicd, priorityd, marketplaced, loggerd) stay parked in this phase. V1 chips feed only from live Brain state and the services already running inside the Brain process.
 
-The operative definition of this model is the spec — Architecture 0.1.1, the Spec 0.1.1 note and §7.7. The summary above is the phase's working statement; where the two differ, the spec governs.
+The operative definition of this model is the spec — Architecture 0.1.2, the Spec 0.1.1 note and §7.7. The summary above is the phase's working statement; where the two differ, the spec governs.
 
 Work:
 
@@ -145,6 +145,30 @@ Collected from the first real-hardware run, since several findings shape this ph
 - NixOS/WebKit environment requirements for the face: `GIO_EXTRA_MODULES` pointing at glib-networking (TLS inside WebKit), `WEBKIT_DISABLE_DMABUF_RENDERER=1`, and fontconfig available.
 - The two interaction findings that motivate this phase (above): the chips strip empty at rest, and the prompt surface acting as a second terminal rather than an independent input.
 
+
+## Phase 1.7 — Dynamic chips: the panel reacts to typing
+
+Pulled forward from on-device use (2026-11-21, tkserver, during Phase 2 testing): the Phase 1.6 strip worked but was unwieldy in a real home directory — one long row of every entry, dotfiles included, with no way to narrow it short of running a command. Timothy's direction: the panel must carry a show/hide dotfiles switch on itself, close by, the way every good file viewer does — and the panels are dynamic: as he types, the list starts filtering for things that match.
+
+The operative definition is the spec — Architecture 0.1.2, the Spec 0.1.2 note. The summary below is the phase's working statement; where the two differ, the spec governs.
+
+Work:
+
+- Brain: model the shell's input line from the terminal input stream (plain typing, backspace, Ctrl+U and Ctrl+W tracked exactly; unmodelable input — escape sequences, Tab completion, cursor moves — desyncs the model and clears the filter: no filter beats a wrong filter) and publish the current fragment as hub state (`chip_filter`) whenever it changes.
+- Face: narrow the strip to the fragment's matches (prefix first, then substring; directories-first preserved inside each class), show the active filter on the strip, and say "no matches" rather than going bare.
+- The dotfiles switch: a `.*` chip on the strip itself flips a Brain-held hub flag (`chips_show_hidden`, default off, matching `ls`), so every face flips at once. The listing stays complete — visibility is the chip system's concern.
+- Companion fix from the same on-device round (separate PR): the terminal surface moves to xterm's canvas renderer — WebKitGTK leaves replaced DOM cells unpainted as the shell redraws the input line, smearing typed text on screen (`ls` rendered as `llsls`) while the shell receives it exactly. Defined as a face requirement in the Spec 0.1.2 note.
+
+Done when:
+
+- [x] Typing in the terminal narrows the chips to matches without running a command; clearing or submitting the line restores the full set
+- [x] Unmodelable input (history recall, Tab completion) clears the filter rather than filtering wrongly
+- [x] Dotfiles are hidden by default, and one tap on the panel's own switch shows them — in every face at once
+- [x] The gated E2E covers the above (a headless protocol suite and a through-the-face slice test) and stays green in CI
+
+Explicitly not in this phase: fuzzy ranking beyond prefix/substring, learning from history or frequency (heuristicd and priorityd stay parked), filtering against anything but the current directory's listing.
+
+**Status (2026-11-21): built, pending merge + CI.** Brain: `brain::shell::input_line::InputLine` models the line inside `PtyShell::write` — the one funnel every keystroke takes — and publishes through `SectorManager::set_chip_filter`, which bumps versions only when the fragment actually changes. The toggle is one new IPC command (`chips_set_show_hidden`) on the active hub. Face: `AcceleratorChips` derives the visible entries from listing + flag + fragment, and carries the `.*` switch and the filter readout. E2E: chips-lifecycle gains a headless Phase 1.7 suite and slice gains a through-the-face test (a second page watches the strip narrow while the first types) — 12/12 locally across both specs. Still Timothy's, unchanged: the tkserver re-test once merged.
 
 ## Phase 2 — Make remote the default topology
 

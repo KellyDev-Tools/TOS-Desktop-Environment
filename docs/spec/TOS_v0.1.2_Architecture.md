@@ -2,7 +2,7 @@
 
 **Purpose:** This document is the single source of truth for the architecture and visual design of **TOS** (**Terminal On Steroids**). It defines system structure, process boundaries, IPC contracts, the visual hierarchy, rendering model, input abstraction, security, and all platform behaviour. The terminal and command line are the absolute centre of every design decision. All features exist to augment the terminal, never to bypass it.
 
-**Version:** 0.1.1
+**Version:** 0.1.2
 
 ---
 
@@ -105,6 +105,17 @@ for the phased plan.
 
 ---
 
+## Spec 0.1.2 (2026-11-21): Dynamic Chips — the Panel Reacts to Typing
+
+Version 0.1.2 revises the same subsystem as 0.1.1 — the chip system — and adds one face rendering requirement. It grows out of the first on-device tkserver run during Phase 2 testing (2026-11-21), where the Phase 1.6 strip proved correct but unwieldy in a real home directory: one long row of every entry, dotfiles included, narrowable only by running a command. This note extends the Spec 0.1.1 note; where the two differ, **this note governs**. The 0.1.1 text is preserved in git history; this file is its renamed, revised successor.
+
+- **The input line is Brain-held state.** The Brain already forwards every keystroke to the shell; it also maintains a best-effort model of the line being composed. The chip set is therefore a function of one more piece of live state: the fragment of the word currently being typed — the text after the last space, then after the last `/`. This is a derivation from input the Brain holds, never from terminal output; the 0.1.1 rule stands untouched, and the terminal stays a completely normal terminal.
+- **Type-ahead filtering.** While a fragment is being typed, the visible chips narrow to the current listing's matches: prefix matches first, then substring matches, directories first inside each class. The strip shows the active filter, and a filter with no matches says so rather than going bare. Clearing or submitting the line restores the full current set. Filtering ranks and narrows the current generation; it does not issue a new one.
+- **The input model fails safe.** It tracks plain typing, backspace, Ctrl+U and Ctrl+W exactly. Input it cannot model faithfully — escape sequences (arrow keys, history recall), Tab completion, cursor movement — desyncs the model, and a desynced model publishes no filter: the full listing shows until the next resync point (submit, Ctrl+C, Ctrl+U) restores a known-empty line. No filter beats a wrong filter.
+- **Dotfiles: the panel carries its own switch.** Directory listings are complete, dotfiles included. They are hidden from the chip set by default (matching `ls`), and the chips panel itself carries a quick-access show/hide switch — the file-viewer convention — whose state is a Brain-held hub flag, so every face agrees. Visibility is a chip-system concern; the listing itself does not change.
+- **Face rendering: canvas, not DOM.** A face's terminal surface must paint glyphs with a bitmap renderer (the canvas renderer), not a DOM-cell renderer. On-device evidence (WebKitGTK, 2026-11-21): the DOM renderer leaves replaced cells unpainted when the shell redraws the input line, smearing typed text on screen while the shell receives it exactly. The defect stayed in the face — session, input and chip state in the Brain were correct throughout. WebGL is not required and is disfavoured where the web view's GPU path is disabled.
+- **Remote surface.** `chips_set_show_hidden` is a chip-state command: on any transport where the three-stream narrowing is enforced (Phase 2), it belongs to the allowed chip-state stream alongside `get_state`.
+
 ## Spec 0.1.1 (2026-11-17): The Chip System as a Logical Dynamic User Experience
 
 Version 0.1.1 revises one subsystem — the chip system. This note and §7.7 are the operative definition of that system. The Roadmap's Phase 1.6 section records the work that implemented it; on any question of definition or behaviour, **this document governs — the spec is the source of truth**, and plans or summaries defer to it. Nothing else in this document changes; where the chip sections (§7, §25.1, §28) conflict with this note, this note governs.
@@ -149,7 +160,7 @@ TOS is built around a strictly vertical hierarchy of **levels**, a tree of **sec
   - **Configurability:** All Top, Left, and Right slots are user-definable via the Settings panel or direct manipulation. Any system tool can be docked to any slot.
 - **Platform backends** (Wayland, OpenXR, Android) providing rendering, input, and system services via three core traits: `Renderer`, `InputSource`, `SystemServices`.
 - **Remote connectivity** via the TOS Remote Server protocol, enabling remote sectors, collaboration, and web portals.
-- **Module system** for Application Models, Sector Types, AI backends, Terminal Output Modules, Theme Modules, and Shell Modules, all sandboxed and permissioned (see [Ecosystem Specification](./TOS_v0.1.1_Ecosystem.md)).
+- **Module system** for Application Models, Sector Types, AI backends, Terminal Output Modules, Theme Modules, and Shell Modules, all sandboxed and permissioned (see [Ecosystem Specification](./TOS_v0.1.2_Ecosystem.md)).
 - A set of **auxiliary services** running as independent processes communicating via IPC.
 - A **system-level terminal output** at Level 1 displaying the Brain's own console, powered by the terminal output module system.
 
@@ -936,7 +947,7 @@ All Cortex manifests are hot‑loaded from `~/.local/share/tos/cortex/` and conf
 | **Update Daemon** | Atomic update check, download, and staging. Coordination of the "Yellow Alert" status. | `update_check`, `update_apply` |
 | **Heuristic Service** | Predictive fillers, autocomplete-to-chip logic, typo correction, heuristic sector labeling. | `heuristic_query` |
 | **Audio & Haptic Engine** | Mix three-layer audio, play earcons, trigger haptic patterns. | `play_earcon`, `trigger_haptic` |
-| **Session Service** | Session persistence and workspace memory (live state auto-save, named sessions). | See [Features Specification §2](./TOS_v0.1.1_Features.md) |
+| **Session Service** | Session persistence and workspace memory (live state auto-save, named sessions). | See [Features Specification §2](./TOS_v0.1.2_Features.md) |
 
 All services communicate with the Brain via IPC. The Brain maintains authoritative state and routes messages as needed.
 
@@ -953,7 +964,7 @@ All services communicate with the Brain via IPC. The Brain maintains authoritati
 
 **Lifecycle:** Level 4 sub-views are transient; Tactical Reset flushes all inspection buffers and provides a global recovery environment.
 
-The Expanded Bezel Command Surface (see [Features Specification §1](./TOS_v0.1.1_Features.md)) is a cross-cutting overlay state — not a level. It is available at all levels except Tactical Reset (God Mode):
+The Expanded Bezel Command Surface (see [Features Specification §1](./TOS_v0.1.2_Features.md)) is a cross-cutting overlay state — not a level. It is available at all levels except Tactical Reset (God Mode):
 
 | Level | Expanded Bezel Available? |
 |-------|--------------------------|
@@ -1145,6 +1156,8 @@ The Autocomplete Overlay is an expanded presentation of the Right Region chip co
 Because it is an expansion of the Right Region, it occupies the same Chip Layer (§7.4.1) and is dismissed and rebuilt whenever a context switch occurs (§7.7). It is dismissed manually by tapping outside the overlay, pressing Escape, or executing a command.
 
 ### 7.7 Chip Requests and the Chip Lifecycle
+
+> **0.1.2:** the chip set is additionally narrowed by the in-progress input line and the hub's dotfiles flag — see the Spec 0.1.2 note at the front of this document.
 
 The chip overlay is populated by **chip requests**. A chip request is the Brain issuing a new chip set from state it already holds. The Brain issues a request whenever the context the chips describe changes:
 
@@ -1440,8 +1453,8 @@ The split system follows three principles:
 | Content Type | `pane_type` | Description |
 |:---|:---|:---|
 | **Terminal (Command Hub)** | `terminal` | A full Command Hub instance — prompt, chip columns, terminal output module. Shares the sector's shell context. |
-| **Editor** | `editor` | The TOS Editor surface — code/text viewer and editor with live AI context integration. See [Features Specification §6](./TOS_v0.1.1_Features.md). |
-| **Workflow Manager** | `workflow` | The Kanban board and agent terminal orchestration interface. See [Features Specification §7](./TOS_v0.1.1_Features.md). |
+| **Editor** | `editor` | The TOS Editor surface — code/text viewer and editor with live AI context integration. See [Features Specification §6](./TOS_v0.1.2_Features.md). |
+| **Workflow Manager** | `workflow` | The Kanban board and agent terminal orchestration interface. See [Features Specification §7](./TOS_v0.1.2_Features.md). |
 | **Level 3 Application** | `app` | Any running graphical application in Application Focus. |
 
 These can be combined freely. The default desktop layout is a vertical split with `terminal` on the left and `editor` on the right. On mobile, the default is a `tabs` layout with `terminal` as the first tab and `editor` as the second.
@@ -1562,7 +1575,7 @@ These chips operate on the **focused pane** at the time the bezel was opened.
 
 ### 11.9 Split State Persistence
 
-Split layouts are part of the sector's `hub_layout` object and are persisted to the session file as specced in the Session Persistence Specification (see [Features Specification §2](./TOS_v0.1.1_Features.md)). On restore:
+Split layouts are part of the sector's `hub_layout` object and are persisted to the session file as specced in the Session Persistence Specification (see [Features Specification §2](./TOS_v0.1.2_Features.md)). On restore:
 - All panes are recreated with their saved weights and orientations.
 - Terminal panes have their scrollback histories loaded before the shell spawns.
 - Level 3 application panes attempt to relaunch the application in the same position. If the application is no longer running, the pane renders a **[Relaunch]** chip.
@@ -1867,7 +1880,7 @@ Two principles:
 
 #### 17.2.1 Trust Configuration
 
-**First-Run Trust Setup:** During the onboarding flow (see [Features Specification §3](./TOS_v0.1.1_Features.md)), the user is presented with a trust configuration screen for each command class. No defaults are pre-selected. They can skip to defer all classes to WARN.
+**First-Run Trust Setup:** During the onboarding flow (see [Features Specification §3](./TOS_v0.1.2_Features.md)), the user is presented with a trust configuration screen for each command class. No defaults are pre-selected. They can skip to defer all classes to WARN.
 
 **Trust Levels:**
 
@@ -1993,7 +2006,7 @@ All commands, security events, role changes, and deep inspection accesses are lo
 
 TOS implements a robust, modular plugin architecture using platform-specific dynamic libraries distributed via the Marketplace ecosystem.
 
-**All detailed specifications regarding module manifests (`module.toml`), sandboxing rules, terminal UI injection, and module profiles (Shells, Themes, AI Backends, AI Skills, Bezel Components, Language Modules) are documented in the [Ecosystem Specification](./TOS_v0.1.1_Ecosystem.md).**
+**All detailed specifications regarding module manifests (`module.toml`), sandboxing rules, terminal UI injection, and module profiles (Shells, Themes, AI Backends, AI Skills, Bezel Components, Language Modules) are documented in the [Ecosystem Specification](./TOS_v0.1.2_Ecosystem.md).**
 
 ### 18.1 Module Type Summary
 
@@ -2063,13 +2076,13 @@ The Global TOS Log Sector provides a unified view transparently merging:
 
 ## 21. Visual Design, Sensory Interface, and Accessibility
 
-*The specifications for Priority-Weighted Visual Indicators, the Tactical Mini-Map, Auditory/Haptic interfaces, and Accessibility have been consolidated and moved to the [TOS Visual Design Specification](./TOS_v0.1.1_Visual_Design.md).*
+*The specifications for Priority-Weighted Visual Indicators, the Tactical Mini-Map, Auditory/Haptic interfaces, and Accessibility have been consolidated and moved to the [TOS Visual Design Specification](./TOS_v0.1.2_Visual_Design.md).*
 
 ---
 
 ## 22. Sector Templates and Marketplace
 
-Schema for `.tos-template` distribution, AI-assisted discoverability, and the Marketplace package daemon are documented in the [Ecosystem Specification §2](./TOS_v0.1.1_Ecosystem.md).
+Schema for `.tos-template` distribution, AI-assisted discoverability, and the Marketplace package daemon are documented in the [Ecosystem Specification §2](./TOS_v0.1.2_Ecosystem.md).
 
 ---
 

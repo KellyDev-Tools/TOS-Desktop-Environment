@@ -2,11 +2,12 @@
 
 **Purpose:** This document defines the visual language, UI layout, animation system, and multi-sensory feedback model for **TOS** (**Terminal On Steroids**). It is the authoritative reference for how TOS looks, sounds, and feels. For system structure and IPC contracts, refer to the Architecture Specification.
 
-**Version:** 0.1.1
+**Version:** 0.1.2
 
-> **Spec 0.1.1 — 2026-11-17:** Carried forward from 0.1.0; the 0.1.1 revision defines the chip system as a logical dynamic user experience and lives in the [Architecture Specification](./TOS_v0.1.1_Architecture.md) (front note, §7.7) and the [Feature Specifications](./TOS_v0.1.1_Features.md) (§1). The 0.1.0 text is preserved in git history.
+> **Spec 0.1.1 — 2026-11-17:** Carried forward from 0.1.0; the 0.1.1 revision defines the chip system as a logical dynamic user experience and lives in the [Architecture Specification](./TOS_v0.1.2_Architecture.md) (front note, §7.7) and the [Feature Specifications](./TOS_v0.1.2_Features.md) (§1). The 0.1.0 text is preserved in git history.
+> **Spec 0.1.2 — 2026-11-21:** Carried forward from 0.1.1; the 0.1.2 revision makes the chip system dynamic against in-progress typing (type-ahead filtering, the panel's dotfiles switch) and sets the face terminal rendering requirement (canvas, not DOM). It lives in the [Architecture Specification](./TOS_v0.1.2_Architecture.md) (Spec 0.1.2 note). The 0.1.1 text is preserved in git history.
 
-> **Direction update — 2026-11-15:** TOS is being refocused as an ambient layer inside a host desktop (see the [Architecture Specification](./TOS_v0.1.1_Architecture.md), Direction Update). This document becomes **more** central, not less: the zoom/slide motion language and visual hierarchy defined here are the core of the background terminal, chips overlay, and prompt overlay. Apply it to those three surfaces first. See [TOS_Scope-Split.md](./TOS_Scope-Split.md) and [TOS_Roadmap.md](./TOS_Roadmap.md).
+> **Direction update — 2026-11-15:** TOS is being refocused as an ambient layer inside a host desktop (see the [Architecture Specification](./TOS_v0.1.2_Architecture.md), Direction Update). This document becomes **more** central, not less: the zoom/slide motion language and visual hierarchy defined here are the core of the background terminal, chips overlay, and prompt overlay. Apply it to those three surfaces first. See [TOS_Scope-Split.md](./TOS_Scope-Split.md) and [TOS_Roadmap.md](./TOS_Roadmap.md).
 
 ---
 

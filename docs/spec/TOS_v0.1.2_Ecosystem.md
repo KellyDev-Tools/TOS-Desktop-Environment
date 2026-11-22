@@ -2,13 +2,14 @@
 
 **Purpose:** This document defines the plugin architecture, module types, sandboxing rules, marketplace systems, and service orchestration for **TOS** (**Terminal On Steroids**). It covers everything from module manifests to boot sequencing.
 
-**Version:** 0.1.1
+**Version:** 0.1.2
 
-> **Spec 0.1.1 — 2026-11-17:** Carried forward from 0.1.0; the 0.1.1 revision defines the chip system as a logical dynamic user experience and lives in the [Architecture Specification](./TOS_v0.1.1_Architecture.md) (front note, §7.7) and the [Feature Specifications](./TOS_v0.1.1_Features.md) (§1). The 0.1.0 text is preserved in git history.
+> **Spec 0.1.1 — 2026-11-17:** Carried forward from 0.1.0; the 0.1.1 revision defines the chip system as a logical dynamic user experience and lives in the [Architecture Specification](./TOS_v0.1.2_Architecture.md) (front note, §7.7) and the [Feature Specifications](./TOS_v0.1.2_Features.md) (§1). The 0.1.0 text is preserved in git history.
+> **Spec 0.1.2 — 2026-11-21:** Carried forward from 0.1.1; the 0.1.2 revision makes the chip system dynamic against in-progress typing (type-ahead filtering, the panel's dotfiles switch) and sets the face terminal rendering requirement (canvas, not DOM). It lives in the [Architecture Specification](./TOS_v0.1.2_Architecture.md) (Spec 0.1.2 note). The 0.1.1 text is preserved in git history.
 
-> **Direction update — 2026-11-15:** TOS is being refocused as an ambient layer inside a host desktop (see the [Architecture Specification](./TOS_v0.1.1_Architecture.md), Direction Update). The module system, marketplace, and service-orchestration material in this document is **parked**, not cancelled; boot sequencing for a standalone TOS session is superseded by the host desktop's session. Remote discovery concepts remain relevant — the Brain may run on a server. See [TOS_Scope-Split.md](./TOS_Scope-Split.md) and [TOS_Roadmap.md](./TOS_Roadmap.md).
+> **Direction update — 2026-11-15:** TOS is being refocused as an ambient layer inside a host desktop (see the [Architecture Specification](./TOS_v0.1.2_Architecture.md), Direction Update). The module system, marketplace, and service-orchestration material in this document is **parked**, not cancelled; boot sequencing for a standalone TOS session is superseded by the host desktop's session. Remote discovery concepts remain relevant — the Brain may run on a server. See [TOS_Scope-Split.md](./TOS_Scope-Split.md) and [TOS_Roadmap.md](./TOS_Roadmap.md).
 
-For system architecture, IPC contracts, and visual hierarchy, see the [Architecture Specification](./TOS_v0.1.1_Architecture.md).
+For system architecture, IPC contracts, and visual hierarchy, see the [Architecture Specification](./TOS_v0.1.2_Architecture.md).
 
 ---
 
@@ -160,7 +161,7 @@ Cortex components run under strict isolation with two additional security layers
 
 ### 1.4 (Reserved for future Cortex expansion)
 
-**Full AI system specification:** See [Features Specification §4 — Ambient AI & Co-Pilot System](./TOS_v0.1.1_Features.md).
+**Full AI system specification:** See [Features Specification §4 — Ambient AI & Co-Pilot System](./TOS_v0.1.2_Features.md).
 
 ### 1.5 Terminal Output Modules (`.tos-terminal`)
 
@@ -426,7 +427,7 @@ tos-pkg load ./my-theme-module
 
 ### 2.6 Marketplace Discovery & Browse Experience
 
-The full Marketplace UI specification — including the Home view, Category Browse, Module Detail Page, and install flow — is documented in [Features Specification §5 — Marketplace Discovery](./TOS_v0.1.1_Features.md).
+The full Marketplace UI specification — including the Home view, Category Browse, Module Detail Page, and install flow — is documented in [Features Specification §5 — Marketplace Discovery](./TOS_v0.1.2_Features.md).
 
 ---
 
@@ -595,7 +596,7 @@ Since the Brain always binds an anchor port (default `7000`), remote clients can
 2. **Query:** Client sends `get_port_map` over the TCP connection.
 3. **Response:** Brain replies with the full service map.
 4. **Upgrade:** Client uses the returned `brain_ws` port to establish a WebSocket for state synchronization.
-5. **Re-discover:** If a connection drops, the client reconnects to the anchor port and re-queries the map. See [Architecture §3.4.4](./TOS_v0.1.1_Architecture.md#344-reconnection-logic) for the full retry schedule and visual states during reconnection.
+5. **Re-discover:** If a connection drops, the client reconnects to the anchor port and re-queries the map. See [Architecture §3.4.4](./TOS_v0.1.2_Architecture.md#344-reconnection-logic) for the full retry schedule and visual states during reconnection.
 
 ### 5.2 Method 2: mDNS / DNS-SD (Zero-Config LAN)
 

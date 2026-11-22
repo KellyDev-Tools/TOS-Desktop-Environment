@@ -2,11 +2,12 @@
 
 **Purpose:** Everything a contributor needs to build, test, and extend TOS — covering project structure, development workflow, the third-party SDK, TDD protocols, and cross-system dependency constraints.
 
-**Version:** 0.1.1
+**Version:** 0.1.2
 
-> **Spec 0.1.1 — 2026-11-17:** Carried forward from 0.1.0; the 0.1.1 revision defines the chip system as a logical dynamic user experience and lives in the [Architecture Specification](./TOS_v0.1.1_Architecture.md) (front note, §7.7) and the [Feature Specifications](./TOS_v0.1.1_Features.md) (§1). The 0.1.0 text is preserved in git history.
+> **Spec 0.1.1 — 2026-11-17:** Carried forward from 0.1.0; the 0.1.1 revision defines the chip system as a logical dynamic user experience and lives in the [Architecture Specification](./TOS_v0.1.2_Architecture.md) (front note, §7.7) and the [Feature Specifications](./TOS_v0.1.2_Features.md) (§1). The 0.1.0 text is preserved in git history.
+> **Spec 0.1.2 — 2026-11-21:** Carried forward from 0.1.1; the 0.1.2 revision makes the chip system dynamic against in-progress typing (type-ahead filtering, the panel's dotfiles switch) and sets the face terminal rendering requirement (canvas, not DOM). It lives in the [Architecture Specification](./TOS_v0.1.2_Architecture.md) (Spec 0.1.2 note). The 0.1.1 text is preserved in git history.
 
-> **Direction update — 2026-11-15:** TOS is being refocused as an ambient layer inside a host desktop (see the [Architecture Specification](./TOS_v0.1.1_Architecture.md), Direction Update). Project structure changes per the Scope Split: `face-wayland-linux` is removed, the Electron and Android faces are parked, and the Svelte face is the source of the new ambient face. CI (GitHub Actions) is being added to the testing strategy. This reference remains authoritative for `tos-common` and Brain development. See [TOS_Scope-Split.md](./TOS_Scope-Split.md) and [TOS_Roadmap.md](./TOS_Roadmap.md).
+> **Direction update — 2026-11-15:** TOS is being refocused as an ambient layer inside a host desktop (see the [Architecture Specification](./TOS_v0.1.2_Architecture.md), Direction Update). Project structure changes per the Scope Split: `face-wayland-linux` is removed, the Electron and Android faces are parked, and the Svelte face is the source of the new ambient face. CI (GitHub Actions) is being added to the testing strategy. This reference remains authoritative for `tos-common` and Brain development. See [TOS_Scope-Split.md](./TOS_Scope-Split.md) and [TOS_Roadmap.md](./TOS_Roadmap.md).
 
 ---
 
@@ -71,7 +72,7 @@
 
 **Editor & LSP:** The TOS Editor runs as a pane type within the Web Face — it is not a separate daemon. LSP servers are spawned on-demand by the Face when a `.tos-language` module is active and a matching file is opened. LSP server processes are owned by the sector's process tree and terminated when the sector closes.
 
-To view actual live port assignments, use `tos ports` (queries the Brain's registry). See the [Ecosystem Specification §4](./TOS_v0.1.1_Ecosystem.md) for the full registration and discovery protocol.
+To view actual live port assignments, use `tos ports` (queries the Brain's registry). See the [Ecosystem Specification §4](./TOS_v0.1.2_Ecosystem.md) for the full registration and discovery protocol.
 
 ---
 
@@ -99,7 +100,7 @@ Starts the Vite dev server (with HMR) alongside the Brain. Changes to `.svelte` 
 
 Other web targets:
 - `make build-web` — Build the Svelte Face only
-- `make dev-web` — Start the Svelte dev server only (no Brain). Sets `TOS_DEV_MODE=1` so the Face loads mock state fixtures instead of entering the No Brain connection screen. See [Architecture §3.4.9](../spec/TOS_v0.1.1_Architecture.md#349-developer-mode-make-dev-web) for details.
+- `make dev-web` — Start the Svelte dev server only (no Brain). Sets `TOS_DEV_MODE=1` so the Face loads mock state fixtures instead of entering the No Brain connection screen. See [Architecture §3.4.9](../spec/TOS_v0.1.2_Architecture.md#349-developer-mode-make-dev-web) for details.
 
 #### Manual Component Launch
 
@@ -150,7 +151,7 @@ TOS_HEADLESS=1 cargo run --bin tos-brain
 2. Brain binds to anchor port 7000 and advertises via mDNS.
 3. Face (Web or Remote) connects and receives state updates and buffer streams.
 
-See [Architecture §15.6](../spec/TOS_v0.1.1_Architecture.md#156-renderer-mode-detection--fallback) for technical details.
+See [Architecture §15.6](../spec/TOS_v0.1.2_Architecture.md#156-renderer-mode-detection--fallback) for technical details.
 
 ### 2.3 Building & Checking
 
@@ -211,7 +212,7 @@ remote Face          → connects to 192.168.1.5:7000 → sends get_port_map
                      → receives full service map → upgrades to WS on port 52314
 ```
 
-See [Ecosystem Specification §4](./TOS_v0.1.1_Ecosystem.md) for the full registration protocol, health monitoring, and remote discovery details.
+See [Ecosystem Specification §4](./TOS_v0.1.2_Ecosystem.md) for the full registration protocol, health monitoring, and remote discovery details.
 
 ### 2.7 Resources & Templates
 

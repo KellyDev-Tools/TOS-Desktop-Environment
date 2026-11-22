@@ -2,6 +2,7 @@
     import { Terminal } from 'xterm';
     import { FitAddon } from 'xterm-addon-fit';
     import { WebLinksAddon } from 'xterm-addon-web-links';
+    import { CanvasAddon } from 'xterm-addon-canvas';
     import 'xterm/css/xterm.css';
     import { addRawListener, removeRawListener, sendCommand, getPrediction, clearPrediction } from '../stores/ipc.svelte';
 
@@ -62,6 +63,22 @@
             urlRegex: /(?:https?:\/\/|localhost:|127\.0\.0\.1:|[a-zA-Z0-9_\-\.\/]+?\.[a-zA-Z0-9_\-\.]+?)(?::\d+)?(?:\/[^\s"']*)?/
         });
         term.loadAddon(webLinksAddon);
+
+        // Canvas renderer instead of xterm's default DOM renderer.
+        // The DOM renderer paints glyphs as page elements, and
+        // WebKitGTK (the ambient face's web view) leaves replaced
+        // cells unpainted when the shell redraws the input line:
+        // on device, typing 'ls' smeared into 'llsls' on screen
+        // while the shell received 'ls' exactly. Canvas paints
+        // glyphs to a bitmap, so there are no stale cells to
+        // smear. Best-effort: if the canvas renderer cannot start
+        // in this web view, keep the DOM renderer rather than
+        // ending up with no terminal at all.
+        try {
+            term.loadAddon(new CanvasAddon());
+        } catch (e) {
+            console.warn('[Terminal] Canvas renderer unavailable, using DOM renderer', e);
+        }
 
         term.open(terminalElement);
         fitAddon.fit();

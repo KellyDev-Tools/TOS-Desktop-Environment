@@ -11,6 +11,7 @@
         sendCommand,
         sendTerminalKey,
         sendTerminalText,
+        getConnectionState,
         getPrediction,
         clearPrediction,
         type TerminalKeyEvent
@@ -160,8 +161,16 @@
         const sess = rest.substring(0, jsonStart - 1);
         try {
             const snap = JSON.parse(rest.substring(jsonStart)) as GridSnapshot;
-            if (sessionId && sess !== sessionId) return;
-            if (snapshot && snap.seq < snapshot.seq) return;
+            if (kind === 'display_update:') {
+                // Updates belong to the subscribed session, in
+                // sequence. (A snapshot, by contrast, is an
+                // explicit resync: it always lands and resets the
+                // baseline — after a Brain restart the session id
+                // and sequence start over, and the snapshot is the
+                // only thing that can say so.)
+                if (sessionId && sess !== sessionId) return;
+                if (snapshot && snap.seq < snapshot.seq) return;
+            }
             sessionId = sess;
             snapshot = snap;
             paint();
@@ -275,6 +284,13 @@
         };
         addRawListener(socketListener);
         subscribe();
+        // The mount can beat the connection: until the first
+        // snapshot lands, keep asking whenever the store says we
+        // are connected. (The stream-era surface never raced this
+        // — the Brain pushed its replay at connect time.)
+        const subscribeTimer = setInterval(() => {
+            if (!sessionId && getConnectionState() === 'connected') subscribe();
+        }, 500);
 
         let lastRows = 0;
         let lastCols = 0;
@@ -304,6 +320,7 @@
 
         return () => {
             clearTimeout(resizeTimeout);
+            clearInterval(subscribeTimer);
             if (wheelTimer) clearTimeout(wheelTimer);
             removeRawListener(socketListener);
             resizeObserver.disconnect();

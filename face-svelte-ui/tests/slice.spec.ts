@@ -65,28 +65,16 @@ async function waitForPort(port: number, timeoutMs = 30_000): Promise<void> {
 }
 
 async function terminalText(page: Page): Promise<string> {
-    // Read the terminal's buffer through the handle the face
-    // leaves on the .xterm element — renderer-independent (the
-    // canvas renderer paints to a bitmap; there are no DOM rows).
+    // Read what the terminal surface has painted through the
+    // handle the face leaves on the grid-terminal element — the
+    // rows of the Brain's grid snapshot it is displaying (the
+    // canvas paints to a bitmap; there are no DOM rows to read).
     return page.evaluate(() => {
-        type TermHandle = {
-            buffer: {
-                active: {
-                    length: number;
-                    getLine: (y: number) => { translateToString: (trim?: boolean) => string } | undefined;
-                };
-            };
-        };
-        const el = document.querySelector('.xterm') as unknown as {
-            __tosTerminal?: TermHandle;
+        type GridHandle = { rowsText: () => string[] };
+        const el = document.querySelector('[data-testid="grid-terminal"]') as unknown as {
+            __tosGrid?: GridHandle;
         } | null;
-        const term = el?.__tosTerminal;
-        if (!term) return '';
-        const lines: string[] = [];
-        for (let i = 0; i < term.buffer.active.length; i++) {
-            lines.push(term.buffer.active.getLine(i)?.translateToString(true) ?? '');
-        }
-        return lines.join('\n');
+        return el?.__tosGrid?.rowsText().join('\n') ?? '';
     });
 }
 
@@ -97,7 +85,7 @@ async function expectTerminalContains(page: Page, text: string): Promise<void> {
 }
 
 async function runInTerminal(page: Page, command: string): Promise<void> {
-    await page.locator('.xterm').click();
+    await page.locator('[data-testid="grid-terminal"]').click();
     await page.keyboard.type(command);
     await page.keyboard.press('Enter');
 }
@@ -166,7 +154,7 @@ test.describe('Phase 1 slice — ambient face against a real Brain', () => {
 
     test('background surface connects and shows a live shell', async ({ page }) => {
         await page.goto(`${FACE_URL}/?surface=background`);
-        await expect(page.locator('.surface-background .xterm')).toBeVisible();
+        await expect(page.locator('.surface-background [data-testid="grid-terminal"]')).toBeVisible();
         // A real shell prompt (user@host … # or $) proves the PTY is live,
         // not just painted.
         await expect
@@ -176,7 +164,7 @@ test.describe('Phase 1 slice — ambient face against a real Brain', () => {
 
     test('runs a command in the background terminal', async ({ page }) => {
         await page.goto(`${FACE_URL}/?surface=background`);
-        await expect(page.locator('.surface-background .xterm')).toBeVisible();
+        await expect(page.locator('.surface-background [data-testid="grid-terminal"]')).toBeVisible();
         await runInTerminal(page, `echo ${MARKER_CMD}`);
         await expectTerminalContains(page, MARKER_CMD);
     });
@@ -184,7 +172,7 @@ test.describe('Phase 1 slice — ambient face against a real Brain', () => {
     test('prompt surface renders the hub with a live terminal', async ({ page }) => {
         await page.goto(`${FACE_URL}/?surface=prompt`);
         await expect(page.locator('.surface-prompt')).toBeVisible();
-        await expect(page.locator('.surface-prompt .xterm')).toBeVisible();
+        await expect(page.locator('.surface-prompt [data-testid="grid-terminal"]')).toBeVisible();
         await runInTerminal(page, `echo ${MARKER_PROMPT}`);
         await expectTerminalContains(page, MARKER_PROMPT);
     });
@@ -213,7 +201,7 @@ test.describe('Phase 1 slice — ambient face against a real Brain', () => {
         const chipsPage = await page.context().newPage();
         try {
             await page.goto(`${FACE_URL}/?surface=background`);
-            await expect(page.locator('.surface-background .xterm')).toBeVisible();
+            await expect(page.locator('.surface-background [data-testid="grid-terminal"]')).toBeVisible();
             await expect
                 .poll(() => terminalText(page), { timeout: 20_000 })
                 .toMatch(/@.*[#$>]/);
@@ -228,7 +216,7 @@ test.describe('Phase 1 slice — ambient face against a real Brain', () => {
             ).toHaveCount(0);
 
             // Type the file's name: the strip narrows to it.
-            await page.locator('.xterm').click();
+            await page.locator('[data-testid="grid-terminal"]').click();
             await page.keyboard.type('notes');
             await expect(chipsPage.getByTestId('accel-filter')).toHaveText('⌕ notes');
             await expect(
@@ -286,7 +274,7 @@ test.describe('Phase 1 slice — ambient face against a real Brain', () => {
         await chip.click();
 
         await page.goto(`${FACE_URL}/?surface=background`);
-        await expect(page.locator('.surface-background .xterm')).toBeVisible();
+        await expect(page.locator('.surface-background [data-testid="grid-terminal"]')).toBeVisible();
         await runInTerminal(page, 'pwd');
         await expect
             .poll(() => terminalText(page), { timeout: 15_000 })
@@ -294,25 +282,25 @@ test.describe('Phase 1 slice — ambient face against a real Brain', () => {
     });
 
     test('terminal session persists across a face restart', async ({ page }) => {
-        // Phase 1.5: the shell is Brain-owned and outlives any face;
-        // the Brain retains the raw output (ScrollbackBuffer) and
-        // replays it to a face when it (re)connects, so the terminal
-        // repaints the ongoing session — output from before the
-        // restart is still on screen after it.
+        // The shell is Brain-owned and outlives any face; a
+        // (re)connecting face subscribes to the session's display
+        // state and the Brain's grid snapshot repaints the ongoing
+        // session — output from before the restart is still on
+        // screen after it.
         await page.goto(`${FACE_URL}/?surface=background`);
-        await expect(page.locator('.surface-background .xterm')).toBeVisible();
+        await expect(page.locator('.surface-background [data-testid="grid-terminal"]')).toBeVisible();
         await runInTerminal(page, `echo ${MARKER_CMD}`);
         await expectTerminalContains(page, MARKER_CMD);
         await page.reload();
-        await expect(page.locator('.surface-background .xterm')).toBeVisible();
+        await expect(page.locator('.surface-background [data-testid="grid-terminal"]')).toBeVisible();
         await expectTerminalContains(page, MARKER_CMD);
     });
 
     test('face reconnects after a reload and runs new commands', async ({ page }) => {
         await page.goto(`${FACE_URL}/?surface=background`);
-        await expect(page.locator('.surface-background .xterm')).toBeVisible();
+        await expect(page.locator('.surface-background [data-testid="grid-terminal"]')).toBeVisible();
         await page.reload();
-        await expect(page.locator('.surface-background .xterm')).toBeVisible();
+        await expect(page.locator('.surface-background [data-testid="grid-terminal"]')).toBeVisible();
         await runInTerminal(page, `echo ${MARKER_RECONNECT}`);
         await expectTerminalContains(page, MARKER_RECONNECT);
     });

@@ -16,7 +16,10 @@ import WebSocket from 'ws';
  *
  *  - an allowed command (get_state) answers normally;
  *  - an allowed terminal command actually reaches the shell
- *    (echo marker comes back as pty_output);
+ *    (the echo marker comes back in display_update grid state);
+ *  - the retired raw-stream command (terminal_input_hex) is
+ *    refused like everything else outside the gate — no raw
+ *    stream survives alongside the display-state protocol;
  *  - parked commands are refused loudly: marketplace (parked
  *    subsystem), ai_submit (parked AI), and set_mode (a grey-area
  *    command — parked over remote by explicit ruling, see the
@@ -35,20 +38,33 @@ function brainBinary(): string {
     return path.resolve(process.cwd(), '..', 'target', 'debug', 'tos-brain');
 }
 
+/** The text rows of a display message (snapshot or update). */
+function displayText(message: string): string {
+    const jsonStart = message.indexOf('{');
+    if (jsonStart < 0) return '';
+    try {
+        const snap = JSON.parse(message.substring(jsonStart));
+        return (snap.lines ?? [])
+            .map((row: { text: string }[]) => row.map((s) => s.text).join(''))
+            .join('\n');
+    } catch {
+        return '';
+    }
+}
+
 class RemoteClient {
     private ws: WebSocket | null = null;
     private seq = 0;
     private pending = new Map<string, (res: string | null) => void>();
-    /** All terminal output received, decoded from pty_output hex. */
+    /** The text of the latest display state received. */
     terminalText = '';
 
     async connect(): Promise<void> {
         this.ws = new WebSocket('wss://localhost:7001', { rejectUnauthorized: false });
         this.ws.on('message', (data) => {
             const msg = data.toString();
-            if (msg.startsWith('pty_output:')) {
-                const hex = msg.substring('pty_output:'.length);
-                this.terminalText += Buffer.from(hex, 'hex').toString('utf8');
+            if (msg.startsWith('display_update:')) {
+                this.terminalText = displayText(msg);
                 return;
             }
             if (!msg.startsWith('res:')) return; // other broadcasts are not responses
@@ -59,7 +75,11 @@ class RemoteClient {
             const resolve = this.pending.get(id);
             if (resolve) {
                 this.pending.delete(id);
-                resolve(rest.substring(sep + 1));
+                const payload = rest.substring(sep + 1);
+                if (payload.startsWith('display_snapshot:')) {
+                    this.terminalText = displayText(payload);
+                }
+                resolve(payload);
             }
         });
         await new Promise<void>((resolve, reject) => {
@@ -184,12 +204,26 @@ test.describe('Phase 2 — three-stream narrowing', () => {
     });
 
     test('terminal input reaches the shell over remote', async () => {
-        const hex = Buffer.from('echo TOS_NARROW_OK\n', 'utf8').toString('hex');
-        const res = await client.send(`terminal_input_hex:${hex}`);
-        expect(res).not.toContain('not available over a remote connection');
+        const sub = await client.send('display_subscribe:');
+        expect(sub).toContain('display_snapshot:');
+        const textRes = await client.send(
+            `terminal_text:${JSON.stringify({ text: 'echo TOS_NARROW_OK' })}`
+        );
+        expect(textRes).toBe('OK');
+        const keyRes = await client.send(
+            `terminal_key:${JSON.stringify({ key: 'Enter', code: 'Enter' })}`
+        );
+        expect(keyRes).toBe('OK');
         await expect
             .poll(() => client.terminalText, { timeout: 15_000 })
             .toContain('TOS_NARROW_OK');
+    });
+
+    test('the retired raw-stream command is refused over remote', async () => {
+        const res = await client.send('terminal_input_hex:6869');
+        expect(res).toContain(
+            'ERROR: terminal_input_hex is not available over a remote connection'
+        );
     });
 
     test('the chips dotfiles switch is allowed over remote (chip-state stream)', async () => {

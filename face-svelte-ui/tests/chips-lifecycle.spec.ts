@@ -146,10 +146,14 @@ class FakeChipSystem {
             );
     }
 
-    /** Type a command into the terminal, as a face's keyboard input does. */
+    /** Type a command into the terminal, as a face does: the text
+     *  as a text event, the submit as an Enter key event — the
+     *  Brain encodes both. */
     async runCommand(command: string): Promise<void> {
-        const hex = Buffer.from(command + '\n', 'utf8').toString('hex');
-        await this.send(`terminal_input_hex:${hex}`);
+        await this.send(`terminal_text:${JSON.stringify({ text: command })}`);
+        await this.send(
+            `terminal_key:${JSON.stringify({ key: 'Enter', code: 'Enter' })}`
+        );
     }
 
     /** Send a raw command and return the Brain's response. */
@@ -158,10 +162,9 @@ class FakeChipSystem {
     }
 
     /** Type text into the terminal WITHOUT submitting it, as a
-     *  face's keyboard input does while a command is being composed. */
+     *  face does while a command is being composed. */
     async typeText(text: string): Promise<void> {
-        const hex = Buffer.from(text, 'utf8').toString('hex');
-        await this.send(`terminal_input_hex:${hex}`);
+        await this.send(`terminal_text:${JSON.stringify({ text })}`);
     }
 
     /** The hub's dynamic-chip state (Phase 1.7): the type-ahead

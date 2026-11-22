@@ -613,10 +613,14 @@ export async function sendTerminalText(text: string): Promise<void> {
     await sendCommand(`terminal_text:${JSON.stringify({ text })}`);
 }
 
-/** Type a command into the terminal and run it (text + Enter). */
+/**
+ * Type a command into the terminal and run it. One protocol
+ * command with `submit`: the Brain sends the text and its Enter
+ * together, so a face that navigates or closes right after a
+ * chip tap cannot strand an unsubmitted command on the line.
+ */
 export async function sendTerminalCommand(command: string): Promise<void> {
-    await sendTerminalText(command);
-    await sendTerminalKey({ key: 'Enter', code: 'Enter' });
+    await sendCommand(`terminal_text:${JSON.stringify({ text: command, submit: true })}`);
 }
 
 /** Single-quote a string for safe typing into a POSIX shell. */

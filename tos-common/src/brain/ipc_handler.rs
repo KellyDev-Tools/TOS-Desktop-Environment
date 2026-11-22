@@ -2237,13 +2237,19 @@ impl IpcHandler {
 
     /// Literal text, as JSON: `text` plus an optional `session`.
     /// Delivered through the Brain's text encoding — as typed
-    /// input, byte for byte.
+    /// input, byte for byte. With `submit: true` the Brain also
+    /// sends Enter in the same handling, so text-and-submit is
+    /// one action with no round-trip between the text and its
+    /// Enter: a face that navigates or closes right after a
+    /// chip tap cannot strand an unsubmitted command.
     fn handle_terminal_text(&self, payload: &str) -> String {
         #[derive(serde::Deserialize)]
         struct TextRequest {
             #[serde(default)]
             session: Option<String>,
             text: String,
+            #[serde(default)]
+            submit: bool,
         }
         let req: TextRequest = match serde_json::from_str(payload) {
             Ok(r) => r,
@@ -2252,7 +2258,21 @@ impl IpcHandler {
         match self.shell_for(req.session.as_deref()) {
             Some(shell) => {
                 let mut shell = shell.lock().unwrap();
-                match shell.write_text(&req.text) {
+                let written = shell.write_text(&req.text).and_then(|_| {
+                    if req.submit {
+                        let enter = crate::brain::shell::keymap::KeyEvent {
+                            key: "Enter".to_string(),
+                            code: "Enter".to_string(),
+                            ctrl: false,
+                            alt: false,
+                            shift: false,
+                        };
+                        shell.write_key_event(&enter)
+                    } else {
+                        Ok(())
+                    }
+                });
+                match written {
                     Ok(_) => "OK".to_string(),
                     Err(e) => format!("ERROR: Failed to write to terminal: {}", e),
                 }

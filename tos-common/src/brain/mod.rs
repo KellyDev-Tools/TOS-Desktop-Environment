@@ -130,80 +130,18 @@ impl Brain {
         // Silent restore: suppress the boot notification.
         if !restored {
             services.logger.log("Brain Core Initialized.", 2);
-            services.audio.play_earcon("system_ready");
         } else {
             services.logger.log("Session restored silently.", 1);
         }
 
-        // Spawn the background logic thread for state heartbeats
+        // Keep wall-clock time fresh without bumping state.version or running
+        // parked subsystems (audio, process capture, timeline, priority) at 1Hz.
         let state_clock = state.clone();
-        let svc_clock = services.clone();
         thread::spawn(move || {
-            let mut tick = 0;
-            let mut last_alert_level = 0;
             loop {
                 thread::sleep(std::time::Duration::from_secs(1));
-                tick += 1;
-
                 if let Ok(mut lock) = state_clock.lock() {
                     lock.brain_time = chrono::Local::now().format("%H:%M:%S").to_string();
-                    lock.version += 1;
-
-                    // Periodic Sector Maintenance
-                    if tick % 5 == 0 {
-                        // Refresh tactical priorities (§21)
-                        let sector_ids: Vec<uuid::Uuid> =
-                            lock.sectors.iter().map(|s| s.id).collect();
-                        for sid in sector_ids {
-                            if let Ok(score) = svc_clock.priority.calculate_priority(sid) {
-                                if let Some(sector) = lock.sectors.iter_mut().find(|s| s.id == sid)
-                                {
-                                    sector.priority = score.rank;
-                                }
-                            }
-                        }
-                    }
-
-                    // Refresh activity listing and process snapshots (1Hz)
-                    crate::brain::sector::SectorManager::refresh_activity_listing(
-                        &mut lock,
-                        Some(&svc_clock.capture),
-                    );
-
-                    // Alert level adaptation (§23.2)
-                    let current_alert_level = lock.sectors.iter().map(|s| s.priority).max().unwrap_or(1);
-                    let auto_alert_audio = lock.settings.global.get("tos.audio.auto_alert_adaptation").map(|s| s == "true").unwrap_or(true);
-                    
-                    if auto_alert_audio && current_alert_level != last_alert_level {
-                        last_alert_level = current_alert_level;
-                        if current_alert_level >= 5 {
-                            svc_clock.audio.play_ambient("alert_red");
-                            svc_clock.audio.set_volume(crate::services::audio::AudioLayer::Ambient, 0.15);
-                        } else if current_alert_level >= 3 {
-                            svc_clock.audio.play_ambient("alert_yellow");
-                            svc_clock.audio.set_volume(crate::services::audio::AudioLayer::Ambient, 0.08);
-                        } else {
-                            svc_clock.audio.play_ambient("hum_normal");
-                            svc_clock.audio.set_volume(crate::services::audio::AudioLayer::Ambient, 0.05);
-                        }
-                    }
-
-                    // Drain AI Offline Queue (§4.9)
-                    if tick % 10 == 0 {
-                        let ai_svc = svc_clock.ai.clone();
-                        if let Ok(handle) = tokio::runtime::Handle::try_current() {
-                            handle.spawn(async move {
-                                let _ = ai_svc.drain_queue().await;
-                            });
-                        }
-                    }
-
-                    // Update Bezel Components (§1.10)
-                    svc_clock.bezel.update_state(&mut lock);
-
-                    // Record timeline snapshot (§19.1)
-                    svc_clock.timeline.record_snapshot(&lock);
-                    lock.timeline_history_len = svc_clock.timeline.len();
                 }
             }
         });

@@ -44,6 +44,7 @@ export function clearPrediction() {
 
 if (typeof window !== 'undefined') {
     const isElectron = 'tosElectron' in window;
+    const queryBrain = new URLSearchParams(window.location.search).get('brain')?.trim() || null;
     let saved = localStorage.getItem('tos_remote_host');
     if (saved && saved.startsWith('ws://')) {
         saved = saved.replace('ws://', 'wss://');
@@ -52,7 +53,10 @@ if (typeof window !== 'undefined') {
     const windowHost = window.location.hostname;
     const isLocalhost = windowHost === 'localhost' || windowHost === '127.0.0.1';
     
-    if (isElectron) {
+    if (queryBrain) {
+        activeWsUrl = queryBrain.startsWith('ws://') ? queryBrain.replace('ws://', 'wss://') : queryBrain;
+        console.log(`[IPC] Initialized with ?brain= URL: ${activeWsUrl}`);
+    } else if (isElectron) {
         // Under Electron custom protocols (like tos-app://), windowHost is 'renderer'.
         // Bypass remote migration overrides completely and prioritize saved url, or fallback to wss.
         activeWsUrl = saved || 'wss://127.0.0.1:7001';
@@ -307,7 +311,10 @@ function proceedConnect(targetUrl: string): void {
                     }
                 });
 
-                if (event.data.startsWith('state_delta:')) {
+                if (event.data === 'heartbeat') {
+                    lastSyncTime = Date.now();
+                    resetHeartbeat();
+                } else if (event.data.startsWith('state_delta:')) {
                     handleStateDelta(event.data.substring(12));
                 } else if (event.data.startsWith('ai_prediction_received:')) {
                     prediction = event.data.substring(23);

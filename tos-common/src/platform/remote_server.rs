@@ -400,12 +400,14 @@ impl RemoteServer {
         
         let push_task = tokio::spawn(async move {
             let mut last_version = 0;
+            let mut idle_ticks: u8 = 0;
             let mut interval = tokio::time::interval(tokio::time::Duration::from_secs(1));
             loop {
                 interval.tick().await;
                 let request = format!("get_state_delta:{}", last_version);
                 let response = push_ipc.handle_request(&request);
                 if response != "NO_CHANGE" && !response.starts_with("ERROR") {
+                    idle_ticks = 0;
                     if let Ok(parsed) = serde_json::from_str::<serde_json::Value>(&response) {
                         if let Some(v) = parsed.get("version").and_then(|v| v.as_u64()) {
                             last_version = v;
@@ -413,6 +415,16 @@ impl RemoteServer {
                     }
                     if push_tx.send(format!("state_delta:{}", response)).is_err() {
                         break;
+                    }
+                } else {
+                    // Keep face liveness checks satisfied without forcing full
+                    // state serialization when nothing changed.
+                    idle_ticks = idle_ticks.saturating_add(1);
+                    if idle_ticks >= 2 {
+                        idle_ticks = 0;
+                        if push_tx.send("heartbeat".to_string()).is_err() {
+                            break;
+                        }
                     }
                 }
             }

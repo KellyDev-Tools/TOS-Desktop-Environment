@@ -109,8 +109,8 @@ frozen slice at a time — never the other way round.
 | Prompt overlay (Unified Prompt) | One input for command, search, AI; summoned, independent, docked to nothing | **Live** for CMD (Phases 1/1.6) | Architecture §7.1 (as corrected by the 0.1.1 note); Features §1 |
 | Chips overlay | Glanceable status + accelerator strip | **Live** | Architecture §7.3–§7.7 |
 | Chip lifecycle | Chip sets in generations; older sets deprecate and fall away | **Live** (0.1.1 model; Phase 1.6) | Architecture §7.7 |
-| Dynamic chips | Panels filter against in-progress typing; dotfiles switch on the panel | **Built** (Phase 1.7, PR #18 — CI green, awaiting merge) | Architecture, 0.1.2 note |
-| Face terminal rendering | Bitmap (canvas) rendering, not DOM spans — WebKitGTK leaves DOM glyph cells stale | **Built** (PR #17 — CI green, awaiting merge) | Architecture, 0.1.2 note |
+| Dynamic chips | Panels filter against in-progress typing; dotfiles switch on the panel | **Live** (Phase 1.7, PR #18) | Architecture, 0.1.2 note |
+| Face terminal rendering | Bitmap (canvas) rendering, not DOM spans — WebKitGTK leaves DOM glyph cells stale | **Live** (PR #17) | Architecture, 0.1.2 note |
 | Sectors & hubs | Spatial organisation of work in the Brain's model | **Live** in the model; face expression grows by slices | Architecture §5, §10 |
 | Session persistence | A face restart must not blank the terminal; scrollback replays | **Live** (Phase 1.5) | Features §2 |
 

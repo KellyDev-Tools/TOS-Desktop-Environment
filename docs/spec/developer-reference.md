@@ -68,7 +68,7 @@
 | **Priority Engine** | `tos-priorityd` | Ephemeral | TCP | Tactical priority scoring |
 | **Session Service** | `tos-sessiond` | Ephemeral | TCP | Session persistence and workspace memory |
 | **Cortex Service** | `tos-cortex` | Ephemeral | TCP | Orchestrates Assistants, Curators, and Agents |
-| **Web Face** | `svelte_ui/` | Ephemeral | HTTP | Svelte 5 LCARS interface |
+| **Web Face** | `svelte_ui/` | Ephemeral | HTTP | Svelte 5 interface |
 
 **Editor & LSP:** The TOS Editor runs as a pane type within the Web Face — it is not a separate daemon. LSP servers are spawned on-demand by the Face when a `.tos-language` module is active and a matching file is opened. LSP server processes are owned by the sector's process tree and terminated when the sector closes.
 

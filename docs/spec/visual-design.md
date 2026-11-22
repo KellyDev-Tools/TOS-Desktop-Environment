@@ -31,7 +31,7 @@ Non-intrusive indicators convey relative importance without altering size or pos
 | Type | Description |
 |---|---|
 | **Border Chips** | Small coloured notches along tile border; number reflects priority level (1–5). |
-| **Chevrons** | LCARS arrows; pulsing indicates pending notification or critical status. |
+| **Chevrons** | Arrows; pulsing indicates pending notification or critical status. |
 | **Glow / Luminance** | Subtle inner/outer glow; intensity varies with priority. |
 | **Status Dots** | Small coloured circles (blue=normal, yellow=caution, red=critical). |
 
@@ -234,3 +234,20 @@ visibility).
   the chips **into full visibility over 400 ms**.
 - Dismissing focus fades them **back to ambient over 300 ms** —
   dismissal is deliberately quicker than arrival.
+
+### 5.5 The design language
+
+The primary goal governs every visual choice: a terminal on
+steroids that lowers the bar for terminal use and brings it to
+every device in a coherent, dynamic, and elegant way. User
+experience comes first; no visual identity outranks it.
+
+LCARS informed this design's perspective — its clean,
+functional, glanceable qualities are an influence the design
+keeps. But LCARS is not the product's identity and not its
+default skin, and it must never hinder the primary goal. The
+face's built-in look is its own. The end look is themeable:
+theme modules (Ecosystem Specification §1.8) may restyle the
+surfaces, and an LCARS theme is a legitimate future module —
+one theme among others, arriving with the theme system, not
+before it.

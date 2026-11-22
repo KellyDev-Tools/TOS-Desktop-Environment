@@ -2130,7 +2130,7 @@ Settings are resolved via cascade: **per-application > per-sector > global key-v
 
 | Key | Type | Default | Description |
 |---|---|---|---|
-| `theme` | string | `"lcars-light"` | Active theme module ID. |
+| `theme` | string | `"default"` | Active theme module ID; `default` is the face's built-in theme (see Visual Design §5.5). |
 | `default_shell` | string | `"fish"` | Default shell module ID for new sectors. |
 | `terminal_output_module` | string | `"rectangular"` | Active terminal output module ID. |
 | `master_volume` | `"0"`–`"100"` | `"80"` | Master audio volume. |

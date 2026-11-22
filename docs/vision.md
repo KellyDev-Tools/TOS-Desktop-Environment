@@ -177,6 +177,7 @@ login/session (no TOS session, no GDM integration) · system settings
 | Element | Replaced by | Decision |
 |---|---|---|
 | Chip population by output scraping / prompt sniffing | Chips derived from Brain-held state (§7.7) | Timothy's ruling, 2026-11-17; spec 0.1.1. Old text: git history, pre-0.1.1 spec |
+| LCARS as the default aesthetic identity | The face's own design language (Visual Design §5.5); LCARS kept as a design influence and a possible future theme module | Timothy's ruling, 2026-11-22 |
 | TOS as a standalone desktop environment (own session/compositor) | The ambient layer inside a host desktop | The pivot, 2026-11-15; Scope Split |
 | `face-wayland-linux` crate; `archive/` prototypes | The layer-shell ambient face; git history | Dropped, Phase 0 |
 

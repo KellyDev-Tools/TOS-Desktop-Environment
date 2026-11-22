@@ -20,13 +20,14 @@ use webrtc::interceptor::registry::Registry;
 /// Phase 2 — three-stream narrowing.
 ///
 /// The only command prefixes a remote client (WebSocket or TCP) may
-/// invoke. Together with the Brain→face pushes (`pty_output`,
+/// invoke. Together with the Brain→face pushes (`display_update`,
 /// `state_delta`, `res:` replies) this list is the operative
 /// definition of the three streams the roadmap names — terminal,
 /// chip state, and prompt:
 ///
-/// - terminal: `terminal_input_hex` (chip taps and the prompt bar
-///   also type through this), `terminal_resize`, `terminal_signal`
+/// - terminal: `display_subscribe`, `terminal_key`, `terminal_text`
+///   (chip taps and the prompt bar also type through these),
+///   `terminal_resize`, `terminal_signal`, `display_scroll`
 /// - chip state: `get_state`, `get_state_delta`,
 ///   `chips_set_show_hidden` (the chips panel's dotfiles switch,
 ///   Phase 1.7 — it only flips a flag on the hub the streams
@@ -42,9 +43,12 @@ use webrtc::interceptor::registry::Registry;
 /// keeps the full surface; narrowing applies only where the caller
 /// arrived over the network.
 const REMOTE_ALLOWED_PREFIXES: &[&str] = &[
-    "terminal_input_hex",
+    "display_subscribe",
+    "terminal_key",
+    "terminal_text",
     "terminal_resize",
     "terminal_signal",
+    "display_scroll",
     "prompt_submit",
     "force_prompt_submit",
     "get_state",
@@ -391,9 +395,9 @@ impl RemoteServer {
         let (mut ws_tx, mut ws_rx) = ws_stream.split();
         let (mpsc_tx, mut mpsc_rx) = tokio::sync::mpsc::unbounded_channel::<String>();
         self.ipc.register_broadcaster(mpsc_tx.clone());
-        // Phase 1.5: repaint this face's terminal from the retained
-        // scrollback; the session itself never went away.
-        self.ipc.replay_terminal_to(&mpsc_tx);
+        // No replay on connect: the face subscribes to the
+        // session's display state and the snapshot it answers with
+        // is the whole truth (Architecture §26.3).
 
         let push_ipc = self.ipc.clone();
         let push_tx = mpsc_tx.clone();
@@ -679,9 +683,12 @@ mod tests {
     #[test]
     fn three_stream_commands_pass_the_remote_gate() {
         for cmd in [
-            "terminal_input_hex:6869",
+            "display_subscribe:",
+            "terminal_key:{\"key\":\"a\"}",
+            "terminal_text:{\"text\":\"ls\"}",
             "terminal_resize:80;24",
             "terminal_signal:SIGINT",
+            "display_scroll:;5",
             "prompt_submit:ls",
             "force_prompt_submit:ls",
             "get_state:",
@@ -690,7 +697,7 @@ mod tests {
             "face_register:ambient",
             // cmd:-wrapped forms the face actually sends
             "cmd:1:get_state:",
-            "cmd:2:terminal_input_hex:6869",
+            "cmd:2:terminal_key:{\"key\":\"a\"}",
         ] {
             assert!(remote_refusal(cmd).is_none(), "should pass: {}", cmd);
         }
@@ -707,6 +714,10 @@ mod tests {
             ("process_signal:1;9", "process_signal"),
             ("system_reset:", "system_reset"),
             ("app_launch:terminal", "app_launch"),
+            // The retired raw-stream commands do not survive
+            // alongside the display-state protocol.
+            ("terminal_input_hex:6869", "terminal_input_hex"),
+            ("pty_output:6869", "pty_output"),
         ] {
             let refusal = remote_refusal(cmd).expect("should be refused");
             assert!(

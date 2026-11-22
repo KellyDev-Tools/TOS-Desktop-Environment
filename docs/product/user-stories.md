@@ -1,28 +1,176 @@
 # Terminal On Steroids — User Story Backlog
-**Beta 0 · Development Reference**
+**Development Reference**
+
+> **About this backlog.** A *reference* backlog, not a governing
+> document: definitions live in the [spec](../spec/architecture.md),
+> element status in the [Vision](../vision.md) ledger. Sections
+> carry status lines in the ledger's vocabulary (current / parked /
+> superseded). §1, the Ambient Face, is the current product; much of
+> the rest predates the 2026-11-15 ambient-layer pivot and is
+> labelled accordingly. **Before editing this file, read
+> [Maintaining this backlog](#maintaining-this-backlog).**
 
 ---
 
 ## Table of Contents
 
-1. [Navigation & Hierarchy](#1-navigation--hierarchy)
-2. [Command Hub & Persistent Unified Prompt](#2-command-hub--persistent-unified-prompt)
-3. [Cortex Orchestration](#3-cortex-orchestration)
-4. [Workflow Management & Kanban Boards](#4-workflow-management--kanban-boards)
-5. [SEARCH Mode](#5-search-mode)
-6. [Trust & Security Model](#6-trust--security-model)
-7. [Multi-Sensory Feedback](#7-multi-sensory-feedback)
-8. [Onboarding & First-Run Experience](#8-onboarding--first-run-experience)
-9. [Marketplace & Module System](#9-marketplace--module-system)
-10. [Collaboration](#10-collaboration)
-11. [Performance & Accessibility](#11-performance--accessibility)
-12. [Appendix A — Story ID Index](#appendix-a--story-id-index)
+- [Maintaining this backlog](#maintaining-this-backlog)
+1. [The Ambient Face](#1-the-ambient-face)
+2. [Navigation & Hierarchy](#2-navigation--hierarchy)
+3. [The Prompt Overlay](#3-the-prompt-overlay)
+4. [Cortex Orchestration](#4-cortex-orchestration)
+5. [Workflow Management & Kanban Boards](#5-workflow-management--kanban-boards)
+6. [SEARCH Mode](#6-search-mode)
+7. [Trust & Security Model](#7-trust--security-model)
+8. [Multi-Sensory Feedback](#8-multi-sensory-feedback)
+9. [Onboarding & First-Run Experience](#9-onboarding--first-run-experience)
+10. [Marketplace & Module System](#10-marketplace--module-system)
+11. [Collaboration](#11-collaboration)
+12. [Editor](#12-editor)
+13. [Performance & Accessibility](#13-performance--accessibility)
+14. [Appendix A — Story ID Index](#appendix-a--story-id-index)
 
 ---
 
-## 1. Navigation & Hierarchy
+## Maintaining this backlog
+
+Directions for keeping these stories true. They exist because
+this file once described a product that no longer existed for
+months without anyone noticing — the ambient pivot happened in
+the spec, the roadmap, and the code, and never reached the
+backlog.
+
+**What this file is.** A record of user needs, in the user's
+language. It is *not* a specification and *not* a plan: where a
+story and the spec disagree, the spec governs and the story gets
+fixed; where a section's status and the Vision ledger disagree,
+the ledger governs and the story gets fixed.
+
+**Status vocabulary** — the Vision ledger's, used at the top of
+every section, and at story level when one story differs from
+its section:
+
+- **Current** — describes the product as it is being built now.
+- **Parked** — the need stands; its provider is parked. The
+  section names what revives it.
+- **Superseded** — the need, or its mechanism, was replaced by a
+  decision. The line names the date and what replaced it.
+- **Rewritten** — the need survived; the mechanism changed. The
+  section intro dates the rewrite and says why.
+
+**When to update — four triggers.**
+
+1. *A decision changes user-facing behaviour.* The story update
+   rides in the same change as the decision or spec edit — never
+   as a later cleanup.
+2. *A feature ships.* The handoff names the stories it
+   satisfies (see [AI Collaboration](../ai-collaboration.md)).
+3. *Hands-on testing reveals a need, or kills one.* Real use
+   outranks speculation: AMB-05's dotfiles switch and live
+   filtering both came from a device test, not a design session.
+4. *A campaign closes.* When a roadmap retires, its harvest pass
+   includes this backlog, alongside the Vision ledger.
+
+**Adding a story.**
+
+- IDs are `<EPIC>-<number>`: the next free number under the
+  epic's prefix. **IDs are never reused**, even after a story is
+  superseded — the index is a history, not a seating chart.
+- One need per story, in the table's three columns, in plain
+  user language. No implementation nouns the user wouldn't say.
+- Add the story to Appendix A in the same change.
+- Flagship stories get acceptance criteria. Criteria must be
+  *observable and mechanism-honest*: they may not prescribe a
+  ruled-out mechanism (no output scraping, no command sniffing,
+  nothing docked that the rulings say floats). If the only known
+  mechanism is ruled out, the story waits for a provider and
+  says so — it does not quietly soften the ruling.
+
+**Changing or retiring a story.** Keep the ID. If the need
+survives with a new mechanism, rewrite the row and date the
+rewrite in the section intro. If the need is gone, mark it
+superseded with the date and its replacement. **Never delete a
+story** — deletion is how a backlog starts lying about what the
+product once promised.
+
+**Who.** The maintainer approves status changes and new epics.
+Contributors and AI agents propose story updates inside the same
+PR as the work that triggers them; every handoff answers *which
+stories does this satisfy, change, or supersede?*
+
+---
+
+## 1. The Ambient Face
+
+Stories covering the ambient layer itself — the terminal as
+background, the chips overlay, the independent prompt, and the
+remote Brain. Added 2026-11-21: until now the backlog described
+only the pre-pivot standalone environment, and the current
+product had no stories at all.
+
+| ID | As a… | I want to… | So that… |
+|---|---|---|---|
+| AMB-01 | developer | have my terminal session live as my desktop background | it is always present, with no window to manage |
+| AMB-02 | developer | have the background terminal behave exactly like my regular terminal — my shell, my config, my programs | TOS never feels like a simulation of my tools |
+| AMB-03 | touch user | see shortcuts generated from the directory I am in | I can navigate and act without typing paths |
+| AMB-04 | touch user | have a chip tap type for me — directories `cd`, files insert their name mid-command | I stay in flow, and nothing happens behind my back |
+| AMB-05 | developer | have the strip narrow as I type, with dotfiles behind a switch on the panel itself | the right chip is one tap away, and the panel follows `ls` conventions |
+| AMB-06 | power user | summon a command prompt from anywhere, attached to nothing | I can act without disturbing the session or my desktop |
+| AMB-07 | developer | have my session and scrollback survive a face restart or reconnect, exactly as I left them | the face is replaceable; my work is not fragile |
+| AMB-08 | developer | run my session on my server and use a thin face on whatever screen I am at — desktop, laptop, phone | my work is where I am, not where the machine is |
+| AMB-09 | owner | have a remote face able to drive my terminal but not administer my machine | remoteness does not widen what a connection can do |
+| AMB-10 | desktop user | have TOS leave windows, apps, and settings to my desktop environment | it never fights the environment it lives in |
+| AMB-11 | developer | choose where a session runs — or never have to choose | placement matches my intent without becoming my job |
+
+*AMB-11 is Phase 3's open question, kept as a story so the
+placement experiment has a need to test against.*
+
+### AMB-02 Acceptance Criteria
+- The session is the user's real shell in a real PTY — not an
+  emulator of one. Interactive programs (editors, `top`, `ssh`)
+  run unmodified.
+- TOS never alters, filters, or reinterprets terminal output.
+
+### AMB-04 Acceptance Criteria
+- A directory chip sends `cd '<name>'` plus Enter through the
+  same input path as the user's own keystrokes. There is no
+  separate chip API that changes directories.
+- A file chip inserts the shell-quoted name plus a trailing
+  space, unsent, into the command being typed.
+- A tap against a stale chip generation is deprecated, never
+  executed blindly — the directory may have changed under it.
+
+### AMB-05 Acceptance Criteria
+- Filtering follows the word being typed (after the last space,
+  then after the last `/`): prefix matches rank first, then
+  substring matches; directories first within each class.
+- Dotfiles are hidden until the panel's own `.*` switch is on.
+  The switch lives on the panel, not in a settings screen.
+
+### AMB-07 Acceptance Criteria
+- The shell process, its cwd, and its jobs live in the Brain and
+  survive face restarts untouched.
+- On reconnect, the face is replayed the scrollback buffer
+  (256 KiB) as the whole truth before live output resumes.
+
+### AMB-09 Acceptance Criteria
+- Over a remote connection, only the three streams dispatch —
+  terminal, chip state, prompt. Any other command receives a
+  loud `ERROR:` refusal naming the narrowing.
+- The same commands remain available over a local connection:
+  the gate judges the connection, not the command.
+
+---
+
+## 2. Navigation & Hierarchy
 
 Stories covering the five-level zoom model, sector management, and the core navigation contract.
+
+> **Status — superseded in framing.** The five-level zoom model
+> predates the ambient face (2026-11-15 pivot). Knowing where you
+> are survives as the chips' breadcrumbs; context switching
+> belongs to the host desktop and the Brain's sessions. Kept for
+> the record, and for the parked bezel design it belonged to.
 
 | ID | As a… | I want to… | So that… |
 |---|---|---|---|
@@ -46,36 +194,78 @@ Stories covering the five-level zoom model, sector management, and the core navi
 
 ---
 
-## 2. Command Hub & Persistent Unified Prompt
+## 3. The Prompt Overlay
 
-Stories covering the three hub modes, the always-visible prompt, and dynamic chip overlays.
+Stories covering the prompt — summoned on demand, independent of
+the terminal and of the other surfaces.
+
+> **Status — rewritten 2026-11-21.** This section previously
+> described the Command Hub's persistent, docked prompt, and two
+> mechanisms the project has since ruled out: detecting the typed
+> command to switch modes (HUB-02) and scraping terminal output
+> to populate chips (HUB-03). The needs that survived are
+> restated below; the rest are accounted for under *Parked and
+> superseded*, not deleted. The governing definitions are in the
+> Architecture (§7.7) and [Concepts](../concepts.md).
 
 | ID | As a… | I want to… | So that… |
 |---|---|---|---|
-| HUB-01 | developer | switch between CMD, SEARCH, and AI modes from the prompt without lifting my hands from the keyboard | I stay in flow regardless of what I need to do next |
-| HUB-02 | developer | have the hub automatically enter Directory Mode when I type `ls` or `cd` | I get rich file chips without changing my natural shell habits |
-| HUB-03 | operator | have the output scraper dynamically populate process chips when I run process-related commands (e.g., top, ps) | I can act on processes directly from the chip layout without a secondary tool |
-| HUB-04 | developer | see the left chip region populate with contextual favorites and pinned paths | I can stage common commands in one tap |
-| HUB-05 | developer | see the right chip region surface predictive completions and AI-suggested commands | I can accept smart suggestions without retyping |
-| HUB-06 | power user | have the prompt remain visible and accessible at all navigation levels | I never lose my command line no matter how deep I zoom |
-| HUB-07 | developer | click on a "Focus Error" chip after a failed build | I am immediately scrolled to the authoritative error line in the output |
-| HUB-08 | developer | have typo correction chips appear when I submit a mistyped command | I can fix errors in one tap and re-run without retyping |
+| HUB-01 | developer | summon the prompt, type a command, and submit it — all without touching the terminal session | I can act from anywhere without disturbing what is running |
+| HUB-02 | developer | have the chip strip refresh to the directory I am in after commands like `ls` or `cd` complete | I get file chips that match where I am, without changing my natural shell habits |
+| HUB-06 | power user | summon the prompt from anywhere and dismiss it back to nothing | I never lose my command line — and it never occupies my screen uninvited |
+
+*HUB-01 today is the CMD family. The SEARCH and AI prompt
+families arrive with their providers — see §6 (parked) and §4
+(parked) — and rejoin this section when they do.*
 
 ### HUB-02 Acceptance Criteria
-- Brain command dispatcher detects `ls` prefix (case-insensitive) with no false positives (`rls`, `echo cd`).
-- Mode switches to Directory Context; file and folder chips populate within 500 ms.
-- Clicking a folder chip navigates into it; clicking a file chip appends the path to the staged command.
+- The refresh derives from state the Brain already holds — the
+  shell's working directory (OSC 7 / cwd tracking) and its
+  listing, refreshed at command completion. **The Brain never
+  classifies the typed command** to decide chips are needed, and
+  never inspects output.
+- Chips for the new directory populate promptly after the
+  command completes (target: within 500 ms).
+- Tapping a folder chip types `cd` into the terminal; tapping a
+  file chip inserts its name into the command being staged
+  (see AMB-04).
 
-### HUB-07 Acceptance Criteria
-- When PTY output includes at least one line tagged Priority 4 or higher, a "Focus Error" chip appears in the right region.
-- Clicking the chip scrolls the terminal output to the first Priority 4+ line.
-- The authoritative error line is rendered with increased visual weight (color accent, bold).
+### HUB-06 Acceptance Criteria
+- The prompt is its own overlay surface, summoned through the
+  face (see the quickstart's hotkey binding) — it is not docked
+  to the terminal, the chips, or any window.
+- Summoning and dismissing it never moves focus from, scrolls,
+  or otherwise disturbs the terminal session beneath.
+
+### Parked and superseded from the original section
+
+- **HUB-03 — superseded (mechanism).** "Output scraper
+  populates process chips" is ruled out: terminal output is
+  never inspected. Acting on processes returns only with a
+  Brain-side provider; see the Vision ledger's Process chip
+  family (parked).
+- **HUB-04 — defined, not yet live.** Favourites and pinned
+  chips are in the chip catalogue (the dual-sided layout); no
+  provider builds them yet.
+- **HUB-05 — parked.** Predictive completions wait for the
+  heuristic and AI providers.
+- **HUB-07 — superseded (mechanism).** The "Focus Error" chip
+  required tagging terminal output by priority. Error surfacing
+  returns only via a Brain-side provider, never output
+  inspection.
+- **HUB-08 — parked.** Typo-correction chips wait for the
+  heuristic provider.
 
 ---
 
-## 3. Cortex Orchestration
+## 4. Cortex Orchestration
 
 Stories covering the Passive Observer, Chat Companion, and the AI safety boundary — the AI never executes commands directly.
+
+> **Status — parked.** The AI module (Cortex / ZAYA) is parked;
+> the [Vision](../vision.md) ledger names what revives it. The
+> safety boundary these stories assume — the AI stages, the user
+> submits — remains a standing ruling.
 
 | ID | As a… | I want to… | So that… |
 |---|---|---|---|
@@ -126,9 +316,12 @@ Stories covering the Passive Observer, Chat Companion, and the AI safety boundar
 
 ---
 
-## 4. Workflow Management & Kanban Boards
+## 5. Workflow Management & Kanban Boards
 
 Stories covering project-scoped kanban boards, agent personas, multi-agent task execution, and project memory consolidation. Workflows enable teams to decompose complex work into steps, assign AI agents with distinct personalities to execute them, and learn from completed tasks.
+
+> **Status — parked.** Kanban and agent orchestration are
+> parked with the AI module they depend on.
 
 | ID | As a… | I want to… | So that… |
 |---|---|---|---|
@@ -251,9 +444,13 @@ Stories covering project-scoped kanban boards, agent personas, multi-agent task 
 
 ---
 
-## 5. SEARCH Mode
+## 6. SEARCH Mode
 
 Stories covering semantic and filesystem search, result chips, and cross-domain filtering.
+
+> **Status — parked.** `tos-searchd` is the first parked daemon
+> slated to revive; these stories wait with it, and the SEARCH
+> prompt family rejoins §3 when it lands.
 
 | ID | As a… | I want to… | So that… |
 |---|---|---|---|
@@ -269,9 +466,14 @@ Stories covering semantic and filesystem search, result chips, and cross-domain 
 
 ---
 
-## 6. Trust & Security Model
+## 7. Trust & Security Model
 
 Stories covering the non-blocking warning system, explicit trust promotion, and role-based access in collaboration.
+
+> **Status — mixed.** The trust classes (SEC-01…04) remain
+> defined in the spec but are not yet built. The collaborator
+> roles (SEC-05, SEC-06) are superseded with §11 — the remote
+> boundary that replaced them is AMB-09's three-stream gate.
 
 | ID | As a… | I want to… | So that… |
 |---|---|---|---|
@@ -294,9 +496,14 @@ Stories covering the non-blocking warning system, explicit trust promotion, and 
 
 ---
 
-## 7. Multi-Sensory Feedback
+## 8. Multi-Sensory Feedback
 
 Stories covering earcons, haptic pulses, alert levels, and the notification center.
+
+> **Status — superseded in framing.** Earcons and alert levels
+> were tied to the bezel and zoom-level model. Feedback for the
+> three surfaces will be re-storied when the face's motion and
+> sound language is designed (see the Visual Design spec).
 
 | ID | As a… | I want to… | So that… |
 |---|---|---|---|
@@ -313,9 +520,15 @@ Stories covering earcons, haptic pulses, alert levels, and the notification cent
 
 ---
 
-## 8. Onboarding & First-Run Experience
+## 9. Onboarding & First-Run Experience
 
 Stories covering the cinematic intro, guided demo, ambient hints, and the power-user escape hatch.
+
+> **Status — superseded in framing.** First run is no longer
+> entering a new environment; it is installing a layer into the
+> desktop you already have (see the
+> [Quickstart](../quickstart.md)). ONB-03's spirit — never block
+> the power user — survives as a standing expectation.
 
 | ID | As a… | I want to… | So that… |
 |---|---|---|---|
@@ -332,9 +545,13 @@ Stories covering the cinematic intro, guided demo, ambient hints, and the power-
 
 ---
 
-## 9. Marketplace & Module System
+## 10. Marketplace & Module System
 
 Stories covering module discovery, installation, sandboxing, and the permission model.
+
+> **Status — parked.** The marketplace daemon is parked;
+> MKT-02's informed-consent pattern remains the model for any
+> future permission surface.
 
 | ID | As a… | I want to… | So that… |
 |---|---|---|---|
@@ -351,9 +568,15 @@ Stories covering module discovery, installation, sandboxing, and the permission 
 
 ---
 
-## 10. Collaboration
+## 11. Collaboration
 
 Stories covering real-time presence, following mode, role management, and the audit trail.
+
+> **Status — superseded.** The guest-collaboration model was
+> replaced on 2026-11-15 by the owner's own remote faces behind
+> the three-stream gate — see AMB-08 and AMB-09. TOS is a
+> personal system; sharing a session with guests is not in the
+> current direction.
 
 | ID | As a… | I want to… | So that… |
 |---|---|---|---|
@@ -370,9 +593,14 @@ Stories covering real-time presence, following mode, role management, and the au
 
 ---
 
-## 10. Editor
+## 12. Editor
 
 Stories covering the TOS Editor pane, AI context integration, and the Vibe Coder edit flow.
+
+> **Status — parked.** The Editor is a spec surface outside the
+> ambient slice. Note before any revival: EDT-01's acceptance
+> criteria parse terminal output, which the no-scraping ruling
+> now forbids — they would need rewriting first.
 
 | ID | As a… | I want to… | So that… |
 |---|---|---|---|
@@ -404,9 +632,12 @@ Stories covering the TOS Editor pane, AI context integration, and the Vibe Coder
 
 ---
 
-## 11. Performance & Accessibility
+## 13. Performance & Accessibility
 
 Stories covering frame-rate targets, headless testing, and keyboard/screen reader accessibility.
+
+> **Status — current.** Applies to the ambient face as written.
+> PER-02's VR target waits with the parked XR face.
 
 | ID | As a… | I want to… | So that… |
 |---|---|---|---|
@@ -428,6 +659,17 @@ Stories covering frame-rate targets, headless testing, and keyboard/screen reade
 
 | Story ID | Epic | Summary |
 |---|---|---|
+| AMB-01 | Ambient Face | Terminal session as desktop background |
+| AMB-02 | Ambient Face | A completely normal terminal |
+| AMB-03 | Ambient Face | Chips generated from the current directory |
+| AMB-04 | Ambient Face | Chip tap types into the terminal |
+| AMB-05 | Ambient Face | Live strip filtering + dotfiles switch |
+| AMB-06 | Ambient Face | Prompt summoned from anywhere |
+| AMB-07 | Ambient Face | Session + scrollback survive reconnect |
+| AMB-08 | Ambient Face | Remote Brain, thin face on any screen |
+| AMB-09 | Ambient Face | Remote face cannot administer the machine |
+| AMB-10 | Ambient Face | Host desktop keeps windows, apps, settings |
+| AMB-11 | Ambient Face | Session placement choice (Phase 3 question) |
 | NAV-01 | Navigation | Zoom in to a sector from Global Overview |
 | NAV-02 | Navigation | Zoom out to Global Overview from any sector |
 | NAV-03 | Navigation | Drill into Deep Inspection (Level 4) |
@@ -435,14 +677,14 @@ Stories covering frame-rate targets, headless testing, and keyboard/screen reade
 | NAV-05 | Navigation | Auto-label sectors from cwd |
 | NAV-06 | Navigation | Sector lifecycle via tile context menu |
 | NAV-07 | Navigation | Remote guest depth visibility |
-| HUB-01 | Command Hub | Keyboard mode switching |
-| HUB-02 | Command Hub | Auto Directory Mode on ls / cd |
-| HUB-03 | Command Hub | Process chip overlay on top / ps |
-| HUB-04 | Command Hub | Left chip region context favorites |
-| HUB-05 | Command Hub | Right chip predictive completions |
-| HUB-06 | Command Hub | Prompt visible at all levels |
-| HUB-07 | Command Hub | Focus Error chip on build failure |
-| HUB-08 | Command Hub | Typo correction chips |
+| HUB-01 | Prompt Overlay | Summon prompt and submit a command |
+| HUB-02 | Prompt Overlay | Chips refresh from Brain-held cwd after commands |
+| HUB-03 | Prompt Overlay | Process chips via output scraper (superseded mechanism) |
+| HUB-04 | Prompt Overlay | Favourites and pinned chips (defined, not yet live) |
+| HUB-05 | Prompt Overlay | Predictive completions (parked) |
+| HUB-06 | Prompt Overlay | Prompt summonable from anywhere, dismissible to nothing |
+| HUB-07 | Prompt Overlay | Focus Error chip (superseded mechanism) |
+| HUB-08 | Prompt Overlay | Typo correction chips (parked) |
 | AI-01 | AI Skills | Non-blocking correction chip on failure |
 | AI-02 | AI Skills | Plain-English to staged command |
 | AI-03 | AI Skills | Review and edit staged command |

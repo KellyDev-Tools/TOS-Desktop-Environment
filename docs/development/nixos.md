@@ -1,3 +1,14 @@
+# NixOS Development Environment
+
+Working notes for developing TOS on the maintainer's NixOS host,
+captured from that machine's actual configuration. **Status:
+reference notes, not a specification** — verify against the live
+system before relying on details. The binding rules for working in
+this environment (the persistent `tmux` session, where Linux
+builds and tests run) are in [standards.md](./standards.md) §8.
+
+---
+
 Your system is already very well positioned for developing a desktop environment project like [TOS-Desktop-Environment](https://github.com/KellyDev-Tools/TOS-Desktop-Environment?utm_source=chatgpt.com).
 
 From your NixOS config, you effectively have:

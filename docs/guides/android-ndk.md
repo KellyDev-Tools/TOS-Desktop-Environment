@@ -1,5 +1,8 @@
 # Android NDK Support
 
+> **Status — parked.** The Android faces are parked under the
+> Scope Split; this guide is kept for their revival.
+
 TOS Beta-0 supports handheld (phone/tablet) targets through the `face-android-handheld` crate.
 
 ## 1. Prerequisites

@@ -4,6 +4,10 @@
 
 **Version:** 0.1.2
 
+**Vision:** The core vision, and the status of every element in it,
+are anchored in [Vision page](../vision.md). This spec defines;
+the Vision page accounts — read it alongside this document.
+
 ---
 
 ## Direction Update (2026-11-15): The Ambient Layer
@@ -62,8 +66,8 @@ IPC contracts), Section 10 (sectors and the tree model), Section 24
 (Shell API), Section 25 (bezel/chip contracts — now the chips overlay),
 and Section 26 (terminal output rendering).
 
-See [TOS_Scope-Split.md](./TOS_Scope-Split.md) for the component-by-component
-Keep / Delegate / Park / Drop assessment and [TOS_Roadmap.md](./TOS_Roadmap.md)
+See [Scope Split](../decisions/2026-11-15-scope-split.md) for the component-by-component
+Keep / Delegate / Park / Drop assessment and [Roadmap](../roadmap.md)
 for the phased plan.
 
 ### The remote surface: the three streams, defined
@@ -190,7 +194,7 @@ TOS is built around a strictly vertical hierarchy of **levels**, a tree of **sec
   - **Configurability:** All Top, Left, and Right slots are user-definable via the Settings panel or direct manipulation. Any system tool can be docked to any slot.
 - **Platform backends** (Wayland, OpenXR, Android) providing rendering, input, and system services via three core traits: `Renderer`, `InputSource`, `SystemServices`.
 - **Remote connectivity** via the TOS Remote Server protocol, enabling remote sectors, collaboration, and web portals.
-- **Module system** for Application Models, Sector Types, AI backends, Terminal Output Modules, Theme Modules, and Shell Modules, all sandboxed and permissioned (see [Ecosystem Specification](./TOS_v0.1.2_Ecosystem.md)).
+- **Module system** for Application Models, Sector Types, AI backends, Terminal Output Modules, Theme Modules, and Shell Modules, all sandboxed and permissioned (see [Ecosystem Specification](./ecosystem.md)).
 - A set of **auxiliary services** running as independent processes communicating via IPC.
 - A **system-level terminal output** at Level 1 displaying the Brain's own console, powered by the terminal output module system.
 
@@ -977,7 +981,7 @@ All Cortex manifests are hot‑loaded from `~/.local/share/tos/cortex/` and conf
 | **Update Daemon** | Atomic update check, download, and staging. Coordination of the "Yellow Alert" status. | `update_check`, `update_apply` |
 | **Heuristic Service** | Predictive fillers, autocomplete-to-chip logic, typo correction, heuristic sector labeling. | `heuristic_query` |
 | **Audio & Haptic Engine** | Mix three-layer audio, play earcons, trigger haptic patterns. | `play_earcon`, `trigger_haptic` |
-| **Session Service** | Session persistence and workspace memory (live state auto-save, named sessions). | See [Features Specification §2](./TOS_v0.1.2_Features.md) |
+| **Session Service** | Session persistence and workspace memory (live state auto-save, named sessions). | See [Features Specification §2](./features.md) |
 
 All services communicate with the Brain via IPC. The Brain maintains authoritative state and routes messages as needed.
 
@@ -994,7 +998,7 @@ All services communicate with the Brain via IPC. The Brain maintains authoritati
 
 **Lifecycle:** Level 4 sub-views are transient; Tactical Reset flushes all inspection buffers and provides a global recovery environment.
 
-The Expanded Bezel Command Surface (see [Features Specification §1](./TOS_v0.1.2_Features.md)) is a cross-cutting overlay state — not a level. It is available at all levels except Tactical Reset (God Mode):
+The Expanded Bezel Command Surface (see [Features Specification §1](./features.md)) is a cross-cutting overlay state — not a level. It is available at all levels except Tactical Reset (God Mode):
 
 | Level | Expanded Bezel Available? |
 |-------|--------------------------|
@@ -1483,8 +1487,8 @@ The split system follows three principles:
 | Content Type | `pane_type` | Description |
 |:---|:---|:---|
 | **Terminal (Command Hub)** | `terminal` | A full Command Hub instance — prompt, chip columns, terminal output module. Shares the sector's shell context. |
-| **Editor** | `editor` | The TOS Editor surface — code/text viewer and editor with live AI context integration. See [Features Specification §6](./TOS_v0.1.2_Features.md). |
-| **Workflow Manager** | `workflow` | The Kanban board and agent terminal orchestration interface. See [Features Specification §7](./TOS_v0.1.2_Features.md). |
+| **Editor** | `editor` | The TOS Editor surface — code/text viewer and editor with live AI context integration. See [Features Specification §6](./features.md). |
+| **Workflow Manager** | `workflow` | The Kanban board and agent terminal orchestration interface. See [Features Specification §7](./features.md). |
 | **Level 3 Application** | `app` | Any running graphical application in Application Focus. |
 
 These can be combined freely. The default desktop layout is a vertical split with `terminal` on the left and `editor` on the right. On mobile, the default is a `tabs` layout with `terminal` as the first tab and `editor` as the second.
@@ -1605,7 +1609,7 @@ These chips operate on the **focused pane** at the time the bezel was opened.
 
 ### 11.9 Split State Persistence
 
-Split layouts are part of the sector's `hub_layout` object and are persisted to the session file as specced in the Session Persistence Specification (see [Features Specification §2](./TOS_v0.1.2_Features.md)). On restore:
+Split layouts are part of the sector's `hub_layout` object and are persisted to the session file as specced in the Session Persistence Specification (see [Features Specification §2](./features.md)). On restore:
 - All panes are recreated with their saved weights and orientations.
 - Terminal panes have their scrollback histories loaded before the shell spawns.
 - Level 3 application panes attempt to relaunch the application in the same position. If the application is no longer running, the pane renders a **[Relaunch]** chip.
@@ -1910,7 +1914,7 @@ Two principles:
 
 #### 17.2.1 Trust Configuration
 
-**First-Run Trust Setup:** During the onboarding flow (see [Features Specification §3](./TOS_v0.1.2_Features.md)), the user is presented with a trust configuration screen for each command class. No defaults are pre-selected. They can skip to defer all classes to WARN.
+**First-Run Trust Setup:** During the onboarding flow (see [Features Specification §3](./features.md)), the user is presented with a trust configuration screen for each command class. No defaults are pre-selected. They can skip to defer all classes to WARN.
 
 **Trust Levels:**
 
@@ -2036,7 +2040,7 @@ All commands, security events, role changes, and deep inspection accesses are lo
 
 TOS implements a robust, modular plugin architecture using platform-specific dynamic libraries distributed via the Marketplace ecosystem.
 
-**All detailed specifications regarding module manifests (`module.toml`), sandboxing rules, terminal UI injection, and module profiles (Shells, Themes, AI Backends, AI Skills, Bezel Components, Language Modules) are documented in the [Ecosystem Specification](./TOS_v0.1.2_Ecosystem.md).**
+**All detailed specifications regarding module manifests (`module.toml`), sandboxing rules, terminal UI injection, and module profiles (Shells, Themes, AI Backends, AI Skills, Bezel Components, Language Modules) are documented in the [Ecosystem Specification](./ecosystem.md).**
 
 ### 18.1 Module Type Summary
 
@@ -2106,13 +2110,13 @@ The Global TOS Log Sector provides a unified view transparently merging:
 
 ## 21. Visual Design, Sensory Interface, and Accessibility
 
-*The specifications for Priority-Weighted Visual Indicators, the Tactical Mini-Map, Auditory/Haptic interfaces, and Accessibility have been consolidated and moved to the [TOS Visual Design Specification](./TOS_v0.1.2_Visual_Design.md).*
+*The specifications for Priority-Weighted Visual Indicators, the Tactical Mini-Map, Auditory/Haptic interfaces, and Accessibility have been consolidated and moved to the [TOS Visual Design Specification](./visual-design.md).*
 
 ---
 
 ## 22. Sector Templates and Marketplace
 
-Schema for `.tos-template` distribution, AI-assisted discoverability, and the Marketplace package daemon are documented in the [Ecosystem Specification §2](./TOS_v0.1.2_Ecosystem.md).
+Schema for `.tos-template` distribution, AI-assisted discoverability, and the Marketplace package daemon are documented in the [Ecosystem Specification §2](./ecosystem.md).
 
 ---
 

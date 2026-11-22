@@ -7,10 +7,19 @@
 	// completion) and tapping one types into the terminal for you:
 	// a directory chip runs `cd`, a file chip inserts the file's
 	// name, a breadcrumb chip cds to that ancestor.
+	//
+	// Phase 1.7 — dynamic chips: the panel reacts while you type.
+	// The Brain tracks the shell's input line and publishes the
+	// fragment being typed (hub.chip_filter); the strip narrows
+	// to matching entries until the line is submitted or cleared.
+	// Dotfiles are hidden by default (like `ls`); the strip's own
+	// `.*` switch flips hub.chips_show_hidden in the Brain, so
+	// every face agrees.
 	import {
 		getTosState,
 		getConnectionState,
 		getConnectionScope,
+		sendCommand,
 		sendTerminalCommand,
 		sendTerminalText,
 		shellQuote
@@ -23,6 +32,32 @@
 	const activeHub = $derived(activeSector?.hubs[activeSector.active_hub_index]);
 	const listing = $derived(activeHub?.shell_listing ?? null);
 	const cwd = $derived(listing?.path ?? activeHub?.current_directory ?? '');
+	const chipFilter = $derived(activeHub?.chip_filter ?? null);
+	const showHidden = $derived(activeHub?.chips_show_hidden ?? false);
+
+	// The entries actually shown: dotfiles out unless the panel's
+	// switch says otherwise; while a fragment is being typed,
+	// matches only — prefix matches first, then substring
+	// matches. The listing arrives dirs-first and filtering
+	// preserves that order inside each class.
+	const visibleEntries = $derived.by(() => {
+		if (!listing) return [];
+		let entries = listing.entries;
+		if (!showHidden) entries = entries.filter((e) => !e.name.startsWith('.'));
+		const frag = chipFilter?.toLowerCase() ?? '';
+		if (frag) {
+			const prefix = entries.filter((e) => e.name.toLowerCase().startsWith(frag));
+			const within = entries.filter(
+				(e) => !e.name.toLowerCase().startsWith(frag) && e.name.toLowerCase().includes(frag)
+			);
+			entries = [...prefix, ...within];
+		}
+		return entries;
+	});
+
+	function toggleHidden() {
+		sendCommand(`chips_set_show_hidden:${!showHidden}`);
+	}
 
 	// Breadcrumb segments for the current directory.
 	const crumbs = $derived.by(() => {
@@ -68,8 +103,18 @@
 				>
 			{/each}
 		</nav>
+		<button
+			class="accel-chip toggle"
+			class:on={showHidden}
+			data-testid="accel-toggle-hidden"
+			title="Show or hide dotfiles"
+			onclick={toggleHidden}>.*</button
+		>
+		{#if chipFilter}
+			<span class="accel-filter" data-testid="accel-filter">⌕ {chipFilter}</span>
+		{/if}
 		<div class="accel-entries">
-			{#each listing.entries as entry (entry.name)}
+			{#each visibleEntries as entry (entry.name)}
 				{#if entry.is_dir}
 					<button
 						class="accel-chip dir"
@@ -84,6 +129,9 @@
 					>
 				{/if}
 			{/each}
+			{#if chipFilter && visibleEntries.length === 0}
+				<span class="accel-note" data-testid="accel-nomatch">no matches</span>
+			{/if}
 		</div>
 	{:else}
 		<span class="accel-note">{cwd}</span>
@@ -151,6 +199,23 @@
 	.accel-chip.crumb {
 		border-style: dashed;
 		opacity: 0.85;
+	}
+	.accel-chip.toggle {
+		font-family: monospace;
+		padding: 7px 9px;
+		opacity: 0.7;
+	}
+	.accel-chip.toggle.on {
+		opacity: 1;
+		border-color: var(--color-primary, #00e5ff);
+		color: var(--color-primary, #00e5ff);
+	}
+	.accel-filter {
+		flex: none;
+		font-size: 11px;
+		letter-spacing: 0.04em;
+		color: var(--color-primary, #00e5ff);
+		opacity: 0.9;
 	}
 	.accel-chip.dir {
 		color: var(--color-primary, #00e5ff);

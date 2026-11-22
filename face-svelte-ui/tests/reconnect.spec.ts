@@ -22,8 +22,8 @@ import os from 'os';
 import path from 'path';
 
 const FACE_URL = 'http://localhost:4173';
-const MARKER_BEFORE = 'TOS_RECONNECT_BEFORE_E5';
-const MARKER_AFTER = 'TOS_RECONNECT_AFTER_F6';
+const MARKER_BEFORE = 'TOS_RECONNECT_BEFORE_R7';
+const MARKER_AFTER = 'TOS_RECONNECT_AFTER_S8';
 
 test.use({
     ignoreHTTPSErrors: true,

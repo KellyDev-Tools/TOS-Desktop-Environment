@@ -6,6 +6,10 @@ at. It covers **how** work is done here and **where the truth
 lives** — never a task list. (The current work is the Roadmap's
 current phase, as directed by the maintainer.)
 
+New to TOS itself, not just to working here? Start with
+[docs/start-here.md](docs/start-here.md) — this file assumes you
+already know what TOS is.
+
 ## Read in this order
 
 1. [Vision](docs/vision.md) — what TOS is for, and the status of

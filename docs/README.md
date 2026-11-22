@@ -3,6 +3,11 @@
 The map. If you read nothing else, read the first three documents
 in the authority order.
 
+**New here?** Don't start with the map — start with
+[start-here.md](start-here.md), the timed route in: ten minutes
+to know what TOS is, an hour to run it, half a day to understand
+how it works.
+
 ## Authority order
 
 1. [Vision](vision.md) — why TOS exists, and the ledger of every
@@ -15,6 +20,16 @@ in the authority order.
    an empty placeholder.
 4. Decisions, product notes, guides, and standards — each governs
    only its own subject.
+
+## Start here (the newcomer pack)
+
+| Document | Role | Status |
+|---|---|---|
+| [Start Here](start-here.md) | The timed route into TOS | Living |
+| [Concepts](concepts.md) | The whole system on one page: picture, terms, invariants, three traces | Living |
+| [Quickstart](quickstart.md) | Run TOS: the user services, a smoke checklist, known traps | Living |
+| [State of TOS](state.md) | What works today, what's unverified, what's rough | Snapshot; refreshed per campaign |
+| [AI Collaboration](ai-collaboration.md) | How work is briefed, executed, handed back, and decided | Living |
 
 ## Direction
 

@@ -61,8 +61,10 @@ make restart-gdm
 ```
 
 ## Documentation
-Start with the [documentation map](./docs/README.md). The short
-version, in authority order:
+Start with the [documentation map](./docs/README.md). New to TOS?
+[Start Here](./docs/start-here.md) is the route in, and the
+[Quickstart](./docs/quickstart.md) runs it. The short version, in
+authority order:
 
 - [Vision](./docs/vision.md) — the core vision, and the ledger of every element's status
 - [Architecture Specification](./docs/spec/architecture.md) — the source of truth; see its Direction Update for the target topology

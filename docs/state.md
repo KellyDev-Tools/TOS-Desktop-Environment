@@ -21,8 +21,10 @@ the [Vision](vision.md) ledger; the current sequence is the
   typed (prefix matches first), and carries its own `.*` switch
   for dotfiles (default hidden, like `ls`).
 - **Terminal rendering.** The face renders through the xterm
-  canvas renderer — the DOM renderer's garbled-input fault under
-  WebKitGTK is fixed.
+  canvas renderer. An on-device retest (2026-11-22) shows the
+  input-line fault persists in a new shape — redraws landing as
+  new rows — so this is not counted as fixed; see the Roadmap's
+  Phase 1.7 status.
 - **Remote groundwork.** Brain remote configuration (off =
   loopback-only, fail closed), reconnect with backoff and
   scrollback truth, and the **three-stream narrowing**: over a
@@ -36,6 +38,10 @@ the [Vision](vision.md) ledger; the current sequence is the
 - The slice end-to-end on the maintainer's NixOS desktop (nested
   Sway under GNOME): commands run normally, chips refresh after
   commands, chips filter while typing.
+- Dynamic chips on device (2026-11-22 retest): the strip
+  filters while typing, the `.*` switch and breadcrumb/entry
+  taps all behave, and commands execute exactly once — the
+  faults found were in painting, not behaviour.
 - The narrowing gate over a real remote WebSocket connection.
 
 ## Not yet verified
@@ -44,8 +50,10 @@ the [Vision](vision.md) ledger; the current sequence is the
   the tailnet, face on another machine. All the pieces are
   merged; the assembled run hasn't happened. It is Phase 2's
   last gate.
-- **The dynamic-chips and canvas retests** on the server
-  hardware, after their merge.
+- **The canvas retest** ran on device 2026-11-22 and did not
+  pass: dynamic chips verified working by hand, but terminal
+  redraw painting and chips-surface painting are both faulty
+  on device. Diagnostics are in progress (Roadmap Phase 1.7).
 - **Summon/dismiss feel** — the prompt's motion and focus
   behaviour have never had a dedicated assessment.
 - **A full day of use** without a Brain crash.

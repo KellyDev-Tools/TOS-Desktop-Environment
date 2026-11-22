@@ -276,12 +276,11 @@ function proceedConnect(targetUrl: string): void {
         console.log('[IPC] ✅ Connected to Brain');
 
         if (hasConnectedBefore) {
-            // A reconnect, not the first connect. The Brain replays
-            // its scrollback to every new connection (Phase 1.5);
-            // tell raw listeners to reset first so the replay lands
-            // as the whole truth instead of appending to the frozen
-            // pre-drop content. Dispatched synchronously here, before
-            // any replay message can arrive.
+            // A reconnect, not the first connect. Raw listeners use
+            // this to resubscribe to the Brain's display state —
+            // the fresh snapshot is the whole truth, replacing the
+            // frozen pre-drop content. Dispatched synchronously
+            // here, before any update can arrive.
             rawListeners.forEach((listener) => {
                 try {
                     listener('tos:reconnected');
@@ -584,24 +583,40 @@ export async function dirNavigate(path: string): Promise<void> {
     await sendCommand(`dir_navigate:${path}`);
 }
 
-// --- Terminal Typing Helpers (Phase 1.6) ---
+// --- Terminal Input Helpers ---
 //
 // The accelerator chips and the prompt surface's input act on the
 // terminal by *typing into it* — the terminal stays a completely
 // normal terminal, and a chip tap is indistinguishable from the
-// user typing the same text.
+// user typing the same text. Faces send input uninterpreted: text
+// as text, keys as raw key events. The Brain encodes both into
+// PTY bytes against the emulation state it owns (Architecture
+// §26.3) — no face encodes input.
+
+/** A raw key event in the capturer's own terms. */
+export interface TerminalKeyEvent {
+    key: string;
+    code?: string;
+    ctrl?: boolean;
+    alt?: boolean;
+    shift?: boolean;
+    session?: string;
+}
+
+/** Send one raw key event to the Brain for encoding. */
+export async function sendTerminalKey(ev: TerminalKeyEvent): Promise<void> {
+    await sendCommand(`terminal_key:${JSON.stringify(ev)}`);
+}
 
 /** Type text into the terminal exactly as if the user typed it. */
 export async function sendTerminalText(text: string): Promise<void> {
-    const hex = Array.from(new TextEncoder().encode(text))
-        .map((b) => b.toString(16).padStart(2, '0'))
-        .join('');
-    await sendCommand(`terminal_input_hex:${hex}`);
+    await sendCommand(`terminal_text:${JSON.stringify({ text })}`);
 }
 
 /** Type a command into the terminal and run it (text + Enter). */
 export async function sendTerminalCommand(command: string): Promise<void> {
-    await sendTerminalText(command + '\n');
+    await sendTerminalText(command);
+    await sendTerminalKey({ key: 'Enter', code: 'Enter' });
 }
 
 /** Single-quote a string for safe typing into a POSIX shell. */

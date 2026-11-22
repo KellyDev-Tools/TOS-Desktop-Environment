@@ -6,6 +6,69 @@ use std::sync::{Arc, Mutex};
 use std::thread;
 use crate::shell::{OscEvent, OscParser};
 
+// ---------------------------------------------------------------------
+// Opt-in PTY byte trace.
+//
+// Rendering faults on device are hard to attribute without seeing
+// the exact bytes: what a face sent, and what the shell answered.
+// With `TOS_PTY_TRACE` set in the Brain's environment, every input
+// write and every output chunk is logged to stderr in escaped
+// form, so the two directions can be compared byte for byte. Off
+// by default, and capped per direction so a long session cannot
+// flood the log.
+// ---------------------------------------------------------------------
+
+static PTY_TRACE_IN: std::sync::atomic::AtomicU64 = std::sync::atomic::AtomicU64::new(0);
+static PTY_TRACE_OUT: std::sync::atomic::AtomicU64 = std::sync::atomic::AtomicU64::new(0);
+const PTY_TRACE_MAX_CHUNKS: u64 = 2000;
+const PTY_TRACE_MAX_BYTES: usize = 512;
+
+fn pty_trace_enabled() -> bool {
+    static ENABLED: std::sync::OnceLock<bool> = std::sync::OnceLock::new();
+    *ENABLED.get_or_init(|| std::env::var_os("TOS_PTY_TRACE").is_some())
+}
+
+/// Render bytes readably for the trace: printable ASCII as-is,
+/// the whitespace controls as `\r` / `\n` / `\t`, everything else
+/// as `\xNN`.
+fn escape_trace_bytes(data: &[u8]) -> String {
+    let mut text = String::with_capacity(data.len());
+    for &b in data {
+        match b {
+            b'\r' => text.push_str("\\r"),
+            b'\n' => text.push_str("\\n"),
+            b'\t' => text.push_str("\\t"),
+            0x20..=0x7e => text.push(b as char),
+            _ => text.push_str(&format!("\\x{:02x}", b)),
+        }
+    }
+    text
+}
+
+fn trace_pty_bytes(dir: &str, counter: &std::sync::atomic::AtomicU64, data: &[u8]) {
+    if !pty_trace_enabled() {
+        return;
+    }
+    let n = counter.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
+    if n >= PTY_TRACE_MAX_CHUNKS {
+        return;
+    }
+    let shown = &data[..data.len().min(PTY_TRACE_MAX_BYTES)];
+    let more = if data.len() > shown.len() {
+        format!(" (+{} more bytes)", data.len() - shown.len())
+    } else {
+        String::new()
+    };
+    eprintln!(
+        "[pty-trace] {} #{} {} bytes: {}{}",
+        dir,
+        n,
+        data.len(),
+        escape_trace_bytes(shown),
+        more
+    );
+}
+
 /// Cap on the raw scrollback the Brain retains per shell (Phase 1.5).
 pub const SCROLLBACK_CAP_BYTES: usize = 256 * 1024;
 
@@ -315,6 +378,7 @@ impl PtyShell {
     }
 
     pub fn write(&mut self, data: &[u8]) -> anyhow::Result<()> {
+        trace_pty_bytes("in", &PTY_TRACE_IN, data);
         // Phase 1.6: a write containing Enter submits a command —
         // the completion watcher uses this (plus output quiescence)
         // to know when to re-issue the directory listing.
@@ -470,6 +534,7 @@ fn read_loop(
             Ok(0) | Err(_) => break,
             Ok(n) => {
                 let data = &buffer[..n];
+                trace_pty_bytes("out", &PTY_TRACE_OUT, data);
 
                 // Retain before broadcasting (Phase 1.5): anything in
                 // the buffer is by construction never lost to a face
@@ -675,6 +740,16 @@ mod tests {
         // and the replay starts at a line boundary.
         buf.append(b"aaaa\nbbbbb\nccccc");
         assert_eq!(buf.snapshot(), b"ccccc");
+    }
+
+    #[test]
+    fn trace_escaping_shows_controls_and_hides_raw_bytes() {
+        assert_eq!(
+            escape_trace_bytes(b"cd '/home/tim'\r\n"),
+            "cd '/home/tim'\\r\\n"
+        );
+        assert_eq!(escape_trace_bytes(b"a\tb\x1b[0m"), "a\\tb\\x1b[0m");
+        assert_eq!(escape_trace_bytes(b""), "");
     }
 
     #[test]

@@ -4,6 +4,10 @@
 
 **Version:** 0.1.1
 
+**Vision:** The core vision, and the status of every element in it,
+are anchored in [TOS_Vision.md](./TOS_Vision.md). This spec defines;
+the Vision page accounts — read it alongside this document.
+
 ---
 
 ## Direction Update (2026-11-15): The Ambient Layer

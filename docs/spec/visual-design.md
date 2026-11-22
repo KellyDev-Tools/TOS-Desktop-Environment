@@ -6,7 +6,7 @@
 
 > **Spec 0.1.1 — 2026-11-17:** Carried forward from 0.1.0; the 0.1.1 revision defines the chip system as a logical dynamic user experience and lives in the [Architecture Specification](./architecture.md) (front note, §7.7) and the [Feature Specifications](./features.md) (§1). The 0.1.0 text is preserved in git history.
 > **Spec 0.1.2 — 2026-11-21:** Carried forward from 0.1.1; the 0.1.2 revision makes the chip system dynamic against in-progress typing (type-ahead filtering, the panel's dotfiles switch) and sets the face terminal rendering requirement (canvas, not DOM). It lives in the [Architecture Specification](./architecture.md) (Spec 0.1.2 note). The 0.1.1 text is preserved in git history.
-> **Spec 0.1.3 — 2026-11-22:** Adds §5, defining the ambient terminal plane for the three-surface face: the perspective (vanishing-point) rendering of the background terminal, the wallpaper layering and legibility rules, the chip panels' overlap zone, and the focus/dismiss fade timings. The perspective treatment is the Cinematic Triangular treatment (see the [Ecosystem Specification](./ecosystem.md) §1.5) defined here as the background terminal's at-rest rendering. The 0.1.2 text is preserved in git history.
+> **Spec 0.1.3 — 2026-11-22:** Adds §5, defining the ambient terminal plane for the three-surface face: the perspective (vanishing-point) rendering of the background terminal, the wallpaper layering and legibility rules, the chip panels' overlap zone, and the focus/dismiss fade timings. The perspective treatment is the Cinematic Triangular treatment (see the [Ecosystem Specification](./ecosystem.md) §1.5), defined here as the background terminal's end-state rendering — the only end state for that surface. The 0.1.2 text is preserved in git history.
 
 > **Direction update — 2026-11-15:** TOS is being refocused as an ambient layer inside a host desktop (see the [Architecture Specification](./architecture.md), Direction Update). This document becomes **more** central, not less: the zoom/slide motion language and visual hierarchy defined here are the core of the background terminal, chips overlay, and prompt overlay. Apply it to those three surfaces first. See [Scope Split](../decisions/2026-11-15-scope-split.md) and [Roadmap](../roadmap.md).
 
@@ -187,8 +187,11 @@ presents it.
 
 At rest, the background terminal renders as a plane in
 perspective — the Cinematic Triangular treatment (Ecosystem
-Specification §1.5), defined here as the background terminal's
-at-rest rendering:
+Specification §1.5). For this surface the perspective rendering
+is the end state, not an option: the background terminal ends
+cinematic, and a flat rectangular rendering of it is a
+transitional form of the young slice, not an end-state
+alternative:
 
 - Output is anchored at the **bottom** of the screen. The newest
   lines sit at full size and full legibility — this is the

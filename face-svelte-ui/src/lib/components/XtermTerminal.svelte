@@ -83,6 +83,16 @@
         term.open(terminalElement);
         fitAddon.fit();
 
+        // E2E/debug handle: the gated specs read the terminal's
+        // buffer through this — the canvas renderer paints to a
+        // bitmap, so there are no DOM rows left to read. The
+        // buffer is what is on screen, whichever renderer
+        // painted it.
+        const xtermEl = terminalElement.querySelector('.xterm');
+        if (xtermEl) {
+            (xtermEl as unknown as { __tosTerminal?: Terminal }).__tosTerminal = term;
+        }
+
         // Intercept Tab key to support prediction acceptance and prevent focus navigation loss
         term.attachCustomKeyEventHandler((e) => {
             if (e.key === 'Tab') {

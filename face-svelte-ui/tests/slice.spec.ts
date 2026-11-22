@@ -60,7 +60,29 @@ async function waitForPort(port: number, timeoutMs = 30_000): Promise<void> {
 }
 
 async function terminalText(page: Page): Promise<string> {
-    return (await page.locator('.xterm-rows').textContent()) ?? '';
+    // Read the terminal's buffer through the handle the face
+    // leaves on the .xterm element — renderer-independent (the
+    // canvas renderer paints to a bitmap; there are no DOM rows).
+    return page.evaluate(() => {
+        type TermHandle = {
+            buffer: {
+                active: {
+                    length: number;
+                    getLine: (y: number) => { translateToString: (trim?: boolean) => string } | undefined;
+                };
+            };
+        };
+        const el = document.querySelector('.xterm') as unknown as {
+            __tosTerminal?: TermHandle;
+        } | null;
+        const term = el?.__tosTerminal;
+        if (!term) return '';
+        const lines: string[] = [];
+        for (let i = 0; i < term.buffer.active.length; i++) {
+            lines.push(term.buffer.active.getLine(i)?.translateToString(true) ?? '');
+        }
+        return lines.join('\n');
+    });
 }
 
 async function expectTerminalContains(page: Page, text: string): Promise<void> {

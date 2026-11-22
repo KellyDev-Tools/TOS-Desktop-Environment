@@ -110,7 +110,7 @@ frozen slice at a time — never the other way round.
 | Chips overlay | Glanceable status + accelerator strip | **Live** | Architecture §7.3–§7.7 |
 | Chip lifecycle | Chip sets in generations; older sets deprecate and fall away | **Live** (0.1.1 model; Phase 1.6) | Architecture §7.7 |
 | Dynamic chips | Panels filter against in-progress typing; dotfiles switch on the panel | **Live** (Phase 1.7, PR #18) | Architecture, 0.1.2 note |
-| Face terminal rendering | Terminal emulation lives in the Brain: the Brain parses the PTY stream into a per-session grid and publishes display state; faces paint cells and send raw input — no emulation, no input encoding, no stream rendering in any face (Timothy's decision, 2026-11-22, after the face-era rendering faults) | **In progress** (Spec 0.1.4; the build is Phase 1.7's closing work) | Architecture §26.3, 0.1.4 note |
+| Face terminal rendering | Terminal emulation lives in the Brain: the Brain parses the PTY stream into a per-session grid and publishes display state; faces paint cells and send raw input — no emulation, no input encoding, no stream rendering in any face (Timothy's decision, 2026-11-22, after the face-era rendering faults) | **Built** (PR #24; the on-device typing retest remains Timothy's) | Architecture §26.3, 0.1.4 note |
 | Sectors & hubs | Spatial organisation of work in the Brain's model | **Live** in the model; face expression grows by slices | Architecture §5, §10 |
 | Session persistence | A face restart must not blank the terminal; scrollback replays | **Live** (Phase 1.5) | Features §2 |
 

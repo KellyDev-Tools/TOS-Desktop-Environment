@@ -183,11 +183,13 @@ Explicitly not in this phase: fuzzy ranking beyond prefix/substring, learning fr
 
 Done when (in addition to the checks above):
 
-- [ ] The Architecture revision defines Brain-owned emulation, Brain-side input encoding, and the display-state protocol — and the build matches it
+- [x] The Architecture revision defines Brain-owned emulation, Brain-side input encoding, and the display-state protocol — and the build matches it
 - [ ] Typing on device renders exactly as typed — no staircase, no doubled lines — and a submitted command shows once
-- [ ] Face restart and reconnect repaint from the Brain's grid, with no raw-stream replay
+- [x] Face restart and reconnect repaint from the Brain's grid, with no raw-stream replay
 - [ ] The gated E2E asserts the Brain's grid headlessly and the slice test paints it through the face; both stay green in CI
-- [ ] No xterm in the face, and no face code parses terminal output or encodes input
+- [x] No xterm in the face, and no face code parses terminal output or encodes input
+
+**Status (2026-11-22): the re-scope is built (PR #24).** Architecture 0.1.4 (§26.3) defines the model and the build matches it: the Brain parses the PTY stream once into a per-session grid (alacritty_terminal) and publishes display state — snapshot on subscribe, coalesced `display_update` pushes — while faces paint cells and send raw key events and text back for the Brain to encode beside the grid (the input-line model now reads bracketed paste, since the Brain's own text encoding produces it). Sessions are keyed from the first commit (sector:hub ids, a session registry in the IPC layer); the raw stream no longer leaves the Brain's read loop, and the remote gate moved with the protocol, retired raw-stream commands refused. xterm is out of the face. Local verification: cargo suites green, and the gated Playwright set — the new headless grid spec plus slice, chips-lifecycle, reconnect, narrowing — passes 25/25. Two boxes stay open, both honestly outside the build: the on-device typing retest is Timothy's, and the grid spec joins the CI gate only when `ci.yml` lists it (a workflow edit the working token cannot push). The chips ghost-rectangle fault from the same retest is a separate WebKitGTK compositing question — the PR #22 probe build remains the instrument for it, and it is not addressed here.
 
 ## Phase 2 — Make remote the default topology
 

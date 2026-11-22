@@ -4,7 +4,7 @@
 
 **Version:** 0.1.3
 
-> **Spec 0.1.3 — 2026-11-22:** Carried forward from 0.1.2 unchanged by this revision; the 0.1.3 revision defines the ambient terminal plane and records the LCARS design-language decision, and lives in the [Visual Design Specification](./visual-design.md) (§5). The 0.1.2 text is preserved in git history.
+> **Spec 0.1.3 — 2026-11-22:** This document changes in one place: §23.2's default theme is now `default`, not `lcars-light`, following the LCARS design-language decision recorded in the [Visual Design Specification](./visual-design.md) (§5.5). The 0.1.2 text is preserved in git history.
 
 **Vision:** The core vision, and the status of every element in it,
 are anchored in [Vision page](../vision.md). This spec defines;

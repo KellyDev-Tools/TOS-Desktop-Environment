@@ -2,11 +2,10 @@
 
 **Purpose:** This document defines the plugin architecture, module types, sandboxing rules, marketplace systems, and service orchestration for **TOS** (**Terminal On Steroids**). It covers everything from module manifests to boot sequencing.
 
-**Version:** 0.1.3
+**Version:** 0.1.2
 
 > **Spec 0.1.1 — 2026-11-17:** Carried forward from 0.1.0; the 0.1.1 revision defines the chip system as a logical dynamic user experience and lives in the [Architecture Specification](./architecture.md) (front note, §7.7) and the [Feature Specifications](./features.md) (§1). The 0.1.0 text is preserved in git history.
 > **Spec 0.1.2 — 2026-11-21:** Carried forward from 0.1.1; the 0.1.2 revision makes the chip system dynamic against in-progress typing (type-ahead filtering, the panel's dotfiles switch) and sets the face terminal rendering requirement (canvas, not DOM). It lives in the [Architecture Specification](./architecture.md) (Spec 0.1.2 note). The 0.1.1 text is preserved in git history.
-> **Spec 0.1.3 — 2026-11-22:** Carried forward from 0.1.2 unchanged by this revision; the 0.1.3 revision defines the ambient terminal plane and records the LCARS design-language decision, and lives in the [Visual Design Specification](./visual-design.md) (§5). The 0.1.2 text is preserved in git history.
 
 > **Direction update — 2026-11-15:** TOS is being refocused as an ambient layer inside a host desktop (see the [Architecture Specification](./architecture.md), Direction Update). The module system, marketplace, and service-orchestration material in this document is **parked**, not cancelled; boot sequencing for a standalone TOS session is superseded by the host desktop's session. Remote discovery concepts remain relevant — the Brain may run on a server. See [Scope Split](../decisions/2026-11-15-scope-split.md) and [Roadmap](../roadmap.md).
 

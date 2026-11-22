@@ -42,10 +42,12 @@ how it works.
 
 ## Specification
 
-The governing suite. The suite's overall version has one source
-of truth — [spec/VERSION](spec/VERSION) — and each document's
-header mirrors it. Prior texts live in git history, not in
-filenames.
+The governing suite. Spec versions are per-document: each
+document's version moves only when that document changes.
+[spec/VERSION](spec/VERSION) is the source of truth — it records
+the latest overall revision and each document's own version, and
+each document's header mirrors its entry. Prior texts live in
+git history, not in filenames.
 
 - [Architecture](spec/architecture.md) — the source of truth:
   structure, contracts, hierarchy, the chip system, the remote
@@ -100,12 +102,12 @@ Git history is the deeper archive behind it.
   `CHANGELOG.md`).
 - **Versions live in headers and git history, not filenames.** A
   new spec version edits the suite in place; git preserves every
-  prior text. The suite carries one overall version, declared in
-  `spec/VERSION` — the single source of truth every document's
-  header mirrors. When it moves, every header moves with it, and
-  a document the revision does not touch carries a front note
-  saying it is carried forward unchanged, naming where the
-  revision lives.
+  prior text. Spec versions are per-document: `spec/VERSION` is
+  the source of truth, listing the latest overall revision and
+  each document's own version, and every header mirrors its
+  entry there. A document's version moves only when that
+  document changes; an unchanged document keeps its version and
+  gains no new note.
 - **Historical documents are not renamed.** Once a document is
   superseded, it moves to `archive/` under the name it had, so the
   record reads as it was written.

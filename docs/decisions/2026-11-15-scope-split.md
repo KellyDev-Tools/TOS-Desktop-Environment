@@ -1,5 +1,11 @@
 # TOS scope split: keep / delegate / park / drop
 
+> **Status — frozen decision record (2026-11-15).** This is the
+> decision as made; it is not a current-state description, and its
+> contemporary lines (such as "nothing here has been implemented")
+> are part of the record. What has since been built is tracked in
+> the [Vision](../vision.md) ledger and the [Roadmap](../roadmap.md).
+
 TOS stops trying to be a desktop environment. The new direction is an **ambient layer that lives inside any Linux environment**: the terminal session as an animated background, a chips overlay for glanceable status, and a prompt overlay that zooms or slides in on demand and vanishes just as fast — always accessible at a moment's notice, never in the way. The host desktop environment (GNOME, KDE, or another compositor) keeps everything it is already good at: window management, app launching and placement, session and login, notifications, and system settings.
 
 This document sorts every current component of TOS against that direction. It is a decision map to react to, not a rewrite plan. Nothing here has been implemented.

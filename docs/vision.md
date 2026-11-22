@@ -4,7 +4,7 @@
 stays visible and accounted for while the work proceeds in slices.*
 
 *It is not the spec: definitions and behaviour live in the spec suite
-(`TOS_v*_Architecture.md` and companions), and where this page and the
+(the [spec suite](spec/architecture.md) and its companions), and where this page and the
 spec differ on a definition, the spec governs. It is not the roadmap:
 sequence and gates live there, and roadmaps are transient by design.
 This page changes slowly, and only deliberately.*

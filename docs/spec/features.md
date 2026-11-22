@@ -1,13 +1,13 @@
 # TOS Feature Specifications
 
-**Purpose:** This document consolidates the detailed specifications for major TOS features that extend the core architecture. Each section is self-contained and cross-references the [Architecture Specification](./TOS_v0.1.2_Architecture.md) and [Ecosystem Specification](./TOS_v0.1.2_Ecosystem.md) as needed.
+**Purpose:** This document consolidates the detailed specifications for major TOS features that extend the core architecture. Each section is self-contained and cross-references the [Architecture Specification](./architecture.md) and [Ecosystem Specification](./ecosystem.md) as needed.
 
 **Version:** 0.1.2
 
-> **Spec 0.1.1 — 2026-11-17:** Carried forward from 0.1.0; the 0.1.1 revision defines the chip system as a logical dynamic user experience and lives in the [Architecture Specification](./TOS_v0.1.2_Architecture.md) (front note, §7.7) and the [Feature Specifications](./TOS_v0.1.2_Features.md) (§1). The 0.1.0 text is preserved in git history.
-> **Spec 0.1.2 — 2026-11-21:** Carried forward from 0.1.1; the 0.1.2 revision makes the chip system dynamic against in-progress typing (type-ahead filtering, the panel's dotfiles switch) and sets the face terminal rendering requirement (canvas, not DOM). It lives in the [Architecture Specification](./TOS_v0.1.2_Architecture.md) (Spec 0.1.2 note). The 0.1.1 text is preserved in git history.
+> **Spec 0.1.1 — 2026-11-17:** Carried forward from 0.1.0; the 0.1.1 revision defines the chip system as a logical dynamic user experience and lives in the [Architecture Specification](./architecture.md) (front note, §7.7) and the [Feature Specifications](./features.md) (§1). The 0.1.0 text is preserved in git history.
+> **Spec 0.1.2 — 2026-11-21:** Carried forward from 0.1.1; the 0.1.2 revision makes the chip system dynamic against in-progress typing (type-ahead filtering, the panel's dotfiles switch) and sets the face terminal rendering requirement (canvas, not DOM). It lives in the [Architecture Specification](./architecture.md) (Spec 0.1.2 note). The 0.1.1 text is preserved in git history.
 
-> **Direction update — 2026-11-15:** TOS is being refocused as an ambient layer inside a host desktop (see the [Architecture Specification](./TOS_v0.1.2_Architecture.md), Direction Update). The Expanded Bezel (Section 1) becomes the **chips overlay**, the Command Hub becomes the **prompt overlay**, and session persistence (Section 2) stays Brain-side. Marketplace (Section 5) and Kanban agent orchestration (Section 7) are **parked**. See [TOS_Scope-Split.md](./TOS_Scope-Split.md) and [TOS_Roadmap.md](./TOS_Roadmap.md).
+> **Direction update — 2026-11-15:** TOS is being refocused as an ambient layer inside a host desktop (see the [Architecture Specification](./architecture.md), Direction Update). The Expanded Bezel (Section 1) becomes the **chips overlay**, the Command Hub becomes the **prompt overlay**, and session persistence (Section 2) stays Brain-side. Marketplace (Section 5) and Kanban agent orchestration (Section 7) are **parked**. See [Scope Split](../decisions/2026-11-15-scope-split.md) and [Roadmap](../roadmap.md).
 
 ---
 

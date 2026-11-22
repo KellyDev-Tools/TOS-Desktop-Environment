@@ -1,5 +1,10 @@
 # TOS Beta-0 Packaging & Release Guide
 
+> **Status — parked.** This is the Beta-0 packaging guide.
+> Packaging is parked under the Scope Split, and TOS no longer
+> ships as a standalone session; treat this as the starting point
+> for if and when packaging revives, not as current instructions.
+
 This guide outlines how to build distributions, orchestrate releases, and push artifacts for the Tactical Operating System (TOS) Beta-0 environment.
 
 ## Overview

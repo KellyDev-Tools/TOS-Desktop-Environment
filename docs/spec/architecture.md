@@ -2,7 +2,9 @@
 
 **Purpose:** This document is the single source of truth for the architecture and visual design of **TOS** (**Terminal On Steroids**). It defines system structure, process boundaries, IPC contracts, the visual hierarchy, rendering model, input abstraction, security, and all platform behaviour. The terminal and command line are the absolute centre of every design decision. All features exist to augment the terminal, never to bypass it.
 
-**Version:** 0.1.2
+**Version:** 0.1.3
+
+> **Spec 0.1.3 — 2026-11-22:** This document changes in one place: §23.2's default theme is now `default`, not `lcars-light`, following the LCARS design-language decision recorded in the [Visual Design Specification](./visual-design.md) (§5.5). The 0.1.2 text is preserved in git history.
 
 **Vision:** The core vision, and the status of every element in it,
 are anchored in [Vision page](../vision.md). This spec defines;
@@ -2130,7 +2132,7 @@ Settings are resolved via cascade: **per-application > per-sector > global key-v
 
 | Key | Type | Default | Description |
 |---|---|---|---|
-| `theme` | string | `"lcars-light"` | Active theme module ID. |
+| `theme` | string | `"default"` | Active theme module ID; `default` is the face's built-in theme (see Visual Design §5.5). |
 | `default_shell` | string | `"fish"` | Default shell module ID for new sectors. |
 | `terminal_output_module` | string | `"rectangular"` | Active terminal output module ID. |
 | `master_volume` | `"0"`–`"100"` | `"80"` | Master audio volume. |

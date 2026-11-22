@@ -101,7 +101,7 @@ frozen slice at a time — never the other way round.
 
 | Element | What it is | Status | Defined in |
 |---|---|---|---|
-| Terminal as animated background | The session as the desktop's living background layer | **Live** (Phase 1; layer-shell face; GNOME shim is Phase 4) | Architecture, Direction Update + §7.2 |
+| Terminal as animated background | The session as the desktop's living background layer | **Live** (Phase 1; layer-shell face; GNOME shim is Phase 4) | Architecture, Direction Update + §7.2; Visual Design §5 |
 | Brain holds the truth; faces render | One headless daemon; thin faces per machine | **Live** | Architecture §3 |
 | Remote Brain as default topology | Brain on a server (e.g. tkserver); workspace follows the user | **In progress** (Phase 2: config, reconnect, narrowing landed; tkserver end-to-end remains) | Direction Update; §12 reframed |
 | Three-stream protocol | Terminal, chip state, prompt — nothing else crosses remotely | **Live** (PR #16) | Architecture, "The remote surface" |
@@ -132,7 +132,7 @@ Chips derive from Brain-held state only. Each family below is a
 
 | Element | What it is | Status | Defined in |
 |---|---|---|---|
-| Dual-Sided Chip Layout | The full two-column chip form around the canvas | **Defined; first form live** — the ambient face's strip is its current expression | Architecture §7.4 |
+| Dual-Sided Chip Layout | The full two-column chip form around the canvas | **Defined; first form live** — the ambient face's strip is its current expression | Architecture §7.4; Visual Design §5 |
 | Level 1 — Global Overview | Sector tiles as mini command hubs; the zoomed-out space | **Parked** (view parked; may return as a zoom level) | Architecture §6 |
 | Level 3 — Application Focus / Tactical Bezel | Slot-based bezel around a focused app | **Superseded as a TOS-owned level** (Direction Update: apps belong to the host); the bezel slot architecture is **Parked** | Architecture §8 |
 | Level 4 — System Monitor | Sector-scoped process monitor; tactical reset | **Parked** — with the process provider | Architecture §9 |
@@ -177,6 +177,7 @@ login/session (no TOS session, no GDM integration) · system settings
 | Element | Replaced by | Decision |
 |---|---|---|
 | Chip population by output scraping / prompt sniffing | Chips derived from Brain-held state (§7.7) | Timothy's ruling, 2026-11-17; spec 0.1.1. Old text: git history, pre-0.1.1 spec |
+| LCARS as the default aesthetic identity | The face's own design language (Visual Design §5.5); LCARS kept as a design influence and a possible future theme module | Timothy's ruling, 2026-11-22 |
 | TOS as a standalone desktop environment (own session/compositor) | The ambient layer inside a host desktop | The pivot, 2026-11-15; Scope Split |
 | `face-wayland-linux` crate; `archive/` prototypes | The layer-shell ambient face; git history | Dropped, Phase 0 |
 

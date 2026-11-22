@@ -1,0 +1,12 @@
+# TOS specification — document versions
+# The source of truth for the spec suite's versions. Each
+# document's header mirrors its entry here. A document's version
+# moves only when that document changes; "overall" is the latest
+# revision level any document has reached.
+overall: 0.1.3
+architecture.md: 0.1.3
+developer-reference.md: 0.1.3
+ecosystem.md: 0.1.2
+features.md: 0.1.2
+user-manual.md: 0.1.2
+visual-design.md: 0.1.3

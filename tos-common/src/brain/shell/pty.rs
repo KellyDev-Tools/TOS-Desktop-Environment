@@ -403,8 +403,8 @@ impl PtyShell {
     }
 
     /// Deliver literal text (committed input, a chip tap's
-    /// typing), encoded against the grid's state — bracketed
-    /// paste when the shell has that mode on.
+    /// typing), encoded by the Brain's text encoding — as
+    /// typed input, byte for byte.
     pub fn write_text(&mut self, text: &str) -> anyhow::Result<()> {
         let bytes = {
             let grid = self.grid.lock().unwrap();

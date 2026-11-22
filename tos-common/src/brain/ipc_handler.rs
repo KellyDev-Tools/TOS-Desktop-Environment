@@ -2236,8 +2236,8 @@ impl IpcHandler {
     }
 
     /// Literal text, as JSON: `text` plus an optional `session`.
-    /// Delivered through the Brain's text encoding (bracketed
-    /// paste when the shell has the mode on).
+    /// Delivered through the Brain's text encoding — as typed
+    /// input, byte for byte.
     fn handle_terminal_text(&self, payload: &str) -> String {
         #[derive(serde::Deserialize)]
         struct TextRequest {

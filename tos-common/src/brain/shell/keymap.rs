@@ -190,18 +190,22 @@ fn control_code(c: char) -> Option<u8> {
     }
 }
 
-/// Encode literal text for delivery to the PTY: wrapped as a
-/// bracketed paste when the shell has that mode on, raw otherwise.
-pub fn encode_text(text: &str, mode: &TermMode) -> Vec<u8> {
-    if mode.contains(TermMode::BRACKETED_PASTE) {
-        let mut out = Vec::with_capacity(text.len() + 12);
-        out.extend_from_slice(b"\x1b[200~");
-        out.extend_from_slice(text.as_bytes());
-        out.extend_from_slice(b"\x1b[201~");
-        out
-    } else {
-        text.as_bytes().to_vec()
-    }
+/// Encode literal text for delivery to the PTY: as typed input,
+/// byte for byte. Every text caller means typing — a chip tap
+/// types, the prompt types, committed keyboard text is typing —
+/// and the shell must treat it as typing. Deliberately NOT
+/// wrapped as a bracketed paste: a paste wrapper changes what
+/// the shell does with the bytes and is fragile in exactly the
+/// situations typing must survive (text that arrives before the
+/// shell reaches its prompt, a submit that follows the text
+/// immediately). CI evidence, 2026-11-22: with the wrapper, a
+/// chip tap's command and its Enter interleaved wrongly in
+/// bash, and type-ahead text lost its head; as typed input both
+/// are exact. The mode argument stays in the signature beside
+/// `encode_key`: text encoding is a Brain decision, and this is
+/// where it would change.
+pub fn encode_text(text: &str, _mode: &TermMode) -> Vec<u8> {
+    text.as_bytes().to_vec()
 }
 
 #[cfg(test)]
@@ -280,13 +284,12 @@ mod tests {
     }
 
     #[test]
-    fn text_wraps_only_with_bracketed_paste_on() {
+    fn text_is_delivered_as_typed_input() {
+        // Whatever the shell's modes, text goes as typing: a chip
+        // tap's text must be indistinguishable from keystrokes.
         let off = mode_default();
         assert_eq!(encode_text("ls -la", &off), b"ls -la".to_vec());
         let on = TermMode::SHOW_CURSOR | TermMode::BRACKETED_PASTE;
-        assert_eq!(
-            encode_text("ls -la", &on),
-            b"\x1b[200~ls -la\x1b[201~".to_vec()
-        );
+        assert_eq!(encode_text("ls -la", &on), b"ls -la".to_vec());
     }
 }

@@ -2,7 +2,9 @@
 
 **Purpose:** This document is the single source of truth for the architecture and visual design of **TOS** (**Terminal On Steroids**). It defines system structure, process boundaries, IPC contracts, the visual hierarchy, rendering model, input abstraction, security, and all platform behaviour. The terminal and command line are the absolute centre of every design decision. All features exist to augment the terminal, never to bypass it.
 
-**Version:** 0.1.2
+**Version:** 0.1.3
+
+> **Spec 0.1.3 — 2026-11-22:** Carried forward from 0.1.2 unchanged by this revision; the 0.1.3 revision defines the ambient terminal plane and records the LCARS design-language decision, and lives in the [Visual Design Specification](./visual-design.md) (§5). The 0.1.2 text is preserved in git history.
 
 **Vision:** The core vision, and the status of every element in it,
 are anchored in [Vision page](../vision.md). This spec defines;

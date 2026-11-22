@@ -2,10 +2,11 @@
 
 **Purpose:** Everything a contributor needs to build, test, and extend TOS — covering project structure, development workflow, the third-party SDK, TDD protocols, and cross-system dependency constraints.
 
-**Version:** 0.1.2
+**Version:** 0.1.3
 
 > **Spec 0.1.1 — 2026-11-17:** Carried forward from 0.1.0; the 0.1.1 revision defines the chip system as a logical dynamic user experience and lives in the [Architecture Specification](./architecture.md) (front note, §7.7) and the [Feature Specifications](./features.md) (§1). The 0.1.0 text is preserved in git history.
 > **Spec 0.1.2 — 2026-11-21:** Carried forward from 0.1.1; the 0.1.2 revision makes the chip system dynamic against in-progress typing (type-ahead filtering, the panel's dotfiles switch) and sets the face terminal rendering requirement (canvas, not DOM). It lives in the [Architecture Specification](./architecture.md) (Spec 0.1.2 note). The 0.1.1 text is preserved in git history.
+> **Spec 0.1.3 — 2026-11-22:** Carried forward from 0.1.2 unchanged by this revision; the 0.1.3 revision defines the ambient terminal plane and records the LCARS design-language decision, and lives in the [Visual Design Specification](./visual-design.md) (§5). The 0.1.2 text is preserved in git history.
 
 > **Direction update — 2026-11-15:** TOS is being refocused as an ambient layer inside a host desktop (see the [Architecture Specification](./architecture.md), Direction Update). Project structure changes per the Scope Split: `face-wayland-linux` is removed, the Electron and Android faces are parked, and the Svelte face is the source of the new ambient face. CI (GitHub Actions) is being added to the testing strategy. This reference remains authoritative for `tos-common` and Brain development. See [Scope Split](../decisions/2026-11-15-scope-split.md) and [Roadmap](../roadmap.md).
 

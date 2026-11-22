@@ -192,6 +192,21 @@ test.describe('Phase 2 — three-stream narrowing', () => {
             .toContain('TOS_NARROW_OK');
     });
 
+    test('the chips dotfiles switch is allowed over remote (chip-state stream)', async () => {
+        // Phase 1.7: chips_set_show_hidden belongs to the chip-state
+        // stream — the panel's switch must keep working on a remote
+        // face, and the flag must land in Brain state.
+        const res = await client.send('chips_set_show_hidden:true');
+        expect(res).toBe('OK');
+        const stateRes = await client.send('get_state:');
+        const state = JSON.parse(stateRes!);
+        const sector = state.sectors[state.active_sector_index];
+        const hub = sector.hubs[sector.active_hub_index];
+        expect(hub.chips_show_hidden).toBe(true);
+        // Leave the flag as found for the tests that follow.
+        await client.send('chips_set_show_hidden:false');
+    });
+
     test('parked subsystems are refused loudly over remote', async () => {
         const marketplace = await client.send('marketplace_home:');
         expect(marketplace).toContain(

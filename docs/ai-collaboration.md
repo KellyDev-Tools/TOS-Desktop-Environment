@@ -75,6 +75,9 @@ Changed:        what changed, file by file at the level that matters
 Verified:       the gates run and their results; the checks performed
 Not verified:   what was not checked, and why (whose test it is)
 Decisions:      any decision made en route — and where it is recorded
+Stories:        which user stories this satisfies, changes, or
+                supersedes (the backlog's maintenance directions
+                live in docs/product/user-stories.md)
 Open:           questions and follow-ups the work surfaced
 ```
 

@@ -17,6 +17,71 @@ use webrtc::peer_connection::peer_connection_state::RTCPeerConnectionState;
 use webrtc::peer_connection::sdp::session_description::RTCSessionDescription;
 use webrtc::interceptor::registry::Registry;
 
+/// Phase 2 — three-stream narrowing.
+///
+/// The only command prefixes a remote client (WebSocket or TCP) may
+/// invoke. Together with the Brain→face pushes (`pty_output`,
+/// `state_delta`, `res:` replies) this list is the operative
+/// definition of the three streams the roadmap names — terminal,
+/// chip state, and prompt:
+///
+/// - terminal: `terminal_input_hex` (chip taps and the prompt bar
+///   also type through this), `terminal_resize`, `terminal_signal`
+/// - chip state: `get_state`, `get_state_delta`
+/// - prompt: `prompt_submit`, `force_prompt_submit`
+/// - session plumbing for those streams: `tos_ports` (discovery
+///   probe), `face_register` (a face announces itself, then streams)
+///
+/// Everything else — every AI, marketplace, editor, kanban, process,
+/// session-transfer, settings and sector command, and every grey-area
+/// command not listed here — belongs to a parked subsystem and is
+/// refused over remote (see `remote_refusal`). The UDS / local path
+/// keeps the full surface; narrowing applies only where the caller
+/// arrived over the network.
+const REMOTE_ALLOWED_PREFIXES: &[&str] = &[
+    "terminal_input_hex",
+    "terminal_resize",
+    "terminal_signal",
+    "prompt_submit",
+    "force_prompt_submit",
+    "get_state",
+    "get_state_delta",
+    "tos_ports",
+    "face_register",
+];
+
+/// If `request` is a command outside the three streams, returns the
+/// refusal response to send back; otherwise returns None and the
+/// caller dispatches normally.
+///
+/// The refusal is loud on purpose — an `ERROR:` the caller can see,
+/// in the same framing the real response would have used (a
+/// `cmd:<id>:`-wrapped request gets a `res:<id>:`-wrapped refusal) —
+/// so a parked caller fails visibly instead of hanging.
+fn remote_refusal(request: &str) -> Option<String> {
+    // Unwrap the WebSocket `cmd:<id>:` framing exactly the way
+    // IpcHandler::handle_request does, so the id survives.
+    let (id, command): (Option<&str>, &str) = match request.strip_prefix("cmd:") {
+        Some(rest) => match rest.split_once(':') {
+            Some((id, actual)) => (Some(id), actual),
+            None => (None, request),
+        },
+        None => (None, request),
+    };
+    let prefix = command.split(':').next().unwrap_or(command).trim();
+    if REMOTE_ALLOWED_PREFIXES.contains(&prefix) {
+        return None;
+    }
+    let message = format!(
+        "ERROR: {} is not available over a remote connection (three-stream narrowing: terminal, chip state, prompt only)",
+        prefix
+    );
+    Some(match id {
+        Some(id) => format!("res:{}:{}", id, message),
+        None => message,
+    })
+}
+
 /// The Remote Server manages TCP, WebSocket, and UDS connections to the Brain.
 /// 
 /// It handles TLS encryption for network transport and provides discovery 
@@ -288,32 +353,26 @@ impl RemoteServer {
 
             let command = line.trim();
             if !command.is_empty() {
-                // §19.3: OpenSearch HTTP compatibility
-                if command.starts_with("GET /opensearch.xml") {
-                    let xml = self.generate_opensearch_xml();
+                // Phase 2 narrowing: the old OpenSearch HTTP shim
+                // dispatched `search:` for any unauthenticated GET.
+                // Search is a parked subsystem, so the shim is gone:
+                // HTTP requests to this port are refused outright.
+                if command.starts_with("GET /") {
+                    let body = "Not available over a remote connection (three-stream narrowing: terminal, chip state, prompt only)\n";
                     let response = format!(
-                        "HTTP/1.1 200 OK\r\nContent-Type: application/opensearchdescription+xml\r\nContent-Length: {}\r\nConnection: close\r\n\r\n{}",
-                        xml.len(),
-                        xml
-                    );
-                    writer.write_all(response.as_bytes()).await?;
-                    writer.flush().await?;
-                    return Ok(());
-                } else if command.starts_with("GET /search?q=") {
-                    let query = command.split("q=").nth(1).unwrap_or("").split(' ').next().unwrap_or("");
-                    let ipc_cmd = format!("search:{}", query);
-                    let results = self.ipc.handle_request(&ipc_cmd);
-                    let response = format!(
-                        "HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nContent-Length: {}\r\nConnection: close\r\n\r\n{}",
-                        results.len(),
-                        results
+                        "HTTP/1.1 403 Forbidden\r\nContent-Type: text/plain\r\nContent-Length: {}\r\nConnection: close\r\n\r\n{}",
+                        body.len(),
+                        body
                     );
                     writer.write_all(response.as_bytes()).await?;
                     writer.flush().await?;
                     return Ok(());
                 }
 
-                let response = self.ipc.handle_request(command);
+                let response = match remote_refusal(command) {
+                    Some(refusal) => refusal,
+                    None => self.ipc.handle_request(command),
+                };
                 writer
                     .write_all(format!("{}\n", response).as_bytes())
                     .await?;
@@ -365,10 +424,12 @@ impl RemoteServer {
                     if msg.is_text() {
                         if let Ok(command) = msg.to_text() {
                             let response = if command.starts_with("webrtc_signalling:") {
-                                match self.handle_webrtc_signalling(command).await {
-                                    Ok(res) => res,
-                                    Err(e) => format!("ERROR: WebRTC Signalling failed: {}", e),
-                                }
+                                // WebRTC faces are parked, and the
+                                // signalling side-channel sits outside
+                                // the three streams.
+                                "ERROR: webrtc_signalling is not available over a remote connection (three-stream narrowing: terminal, chip state, prompt only)".to_string()
+                            } else if let Some(refusal) = remote_refusal(command) {
+                                refusal
                             } else {
                                 self.ipc.handle_request(command)
                             };
@@ -597,5 +658,53 @@ mod tests {
         let off = RemoteServer::tls_subject_alt_names(&cfg(false, "100.64.0.7"));
         assert!(!off.iter().any(|s| s == "100.64.0.7"));
         assert!(off.iter().any(|s| s == "localhost"));
+    }
+
+    #[test]
+    fn three_stream_commands_pass_the_remote_gate() {
+        for cmd in [
+            "terminal_input_hex:6869",
+            "terminal_resize:80;24",
+            "terminal_signal:SIGINT",
+            "prompt_submit:ls",
+            "force_prompt_submit:ls",
+            "get_state:",
+            "get_state_delta:0",
+            "tos_ports:",
+            "face_register:ambient",
+            // cmd:-wrapped forms the face actually sends
+            "cmd:1:get_state:",
+            "cmd:2:terminal_input_hex:6869",
+        ] {
+            assert!(remote_refusal(cmd).is_none(), "should pass: {}", cmd);
+        }
+    }
+
+    #[test]
+    fn parked_commands_are_refused_loudly_over_remote() {
+        for (cmd, prefix) in [
+            ("marketplace_home:", "marketplace_home"),
+            ("ai_submit:hello", "ai_submit"),
+            ("set_mode:CommandHub", "set_mode"),
+            ("sector_create:work", "sector_create"),
+            ("session_save:x", "session_save"),
+            ("process_signal:1;9", "process_signal"),
+            ("system_reset:", "system_reset"),
+            ("app_launch:terminal", "app_launch"),
+        ] {
+            let refusal = remote_refusal(cmd).expect("should be refused");
+            assert!(
+                refusal.starts_with(&format!("ERROR: {} is not available", prefix)),
+                "refusal for {} should name it, got: {}",
+                cmd,
+                refusal
+            );
+        }
+    }
+
+    #[test]
+    fn refusal_keeps_the_cmd_wrapper_id() {
+        let refusal = remote_refusal("cmd:42:ai_submit:hello").unwrap();
+        assert!(refusal.starts_with("res:42:ERROR: ai_submit is not available"));
     }
 }

@@ -34,6 +34,15 @@ impl IpcHandler {
     }
 
     pub fn broadcast(&self, message: &str) {
+        // Phase 2 narrowing: `ai_prediction_received` is an AI-stream
+        // push with no consumer in the ambient slice. Every registered
+        // broadcaster today is a remote (WebSocket) client — the UDS
+        // path is request/response only — so the push simply does not
+        // go out. If a local broadcast consumer ever registers, scope
+        // this by registrant instead of by message.
+        if message.starts_with("ai_prediction_received") {
+            return;
+        }
         let mut broadcasters = self.broadcasters.lock().unwrap();
         broadcasters.retain(|sender| {
             sender.send(message.to_string()).is_ok()

@@ -66,6 +66,36 @@ See [TOS_Scope-Split.md](./TOS_Scope-Split.md) for the component-by-component
 Keep / Delegate / Park / Drop assessment and [TOS_Roadmap.md](./TOS_Roadmap.md)
 for the phased plan.
 
+### The remote surface: the three streams, defined
+
+The Direction Update narrows the Face↔Brain protocol to three streams.
+This subsection is the operative definition of that boundary for any
+caller that arrives over the network (WebSocket or TCP):
+
+- **Terminal stream** — `terminal_input_hex`, `terminal_resize`,
+  `terminal_signal` in; `pty_output` out. (Chip taps and the prompt
+  bar also act through `terminal_input_hex`: a tap types into the
+  terminal, per the 0.1.1 chip model.)
+- **Chip-state stream** — `get_state`, `get_state_delta` in;
+  `state_delta` out.
+- **Prompt stream** — `prompt_submit`, `force_prompt_submit`.
+- **Session plumbing for those streams** — `tos_ports` (the discovery
+  probe) and `face_register` (a face announces itself, then streams).
+
+Everything else is refused over remote with a loud `ERROR:` — every
+AI, marketplace, editor, kanban, process, session-transfer and
+collaboration command, WebRTC signalling, and the grey-area commands
+(`set_mode`, sector management, settings/theme, `session_save` /
+`session_load` and kin, portals). The grey-area commands are parked
+over remote *by ruling, not by omission*: each returns if and when a
+later phase un-parks its subsystem. Enforcement lives in the Brain's
+remote handlers (`REMOTE_ALLOWED_PREFIXES` in
+`tos-common/src/platform/remote_server.rs`); the local UDS path keeps
+the full surface. Brain→face pushes stay inside the streams —
+`pty_output` (terminal) and `state_delta` (chip state) are the only
+broadcasts a remote face receives; `ai_prediction_received` is not
+sent to remote clients.
+
 ---
 
 ## Table of Contents

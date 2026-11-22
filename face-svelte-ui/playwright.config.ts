@@ -6,6 +6,12 @@ export default defineConfig({
         port: 4173
     },
 
+    use: {
+        launchOptions: process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH
+            ? { executablePath: process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH }
+            : {}
+    },
+
     testDir: 'tests',
     testMatch: /(.+\.)?(test|spec)\.[jt]s/
 });

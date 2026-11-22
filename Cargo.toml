@@ -14,5 +14,6 @@ members = [
     "face-ambient-linux",
     "face-android-handheld",
     "face-android-flutter/rust",
-    "tests", "scripts/tos-signer", "face-ambient-linux",
+    "tests",
+    "scripts/tos-signer",
 ]

@@ -68,7 +68,11 @@ impl IpcHandler {
     /// Standardized Message Format: prefix:payload;payload...
     /// Also supports WebSocket wrapper: cmd:id:prefix:payload
     pub fn handle_request(&self, request: &str) -> String {
-        tracing::info!("[IPC] Request: {}", request);
+        if request.starts_with("get_state_delta:") {
+            tracing::debug!("[IPC] Request: {}", request);
+        } else {
+            tracing::info!("[IPC] Request: {}", request);
+        }
         
         // Handle WebSocket wrapper: cmd:id:actual_command
         if request.starts_with("cmd:") {

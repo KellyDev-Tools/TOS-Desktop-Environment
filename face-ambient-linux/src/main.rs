@@ -19,17 +19,20 @@ use std::cell::RefCell;
 use std::io::{BufRead, BufReader, Write};
 use std::os::unix::net::{UnixListener, UnixStream};
 use std::path::PathBuf;
-use std::rc::Rc;
-use std::sync::mpsc;
 
 use gtk4::prelude::*;
 use gtk4::{Application, ApplicationWindow};
 use gtk4_layer_shell::{Edge, KeyboardMode, Layer, LayerShell};
 use surfaces::{FaceCommand, Keyboard, LayerKind, Surface, SurfaceSpec};
 use webkit6::prelude::*;
-use webkit6::{NetworkSession, TLSErrorsPolicy};
+use webkit6::{NetworkSession, TLSErrorsPolicy, UserContentManager};
 
 const APP_ID: &str = "net.kellydev.tos.face.ambient";
+const SCRIPT_HANDLER_NAME: &str = "tosFace";
+
+thread_local! {
+    static PROMPT_WINDOW: RefCell<Option<ApplicationWindow>> = const { RefCell::new(None) };
+}
 
 fn main() {
     let args: Vec<String> = std::env::args().skip(1).collect();
@@ -40,9 +43,10 @@ fn main() {
     }
 
     let ui_base = resolve_ui_base(&args);
+    let brain_url = resolve_brain_url(&args);
     let app = Application::builder().application_id(APP_ID).build();
-    app.connect_activate(move |app| build_ui(app, &ui_base));
-    // Run with a fixed argv so GTK never sees --ui / TOS flags.
+    app.connect_activate(move |app| build_ui(app, &ui_base, brain_url.as_deref()));
+    // Run with a fixed argv so GTK never sees --ui / --brain / TOS flags.
     app.run_with_args(&["tos-face-ambient"]);
 }
 
@@ -102,6 +106,16 @@ fn resolve_ui_base(args: &[String]) -> String {
         .to_string()
 }
 
+/// Optional Brain WebSocket URL from `--brain <url>` or `TOS_BRAIN_URL`.
+fn resolve_brain_url(args: &[String]) -> Option<String> {
+    args.windows(2)
+        .find(|w| w[0] == "--brain")
+        .map(|w| w[1].clone())
+        .or_else(|| std::env::var("TOS_BRAIN_URL").ok())
+        .map(|s| s.trim().to_string())
+        .filter(|s| !s.is_empty())
+}
+
 fn as_url(value: &str) -> String {
     if value.contains("://") {
         value.to_string()
@@ -112,43 +126,36 @@ fn as_url(value: &str) -> String {
     }
 }
 
-fn build_ui(app: &Application, ui_base: &str) {
-    let (tx, rx) = mpsc::channel::<FaceCommand>();
-    spawn_command_listener(tx);
+fn dispatch_command(cmd: FaceCommand) {
+    PROMPT_WINDOW.with(|slot| {
+        if let Some(win) = slot.borrow().as_ref() {
+            apply_command(win, cmd);
+        }
+    });
+}
+
+fn build_ui(app: &Application, ui_base: &str, brain_url: Option<&str>) {
+    spawn_command_listener();
 
     // The Brain serves its face socket (7001) over TLS with a
     // self-signed certificate it generates itself (rcgen) — there is no
-    // CA-issued cert for a loopback service, so the system trust store
-    // can never validate it and WebKit would refuse the connection.
-    // This face only ever loads the local UI bundle and talks to that
-    // loopback Brain, so TLS errors are ignored on the (default)
-    // network session its web views use. Revisit in Roadmap Phase 2,
-    // where remote Brains move to mesh-VPN transport instead of public
-    // TLS with self-signed certs.
+    // CA-issued cert for a loopback or tailnet service, so the system
+    // trust store cannot validate it and WebKit would refuse the
+    // connection. Ignore TLS errors on the default network session
+    // used by these local/tailnet web views.
     if let Some(session) = NetworkSession::default() {
         session.set_tls_errors_policy(TLSErrorsPolicy::Ignore);
     }
 
-    let mut prompt_window: Option<ApplicationWindow> = None;
     for surface in Surface::all() {
         let spec = surfaces::spec(surface);
-        let window = make_surface_window(app, &spec, ui_base);
+        let window = make_surface_window(app, &spec, ui_base, brain_url);
         if surface == Surface::Prompt {
-            prompt_window = Some(window);
+            PROMPT_WINDOW.with(|slot| {
+                *slot.borrow_mut() = Some(window);
+            });
         }
     }
-    let prompt_window = Rc::new(RefCell::new(prompt_window));
-
-    // Drain face commands on the GTK main loop.
-    let prompt = prompt_window.clone();
-    gtk4::glib::timeout_add_local(std::time::Duration::from_millis(120), move || {
-        while let Ok(cmd) = rx.try_recv() {
-            if let Some(win) = prompt.borrow().as_ref() {
-                apply_command(win, cmd);
-            }
-        }
-        gtk4::glib::ControlFlow::Continue
-    });
 }
 
 fn apply_command(win: &ApplicationWindow, cmd: FaceCommand) {
@@ -177,7 +184,7 @@ fn hide_prompt(win: &ApplicationWindow) {
     win.set_visible(false);
 }
 
-fn spawn_command_listener(tx: mpsc::Sender<FaceCommand>) {
+fn spawn_command_listener() {
     std::thread::spawn(move || {
         let path = surfaces::socket_path();
         let _ = std::fs::remove_file(&path);
@@ -195,7 +202,9 @@ fn spawn_command_listener(tx: mpsc::Sender<FaceCommand>) {
                     let mut line = String::new();
                     if reader.read_line(&mut line).is_ok() {
                         if let Some(cmd) = FaceCommand::parse(&line) {
-                            let _ = tx.send(cmd);
+                            gtk4::glib::MainContext::default().invoke(move || {
+                                dispatch_command(cmd);
+                            });
                         }
                     }
                 }
@@ -205,7 +214,12 @@ fn spawn_command_listener(tx: mpsc::Sender<FaceCommand>) {
     });
 }
 
-fn make_surface_window(app: &Application, spec: &SurfaceSpec, ui_base: &str) -> ApplicationWindow {
+fn make_surface_window(
+    app: &Application,
+    spec: &SurfaceSpec,
+    ui_base: &str,
+    brain_url: Option<&str>,
+) -> ApplicationWindow {
     let window = ApplicationWindow::builder().application(app).build();
 
     window.init_layer_shell();
@@ -232,11 +246,22 @@ fn make_surface_window(app: &Application, spec: &SurfaceSpec, ui_base: &str) -> 
         window.set_default_size(spec.default_width, spec.default_height);
     }
 
-    let view = webkit6::WebView::new();
+    let ucm = UserContentManager::new();
+    ucm.register_script_message_handler(SCRIPT_HANDLER_NAME, None);
+    ucm.connect_script_message_received(Some(SCRIPT_HANDLER_NAME), |_ucm, val| {
+        let text = val.to_str();
+        if let Some(cmd) = FaceCommand::parse(text.as_str()) {
+            dispatch_command(cmd);
+        }
+    });
+
+    let view = webkit6::WebView::builder()
+        .user_content_manager(&ucm)
+        .build();
     if spec.transparent {
         view.set_background_color(&gtk4::gdk::RGBA::new(0.0, 0.0, 0.0, 0.0));
     }
-    view.load_uri(&surfaces::ui_url(ui_base, spec.surface));
+    view.load_uri(&surfaces::ui_url_with_brain(ui_base, spec.surface, brain_url));
     window.set_child(Some(&view));
 
     if spec.start_visible {

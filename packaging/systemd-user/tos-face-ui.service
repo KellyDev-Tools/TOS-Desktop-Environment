@@ -9,7 +9,7 @@ PartOf=tos.target
 
 [Service]
 Type=simple
-ExecStart=/usr/bin/python3 -m http.server 18701 --bind 127.0.0.1 --directory %h/.local/share/tos/face
+ExecStart=/usr/bin/env python3 -m http.server 18701 --bind 127.0.0.1 --directory %h/.local/share/tos/face
 Restart=on-failure
 RestartSec=2
 

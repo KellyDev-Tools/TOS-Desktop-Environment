@@ -15,6 +15,11 @@
 	// Dotfiles are hidden by default (like `ls`); the strip's own
 	// `.*` switch flips hub.chips_show_hidden in the Brain, so
 	// every face agrees.
+	//
+	// Layout (Timothy, 2026-11-22): two rows, interim until the
+	// dual-sided layout slice. Entries own the main row; the touch
+	// keys and the `.*` switch own a controls row beneath it, so
+	// the controls never crowd the entries off a narrow surface.
 	import {
 		getTosState,
 		getConnectionState,
@@ -80,78 +85,143 @@
 	function tapFile(name: string) {
 		sendTerminalText(`${shellQuote(name)} `);
 	}
+
+	function sendFaceCommand(cmd: 'toggle-prompt' | 'show-prompt' | 'hide-prompt') {
+		if (typeof window === 'undefined') return;
+		const wk = (window as unknown as {
+			webkit?: { messageHandlers?: { tosFace?: { postMessage: (m: string) => void } } };
+		}).webkit;
+		wk?.messageHandlers?.tosFace?.postMessage(cmd);
+		window.dispatchEvent(new CustomEvent('tos:face-command', { detail: cmd }));
+	}
+
+	const touchKeys: { id: string; label: string; title: string; bytes: string }[] = [
+		{ id: 'tab', label: 'Tab', title: 'Send Tab completion', bytes: '\t' },
+		{ id: 'esc', label: 'Esc', title: 'Send Escape', bytes: '\x1b' },
+		{ id: 'up', label: '↑', title: 'Previous command', bytes: '\x1b[A' },
+		{ id: 'down', label: '↓', title: 'Next command', bytes: '\x1b[B' },
+		{ id: 'ctrlc', label: '^C', title: 'Interrupt (Ctrl+C)', bytes: '\x03' },
+		{ id: 'enter', label: '↵', title: 'Send Enter', bytes: '\n' }
+	];
 </script>
 
 <div class="accel-strip" data-testid="accel-chips">
-	<div class="accel-status" title="Brain connection">
-		<span class="status-dot" class:online={conn === 'connected'}></span>
-		<span class="status-label">{activeSector?.name ?? 'TOS'}</span>
-		{#if conn === 'connected'}
-			<span class="status-scope" data-testid="accel-scope">{scope === 'remote' ? 'REMOTE' : 'LOCAL'}</span>
+	<div class="accel-row accel-row-main">
+		<div class="accel-status" title="Brain connection">
+			<span class="status-dot" class:online={conn === 'connected'}></span>
+			<span class="status-label">{activeSector?.name ?? 'TOS'}</span>
+			{#if conn === 'connected'}
+				<span class="status-scope" data-testid="accel-scope">{scope === 'remote' ? 'REMOTE' : 'LOCAL'}</span>
+			{/if}
+		</div>
+
+		<button
+			type="button"
+			class="accel-chip prompt-toggle"
+			data-testid="accel-prompt-toggle"
+			aria-label="Toggle command prompt"
+			title="Summon or dismiss prompt"
+			onclick={() => sendFaceCommand('toggle-prompt')}>▸ CMD</button
+		>
+
+		{#if conn !== 'connected'}
+			<span class="accel-note">{conn === 'connecting' ? 'CONNECTING…' : 'DISCONNECTED'}</span>
+		{:else if listing}
+			<nav class="accel-crumbs" aria-label="Current directory">
+				{#each crumbs as crumb (crumb.path)}
+					<button
+						type="button"
+						class="accel-chip crumb"
+						data-testid="accel-crumb"
+						onclick={() => tapCrumb(crumb.path)}>{crumb.label}</button
+					>
+				{/each}
+			</nav>
+			{#if chipFilter}
+				<span class="accel-filter" data-testid="accel-filter">⌕ {chipFilter}</span>
+			{/if}
+			<div class="accel-entries">
+				{#each visibleEntries as entry (entry.name)}
+					{#if entry.is_dir}
+						<button
+							type="button"
+							class="accel-chip dir"
+							data-testid="accel-chip-dir"
+							onclick={() => tapDir(entry.name)}>📁 {entry.name}</button
+						>
+					{:else}
+						<button
+							type="button"
+							class="accel-chip file"
+							data-testid="accel-chip-file"
+							onclick={() => tapFile(entry.name)}>📄 {entry.name}</button
+						>
+					{/if}
+				{/each}
+				{#if chipFilter && visibleEntries.length === 0}
+					<span class="accel-note" data-testid="accel-nomatch">no matches</span>
+				{/if}
+			</div>
+		{:else}
+			<span class="accel-note">{cwd}</span>
 		{/if}
 	</div>
 
-	{#if conn !== 'connected'}
-		<span class="accel-note">{conn === 'connecting' ? 'CONNECTING…' : 'DISCONNECTED'}</span>
-	{:else if listing}
-		<nav class="accel-crumbs" aria-label="Current directory">
-			{#each crumbs as crumb (crumb.path)}
-				<button
-					class="accel-chip crumb"
-					data-testid="accel-crumb"
-					onclick={() => tapCrumb(crumb.path)}>{crumb.label}</button
-				>
-			{/each}
-		</nav>
-		<button
-			class="accel-chip toggle"
-			class:on={showHidden}
-			data-testid="accel-toggle-hidden"
-			title="Show or hide dotfiles"
-			onclick={toggleHidden}>.*</button
-		>
-		{#if chipFilter}
-			<span class="accel-filter" data-testid="accel-filter">⌕ {chipFilter}</span>
-		{/if}
-		<div class="accel-entries">
-			{#each visibleEntries as entry (entry.name)}
-				{#if entry.is_dir}
+	{#if conn === 'connected' && listing}
+		<div class="accel-row accel-row-controls" data-testid="accel-controls-row">
+			<div class="accel-keys" data-testid="accel-touch-keys" role="group" aria-label="Terminal keys">
+				{#each touchKeys as key (key.id)}
 					<button
-						class="accel-chip dir"
-						data-testid="accel-chip-dir"
-						onclick={() => tapDir(entry.name)}>📁 {entry.name}</button
+						type="button"
+						class="accel-chip key"
+						data-testid={`accel-key-${key.id}`}
+						title={key.title}
+						onclick={() => sendTerminalText(key.bytes)}>{key.label}</button
 					>
-				{:else}
-					<button
-						class="accel-chip file"
-						data-testid="accel-chip-file"
-						onclick={() => tapFile(entry.name)}>📄 {entry.name}</button
-					>
-				{/if}
-			{/each}
-			{#if chipFilter && visibleEntries.length === 0}
-				<span class="accel-note" data-testid="accel-nomatch">no matches</span>
-			{/if}
+				{/each}
+			</div>
+			<button
+				type="button"
+				class="accel-chip toggle"
+				class:on={showHidden}
+				data-testid="accel-toggle-hidden"
+				title="Show or hide dotfiles"
+				onclick={toggleHidden}>.*</button
+			>
 		</div>
-	{:else}
-		<span class="accel-note">{cwd}</span>
 	{/if}
 </div>
 
 <style>
 	.accel-strip {
 		display: flex;
+		flex-direction: column;
+		justify-content: center;
+		gap: 6px;
+		height: 100%;
+		padding: 6px 10px;
+		user-select: none;
+		-webkit-user-select: none;
+	}
+	.accel-row {
+		display: flex;
 		align-items: center;
 		gap: 10px;
-		height: 100%;
-		padding: 0 10px;
+	}
+	.accel-row-main {
 		overflow-x: auto;
 		overflow-y: hidden;
 		white-space: nowrap;
 		scrollbar-width: none;
+		touch-action: pan-x;
+		min-height: 44px;
 	}
-	.accel-strip::-webkit-scrollbar {
+	.accel-row-main::-webkit-scrollbar {
 		display: none;
+	}
+	.accel-row-controls {
+		flex: none;
+		gap: 8px;
 	}
 	.accel-status {
 		display: flex;
@@ -176,34 +246,58 @@
 	.status-dot.online {
 		background: #69f0ae;
 	}
+	.accel-keys,
 	.accel-crumbs,
 	.accel-entries {
 		display: flex;
 		align-items: center;
-		gap: 6px;
+		gap: 8px;
 	}
 	.accel-chip {
 		flex: none;
-		padding: 7px 12px;
+		display: inline-flex;
+		align-items: center;
+		justify-content: center;
+		min-height: 44px;
+		min-width: 44px;
+		padding: 8px 14px;
 		border-radius: 999px;
 		border: 1px solid rgba(0, 229, 255, 0.35);
 		background: rgba(10, 25, 35, 0.72);
 		color: var(--color-text, #e0f7fa);
-		font-size: 12px;
+		font-size: 13px;
 		cursor: pointer;
 		backdrop-filter: blur(6px);
+		touch-action: manipulation;
+		-webkit-tap-highlight-color: transparent;
+		transition: transform 80ms ease, border-color 120ms ease, background-color 120ms ease;
 	}
 	.accel-chip:hover {
 		border-color: var(--color-primary, #00e5ff);
+	}
+	.accel-chip:active {
+		transform: scale(0.96);
+		background: rgba(0, 229, 255, 0.22);
+		border-color: var(--color-primary, #00e5ff);
+	}
+	.accel-chip.prompt-toggle {
+		border-color: var(--color-primary, #00e5ff);
+		color: var(--color-primary, #00e5ff);
+		font-weight: 700;
+		letter-spacing: 0.06em;
+	}
+	.accel-chip.key {
+		font-family: var(--font-mono, monospace);
+		padding: 8px 12px;
 	}
 	.accel-chip.crumb {
 		border-style: dashed;
 		opacity: 0.85;
 	}
 	.accel-chip.toggle {
-		font-family: monospace;
-		padding: 7px 9px;
-		opacity: 0.7;
+		font-family: var(--font-mono, monospace);
+		padding: 8px 12px;
+		opacity: 0.75;
 	}
 	.accel-chip.toggle.on {
 		opacity: 1;
@@ -212,7 +306,7 @@
 	}
 	.accel-filter {
 		flex: none;
-		font-size: 11px;
+		font-size: 12px;
 		letter-spacing: 0.04em;
 		color: var(--color-primary, #00e5ff);
 		opacity: 0.9;
@@ -221,7 +315,7 @@
 		color: var(--color-primary, #00e5ff);
 	}
 	.accel-note {
-		font-size: 11px;
+		font-size: 12px;
 		letter-spacing: 0.08em;
 		opacity: 0.7;
 		color: var(--color-text, #e0f7fa);

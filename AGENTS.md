@@ -38,6 +38,9 @@ The full documentation map is [docs/README.md](docs/README.md).
   directory listing, session state. Chips are a touch-friendly
   accelerator that types into the terminal (Architecture §7.7).
 - The **prompt is an independent overlay**, docked to nothing.
+- **Touch-first active slice**: every active-slice interaction must
+  be completable by touch alone (no keyboard-only summon, submit,
+  or dismiss; interactive targets ≥44px).
 - The remote surface is **three streams only** — terminal, chip
   state, prompt. Everything else is refused over remote
   connections; the local/UDS surface is unrestricted.

@@ -121,6 +121,8 @@ test.describe('Phase 1 slice — ambient face against a real Brain', () => {
         fixtureDir = fs.mkdtempSync(path.join(os.tmpdir(), 'tos-chips-fixture-'));
         fs.mkdirSync(path.join(fixtureDir, 'alpha-dir'));
         fs.writeFileSync(path.join(fixtureDir, 'notes.txt'), 'fixture\n');
+        // Phase 1.7 fixture: a dotfile for the chips panel switch.
+        fs.writeFileSync(path.join(fixtureDir, '.secret.txt'), 'secret\n');
         brain = spawn(bin, [], {
             env: {
                 ...process.env,
@@ -196,6 +198,62 @@ test.describe('Phase 1 slice — ambient face against a real Brain', () => {
         // Phase 2: the chips status truthfully scopes the connection —
         // this Brain is loopback, so LOCAL.
         await expect(page.getByTestId('accel-scope')).toHaveText('LOCAL');
+    });
+
+    test('chips narrow as you type and the dotfiles switch works', async ({ page }) => {
+        // Phase 1.7 — dynamic chips through the real face: typing
+        // in the (background) terminal publishes a filter, and the
+        // chips surface narrows to matches; dotfiles stay hidden
+        // until the panel's own `.*` switch flips them on.
+        const chipsPage = await page.context().newPage();
+        try {
+            await page.goto(`${FACE_URL}/?surface=background`);
+            await expect(page.locator('.surface-background .xterm')).toBeVisible();
+            await expect
+                .poll(() => terminalText(page), { timeout: 20_000 })
+                .toMatch(/@.*[#$]/);
+
+            await chipsPage.goto(`${FACE_URL}/?surface=chips`);
+            await expect(
+                chipsPage.getByTestId('accel-chip-file').filter({ hasText: 'notes.txt' })
+            ).toBeVisible();
+            // Dotfiles are hidden by default.
+            await expect(
+                chipsPage.getByTestId('accel-chip-file').filter({ hasText: '.secret.txt' })
+            ).toHaveCount(0);
+
+            // Type the file's name: the strip narrows to it.
+            await page.locator('.xterm').click();
+            await page.keyboard.type('notes');
+            await expect(chipsPage.getByTestId('accel-filter')).toHaveText('⌕ notes');
+            await expect(
+                chipsPage.getByTestId('accel-chip-dir').filter({ hasText: 'alpha-dir' })
+            ).toHaveCount(0);
+            await expect(
+                chipsPage.getByTestId('accel-chip-file').filter({ hasText: 'notes.txt' })
+            ).toBeVisible();
+
+            // Clear the line (Ctrl+U): the full strip comes back.
+            await page.keyboard.press('Control+u');
+            await expect(chipsPage.getByTestId('accel-filter')).toHaveCount(0);
+            await expect(
+                chipsPage.getByTestId('accel-chip-dir').filter({ hasText: 'alpha-dir' })
+            ).toBeVisible();
+
+            // The panel's own switch shows dotfiles; tapping again
+            // hides them. (Leaves the flag off and the terminal
+            // line empty for the tests that follow.)
+            await chipsPage.getByTestId('accel-toggle-hidden').click();
+            await expect(
+                chipsPage.getByTestId('accel-chip-file').filter({ hasText: '.secret.txt' })
+            ).toBeVisible();
+            await chipsPage.getByTestId('accel-toggle-hidden').click();
+            await expect(
+                chipsPage.getByTestId('accel-chip-file').filter({ hasText: '.secret.txt' })
+            ).toHaveCount(0);
+        } finally {
+            await chipsPage.close();
+        }
     });
 
     test('prompt surface input runs commands in the terminal', async ({ page }) => {

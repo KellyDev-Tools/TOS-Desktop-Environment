@@ -30,6 +30,8 @@ impl SectorManager {
                 terminal_output: vec![],
                 buffer_limit: 500,
                 shell_listing: None,
+                chip_filter: None,
+                chips_show_hidden: false,
                 activity_listing: None,
                 search_results: None,
                 staged_command: None,
@@ -85,6 +87,8 @@ impl SectorManager {
                 terminal_output: vec![],
                 buffer_limit: 500,
                 shell_listing: None,
+                chip_filter: None,
+                chips_show_hidden: false,
                 activity_listing: None,
                 search_results: None,
                 staged_command: None,
@@ -305,6 +309,60 @@ impl SectorManager {
                 hub.shell_listing = Some(Self::build_listing(&path, generation));
             }
         }
+    }
+
+    /// Phase 1.7: set a hub's chip type-ahead filter (the fragment
+    /// of the word being typed in its shell, or None for
+    /// unfiltered). Bumps versions only when the value changes, so
+    /// faces pick the change up via get_state_delta without a
+    /// version bump on every keystroke that leaves the fragment
+    /// alone.
+    pub fn set_chip_filter(
+        state: &mut TosState,
+        sector_id: uuid::Uuid,
+        hub_id: uuid::Uuid,
+        filter: Option<String>,
+    ) -> bool {
+        let mut changed = false;
+        if let Some(sector) = state.sectors.iter_mut().find(|s| s.id == sector_id) {
+            if let Some(hub) = sector.hubs.iter_mut().find(|h| h.id == hub_id) {
+                if hub.chip_filter != filter {
+                    hub.chip_filter = filter;
+                    hub.version += 1;
+                    sector.version += 1;
+                    changed = true;
+                }
+            }
+        }
+        if changed {
+            state.version += 1;
+        }
+        changed
+    }
+
+    /// Phase 1.7: set a hub's chip dotfiles flag (the chips
+    /// panel's show/hide switch). Bumps versions only on change.
+    pub fn set_chips_show_hidden(
+        state: &mut TosState,
+        sector_id: uuid::Uuid,
+        hub_id: uuid::Uuid,
+        show: bool,
+    ) -> bool {
+        let mut changed = false;
+        if let Some(sector) = state.sectors.iter_mut().find(|s| s.id == sector_id) {
+            if let Some(hub) = sector.hubs.iter_mut().find(|h| h.id == hub_id) {
+                if hub.chips_show_hidden != show {
+                    hub.chips_show_hidden = show;
+                    hub.version += 1;
+                    sector.version += 1;
+                    changed = true;
+                }
+            }
+        }
+        if changed {
+            state.version += 1;
+        }
+        changed
     }
 
     /// Refresh activity listing for process monitoring hub modes.
@@ -672,6 +730,8 @@ impl SectorManager {
                 terminal_output: vec![],
                 buffer_limit: 500,
                 shell_listing: None,
+                chip_filter: None,
+                chips_show_hidden: false,
                 activity_listing: None,
                 search_results: None,
                 staged_command: None,
@@ -746,6 +806,65 @@ mod tests {
         );
 
         let _ = std::fs::remove_dir_all(&fixture);
+    }
+
+    #[test]
+    fn test_chip_filter_and_show_hidden_setters() {
+        let mut state = TosState::default();
+        let sector_id = state.sectors[0].id;
+        let hub_id = state.sectors[0].hubs[0].id;
+        let v0 = state.version;
+
+        // Defaults: unfiltered, dotfiles hidden.
+        assert_eq!(state.sectors[0].hubs[0].chip_filter, None);
+        assert!(!state.sectors[0].hubs[0].chips_show_hidden);
+
+        assert!(SectorManager::set_chip_filter(
+            &mut state,
+            sector_id,
+            hub_id,
+            Some("sh".to_string())
+        ));
+        assert_eq!(
+            state.sectors[0].hubs[0].chip_filter.as_deref(),
+            Some("sh")
+        );
+        assert!(state.version > v0, "a change bumps the state version");
+
+        // Same value again: no change, no version bump.
+        let v1 = state.version;
+        assert!(!SectorManager::set_chip_filter(
+            &mut state,
+            sector_id,
+            hub_id,
+            Some("sh".to_string())
+        ));
+        assert_eq!(state.version, v1);
+
+        assert!(SectorManager::set_chip_filter(&mut state, sector_id, hub_id, None));
+        assert_eq!(state.sectors[0].hubs[0].chip_filter, None);
+
+        assert!(SectorManager::set_chips_show_hidden(
+            &mut state,
+            sector_id,
+            hub_id,
+            true
+        ));
+        assert!(state.sectors[0].hubs[0].chips_show_hidden);
+        assert!(!SectorManager::set_chips_show_hidden(
+            &mut state,
+            sector_id,
+            hub_id,
+            true
+        ));
+
+        // Unknown hub: nothing changes.
+        assert!(!SectorManager::set_chip_filter(
+            &mut state,
+            sector_id,
+            uuid::Uuid::new_v4(),
+            Some("x".to_string())
+        ));
     }
 
     #[test]

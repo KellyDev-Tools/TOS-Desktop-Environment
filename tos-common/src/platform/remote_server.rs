@@ -27,7 +27,10 @@ use webrtc::interceptor::registry::Registry;
 ///
 /// - terminal: `terminal_input_hex` (chip taps and the prompt bar
 ///   also type through this), `terminal_resize`, `terminal_signal`
-/// - chip state: `get_state`, `get_state_delta`
+/// - chip state: `get_state`, `get_state_delta`,
+///   `chips_set_show_hidden` (the chips panel's dotfiles switch,
+///   Phase 1.7 — it only flips a flag on the hub the streams
+///   already describe)
 /// - prompt: `prompt_submit`, `force_prompt_submit`
 /// - session plumbing for those streams: `tos_ports` (discovery
 ///   probe), `face_register` (a face announces itself, then streams)
@@ -46,6 +49,7 @@ const REMOTE_ALLOWED_PREFIXES: &[&str] = &[
     "force_prompt_submit",
     "get_state",
     "get_state_delta",
+    "chips_set_show_hidden",
     "tos_ports",
     "face_register",
 ];

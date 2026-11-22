@@ -140,6 +140,12 @@ pub struct PtyShell {
     scrollback: Arc<Mutex<ScrollbackBuffer>>,
     activity: Arc<PtyActivity>,
     alive: Arc<std::sync::atomic::AtomicBool>,
+    /// Phase 1.7 (dynamic chips): model of the shell's input
+    /// line, fed from the same bytes write() forwards to the PTY.
+    input_line: super::input_line::InputLine,
+    /// The chip filter last published to state, so write() only
+    /// touches state (and bumps versions) when it changes.
+    chip_filter_sent: Option<String>,
 }
 
 impl Drop for PtyShell {
@@ -292,6 +298,8 @@ impl PtyShell {
             scrollback,
             activity,
             alive,
+            input_line: super::input_line::InputLine::new(),
+            chip_filter_sent: None,
         })
     }
 
@@ -320,6 +328,22 @@ impl PtyShell {
         }
         self.writer.write_all(data)?;
         self.writer.flush()?;
+        // Phase 1.7 (dynamic chips): model the shell's input line
+        // from the same bytes, so the chip set can filter against
+        // the word being typed. Only the derived filter is
+        // published, and only when it changes.
+        self.input_line.feed(data);
+        let filter = self.input_line.fragment();
+        if filter != self.chip_filter_sent {
+            self.chip_filter_sent = filter.clone();
+            let mut state = self._state.lock().unwrap();
+            crate::brain::sector::SectorManager::set_chip_filter(
+                &mut state,
+                self._sector_id,
+                self._hub_id,
+                filter,
+            );
+        }
         Ok(())
     }
 

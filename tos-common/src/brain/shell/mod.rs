@@ -1,4 +1,5 @@
 #[cfg(not(target_os = "android"))]
+pub mod input_line;
 pub mod pty;
 
 #[cfg(not(target_os = "android"))]

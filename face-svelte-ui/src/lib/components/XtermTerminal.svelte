@@ -2,6 +2,7 @@
     import { Terminal } from 'xterm';
     import { FitAddon } from 'xterm-addon-fit';
     import { WebLinksAddon } from 'xterm-addon-web-links';
+    import { CanvasAddon } from 'xterm-addon-canvas';
     import 'xterm/css/xterm.css';
     import { addRawListener, removeRawListener, sendCommand, getPrediction, clearPrediction } from '../stores/ipc.svelte';
 
@@ -63,8 +64,34 @@
         });
         term.loadAddon(webLinksAddon);
 
+        // Canvas renderer instead of xterm's default DOM renderer.
+        // The DOM renderer paints glyphs as page elements, and
+        // WebKitGTK (the ambient face's web view) leaves replaced
+        // cells unpainted when the shell redraws the input line:
+        // on device, typing 'ls' smeared into 'llsls' on screen
+        // while the shell received 'ls' exactly. Canvas paints
+        // glyphs to a bitmap, so there are no stale cells to
+        // smear. Best-effort: if the canvas renderer cannot start
+        // in this web view, keep the DOM renderer rather than
+        // ending up with no terminal at all.
+        try {
+            term.loadAddon(new CanvasAddon());
+        } catch (e) {
+            console.warn('[Terminal] Canvas renderer unavailable, using DOM renderer', e);
+        }
+
         term.open(terminalElement);
         fitAddon.fit();
+
+        // E2E/debug handle: the gated specs read the terminal's
+        // buffer through this — the canvas renderer paints to a
+        // bitmap, so there are no DOM rows left to read. The
+        // buffer is what is on screen, whichever renderer
+        // painted it.
+        const xtermEl = terminalElement.querySelector('.xterm');
+        if (xtermEl) {
+            (xtermEl as unknown as { __tosTerminal?: Terminal }).__tosTerminal = term;
+        }
 
         // Intercept Tab key to support prediction acceptance and prevent focus navigation loss
         term.attachCustomKeyEventHandler((e) => {

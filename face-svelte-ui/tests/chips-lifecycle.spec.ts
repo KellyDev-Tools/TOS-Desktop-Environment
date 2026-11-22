@@ -152,6 +152,33 @@ class FakeChipSystem {
         await this.send(`terminal_input_hex:${hex}`);
     }
 
+    /** Send a raw command and return the Brain's response. */
+    async command(command: string): Promise<string | null> {
+        return this.send(command);
+    }
+
+    /** Type text into the terminal WITHOUT submitting it, as a
+     *  face's keyboard input does while a command is being composed. */
+    async typeText(text: string): Promise<void> {
+        const hex = Buffer.from(text, 'utf8').toString('hex');
+        await this.send(`terminal_input_hex:${hex}`);
+    }
+
+    /** The hub's dynamic-chip state (Phase 1.7): the type-ahead
+     *  filter and the dotfiles flag, straight from get_state. */
+    async chipState(): Promise<{ filter: string | null; showHidden: boolean; entryNames: string[] }> {
+        const res = await this.send('get_state:');
+        if (!res) return { filter: null, showHidden: false, entryNames: [] };
+        const state = JSON.parse(res);
+        const sector = state.sectors?.[state.active_sector_index];
+        const hub = sector?.hubs?.[sector.active_hub_index];
+        return {
+            filter: hub?.chip_filter ?? null,
+            showHidden: hub?.chips_show_hidden ?? false,
+            entryNames: (hub?.shell_listing?.entries ?? []).map((e: any) => e.name as string)
+        };
+    }
+
     /** Select a directory chip from the current (newest) set: the
      *  chip system sends `cd <dir>` to the terminal, exactly as the
      *  real AcceleratorChips face does. */
@@ -312,5 +339,131 @@ test.describe('Phase 1.6 — chip lifecycle via a fake headless chip system', ()
         const gens = chips.requests.map((r) => r.generation);
         expect(gens).toEqual([...gens].sort((a, b) => a - b));
         expect(new Set(gens).size).toBe(gens.length);
+    });
+});
+
+/**
+ * Phase 1.7 — dynamic chips, headless: the Brain tracks the
+ * shell's input line and publishes the fragment being typed as
+ * the hub's chip_filter; the dotfiles switch flips
+ * chips_show_hidden in state. (The face's narrowing render of
+ * that state is covered in slice.spec.ts.)
+ */
+test.describe('Phase 1.7 — dynamic chips via a fake headless chip system', () => {
+    test.describe.configure({ mode: 'serial' });
+    test.setTimeout(120_000);
+
+    let brain: ChildProcess | undefined;
+    let stateDir: string | undefined;
+    let fixtureDir: string | undefined;
+    const chips = new FakeChipSystem();
+
+    test.beforeAll(async () => {
+        const bin = brainBinary();
+        if (!fs.existsSync(bin)) {
+            throw new Error(
+                `tos-brain binary not found at ${bin}. Build it first: ` +
+                    '`cargo build -p tos-brain` (or set TOS_BRAIN_BIN).'
+            );
+        }
+        stateDir = fs.mkdtempSync(path.join(os.tmpdir(), 'tos-dyn-e2e-'));
+        fixtureDir = fs.mkdtempSync(path.join(os.tmpdir(), 'tos-dyn-fixture-'));
+        fs.mkdirSync(path.join(fixtureDir, 'alpha-dir'));
+        fs.writeFileSync(path.join(fixtureDir, 'shell-one.txt'), 'one\n');
+        fs.writeFileSync(path.join(fixtureDir, 'shell-two.txt'), 'two\n');
+        fs.writeFileSync(path.join(fixtureDir, 'other.log'), 'log\n');
+        fs.writeFileSync(path.join(fixtureDir, '.hidden-file'), 'hidden\n');
+        brain = spawn(bin, [], {
+            env: {
+                ...process.env,
+                HOME: fixtureDir,
+                XDG_CONFIG_HOME: path.join(stateDir, 'config'),
+                XDG_DATA_HOME: path.join(stateDir, 'data')
+            },
+            stdio: 'ignore'
+        });
+        await waitForPort(7001);
+        await chips.connect();
+    });
+
+    test.afterAll(async () => {
+        await chips.close();
+        if (brain) {
+            const brainProc = brain;
+            const exited = new Promise<void>((resolve) => {
+                brainProc.once('exit', () => resolve());
+            });
+            brainProc.kill('SIGTERM');
+            await Promise.race([
+                exited,
+                new Promise<void>((r) => setTimeout(r, 5_000)).then(() => {
+                    brainProc.kill('SIGKILL');
+                })
+            ]);
+        }
+        const rmOpts = { recursive: true, force: true, maxRetries: 5, retryDelay: 200 } as const;
+        if (stateDir) fs.rmSync(stateDir, rmOpts);
+        if (fixtureDir) fs.rmSync(fixtureDir, rmOpts);
+    });
+
+    async function expectFilter(want: string | null): Promise<void> {
+        await expect
+            .poll(async () => (await chips.chipState()).filter, { timeout: 15_000 })
+            .toBe(want);
+    }
+
+    test('typing publishes a filter, editing moves it, desync clears it', async () => {
+        // At rest: unfiltered, dotfiles flag off — and the listing
+        // itself always carries the dotfile (hiding it is the
+        // face's job, driven by the flag).
+        const rest = await chips.chipState();
+        expect(rest.filter).toBeNull();
+        expect(rest.showHidden).toBe(false);
+        expect(rest.entryNames).toContain('.hidden-file');
+        expect(rest.entryNames).toContain('shell-one.txt');
+
+        // Typing publishes the fragment of the word being typed.
+        await chips.typeText('sh');
+        await expectFilter('sh');
+        await chips.typeText('ell');
+        await expectFilter('shell');
+
+        // Backspace moves the fragment back.
+        await chips.typeText('\x7f');
+        await expectFilter('shel');
+
+        // Ctrl+U clears the line; a fresh word filters from scratch.
+        await chips.typeText('\x15');
+        await expectFilter(null);
+        await chips.typeText('ell');
+        await expectFilter('ell');
+
+        // An escape sequence (up-arrow: history recall) desyncs
+        // the model — the filter clears and typing does not revive
+        // it until a resync point.
+        await chips.typeText('\x1b[A');
+        await expectFilter(null);
+        await chips.typeText('x');
+        await expectFilter(null);
+
+        // Ctrl+C resyncs to a known-empty line.
+        await chips.typeText('\x03');
+        await chips.typeText('pw');
+        await expectFilter('pw');
+
+        // Submitting clears the filter with the line.
+        await chips.runCommand('');
+        await expectFilter(null);
+    });
+
+    test('the dotfiles switch flips the flag in Brain state', async () => {
+        expect(await chips.command('chips_set_show_hidden:true')).toBe('OK');
+        await expect
+            .poll(async () => (await chips.chipState()).showHidden, { timeout: 15_000 })
+            .toBe(true);
+        expect(await chips.command('chips_set_show_hidden:false')).toBe('OK');
+        await expect
+            .poll(async () => (await chips.chipState()).showHidden, { timeout: 15_000 })
+            .toBe(false);
     });
 });

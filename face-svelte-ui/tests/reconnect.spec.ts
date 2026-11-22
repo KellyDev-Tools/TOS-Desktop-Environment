@@ -27,7 +27,12 @@ const MARKER_AFTER = 'TOS_RECONNECT_AFTER_S8';
 
 test.use({
     ignoreHTTPSErrors: true,
-    launchOptions: { args: ['--ignore-certificate-errors'] }
+    launchOptions: {
+        args: ['--ignore-certificate-errors'],
+        ...(process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH
+            ? { executablePath: process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH }
+            : {})
+    }
 });
 
 function brainBinary(): string {

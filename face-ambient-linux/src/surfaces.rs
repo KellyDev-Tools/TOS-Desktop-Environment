@@ -106,7 +106,7 @@ pub fn spec(surface: Surface) -> SurfaceSpec {
             transparent: true,
             start_visible: true,
             default_width: 0,
-            default_height: 56,
+            default_height: 64,
         },
         Surface::Prompt => SurfaceSpec {
             surface,
@@ -129,10 +129,32 @@ pub fn spec(surface: Surface) -> SurfaceSpec {
 }
 
 /// The URL a surface's web view loads: the shared face build, routed by
-/// the `surface` query parameter (see `+page.svelte`).
-pub fn ui_url(base: &str, surface: Surface) -> String {
+/// the `surface` query parameter (see `+page.svelte`), optionally
+/// appending a `brain=<url>` query parameter so the web UI connects
+/// directly to a configured Brain WebSocket endpoint.
+pub fn ui_url_with_brain(base: &str, surface: Surface, brain_url: Option<&str>) -> String {
     let sep = if base.contains('?') { '&' } else { '?' };
-    format!("{base}{sep}surface={}", surface.name())
+    let mut url = format!("{base}{sep}surface={}", surface.name());
+    if let Some(brain) = brain_url.map(str::trim).filter(|s| !s.is_empty()) {
+        url.push_str("&brain=");
+        url.push_str(&encode_query_component(brain));
+    }
+    url
+}
+
+fn encode_query_component(input: &str) -> String {
+    let mut out = String::with_capacity(input.len());
+    for b in input.bytes() {
+        match b {
+            b'A'..=b'Z' | b'a'..=b'z' | b'0'..=b'9' | b'-' | b'_' | b'.' | b'~' => {
+                out.push(b as char);
+            }
+            _ => {
+                out.push_str(&format!("%{b:02X}"));
+            }
+        }
+    }
+    out
 }
 
 /// Where the face listens for prompt commands. One face per user
@@ -223,13 +245,34 @@ mod tests {
     #[test]
     fn ui_url_appends_the_surface_route() {
         assert_eq!(
-            ui_url("file:///ui/index.html", Surface::Prompt),
+            ui_url_with_brain("file:///ui/index.html", Surface::Prompt, None),
             "file:///ui/index.html?surface=prompt"
         );
         assert_eq!(
-            ui_url("http://localhost:5173/?dev=1", Surface::Chips),
+            ui_url_with_brain("http://localhost:5173/?dev=1", Surface::Chips, None),
             "http://localhost:5173/?dev=1&surface=chips"
         );
+    }
+
+    #[test]
+    fn ui_url_with_brain_encodes_remote_endpoint() {
+        assert_eq!(
+            ui_url_with_brain(
+                "http://127.0.0.1:18701/",
+                Surface::Background,
+                Some("wss://100.64.0.5:7001")
+            ),
+            "http://127.0.0.1:18701/?surface=background&brain=wss%3A%2F%2F100.64.0.5%3A7001"
+        );
+        assert_eq!(
+            ui_url_with_brain("http://127.0.0.1:18701/", Surface::Chips, Some("   ")),
+            "http://127.0.0.1:18701/?surface=chips"
+        );
+    }
+
+    #[test]
+    fn chips_height_accommodates_touch_targets() {
+        assert!(spec(Surface::Chips).default_height >= 64);
     }
 
     #[test]

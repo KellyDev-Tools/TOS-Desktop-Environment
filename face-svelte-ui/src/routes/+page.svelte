@@ -354,7 +354,20 @@
 		<WarningChip />
 	</div>
 {:else if surface === 'prompt'}
-	<div class="surface-root surface-prompt">
+	<!-- svelte-ignore a11y_click_events_have_key_events -->
+	<!-- svelte-ignore a11y_no_static_element_interactions -->
+	<div
+		class="surface-root surface-prompt"
+		onclick={(e) => {
+			if (e.target === e.currentTarget) {
+				const wk = (window as unknown as {
+					webkit?: { messageHandlers?: { tosFace?: { postMessage: (m: string) => void } } };
+				}).webkit;
+				wk?.messageHandlers?.tosFace?.postMessage('hide-prompt');
+				window.dispatchEvent(new CustomEvent('tos:face-command', { detail: 'hide-prompt' }));
+			}
+		}}
+	>
 		<PromptInputBar />
 		<CommandHub />
 	</div>

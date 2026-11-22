@@ -14,24 +14,43 @@
 		inputEl?.focus();
 	});
 
+	function notifyHidePrompt() {
+		if (typeof window === 'undefined') return;
+		const wk = (window as unknown as {
+			webkit?: { messageHandlers?: { tosFace?: { postMessage: (m: string) => void } } };
+		}).webkit;
+		wk?.messageHandlers?.tosFace?.postMessage('hide-prompt');
+		window.dispatchEvent(new CustomEvent('tos:face-command', { detail: 'hide-prompt' }));
+	}
+
+	function submit() {
+		const cmd = value.trim();
+		if (cmd) {
+			sendTerminalCommand(cmd);
+			value = '';
+		}
+	}
+
+	function dismiss() {
+		value = '';
+		inputEl?.blur();
+		notifyHidePrompt();
+	}
+
 	function onKeydown(e: KeyboardEvent) {
 		if (e.key === 'Enter') {
-			const cmd = value.trim();
-			if (cmd) {
-				sendTerminalCommand(cmd);
-				value = '';
-			}
+			submit();
 		} else if (e.key === 'Escape') {
-			value = '';
-			inputEl?.blur();
+			dismiss();
 		}
 	}
 </script>
 
 <div class="prompt-input-bar glass-panel" data-testid="prompt-input-bar">
 	<div class="prompt-modes" role="tablist" aria-label="Prompt mode">
-		<button class="mode-pill active" role="tab" aria-selected="true">CMD</button>
+		<button type="button" class="mode-pill active" role="tab" aria-selected="true">CMD</button>
 		<button
+			type="button"
 			class="mode-pill"
 			role="tab"
 			aria-selected="false"
@@ -39,6 +58,7 @@
 			title="Search provider is frozen (scope split)">SEARCH</button
 		>
 		<button
+			type="button"
 			class="mode-pill"
 			role="tab"
 			aria-selected="false"
@@ -52,18 +72,34 @@
 		class="prompt-input"
 		data-testid="prompt-input"
 		type="text"
-		placeholder="Type a command — Enter runs it in the terminal"
+		placeholder="Type a command — Enter or Run executes it in the terminal"
 		autocomplete="off"
 		spellcheck="false"
 		onkeydown={onKeydown}
 	/>
+	<button
+		type="button"
+		class="prompt-action run"
+		data-testid="prompt-submit"
+		aria-label="Run command"
+		title="Run command"
+		onclick={submit}>↵</button
+	>
+	<button
+		type="button"
+		class="prompt-action dismiss"
+		data-testid="prompt-dismiss"
+		aria-label="Dismiss prompt"
+		title="Dismiss prompt"
+		onclick={dismiss}>✕</button
+	>
 </div>
 
 <style>
 	.prompt-input-bar {
 		display: flex;
 		align-items: center;
-		gap: 12px;
+		gap: 10px;
 		margin: 12px;
 		padding: 10px 14px;
 		border-radius: 14px;
@@ -74,14 +110,17 @@
 		flex: none;
 	}
 	.mode-pill {
-		padding: 6px 12px;
+		min-height: 44px;
+		min-width: 44px;
+		padding: 8px 14px;
 		border-radius: 999px;
 		border: 1px solid rgba(0, 229, 255, 0.35);
 		background: transparent;
 		color: var(--color-text, #e0f7fa);
-		font-size: 11px;
+		font-size: 12px;
 		letter-spacing: 0.1em;
 		cursor: pointer;
+		touch-action: manipulation;
 	}
 	.mode-pill.active {
 		background: var(--color-primary, #00e5ff);
@@ -95,6 +134,7 @@
 	.prompt-input {
 		flex: 1;
 		min-width: 0;
+		min-height: 44px;
 		background: rgba(0, 0, 0, 0.25);
 		border: 1px solid rgba(0, 229, 255, 0.25);
 		border-radius: 10px;
@@ -105,5 +145,32 @@
 	}
 	.prompt-input:focus {
 		border-color: var(--color-primary, #00e5ff);
+	}
+	.prompt-action {
+		flex: none;
+		display: inline-flex;
+		align-items: center;
+		justify-content: center;
+		min-width: 44px;
+		min-height: 44px;
+		padding: 8px 14px;
+		border-radius: 10px;
+		border: 1px solid rgba(0, 229, 255, 0.4);
+		background: rgba(10, 25, 35, 0.78);
+		color: var(--color-text, #e0f7fa);
+		font-size: 16px;
+		font-weight: 700;
+		cursor: pointer;
+		touch-action: manipulation;
+		-webkit-tap-highlight-color: transparent;
+		transition: transform 80ms ease, background-color 120ms ease;
+	}
+	.prompt-action.run {
+		background: var(--color-primary, #00e5ff);
+		color: #06222b;
+		border-color: var(--color-primary, #00e5ff);
+	}
+	.prompt-action:active {
+		transform: scale(0.95);
 	}
 </style>

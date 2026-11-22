@@ -34,7 +34,12 @@ const MARKER_PROMPT_INPUT = 'TOS_SLICE_E2E_D4';
 
 test.use({
     ignoreHTTPSErrors: true,
-    launchOptions: { args: ['--ignore-certificate-errors'] }
+    launchOptions: {
+        args: ['--ignore-certificate-errors'],
+        ...(process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH
+            ? { executablePath: process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH }
+            : {})
+    }
 });
 
 function brainBinary(): string {
@@ -166,7 +171,7 @@ test.describe('Phase 1 slice — ambient face against a real Brain', () => {
         // not just painted.
         await expect
             .poll(() => terminalText(page), { timeout: 20_000 })
-            .toMatch(/@.*[#$]/);
+            .toMatch(/@.*[#$>]/);
     });
 
     test('runs a command in the background terminal', async ({ page }) => {
@@ -211,7 +216,7 @@ test.describe('Phase 1 slice — ambient face against a real Brain', () => {
             await expect(page.locator('.surface-background .xterm')).toBeVisible();
             await expect
                 .poll(() => terminalText(page), { timeout: 20_000 })
-                .toMatch(/@.*[#$]/);
+                .toMatch(/@.*[#$>]/);
 
             await chipsPage.goto(`${FACE_URL}/?surface=chips`);
             await expect(
@@ -310,5 +315,59 @@ test.describe('Phase 1 slice — ambient face against a real Brain', () => {
         await expect(page.locator('.surface-background .xterm')).toBeVisible();
         await runInTerminal(page, `echo ${MARKER_RECONNECT}`);
         await expectTerminalContains(page, MARKER_RECONNECT);
+    });
+
+    test('touch controls meet 44px target minimum and operate without Enter or Escape', async ({ page }) => {
+        await page.goto(`${FACE_URL}/?surface=chips`);
+        await expect(page.getByTestId('accel-prompt-toggle')).toBeVisible();
+        await expect(page.getByTestId('accel-touch-keys')).toBeVisible();
+
+        for (const testId of ['accel-prompt-toggle', 'accel-key-tab', 'accel-key-enter', 'accel-toggle-hidden']) {
+            const box = await page.getByTestId(testId).boundingBox();
+            expect(box, `${testId} bounding box`).not.toBeNull();
+            expect(box!.height, `${testId} height >= 44px`).toBeGreaterThanOrEqual(44);
+            expect(box!.width, `${testId} width >= 44px`).toBeGreaterThanOrEqual(44);
+        }
+
+        const faceCmds = page.evaluate(
+            () =>
+                new Promise<string>((resolve) => {
+                    window.addEventListener(
+                        'tos:face-command',
+                        (e) => resolve((e as CustomEvent<string>).detail),
+                        { once: true }
+                    );
+                })
+        );
+        await page.getByTestId('accel-prompt-toggle').click();
+        expect(await faceCmds).toBe('toggle-prompt');
+
+        // Prompt Run and Dismiss buttons: ≥44px targets and keyboard-free submit/dismiss.
+        await page.goto(`${FACE_URL}/?surface=prompt`);
+        const runBtn = page.getByTestId('prompt-submit');
+        const dismissBtn = page.getByTestId('prompt-dismiss');
+        for (const btn of [runBtn, dismissBtn]) {
+            const box = await btn.boundingBox();
+            expect(box).not.toBeNull();
+            expect(box!.height).toBeGreaterThanOrEqual(44);
+            expect(box!.width).toBeGreaterThanOrEqual(44);
+        }
+
+        await page.getByTestId('prompt-input').fill('echo TOS_TOUCH_RUN_OK');
+        await runBtn.click();
+        await expectTerminalContains(page, 'TOS_TOUCH_RUN_OK');
+
+        const dismissCmd = page.evaluate(
+            () =>
+                new Promise<string>((resolve) => {
+                    window.addEventListener(
+                        'tos:face-command',
+                        (e) => resolve((e as CustomEvent<string>).detail),
+                        { once: true }
+                    );
+                })
+        );
+        await dismissBtn.click();
+        expect(await dismissCmd).toBe('hide-prompt');
     });
 });

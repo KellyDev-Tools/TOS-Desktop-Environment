@@ -267,16 +267,20 @@
 		color: var(--color-text, #e0f7fa);
 		font-size: 13px;
 		cursor: pointer;
-		backdrop-filter: blur(6px);
+		/* No backdrop-filter and no transform on chips: both create
+		   composited layers, and on device the chips surface paints
+		   stale ghost rectangles on tap in the face's web view.
+		   This build tests whether they are the trigger — the
+		   press feedback below is colour-only, which repaints
+		   without a layer. */
 		touch-action: manipulation;
 		-webkit-tap-highlight-color: transparent;
-		transition: transform 80ms ease, border-color 120ms ease, background-color 120ms ease;
+		transition: border-color 120ms ease, background-color 120ms ease;
 	}
 	.accel-chip:hover {
 		border-color: var(--color-primary, #00e5ff);
 	}
 	.accel-chip:active {
-		transform: scale(0.96);
 		background: rgba(0, 229, 255, 0.22);
 		border-color: var(--color-primary, #00e5ff);
 	}

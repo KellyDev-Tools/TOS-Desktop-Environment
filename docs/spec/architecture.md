@@ -2,7 +2,9 @@
 
 **Purpose:** This document is the single source of truth for the architecture and visual design of **TOS** (**Terminal On Steroids**). It defines system structure, process boundaries, IPC contracts, the visual hierarchy, rendering model, input abstraction, security, and all platform behaviour. The terminal and command line are the absolute centre of every design decision. All features exist to augment the terminal, never to bypass it.
 
-**Version:** 0.1.3
+**Version:** 0.1.4
+
+> **Spec 0.1.4 — 2026-11-22:** Terminal emulation moves into the Brain. New §26.3 defines the model: the Brain parses each session's PTY stream once, into a screen grid it owns; faces receive display state and paint it, and hand the Brain raw, uninterpreted input events, which the Brain encodes into PTY bytes using the emulation state it owns. This supersedes the Spec 0.1.2 note's face-rendering requirement ("canvas, not DOM" — the question it answered no longer exists, because no face renders the stream), the face-rendering model in §26.2 and §27.1 as they apply to the terminal surface, and the terminal stream's command set in "The remote surface" above. §7.2 gains a governing note: Terminal Output Modules are paint treatments over the Brain's grid, not stream renderers. Decided by Timothy, 2026-11-22, after the on-device retest recorded in the Roadmap (Phase 1.7 re-scope): every rendering fault of the face era lived in the duplicated emulation in the face. The 0.1.3 text is preserved in git history.
 
 > **Spec 0.1.3 — 2026-11-22:** This document changes in one place: §23.2's default theme is now `default`, not `lcars-light`, following the LCARS design-language decision recorded in the [Visual Design Specification](./visual-design.md) (§5.5). The 0.1.2 text is preserved in git history.
 
@@ -78,10 +80,12 @@ The Direction Update narrows the Face↔Brain protocol to three streams.
 This subsection is the operative definition of that boundary for any
 caller that arrives over the network (WebSocket or TCP):
 
-- **Terminal stream** — `terminal_input_hex`, `terminal_resize`,
-  `terminal_signal` in; `pty_output` out. (Chip taps and the prompt
-  bar also act through `terminal_input_hex`: a tap types into the
-  terminal, per the 0.1.1 chip model.)
+- **Terminal stream** — `display_subscribe`, `terminal_key`,
+  `terminal_text`, `terminal_resize`, `terminal_signal`,
+  `display_scroll` in; `display_update` out (§26.3). (Chip taps and
+  the prompt bar act through `terminal_text` and `terminal_key`: a
+  tap types into the terminal, per the 0.1.1 chip model — the Brain
+  encodes, per §26.3's no-pre-Brain-parsing rule.)
 - **Chip-state stream** — `get_state`, `get_state_delta` in;
   `state_delta` out.
 - **Prompt stream** — `prompt_submit`, `force_prompt_submit`.
@@ -98,9 +102,9 @@ later phase un-parks its subsystem. Enforcement lives in the Brain's
 remote handlers (`REMOTE_ALLOWED_PREFIXES` in
 `tos-common/src/platform/remote_server.rs`); the local UDS path keeps
 the full surface. Brain→face pushes stay inside the streams —
-`pty_output` (terminal) and `state_delta` (chip state) are the only
-broadcasts a remote face receives; `ai_prediction_received` is not
-sent to remote clients.
+`display_update` (terminal) and `state_delta` (chip state) are the
+only broadcasts a remote face receives; `ai_prediction_received` is
+not sent to remote clients.
 
 ---
 
@@ -1122,6 +1126,8 @@ The Bottom Bezel Segment houses the Persistent Unified Prompt. Visible across al
 | **Disabled** | Level 4 (Tactical Reset) | Hidden or locked; Tactical Reset takes priority. |
 
 ### 7.2 Terminal Output as Primary Canvas
+
+> **Governing note (Spec 0.1.4):** the Face no longer receives a stream of lines. The Brain owns each session's screen grid (§26.3); a Terminal Output Module is a **paint treatment over that grid** — it defines the visual appearance, layout, and any special effects (perspective, animation) with which the Face paints Brain-given cells. User interactions are captured by the Face and sent to the Brain uninterpreted (§26.3). The paragraph below is the pre-0.1.4 model, preserved for the module catalogue; where it conflicts with §26.3, §26.3 governs.
 
 The terminal output area is rendered by the currently active **Terminal Output Module** (see Ecosystem Specification §1.5). The module defines the visual appearance, layout, and any special effects (perspective, animation). The Face provides the module with a stream of lines from the sector's PTY and handles user interactions via the module's API.
 
@@ -2288,7 +2294,29 @@ Result must be valid printable UTF-8.
 - Auto-scroll to latest line.
 - Distinct styling for command echo (`> command`) vs output.
 
+§26.1 and this section govern the Brain's own line log (`hub.terminal_output`). What a face displays is defined by §26.3.
+
+### 26.3 Emulation lives in the Brain: the grid and the display-state protocol
+
+The Brain owns terminal emulation. Each terminal session's PTY stream is parsed exactly once, in the Brain, into a **screen grid** — cells, attributes, cursor, modes, and scrollback history — held per session and addressed by session identity from the start, so a Brain tracking more than one session is an addition, not a redesign. No face parses terminal output, and no face encodes input.
+
+**Display state flows Brain → face, publish/subscribe:**
+
+- A face subscribes to a session's display state (`display_subscribe`, optionally naming the session; absent a name, the primary session). The Brain answers with a **snapshot**: the full visible grid (rows of styled spans), the cursor, the grid dimensions, and a sequence number.
+- Thereafter the Brain **publishes updates** (`display_update`) carrying the session, a new sequence number, and the current visible grid. Updates are **coalesced**: a face that cannot keep up receives the latest state, never a queue of stale frames. A face that detects a sequence gap resyncs by subscribing again — the snapshot is always the whole truth, which is also what reconnect means: there is no replay protocol.
+- Scrolling is a display concern the Brain serves: `display_scroll` moves the session's display offset into its scrollback history, and the next update shows that window. The grid itself does not change.
+
+**Input flows face → Brain, uninterpreted:**
+
+- Faces capture raw input events and send them as-is: `terminal_key` carries one key event (the key's identity and its modifiers, in the capturing platform's terms); `terminal_text` carries literal text (committed text input, pastes, and the typing a chip tap represents).
+- **The Brain encodes.** Turning a key event into PTY bytes depends on emulation state the Brain owns — cursor-key mode changes what an arrow key sends; bracketed-paste mode changes how text is delivered — so encoding happens beside the grid, in the Brain, and the encoded bytes enter the same single input funnel the Brain has always kept (the funnel that also feeds the input-line model behind dynamic chips, §7.7).
+- No pre-Brain parsing is permitted anywhere in a face: a face that interprets a key, a stream byte, or an output sequence — for any feature — has reintroduced the second terminal this section exists to remove.
+
+**Consequences held by construction:** a shell redraw changes cells in one grid, so the face-era fault class (redraws painted as new rows, stale glyph cells) has no mechanism; two faces of different sizes subscribe to the same session and paint the same truth; the remote terminal stream (see "The remote surface") carries display state and input events inside the same three-stream narrowing, and nothing outside it.
+
 ---
+
+
 
 ## 27. UI Module Interaction APIs
 

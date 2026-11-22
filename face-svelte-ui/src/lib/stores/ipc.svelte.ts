@@ -147,15 +147,36 @@ let commandQueue: Promise<any> = Promise.resolve();
  * commands from stealing each other's responses (since the Brain
  * currently sends a single line in response to a single-line request).
  */
+// Commands offered while the socket is still connecting wait
+// for it, in queue order: input typed at a face that is still
+// connecting (or reconnecting) is type-ahead, not noise to
+// discard. A terminal that silently eats keystrokes typed a
+// moment too early is broken; the wait is bounded by the same
+// 5s the response wait uses.
+let openWaiters: Array<(sock: WebSocket | null) => void> = [];
+
+function waitForOpen(timeoutMs: number): Promise<WebSocket | null> {
+    if (ws && ws.readyState === WebSocket.OPEN) return Promise.resolve(ws);
+    return new Promise((resolve) => {
+        const waiter = (sock: WebSocket | null) => {
+            clearTimeout(timer);
+            resolve(sock);
+        };
+        const timer = setTimeout(() => {
+            openWaiters = openWaiters.filter((w) => w !== waiter);
+            resolve(null);
+        }, timeoutMs);
+        openWaiters.push(waiter);
+    });
+}
+
 export function sendCommand(cmd: string): Promise<string | null> {
-    if (!ws || ws.readyState !== WebSocket.OPEN) {
-        console.warn('[IPC] Cannot send — not connected.');
-        return Promise.resolve(null);
-    }
-
-    const activeWs = ws;
-
-    const runCommand = (): Promise<string | null> => {
+    const runCommand = async (): Promise<string | null> => {
+        const activeWs = await waitForOpen(5000);
+        if (!activeWs) {
+            console.warn('[IPC] Cannot send — not connected.');
+            return null;
+        }
         return new Promise((resolve) => {
             const id = Math.random().toString(36).substring(7);
             const handler = (event: MessageEvent) => {
@@ -273,6 +294,9 @@ function proceedConnect(targetUrl: string): void {
     ws.onopen = () => {
         connectionState = 'connected';
         reconnectAttempts = 0;
+        const waiters = openWaiters;
+        openWaiters = [];
+        waiters.forEach((w) => w(ws));
         console.log('[IPC] ✅ Connected to Brain');
 
         if (hasConnectedBefore) {

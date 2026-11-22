@@ -217,6 +217,7 @@ impl IpcHandler {
                 self.broadcast(request);
                 "OK".to_string()
             }
+            "chips_set_show_hidden" => self.handle_chips_set_show_hidden(payload),
             "terminal_input_hex" => {
                 if let Ok(bytes) = hex::decode(payload) {
                     let mut shell = self.shell.lock().unwrap();
@@ -1756,6 +1757,8 @@ impl IpcHandler {
                 terminal_output: vec![],
                 buffer_limit: 500,
                 shell_listing: None,
+                chip_filter: None,
+                chips_show_hidden: false,
                 activity_listing: None,
                 search_results: None,
                 staged_command: None,
@@ -1919,6 +1922,33 @@ impl IpcHandler {
         {
             Ok(response) => response,
             Err(e) => format!("ERROR: Log query failed: {}", e),
+        }
+    }
+
+    /// Phase 1.7: the chips panel's dotfiles switch. Payload is
+    /// "true" or "false"; the flag lives on the active hub, next
+    /// to its listing, so every connected face agrees on it.
+    fn handle_chips_set_show_hidden(&self, payload: &str) -> String {
+        let show = payload.trim() == "true";
+        let mut state = self.state.lock().unwrap();
+        let ids = {
+            let sidx = state.active_sector_index;
+            match state.sectors.get(sidx) {
+                Some(sector) => match sector.hubs.get(sector.active_hub_index) {
+                    Some(hub) => Some((sector.id, hub.id)),
+                    None => None,
+                },
+                None => None,
+            }
+        };
+        match ids {
+            Some((sid, hid)) => {
+                crate::brain::sector::SectorManager::set_chips_show_hidden(
+                    &mut state, sid, hid, show,
+                );
+                "OK".to_string()
+            }
+            None => "ERROR: No active hub".to_string(),
         }
     }
 

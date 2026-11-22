@@ -300,6 +300,19 @@ pub struct CommandHub {
     pub buffer_limit: usize,
     /// Directory listing populated in DIR mode.
     pub shell_listing: Option<DirectoryListing>,
+    /// The chip set's current type-ahead filter (Phase 1.7,
+    /// dynamic chips): the fragment of the word being typed in
+    /// this hub's shell, tracked by the Brain from the terminal
+    /// input stream. None means unfiltered — either nothing is
+    /// being typed, or the input model lost sync with the
+    /// shell's line editor and cleared the filter on purpose.
+    #[serde(default)]
+    pub chip_filter: Option<String>,
+    /// Whether the chip set includes dotfiles (Phase 1.7).
+    /// Toggled from the chips panel itself; default false,
+    /// matching `ls`.
+    #[serde(default)]
+    pub chips_show_hidden: bool,
     /// Process listing populated in ACT mode.
     pub activity_listing: Option<ActivityListing>,
     /// Search results populated in SEARCH mode.
@@ -854,6 +867,8 @@ impl Default for TosState {
                 terminal_output: vec![],
                 buffer_limit: 500,
                 shell_listing: None,
+                chip_filter: None,
+                chips_show_hidden: false,
                 activity_listing: None,
                 search_results: None,
                 staged_command: None,

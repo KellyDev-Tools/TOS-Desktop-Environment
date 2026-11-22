@@ -106,7 +106,8 @@ pub fn spec(surface: Surface) -> SurfaceSpec {
             transparent: true,
             start_visible: true,
             default_width: 0,
-            default_height: 64,
+            // Two 44px touch rows (entries + controls) plus gaps/padding.
+            default_height: 112,
         },
         Surface::Prompt => SurfaceSpec {
             surface,
@@ -232,6 +233,11 @@ mod tests {
         assert_eq!(c.layer, LayerKind::Top);
         assert!(c.anchor_top && c.anchor_left && c.anchor_right && !c.anchor_bottom);
         assert_eq!(c.exclusive_zone, 0);
+        // Top of the screen, spanning the width: the width is
+        // anchor-sized (0), never a fixed default, and the height
+        // fits the two 44px touch rows plus gaps/padding.
+        assert_eq!(c.default_width, 0);
+        assert_eq!(c.default_height, 112);
     }
 
     #[test]
@@ -268,11 +274,6 @@ mod tests {
             ui_url_with_brain("http://127.0.0.1:18701/", Surface::Chips, Some("   ")),
             "http://127.0.0.1:18701/?surface=chips"
         );
-    }
-
-    #[test]
-    fn chips_height_accommodates_touch_targets() {
-        assert!(spec(Surface::Chips).default_height >= 64);
     }
 
     #[test]

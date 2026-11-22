@@ -321,8 +321,10 @@ test.describe('Phase 1 slice — ambient face against a real Brain', () => {
         await page.goto(`${FACE_URL}/?surface=chips`);
         await expect(page.getByTestId('accel-prompt-toggle')).toBeVisible();
         await expect(page.getByTestId('accel-touch-keys')).toBeVisible();
+        // Keys and the dotfiles switch own a separate controls row.
+        await expect(page.getByTestId('accel-controls-row')).toBeVisible();
 
-        for (const testId of ['accel-prompt-toggle', 'accel-key-tab', 'accel-key-enter', 'accel-toggle-hidden']) {
+        for (const testId of ['accel-prompt-toggle', 'accel-key-tab', 'accel-key-esc', 'accel-key-enter', 'accel-toggle-hidden']) {
             const box = await page.getByTestId(testId).boundingBox();
             expect(box, `${testId} bounding box`).not.toBeNull();
             expect(box!.height, `${testId} height >= 44px`).toBeGreaterThanOrEqual(44);

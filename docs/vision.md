@@ -160,7 +160,7 @@ Chips derive from Brain-held state only. Each family below is a
 
 | Element | What it is | Status |
 |---|---|---|
-| App placement experiment | Run location × display location; how visible the choice is by default | **Open experiment** (Phase 3) — Scope Split's four-cell table |
+| App placement experiment | Run location × display location; how visible the choice is by default | **Open experiment** (Phase 3) — Scope Split's four-cell table. The machinery landed 2026-11-22 (Spec 0.1.5 §26.4): catalogue-based routing, all three prominence levels, the launch registry and relaunch. What stays open is the question itself — which prominence is right — decided by use |
 | XR face (Quest) | Locally rendered panels, streamed content; never the viewpoint | **Slot kept** (platform trait exists); Phase 5 — Architecture §15 |
 | Electron face | The May remote-Brain vehicle | **Parked** — lessons carried into the ambient face |
 | Android faces (Flutter + handheld) | Thin remote faces for phone / handheld | **Parked** |

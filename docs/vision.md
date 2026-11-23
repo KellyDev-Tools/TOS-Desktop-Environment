@@ -103,7 +103,7 @@ frozen slice at a time — never the other way round.
 |---|---|---|---|
 | Terminal as animated background | The session as the desktop's living background layer | **Live** (Phase 1; layer-shell face; GNOME shim is Phase 4) | Architecture, Direction Update + §7.2; Visual Design §5 |
 | Brain holds the truth; faces render | One headless daemon; thin faces per machine | **Live** | Architecture §3 |
-| Remote Brain as default topology | Brain on a server (e.g. tkserver); workspace follows the user | **In progress** (Phase 2: config, reconnect, narrowing landed; tkserver end-to-end remains) | Direction Update; §12 reframed |
+| Remote Brain as default topology | Brain on a server (e.g. tkserver); workspace follows the user | **Live** (Phase 2 closed 2026-11-22: config, reconnect, narrowing, and the tkserver end-to-end run all landed) | Direction Update; §12 reframed |
 | Three-stream protocol | Terminal, chip state, prompt — nothing else crosses remotely | **Live** (PR #16) | Architecture, "The remote surface" |
 | Mesh-VPN transport | Tailscale/WireGuard carries identity + encryption; SSH fallback is break-glass | **In progress** (settles at the tkserver run) | Scope Split |
 | Prompt overlay (Unified Prompt) | One input for command, search, AI; summoned, independent, docked to nothing | **Live** for CMD (Phases 1/1.6) | Architecture §7.1 (as corrected by the 0.1.1 note); Features §1 |

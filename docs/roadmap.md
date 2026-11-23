@@ -204,10 +204,10 @@ Work:
 
 Done when:
 
-- [ ] The Phase 1 slice passes its E2E tests with the Brain on tkserver, not just locally
-- [ ] Disconnect and reconnect (including laptop sleep/wake) restore the same terminal session with no lost scrollback beyond a stated limit
-- [ ] No public TLS or certificate workaround is required — connection works on the tailnet only
-- [ ] Chips truthfully show connection state (local / remote / disconnected) at a glance
+- [x] The Phase 1 slice passes its E2E tests with the Brain on tkserver, not just locally
+- [x] Disconnect and reconnect (including laptop sleep/wake) restore the same terminal session with no lost scrollback beyond a stated limit
+- [x] No public TLS or certificate workaround is required — connection works on the tailnet only
+- [x] Chips truthfully show connection state (local / remote / disconnected) at a glance
 
 **Status (2026-11-17, PR #14): the config foundation is built.** The pre-audit's four traps are addressed in code: the Brain now honours its `[remote]` config (ports, bind address, remote-access toggle, mDNS gate, UDS path — remote off means loopback-only, fail closed); the TLS acceptor is built once instead of per connection, and the self-signed certificate covers the configured bind identity (e.g. the tailnet IP) plus the machine hostname; the face's two plain-`ws://` paths now use `wss://`; and chips show LOCAL / REMOTE / DISCONNECTED (the LOCAL case is asserted in the slice E2E). A new gated spec (`tests/remote.spec.ts`) proves the bind behaviour against a real Brain on a non-loopback address. Still open for this phase: the tkserver end-to-end run (needs the Brain deployed on tkserver with `remote_access = true` and `bind_address` set to its tailnet IP — the same `tos.toml` shape the spec uses) and the three-stream narrowing.
 
@@ -216,6 +216,8 @@ Done when:
 **Status (2026-11-17, PR #16): three-stream narrowing is built.** The Brain's remote handlers (WebSocket and TCP) now enforce an allowlist — the nine prefixes of the three streams (terminal input/resize/signal, prompt submit ×2, state ×2, plus the `tos_ports` probe and `face_register`) — and refuse everything else with a loud `ERROR:` that keeps the caller's `cmd:` id, so a parked caller fails visibly instead of hanging. The unauthenticated OpenSearch HTTP shim on the TCP port is gone (403), WebRTC signalling is refused, and `ai_prediction_received` is no longer broadcast to remote clients. Grey-area commands (`set_mode`, sectors, settings/theme, `session_save`/`load`, portals) are parked over remote by explicit ruling; the local UDS path keeps the full surface untouched. The operative definition lives in the Architecture spec ("The remote surface: the three streams, defined"). The gated spec `tests/narrowing.spec.ts` proves it headlessly: allowed commands answer, terminal input reaches the shell, parked and grey-area commands are refused, and the same parked command still answers over UDS. Still open for this phase: only the tkserver end-to-end run (Timothy's deploy), which is also where the TLS-vs-mesh question gets settled in practice — the narrowing lands with WSS unchanged.
 
 **Note (2026-11-22): the terminal stream's contents change; its shape does not.** Under the Phase 1.7 re-scope, the terminal stream carries display state and raw input events instead of the raw PTY stream and hex-encoded input. The three-stream narrowing and its allowlist move with the protocol as part of the Phase 1.7 work — the gate stays exactly as narrow, and no raw-stream commands survive alongside the new ones. The tkserver end-to-end run that remains in this phase then exercises the Brain-grid face remotely, and the reconnect done-when above is met by grid sync from the Brain rather than scrollback replay.
+
+**Status (2026-11-22): Phase 2 is closed.** The tkserver end-to-end run passed clean — the run sheet's checks all green: Brain on tkserver with `remote_access = true` bound to its tailnet address, the face remote over the tailnet only, typing and scrollback served by the Brain's grid, chips showing REMOTE at a glance and DISCONNECTED while down, a dropped connection reattaching to the same session by grid sync, a Brain restart presenting a fresh session, parked and retired commands refused loudly. The TLS-vs-mesh question the narrowing status left open is settled in practice: WSS with the Brain's self-signed certificate covering the bind identity, inside the tailnet, nothing public and no workaround. What carries forward: Phase 3's placement experiment takes this topology as its ground. The fish-as-default trial rides on the same server and stays an open question, decided by use rather than by this closure.
 
 ## Phase 3 — Placement: run location is not display location
 

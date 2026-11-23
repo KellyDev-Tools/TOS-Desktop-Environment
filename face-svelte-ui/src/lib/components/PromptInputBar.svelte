@@ -5,7 +5,12 @@
 	// bytes as typing it there), so the terminal stays a normal
 	// terminal. SEARCH / AI modes are shown but inert — their
 	// information providers are frozen by the scope split.
-	import { sendTerminalCommand } from '$lib/stores/ipc.svelte';
+	//
+	// Placement (Spec §26.4): a submission naming a GUI app is a
+	// launch, not a terminal command. The bar asks the Brain's
+	// placement router first; only a SESSION answer falls through
+	// to typing into the terminal, unchanged.
+	import { sendTerminalCommand, promptLaunch } from '$lib/stores/ipc.svelte';
 
 	let value = $state('');
 	let inputEl: HTMLInputElement | null = $state(null);
@@ -23,11 +28,13 @@
 		window.dispatchEvent(new CustomEvent('tos:face-command', { detail: 'hide-prompt' }));
 	}
 
-	function submit() {
+	async function submit() {
 		const cmd = value.trim();
-		if (cmd) {
+		if (!cmd) return;
+		value = '';
+		const verdict = await promptLaunch(cmd);
+		if (!verdict || verdict === 'SESSION') {
 			sendTerminalCommand(cmd);
-			value = '';
 		}
 	}
 

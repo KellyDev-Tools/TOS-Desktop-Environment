@@ -29,6 +29,7 @@
 		sendTerminalKey,
 		sendTerminalText,
 		shellQuote,
+		placementRelaunch,
 		type TerminalKeyEvent
 	} from '$lib/stores/ipc.svelte';
 
@@ -41,6 +42,17 @@
 	const cwd = $derived(listing?.path ?? activeHub?.current_directory ?? '');
 	const chipFilter = $derived(activeHub?.chip_filter ?? null);
 	const showHidden = $derived(activeHub?.chips_show_hidden ?? false);
+
+	// Placement (Spec §26.4): recent GUI launches with the machine
+	// each ran on, from the Brain's registry. Shown unless the
+	// prominence preference is `invisible`; each entry can be run
+	// again in the other location.
+	const prominence = $derived(
+		tosState.settings?.global?.['tos.placement.prominence'] ?? 'glyph'
+	);
+	const launches = $derived(
+		prominence === 'invisible' ? [] : (tosState.placement_launches ?? []).slice(-6)
+	);
 
 	// The entries actually shown: dotfiles out unless the panel's
 	// switch says otherwise; while a fragment is being typed,
@@ -173,7 +185,29 @@
 	</div>
 
 	{#if conn === 'connected' && listing}
-		<div class="accel-row accel-row-controls" data-testid="accel-controls-row">
+		{#if launches.length > 0}
+		<div class="accel-row accel-row-launches" data-testid="accel-launches-row">
+			{#each launches as launch (launch.id)}
+				<span class="accel-chip launch-chip" data-testid="accel-launch">
+					<span class="launch-glyph" data-testid="accel-launch-glyph"
+						>{launch.placement === 'host' ? 'H' : 'S'}</span
+					>
+					<span class="launch-name">{launch.app}</span>
+					<button
+						type="button"
+						class="launch-relaunch"
+						data-testid="accel-launch-relaunch"
+						title={launch.placement === 'host'
+							? 'Run on the server instead'
+							: 'Run here instead'}
+						onclick={() => placementRelaunch(launch.id)}>⇄</button
+					>
+				</span>
+			{/each}
+		</div>
+	{/if}
+
+	<div class="accel-row accel-row-controls" data-testid="accel-controls-row">
 			<div class="accel-keys" data-testid="accel-touch-keys" role="group" aria-label="Terminal keys">
 				{#each touchKeys as key (key.id)}
 					<button
@@ -227,6 +261,37 @@
 	.accel-row-controls {
 		flex: none;
 		gap: 8px;
+	}
+	.accel-row-launches {
+		flex: none;
+		gap: 8px;
+		overflow-x: auto;
+		scrollbar-width: none;
+	}
+	.accel-row-launches::-webkit-scrollbar {
+		display: none;
+	}
+	.launch-chip {
+		display: inline-flex;
+		align-items: center;
+		gap: 6px;
+		min-height: 44px;
+	}
+	.launch-glyph {
+		font-weight: 700;
+		font-size: 11px;
+		border: 1px solid currentColor;
+		border-radius: 4px;
+		padding: 1px 4px;
+	}
+	.launch-relaunch {
+		min-width: 44px;
+		min-height: 44px;
+		border: none;
+		background: transparent;
+		color: inherit;
+		font-size: 15px;
+		cursor: pointer;
 	}
 	.accel-status {
 		display: flex;

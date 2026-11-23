@@ -50,6 +50,8 @@
 	import SettingsModal from '$lib/components/SettingsModal.svelte';
 	import PortalModal from '$lib/components/PortalModal.svelte';
 	import ConfirmationOverlay from '$lib/components/ConfirmationOverlay.svelte';
+import PlacementChoice from '$lib/components/PlacementChoice.svelte';
+import PlacementExecutor from '$lib/components/PlacementExecutor.svelte';
 
 	const tosState = $derived(getTosState());
 	const connState = $derived(getConnectionState());
@@ -370,6 +372,7 @@
 	>
 		<PromptInputBar />
 		<CommandHub />
+		<PlacementChoice />
 	</div>
 {:else}
 <div class="lcars-container">
@@ -618,7 +621,12 @@
 <SettingsModal />
 <PortalModal />
 <ConfirmationOverlay />
+<PlacementChoice />
 {/if}
+
+<!-- Placement directives are executed by whichever surface is
+     live; the face shell dedupes by directive id (Spec §26.4). -->
+<PlacementExecutor />
 
 <style>
 	/* Ambient face surfaces (Phase 1): each fills its layer-shell window.

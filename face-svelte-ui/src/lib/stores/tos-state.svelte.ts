@@ -162,12 +162,47 @@ export interface TosSettings {
 
 export type FaceProfile = 'desktop' | 'handheld' | 'spatial' | 'headless';
 
+/** Placement types (Architecture §26.4), mirroring the Brain's. */
+export interface PlacementAppEntry {
+    id: string;
+    name: string;
+    exec: string;
+}
+
+export interface PendingPlacement {
+    id: string;
+    command: string;
+    app_name: string;
+    host_exec: string | null;
+    server_exec: string | null;
+}
+
+export interface LaunchRecord {
+    id: string;
+    app_id: string;
+    app: string;
+    exec: string;
+    placement: string;
+    at: string;
+}
+
+export interface LaunchDirective {
+    id: string;
+    app: string;
+    exec: string;
+    placement: string;
+}
+
 export interface TosState {
     current_level: HierarchyLevel;
     sectors: Sector[];
     active_sector_index: number;
     settings: TosSettings;
     pending_confirmation?: ConfirmationRequest | null;
+    placement_host_apps?: PlacementAppEntry[];
+    placement_pending?: PendingPlacement | null;
+    placement_launches?: LaunchRecord[];
+    placement_directive?: LaunchDirective | null;
     system_log: TerminalLine[];
     sys_prefix: string;
     sys_title: string;
@@ -228,6 +263,10 @@ export function getDefaultState(): TosState {
             }
         ],
         pending_confirmation: null,
+        placement_host_apps: [],
+        placement_pending: null,
+        placement_launches: [],
+        placement_directive: null,
         system_log: [
             {
                 text: 'No connection to Brain.',

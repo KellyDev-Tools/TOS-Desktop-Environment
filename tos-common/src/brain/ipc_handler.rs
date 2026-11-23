@@ -78,6 +78,9 @@ pub struct IpcHandler {
     sessions: std::collections::HashMap<String, Arc<Mutex<crate::brain::shell::ShellApi>>>,
     primary_session: String,
     display: Arc<DisplayHub>,
+    /// This machine's GUI app catalogue for placement decisions,
+    /// scanned once at startup (Architecture §26.4).
+    server_apps: Vec<crate::brain::placement::AppEntry>,
 }
 
 impl Drop for IpcHandler {
@@ -152,6 +155,7 @@ impl IpcHandler {
             sessions,
             primary_session,
             display,
+            server_apps: crate::brain::placement::scan_catalogue(),
         }
     }
 
@@ -259,6 +263,10 @@ impl IpcHandler {
             "semantic_search" => self.handle_semantic_search(payload),
             "prompt_submit" => self.handle_prompt_submit(payload, false),
             "force_prompt_submit" => self.handle_prompt_submit(payload, true),
+            "prompt_launch" => self.handle_prompt_launch(payload),
+            "placement_sync_apps" => self.handle_placement_sync_apps(payload),
+            "placement_choose" => self.handle_placement_choose(payload),
+            "placement_relaunch" => self.handle_placement_relaunch(payload),
             "ai_suggestion_accept" => self.handle_ai_suggestion_accept(),
             "ai_stage_command" => self.handle_ai_stage_command(payload),
             "ai_tool_call" => self.handle_ai_tool_call(payload),
@@ -770,6 +778,13 @@ impl IpcHandler {
             }
         }
 
+        // §26.4: a submission naming a GUI app is a launch,
+        // routed by placement; anything else continues to the
+        // terminal path below, unchanged.
+        if let Some(response) = self.try_placement_submit(cmd) {
+            return response;
+        }
+
         let mut hub_mode = CommandHubMode::Command;
         let mut hub_id = Uuid::nil();
         {
@@ -831,6 +846,248 @@ impl IpcHandler {
         });
 
         "SUBMITTED".to_string()
+    }
+
+
+    /// §26.4: resolve a prompt submission as a GUI launch, if
+    /// it is one. Returns the response to send, or None when the
+    /// submission is not a launch and the terminal path applies.
+    fn try_placement_submit(&self, cmd: &str) -> Option<String> {
+        use crate::brain::placement::{Placement, Prominence};
+        let (override_placement, effective) =
+            crate::brain::placement::parse_override(cmd);
+        let mut state = self.state.lock().unwrap();
+        let host_apps = state.placement_host_apps.clone();
+        let found = crate::brain::placement::resolve_launch(
+            effective,
+            &self.server_apps,
+            &host_apps,
+        );
+        let found = match (found, override_placement) {
+            (Some(m), _) => m,
+            (None, Some(_)) => {
+                let token = effective.split_whitespace().next().unwrap_or("");
+                return Some(format!(
+                    "ERROR: '{}' is not a known app on either machine",
+                    token
+                ));
+            }
+            (None, None) => return None,
+        };
+
+        let chosen = match override_placement {
+            Some(forced) => {
+                if found.exec_for(forced).is_none() {
+                    let where_ = match forced {
+                        Placement::Host => "the host",
+                        _ => "the server",
+                    };
+                    return Some(format!(
+                        "ERROR: {} is not available on {}",
+                        found.app_name, where_
+                    ));
+                }
+                forced
+            }
+            None => {
+                let prominence = Prominence::parse_setting(
+                    state
+                        .settings
+                        .global
+                        .get("tos.placement.prominence")
+                        .map(|s| s.as_str()),
+                );
+                if prominence == Prominence::Explicit {
+                    let id = Uuid::new_v4().to_string();
+                    state.placement_pending =
+                        Some(crate::brain::placement::PendingPlacement {
+                            id: id.clone(),
+                            command: effective.to_string(),
+                            app_name: found.app_name.clone(),
+                            host_exec: found.host_exec.clone(),
+                            server_exec: found.server_exec.clone(),
+                        });
+                    state.version += 1;
+                    return Some(format!("PLACEMENT_PENDING:{}", id));
+                }
+                found.default_placement()
+            }
+        };
+        let exec = found
+            .exec_for(chosen)
+            .expect("chosen placement has an exec")
+            .to_string();
+        Some(Self::record_launch(
+            &mut state,
+            &found.app_id,
+            &found.app_name,
+            &exec,
+            chosen,
+        ))
+    }
+
+    /// Record a decided launch: registry entry + the directive
+    /// a face acts on. Caller holds the state lock.
+    fn record_launch(
+        state: &mut TosState,
+        app_id: &str,
+        app_name: &str,
+        exec: &str,
+        placement: crate::brain::placement::Placement,
+    ) -> String {
+        let id = Uuid::new_v4().to_string();
+        state.placement_launches.push(
+            crate::brain::placement::LaunchRecord {
+                id: id.clone(),
+                app_id: app_id.to_string(),
+                app: app_name.to_string(),
+                exec: exec.to_string(),
+                placement: placement.as_str().to_string(),
+                at: chrono::Local::now().format("%H:%M:%S").to_string(),
+            },
+        );
+        if state.placement_launches.len() > 20 {
+            let excess = state.placement_launches.len() - 20;
+            state.placement_launches.drain(..excess);
+        }
+        state.placement_directive =
+            Some(crate::brain::placement::LaunchDirective {
+                id,
+                app: app_name.to_string(),
+                exec: exec.to_string(),
+                placement: placement.as_str().to_string(),
+            });
+        state.version += 1;
+        format!("LAUNCHED:{}", placement.as_str())
+    }
+
+    /// §26.4: route a typed prompt submission through
+    /// placement. `SESSION` means the router declined — the
+    /// caller treats the submission as a terminal submission,
+    /// exactly as it did before placement existed.
+    fn handle_prompt_launch(&self, payload: &str) -> String {
+        let cmd = payload.trim();
+        if cmd.is_empty() {
+            return "ERROR: Empty command".to_string();
+        }
+        self.try_placement_submit(cmd)
+            .unwrap_or_else(|| "SESSION".to_string())
+    }
+
+    fn handle_placement_sync_apps(&self, payload: &str) -> String {
+        let apps: Vec<crate::brain::placement::AppEntry> =
+            match serde_json::from_str(payload) {
+                Ok(a) => a,
+                Err(e) => {
+                    return format!("ERROR: Invalid app catalogue: {}", e)
+                }
+            };
+        let mut state = self.state.lock().unwrap();
+        state.placement_host_apps = apps;
+        state.version += 1;
+        "OK".to_string()
+    }
+
+    fn handle_placement_choose(&self, payload: &str) -> String {
+        use crate::brain::placement::Placement;
+        let Some((id, side)) = payload.split_once(';') else {
+            return "ERROR: placement_choose expects <id>;<host|server>"
+                .to_string();
+        };
+        let Some(placement) = Placement::parse(side) else {
+            return format!("ERROR: Unknown placement '{}'", side);
+        };
+        if placement == Placement::Session {
+            return "ERROR: A launch cannot be placed in the session"
+                .to_string();
+        }
+        let mut state = self.state.lock().unwrap();
+        let pending = match state.placement_pending.take() {
+            Some(p) if p.id == id.trim() => p,
+            Some(p) => {
+                state.placement_pending = Some(p);
+                return "ERROR: No pending placement with that id"
+                    .to_string();
+            }
+            None => {
+                return "ERROR: No placement is waiting to be chosen"
+                    .to_string()
+            }
+        };
+        let exec = match placement {
+            Placement::Host => pending.host_exec,
+            _ => pending.server_exec,
+        };
+        let Some(exec) = exec else {
+            let where_ = match placement {
+                Placement::Host => "the host",
+                _ => "the server",
+            };
+            return format!(
+                "ERROR: {} is not available on {}",
+                pending.app_name, where_
+            );
+        };
+        // The app id is re-derived from the catalogues by name;
+        // the registry needs it for later relaunches.
+        let app_id = self
+            .server_apps
+            .iter()
+            .chain(state.placement_host_apps.iter())
+            .find(|e| e.name == pending.app_name)
+            .map(|e| e.id.clone())
+            .unwrap_or_default();
+        Self::record_launch(
+            &mut state,
+            &app_id,
+            &pending.app_name,
+            &exec,
+            placement,
+        )
+    }
+
+    fn handle_placement_relaunch(&self, payload: &str) -> String {
+        use crate::brain::placement::Placement;
+        let id = payload.trim();
+        let mut state = self.state.lock().unwrap();
+        let Some(record) = state
+            .placement_launches
+            .iter()
+            .find(|r| r.id == id)
+            .cloned()
+        else {
+            return "ERROR: Unknown launch id".to_string();
+        };
+        let Some(current) = Placement::parse(&record.placement) else {
+            return "ERROR: That launch has no placement".to_string();
+        };
+        let Some(other) = current.opposite() else {
+            return "ERROR: That launch has no other location".to_string();
+        };
+        let catalogue = match other {
+            Placement::Host => &state.placement_host_apps,
+            _ => &self.server_apps,
+        };
+        let Some(entry) =
+            catalogue.iter().find(|e| e.id == record.app_id)
+        else {
+            let where_ = match other {
+                Placement::Host => "the host",
+                _ => "the server",
+            };
+            return format!(
+                "ERROR: {} is not available on {}",
+                record.app, where_
+            );
+        };
+        let exec = entry.exec.clone();
+        Self::record_launch(
+            &mut state,
+            &record.app_id,
+            &record.app,
+            &exec,
+            other,
+        )
     }
 
     fn handle_ai_agent_stack_push(&self, agent_id: Option<&str>) -> String {

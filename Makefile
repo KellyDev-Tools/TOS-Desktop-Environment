@@ -249,10 +249,8 @@ test-brain-component:
 	echo "Component Test Complete. Analysis: 'logs/brain_node.log'"
 
 test-ui-component:
-	@echo "[TOS] Launching UI Component Paces (Playwright)..."
-	@npm install @playwright/test
-	@npx playwright install chromium
-	@TOS_FACE_PORT=$(TOS_FACE_PORT) npx playwright test tests/ui_component.spec.js
+	@echo "[TOS] Running UI component tests (vitest)..."
+	@cd face-svelte-ui && npm run test:unit
 
 test-health:
 	@echo "[TOS] Running Orchestration Health Check..."

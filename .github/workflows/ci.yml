@@ -111,5 +111,7 @@ jobs:
         working-directory: .
         run: cargo build -p tos-brain
       - run: npm ci
+      - name: UI component tests (vitest)
+        run: npm run test:unit
       - run: npx playwright install --with-deps chromium
       - run: npx playwright test tests/grid.spec.ts tests/slice.spec.ts tests/chips-lifecycle.spec.ts tests/remote.spec.ts tests/reconnect.spec.ts tests/narrowing.spec.ts tests/placement.spec.ts tests/placement-ui.spec.ts --workers=1

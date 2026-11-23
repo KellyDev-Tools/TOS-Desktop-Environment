@@ -296,6 +296,12 @@ impl PtyShell {
         let mut cmd = CommandBuilder::new(verified_shell);
         cmd.args(args);
         cmd.cwd(cwd);
+        // The Brain is the terminal emulator (alacritty_terminal): always
+        // advertise its capabilities to the child shell, even when started
+        // headless under systemd --user where TERM is unset (otherwise
+        // shells like fish fall back to dumb-terminal line-by-line redraws).
+        cmd.env("TERM", "xterm-256color");
+        cmd.env("COLORTERM", "truecolor");
         let child = pair.slave.spawn_command(cmd)?;
         let child_pid = child.process_id();
 

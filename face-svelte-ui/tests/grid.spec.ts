@@ -162,9 +162,14 @@ test.describe('Brain-owned grid — the display protocol, headless', () => {
         }
         stateDir = fs.mkdtempSync(path.join(os.tmpdir(), 'tos-grid-e2e-'));
         fixtureDir = fs.mkdtempSync(path.join(os.tmpdir(), 'tos-grid-fixture-'));
+        const env = { ...process.env };
+        // Simulate headless systemd --user where TERM=dumb: the Brain
+        // itself must override TERM=xterm-256color for its PTY shell.
+        env.TERM = 'dumb';
+        delete env.COLORTERM;
         brain = spawn(bin, [], {
             env: {
-                ...process.env,
+                ...env,
                 HOME: fixtureDir,
                 XDG_CONFIG_HOME: path.join(stateDir, 'config'),
                 XDG_DATA_HOME: path.join(stateDir, 'data')

@@ -2,7 +2,9 @@
 
 **Purpose:** This document is the single source of truth for the architecture and visual design of **TOS** (**Terminal On Steroids**). It defines system structure, process boundaries, IPC contracts, the visual hierarchy, rendering model, input abstraction, security, and all platform behaviour. The terminal and command line are the absolute centre of every design decision. All features exist to augment the terminal, never to bypass it.
 
-**Version:** 0.1.4
+**Version:** 0.1.5
+
+> **Spec 0.1.5 — 2026-11-22:** App placement arrives. New §26.4 defines the model: where an app runs (host or server) and where it displays are independent choices, routed by the Brain at prompt-submit time from real data — each machine's desktop-entry catalogue. A prompt submission that names a GUI app is resolved to a placement (session, host, or server-display via waypipe), recorded in a launch registry, and executed at the edge that owns the machine; a submission that names no app keeps the terminal path unchanged. How prominent the choice is — invisible, glyph, or explicit per launch — is a user preference, and which prominence is right stays an open experiment (the Scope Split's question; AMB-11). The remote surface's prompt stream gains the three placement commands. The 0.1.4 text is preserved in git history.
 
 > **Spec 0.1.4 — 2026-11-22:** Terminal emulation moves into the Brain. New §26.3 defines the model: the Brain parses each session's PTY stream once, into a screen grid it owns; faces receive display state and paint it, and hand the Brain raw, uninterpreted input events, which the Brain encodes into PTY bytes using the emulation state it owns. This supersedes the Spec 0.1.2 note's face-rendering requirement ("canvas, not DOM" — the question it answered no longer exists, because no face renders the stream), the face-rendering model in §26.2 and §27.1 as they apply to the terminal surface, and the terminal stream's command set in "The remote surface" above. §7.2 gains a governing note: Terminal Output Modules are paint treatments over the Brain's grid, not stream renderers. Decided by Timothy, 2026-11-22, after the on-device retest recorded in the Roadmap (Phase 1.7 re-scope): every rendering fault of the face era lived in the duplicated emulation in the face. The 0.1.3 text is preserved in git history.
 
@@ -88,7 +90,11 @@ caller that arrives over the network (WebSocket or TCP):
   encodes, per §26.3's no-pre-Brain-parsing rule.)
 - **Chip-state stream** — `get_state`, `get_state_delta` in;
   `state_delta` out.
-- **Prompt stream** — `prompt_submit`, `force_prompt_submit`.
+- **Prompt stream** — `prompt_submit`, `force_prompt_submit`, and
+  the placement commands of §26.4: `placement_sync_apps` (a face
+  describes its own host's app catalogue), `placement_choose` (the
+  face answers a pending placement), `placement_relaunch` (run a
+  registered launch again, in the other location).
 - **Session plumbing for those streams** — `tos_ports` (the discovery
   probe) and `face_register` (a face announces itself, then streams).
 
@@ -2313,6 +2319,21 @@ The Brain owns terminal emulation. Each terminal session's PTY stream is parsed 
 - No pre-Brain parsing is permitted anywhere in a face: a face that interprets a key, a stream byte, or an output sequence — for any feature — has reintroduced the second terminal this section exists to remove.
 
 **Consequences held by construction:** a shell redraw changes cells in one grid, so the face-era fault class (redraws painted as new rows, stale glyph cells) has no mechanism; two faces of different sizes subscribe to the same session and paint the same truth; the remote terminal stream (see "The remote surface") carries display state and input events inside the same three-stream narrowing, and nothing outside it.
+
+### 26.4 App placement: run location is not display location
+
+Where an app *runs* (the face's host machine, or the Brain's machine — the server) and where it *displays* (the host screen; XR is a later face, §Phase 5) are independent choices. The terminal already splits them: the session lives on the Brain's machine and renders anywhere. Placement extends that split to GUI apps launched from the prompt.
+
+- **The data is desktop entries.** Each machine's GUI app catalogue is its desktop entries (`Type=Application`, not `NoDisplay`): an app id (the entry's file stem), a display name, and its `Exec` line. The Brain reads its own machine's catalogue from the XDG data directories. A face syncs its host's catalogue to the Brain with `placement_sync_apps` (a JSON list of the same shape) — a face describes *its own* machine; it cannot describe another's.
+- **Resolution happens at prompt-submit, in the Brain.** A submission whose first token names a catalogue app — by id or by entry name, case-insensitively — is a GUI launch. Anything else is not: it takes the terminal path unchanged (typed into the session, on the Brain's machine, as always). A launch resolves to one of:
+  - **host** — the app exists on the face's host (or on both machines; both-present defaults to host, where the display and GPU are);
+  - **server-display** — the app exists only on the Brain's machine; it runs there and displays on the host screen via waypipe;
+  - **session** — no catalogue match, as above.
+  An explicit prefix overrides the resolution at any prominence: `here: <command>` forces host, `server: <command>` forces server-display. An override naming an app a machine does not have fails loudly rather than silently placing elsewhere.
+- **Prominence is a preference, not a behaviour fork.** The setting `tos.placement.prominence` takes `invisible`, `glyph` (the default), or `explicit`. Under *invisible* and *glyph* the resolution above decides silently. Under *explicit*, a GUI launch waits as a **pending placement** in Brain state; the face presents the choice and answers with `placement_choose` (host or server-display), and only then does the launch proceed. Terminal submissions never wait. Which prominence is right is the Phase 3 experiment's open question (AMB-11) — the machinery must not prejudge it, so all three levels are real from the first slice.
+- **Execution happens at the edge that owns the machine.** The Brain never spawns GUI apps. It records the launch in its **launch registry** (id, app, exec, placement, time) and emits a **launch directive** on the chip-state channel. The face whose user submitted the launch acts on it: a *host* directive is handed to the face's own shell to spawn detached in the user's session; a *server-display* directive is spawned the same way as a waypipe invocation targeting the Brain's machine (the face host's waypipe target is face-local configuration — the v1 seam is the `TOS_WAYPIPE_TARGET` environment variable of the face's shell; an unset target fails loudly, in the face's log, never silently). A face always logs a directive it acts on: placement may be invisible as a *choice*, never as an *act*.
+- **The registry is the relaunch surface.** A registered launch can be run again in the other location with `placement_relaunch` — the same exec, the opposite placement — which is how a mis-placed app is corrected from the prompt. Registry entries are how faces render placement glyphs (H / S) under the *glyph* and *explicit* prominences.
+- **The remote surface holds.** The placement commands ride the prompt stream (see "The remote surface"). A directive only ever asks a face to act on its own machine, in response to that face's own user's submission; sync describes only the syncing face's host. Placement widens what a prompt submission can *decide*, not what a remote connection can *do* — the Brain still cannot reach the face's machine by any path the face does not itself execute.
 
 ---
 

@@ -2,16 +2,93 @@ use crate::{CommandHubMode, HierarchyLevel, TosState};
 use crate::state::QueuedAiRequest;
 use crate::services::MarketplaceService;
 // use crate::*;
-use std::sync::{Arc, Mutex};
+use std::sync::{Arc, Condvar, Mutex, Weak};
 use std::time::Instant;
 use uuid::Uuid;
 use tokio::sync::mpsc::UnboundedSender;
+
+/// Display-state publication (Architecture §26.3): the Brain
+/// publishes each terminal session's grid to subscribed faces —
+/// a snapshot on subscribe, then coalesced `display_update`
+/// pushes. A pump thread guarantees the latest state lands even
+/// when a burst ends inside the coalescing window, and sleeps
+/// with zero wakeups while idle.
+struct DisplayHub {
+    sessions: std::collections::HashMap<String, Arc<Mutex<crate::brain::shell::ShellApi>>>,
+    published: Mutex<std::collections::HashMap<String, (u64, std::time::Instant)>>,
+    broadcasters: Arc<Mutex<Vec<UnboundedSender<String>>>>,
+    pending: (Mutex<bool>, Condvar),
+}
+
+impl DisplayHub {
+    fn mark_pending(&self) {
+        let (lock, cvar) = &self.pending;
+        if let Ok(mut pending) = lock.lock() {
+            if !*pending {
+                *pending = true;
+                cvar.notify_one();
+            }
+        }
+    }
+
+    fn publish_now(&self, session: &str, ignore_window: bool) {
+        let Some(shell) = self.sessions.get(session) else {
+            return;
+        };
+        let (seq, snap_json) = {
+            let shell = shell.lock().unwrap();
+            let seq = shell.display_seq();
+            {
+                let published = self.published.lock().unwrap();
+                if let Some((published_seq, at)) = published.get(session) {
+                    if *published_seq == seq {
+                        return;
+                    }
+                    if !ignore_window && at.elapsed() < std::time::Duration::from_millis(16) {
+                        drop(published);
+                        self.mark_pending();
+                        return; // the pump will carry it within 50 ms
+                    }
+                }
+            }
+            match serde_json::to_string(&shell.display_snapshot()) {
+                Ok(json) => (seq, json),
+                Err(_) => return,
+            }
+        };
+        self.published
+            .lock()
+            .unwrap()
+            .insert(session.to_string(), (seq, std::time::Instant::now()));
+        let message = format!("display_update:{}:{}", session, snap_json);
+        let mut broadcasters = self.broadcasters.lock().unwrap();
+        broadcasters.retain(|sender| sender.send(message.clone()).is_ok());
+    }
+}
 
 pub struct IpcHandler {
     state: Arc<Mutex<TosState>>,
     shell: Arc<Mutex<crate::brain::shell::ShellApi>>,
     services: Arc<crate::services::ServiceManager>,
-    broadcasters: Mutex<Vec<UnboundedSender<String>>>,
+    broadcasters: Arc<Mutex<Vec<UnboundedSender<String>>>>,
+    /// Terminal sessions by id, for display subscription and
+    /// input routing. The primary shell is the only entry today;
+    /// the registry is the shape a multi-session Brain grows
+    /// into, so nothing downstream assumes a single session.
+    sessions: std::collections::HashMap<String, Arc<Mutex<crate::brain::shell::ShellApi>>>,
+    primary_session: String,
+    display: Arc<DisplayHub>,
+}
+
+impl Drop for IpcHandler {
+    fn drop(&mut self) {
+        // Wake the display pump so it observes the dropped Weak and exits.
+        let (lock, cvar) = &self.display.pending;
+        if let Ok(mut pending) = lock.lock() {
+            *pending = true;
+            cvar.notify_all();
+        }
+    }
 }
 
 impl IpcHandler {
@@ -20,12 +97,81 @@ impl IpcHandler {
         shell: Arc<Mutex<crate::brain::shell::ShellApi>>,
         services: Arc<crate::services::ServiceManager>,
     ) -> Self {
+        let primary_session = shell.lock().unwrap().session_id();
+        let mut sessions = std::collections::HashMap::new();
+        sessions.insert(primary_session.clone(), shell.clone());
+        let broadcasters: Arc<Mutex<Vec<UnboundedSender<String>>>> =
+            Arc::new(Mutex::new(Vec::new()));
+        let display = Arc::new(DisplayHub {
+            sessions: sessions.clone(),
+            published: Mutex::new(std::collections::HashMap::new()),
+            broadcasters: broadcasters.clone(),
+            pending: (Mutex::new(false), Condvar::new()),
+        });
+        // The display pump: sleeps while idle, and after any throttled
+        // burst flushes remaining sessions within 50 ms. Holds a Weak
+        // reference so it exits cleanly when IpcHandler is dropped.
+        {
+            let weak: Weak<DisplayHub> = Arc::downgrade(&display);
+            std::thread::spawn(move || loop {
+                let Some(hub) = weak.upgrade() else {
+                    break;
+                };
+                {
+                    let (lock, cvar) = &hub.pending;
+                    let Ok(mut pending) = lock.lock() else {
+                        break;
+                    };
+                    while !*pending {
+                        let Ok(guard) = cvar.wait(pending) else {
+                            return;
+                        };
+                        pending = guard;
+                        if weak.strong_count() == 0 {
+                            return;
+                        }
+                    }
+                    *pending = false;
+                }
+                drop(hub);
+                std::thread::sleep(std::time::Duration::from_millis(50));
+                let Some(hub) = weak.upgrade() else {
+                    break;
+                };
+                let ids: Vec<String> = hub.sessions.keys().cloned().collect();
+                for id in ids {
+                    hub.publish_now(&id, true);
+                }
+            });
+        }
         Self {
             state,
             shell,
             services,
-            broadcasters: Mutex::new(Vec::new()),
+            broadcasters,
+            sessions,
+            primary_session,
+            display,
         }
+    }
+
+    /// The shell for a session id; empty/absent means the
+    /// primary session.
+    fn shell_for(
+        &self,
+        session: Option<&str>,
+    ) -> Option<Arc<Mutex<crate::brain::shell::ShellApi>>> {
+        match session {
+            None | Some("") => self.sessions.get(&self.primary_session).cloned(),
+            Some(id) => self.sessions.get(id).cloned(),
+        }
+    }
+
+    /// Nudge publication of a session's display state (called by
+    /// the PTY read loop after each parsed chunk). Coalesced;
+    /// the pump guarantees delivery of the final state.
+    pub fn publish_display(&self, session: &str) {
+        self.display.publish_now(session, false);
     }
 
     pub fn register_broadcaster(&self, sender: UnboundedSender<String>) {
@@ -47,22 +193,6 @@ impl IpcHandler {
         broadcasters.retain(|sender| {
             sender.send(message.to_string()).is_ok()
         });
-    }
-
-    /// Replay the retained terminal scrollback to a single freshly
-    /// connected client (Phase 1.5), as ordinary `pty_output` messages
-    /// chunked like live output, so its terminal repaints the ongoing
-    /// session instead of starting blank. No-op before any output.
-    pub fn replay_terminal_to(&self, sender: &UnboundedSender<String>) {
-        let bytes = self.shell.lock().unwrap().scrollback_snapshot();
-        for chunk in bytes.chunks(16 * 1024) {
-            if sender
-                .send(format!("pty_output:{}", hex::encode(chunk)))
-                .is_err()
-            {
-                break;
-            }
-        }
     }
 
     /// Standardized Message Format: prefix:payload;payload...
@@ -151,10 +281,16 @@ impl IpcHandler {
                 self.services.logger.crash_report(payload);
                 "OK".to_string()
             }
-            "terminal_resize" => {
-                self.handle_terminal_resize(args.first().copied(), args.get(1).copied())
-            }
+            "terminal_resize" => self.handle_terminal_resize(
+                args.first().copied(),
+                args.get(1).copied(),
+                args.get(2).copied(),
+            ),
             "terminal_signal" => self.handle_terminal_signal(args.first().copied()),
+            "display_subscribe" => self.handle_display_subscribe(payload.trim()),
+            "terminal_key" => self.handle_terminal_key(payload),
+            "terminal_text" => self.handle_terminal_text(payload),
+            "display_scroll" => self.handle_display_scroll(payload),
             "tos_ports" => self.handle_tos_ports(),
             "service_deregister" => self.handle_service_deregister(args.first().copied()),
             "session_list" => self.handle_session_list(args.first().copied()),
@@ -226,22 +362,7 @@ impl IpcHandler {
                 self.broadcast(request);
                 "OK".to_string()
             }
-            "pty_output" => {
-                self.broadcast(request);
-                "OK".to_string()
-            }
             "chips_set_show_hidden" => self.handle_chips_set_show_hidden(payload),
-            "terminal_input_hex" => {
-                if let Ok(bytes) = hex::decode(payload) {
-                    let mut shell = self.shell.lock().unwrap();
-                    match shell.write(&bytes) {
-                        Ok(_) => "OK".to_string(),
-                        Err(e) => format!("ERROR: Failed to write to terminal: {}", e),
-                    }
-                } else {
-                    "ERROR: Invalid hex".to_string()
-                }
-            }
             "ai_thought_stage" => self.handle_ai_thought_stage(payload),
             "ai_queue_push" => self.handle_ai_queue_push(payload),
             "ai_queue_get" => self.handle_ai_queue_get(),
@@ -2115,6 +2236,135 @@ impl IpcHandler {
             "ERROR: Invalid WebRTC payload".to_string()
         }
     }
+    /// Subscribe a face to a session's display state: the answer
+    /// is the grid snapshot, and `display_update` pushes follow
+    /// on the broadcast channel (Architecture §26.3). An empty
+    /// payload names the primary session.
+    fn handle_display_subscribe(&self, session: &str) -> String {
+        let id = if session.is_empty() {
+            self.primary_session.clone()
+        } else {
+            session.to_string()
+        };
+        match self.shell_for(Some(&id)) {
+            Some(shell) => {
+                let snap = shell.lock().unwrap().display_snapshot();
+                match serde_json::to_string(&snap) {
+                    Ok(json) => format!("display_snapshot:{}:{}", id, json),
+                    Err(e) => format!("ERROR: {}", e),
+                }
+            }
+            None => format!("ERROR: Unknown session: {}", id),
+        }
+    }
+
+    /// One raw key event, as JSON: the key event fields plus an
+    /// optional `session`. The Brain encodes it against the
+    /// session's grid state — faces never encode input.
+    fn handle_terminal_key(&self, payload: &str) -> String {
+        #[derive(serde::Deserialize)]
+        struct KeyRequest {
+            #[serde(default)]
+            session: Option<String>,
+            #[serde(flatten)]
+            ev: crate::brain::shell::keymap::KeyEvent,
+        }
+        let req: KeyRequest = match serde_json::from_str(payload) {
+            Ok(r) => r,
+            Err(e) => return format!("ERROR: Invalid key event: {}", e),
+        };
+        match self.shell_for(req.session.as_deref()) {
+            Some(shell) => {
+                let mut shell = shell.lock().unwrap();
+                match shell.write_key_event(&req.ev) {
+                    Ok(_) => "OK".to_string(),
+                    Err(e) => format!("ERROR: Failed to write to terminal: {}", e),
+                }
+            }
+            None => "ERROR: Unknown session".to_string(),
+        }
+    }
+
+    /// Literal text, as JSON: `text` plus an optional `session`.
+    /// Delivered through the Brain's text encoding — as typed
+    /// input, byte for byte. With `submit: true` the Brain also
+    /// sends Enter in the same handling, so text-and-submit is
+    /// one action with no round-trip between the text and its
+    /// Enter: a face that navigates or closes right after a
+    /// chip tap cannot strand an unsubmitted command.
+    fn handle_terminal_text(&self, payload: &str) -> String {
+        #[derive(serde::Deserialize)]
+        struct TextRequest {
+            #[serde(default)]
+            session: Option<String>,
+            text: String,
+            #[serde(default)]
+            submit: bool,
+        }
+        let req: TextRequest = match serde_json::from_str(payload) {
+            Ok(r) => r,
+            Err(e) => return format!("ERROR: Invalid text payload: {}", e),
+        };
+        match self.shell_for(req.session.as_deref()) {
+            Some(shell) => {
+                let mut shell = shell.lock().unwrap();
+                let written = shell.write_text(&req.text).and_then(|_| {
+                    if req.submit {
+                        let enter = crate::brain::shell::keymap::KeyEvent {
+                            key: "Enter".to_string(),
+                            code: "Enter".to_string(),
+                            ctrl: false,
+                            alt: false,
+                            shift: false,
+                        };
+                        shell.write_key_event(&enter)
+                    } else {
+                        Ok(())
+                    }
+                });
+                match written {
+                    Ok(_) => "OK".to_string(),
+                    Err(e) => format!("ERROR: Failed to write to terminal: {}", e),
+                }
+            }
+            None => "ERROR: Unknown session".to_string(),
+        }
+    }
+
+    /// Move a session's display window into its scrollback
+    /// history: `display_scroll:<session>;<delta>` (an empty
+    /// session names the primary). Answers with the snapshot of
+    /// the new window.
+    fn handle_display_scroll(&self, payload: &str) -> String {
+        let (session, delta) = match payload.split_once(';') {
+            Some((s, d)) => (s, d),
+            None => ("", payload),
+        };
+        let Ok(delta) = delta.trim().parse::<i32>() else {
+            return "ERROR: Invalid scroll delta".to_string();
+        };
+        match self.shell_for(Some(session)) {
+            Some(shell) => {
+                let shell = shell.lock().unwrap();
+                shell.grid_scroll(delta);
+                let snap = shell.display_snapshot();
+                match serde_json::to_string(&snap) {
+                    Ok(json) => format!(
+                        "display_snapshot:{}:{}",
+                        if session.is_empty() {
+                            &self.primary_session
+                        } else {
+                            session
+                        },
+                        json
+                    ),
+                    Err(e) => format!("ERROR: {}", e),
+                }
+            }
+            None => "ERROR: Unknown session".to_string(),
+        }
+    }
+
     fn handle_terminal_signal(&self, signal: Option<&str>) -> String {
         if let Some(sig) = signal {
             let mut shell = self.shell.lock().unwrap();
@@ -2126,10 +2376,18 @@ impl IpcHandler {
         "ERROR: Missing signal ID".to_string()
     }
 
-    fn handle_terminal_resize(&self, rows: Option<&str>, cols: Option<&str>) -> String {
+    fn handle_terminal_resize(
+        &self,
+        rows: Option<&str>,
+        cols: Option<&str>,
+        session: Option<&str>,
+    ) -> String {
         if let (Some(r), Some(c)) = (rows, cols) {
             if let (Ok(r_n), Ok(c_n)) = (r.parse::<u16>(), c.parse::<u16>()) {
-                let shell = self.shell.lock().unwrap();
+                let Some(shell) = self.shell_for(session) else {
+                    return "ERROR: Unknown session".to_string();
+                };
+                let shell = shell.lock().unwrap();
                 match shell.resize(r_n, c_n) {
                     Ok(_) => return format!("TERMINAL_RESIZED: {}x{}", r_n, c_n),
                     Err(e) => return format!("ERROR: Resize failed: {}", e),

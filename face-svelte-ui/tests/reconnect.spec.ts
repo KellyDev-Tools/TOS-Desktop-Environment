@@ -5,9 +5,9 @@
  * path, sleep/wake and network drops) by reattaching on its own:
  * exponential-backoff reconnect in the IPC store, a truthful
  * DISCONNECTED state in the chips while the Brain is down, and a
- * terminal reset on reconnect so the Brain's scrollback replay
- * (Phase 1.5) lands as the whole truth instead of appending to the
- * frozen pre-drop content.
+ * display resubscription on reconnect so the new Brain's grid
+ * snapshot lands as the whole truth instead of leaving the frozen
+ * pre-drop content on screen.
  *
  * This spec drives the real stack: a real Brain the test kills and
  * restarts against the same state dirs, and the built face in a
@@ -58,33 +58,20 @@ async function waitForPort(port: number, timeoutMs = 30_000): Promise<void> {
 }
 
 async function terminalText(page: Page): Promise<string> {
-    // Read the terminal's buffer through the handle the face
-    // leaves on the .xterm element — renderer-independent (the
-    // canvas renderer paints to a bitmap; there are no DOM rows).
+    // Read what the terminal surface has painted through the
+    // handle the face leaves on the grid-terminal element — the
+    // rows of the Brain's grid snapshot it is displaying.
     return page.evaluate(() => {
-        type TermHandle = {
-            buffer: {
-                active: {
-                    length: number;
-                    getLine: (y: number) => { translateToString: (trim?: boolean) => string } | undefined;
-                };
-            };
-        };
-        const el = document.querySelector('.xterm') as unknown as {
-            __tosTerminal?: TermHandle;
+        type GridHandle = { rowsText: () => string[] };
+        const el = document.querySelector('[data-testid="grid-terminal"]') as unknown as {
+            __tosGrid?: GridHandle;
         } | null;
-        const term = el?.__tosTerminal;
-        if (!term) return '';
-        const lines: string[] = [];
-        for (let i = 0; i < term.buffer.active.length; i++) {
-            lines.push(term.buffer.active.getLine(i)?.translateToString(true) ?? '');
-        }
-        return lines.join('\n');
+        return el?.__tosGrid?.rowsText().join('\n') ?? '';
     });
 }
 
 async function runInTerminal(page: Page, command: string): Promise<void> {
-    await page.locator('.xterm').click();
+    await page.locator('[data-testid="grid-terminal"]').click();
     await page.keyboard.type(command);
     await page.keyboard.press('Enter');
 }
@@ -148,7 +135,7 @@ test.describe('Phase 2 — reconnect', () => {
     test('face reattaches after a Brain restart, without a reload', async ({ page }) => {
         // A live session on the background surface.
         await page.goto(`${FACE_URL}/?surface=background`);
-        await expect(page.locator('.surface-background .xterm')).toBeVisible();
+        await expect(page.locator('.surface-background [data-testid="grid-terminal"]')).toBeVisible();
         await runInTerminal(page, `echo ${MARKER_BEFORE}`);
         await expect
             .poll(() => terminalText(page), { timeout: 15_000 })
@@ -181,9 +168,10 @@ test.describe('Phase 2 — reconnect', () => {
             )
             .toContain(MARKER_AFTER);
 
-        // The terminal was reset on reconnect: the pre-kill content
-        // is gone (the restarted Brain's scrollback is empty, so its
-        // replay contributes nothing) — no stale session illusion.
+        // The display was replaced on reconnect: the pre-kill
+        // content is gone (the restarted Brain's grid is a fresh
+        // session, and its snapshot replaced the old one whole) —
+        // no stale session illusion.
         expect(await terminalText(page)).not.toContain(MARKER_BEFORE);
 
         // And the chips scope is back, truthfully LOCAL again.

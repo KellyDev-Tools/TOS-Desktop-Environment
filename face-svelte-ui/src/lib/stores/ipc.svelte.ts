@@ -147,15 +147,36 @@ let commandQueue: Promise<any> = Promise.resolve();
  * commands from stealing each other's responses (since the Brain
  * currently sends a single line in response to a single-line request).
  */
+// Commands offered while the socket is still connecting wait
+// for it, in queue order: input typed at a face that is still
+// connecting (or reconnecting) is type-ahead, not noise to
+// discard. A terminal that silently eats keystrokes typed a
+// moment too early is broken; the wait is bounded by the same
+// 5s the response wait uses.
+let openWaiters: Array<(sock: WebSocket | null) => void> = [];
+
+function waitForOpen(timeoutMs: number): Promise<WebSocket | null> {
+    if (ws && ws.readyState === WebSocket.OPEN) return Promise.resolve(ws);
+    return new Promise((resolve) => {
+        const waiter = (sock: WebSocket | null) => {
+            clearTimeout(timer);
+            resolve(sock);
+        };
+        const timer = setTimeout(() => {
+            openWaiters = openWaiters.filter((w) => w !== waiter);
+            resolve(null);
+        }, timeoutMs);
+        openWaiters.push(waiter);
+    });
+}
+
 export function sendCommand(cmd: string): Promise<string | null> {
-    if (!ws || ws.readyState !== WebSocket.OPEN) {
-        console.warn('[IPC] Cannot send — not connected.');
-        return Promise.resolve(null);
-    }
-
-    const activeWs = ws;
-
-    const runCommand = (): Promise<string | null> => {
+    const runCommand = async (): Promise<string | null> => {
+        const activeWs = await waitForOpen(5000);
+        if (!activeWs) {
+            console.warn('[IPC] Cannot send — not connected.');
+            return null;
+        }
         return new Promise((resolve) => {
             const id = Math.random().toString(36).substring(7);
             const handler = (event: MessageEvent) => {
@@ -273,15 +294,17 @@ function proceedConnect(targetUrl: string): void {
     ws.onopen = () => {
         connectionState = 'connected';
         reconnectAttempts = 0;
+        const waiters = openWaiters;
+        openWaiters = [];
+        waiters.forEach((w) => w(ws));
         console.log('[IPC] ✅ Connected to Brain');
 
         if (hasConnectedBefore) {
-            // A reconnect, not the first connect. The Brain replays
-            // its scrollback to every new connection (Phase 1.5);
-            // tell raw listeners to reset first so the replay lands
-            // as the whole truth instead of appending to the frozen
-            // pre-drop content. Dispatched synchronously here, before
-            // any replay message can arrive.
+            // A reconnect, not the first connect. Raw listeners use
+            // this to resubscribe to the Brain's display state —
+            // the fresh snapshot is the whole truth, replacing the
+            // frozen pre-drop content. Dispatched synchronously
+            // here, before any update can arrive.
             rawListeners.forEach((listener) => {
                 try {
                     listener('tos:reconnected');
@@ -584,24 +607,44 @@ export async function dirNavigate(path: string): Promise<void> {
     await sendCommand(`dir_navigate:${path}`);
 }
 
-// --- Terminal Typing Helpers (Phase 1.6) ---
+// --- Terminal Input Helpers ---
 //
 // The accelerator chips and the prompt surface's input act on the
 // terminal by *typing into it* — the terminal stays a completely
 // normal terminal, and a chip tap is indistinguishable from the
-// user typing the same text.
+// user typing the same text. Faces send input uninterpreted: text
+// as text, keys as raw key events. The Brain encodes both into
+// PTY bytes against the emulation state it owns (Architecture
+// §26.3) — no face encodes input.
+
+/** A raw key event in the capturer's own terms. */
+export interface TerminalKeyEvent {
+    key: string;
+    code?: string;
+    ctrl?: boolean;
+    alt?: boolean;
+    shift?: boolean;
+    session?: string;
+}
+
+/** Send one raw key event to the Brain for encoding. */
+export async function sendTerminalKey(ev: TerminalKeyEvent): Promise<void> {
+    await sendCommand(`terminal_key:${JSON.stringify(ev)}`);
+}
 
 /** Type text into the terminal exactly as if the user typed it. */
 export async function sendTerminalText(text: string): Promise<void> {
-    const hex = Array.from(new TextEncoder().encode(text))
-        .map((b) => b.toString(16).padStart(2, '0'))
-        .join('');
-    await sendCommand(`terminal_input_hex:${hex}`);
+    await sendCommand(`terminal_text:${JSON.stringify({ text })}`);
 }
 
-/** Type a command into the terminal and run it (text + Enter). */
+/**
+ * Type a command into the terminal and run it. One protocol
+ * command with `submit`: the Brain sends the text and its Enter
+ * together, so a face that navigates or closes right after a
+ * chip tap cannot strand an unsubmitted command on the line.
+ */
 export async function sendTerminalCommand(command: string): Promise<void> {
-    await sendTerminalText(command + '\n');
+    await sendCommand(`terminal_text:${JSON.stringify({ text: command, submit: true })}`);
 }
 
 /** Single-quote a string for safe typing into a POSIX shell. */

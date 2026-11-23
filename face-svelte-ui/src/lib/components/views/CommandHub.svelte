@@ -4,7 +4,7 @@
 
 	import SplitLayout from './SplitLayout.svelte';
 	import AiChat from './AiChat.svelte';
-	import XtermTerminal from '../XtermTerminal.svelte';
+	import GridTerminal from '../GridTerminal.svelte';
 	import WarningChip from '../WarningChip.svelte';
 	import TacticalContextMenu from '../TacticalContextMenu.svelte';
 	import FileContextMenu from '../FileContextMenu.svelte';
@@ -223,7 +223,7 @@
 	{:else}
 		<!-- Terminal Canvas Layer (Back Layer, Full Bleed) -->
 		<div class="terminal-canvas-layer">
-			<XtermTerminal />
+			<GridTerminal />
 		</div>
 
 		<!-- Chip Column Overlays (Middle Layer, Floating Above Terminal) -->

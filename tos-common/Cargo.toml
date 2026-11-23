@@ -23,6 +23,7 @@ libc = "0.2.182"
 ed25519-dalek = { version = "2.2.0", features = ["rand_core"] }
 rand = "0.8.5"
 hex = "0.4.3"
+alacritty_terminal = "0.26"
 rand_core = { version = "0.6", features = ["getrandom"] }
 tokio-tungstenite = { version = "0.21", features = [] }
 futures-util = "0.3"

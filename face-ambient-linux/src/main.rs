@@ -25,7 +25,7 @@ use gtk4::{Application, ApplicationWindow};
 use gtk4_layer_shell::{Edge, KeyboardMode, Layer, LayerShell};
 use surfaces::{FaceCommand, Keyboard, LayerKind, Surface, SurfaceSpec};
 use webkit6::prelude::*;
-use webkit6::{NetworkSession, TLSErrorsPolicy, UserContentManager};
+use webkit6::{CacheModel, NetworkSession, TLSErrorsPolicy, UserContentManager, WebContext};
 
 const APP_ID: &str = "net.kellydev.tos.face.ambient";
 const SCRIPT_HANDLER_NAME: &str = "tosFace";
@@ -145,6 +145,11 @@ fn build_ui(app: &Application, ui_base: &str, brain_url: Option<&str>) {
     // used by these local/tailnet web views.
     if let Some(session) = NetworkSession::default() {
         session.set_tls_errors_policy(TLSErrorsPolicy::Ignore);
+    }
+    // Disable disk HTTP caching for local/loopback face assets so
+    // rebuilding and restarting never serves a stale index.html bundle.
+    if let Some(ctx) = WebContext::default() {
+        ctx.set_cache_model(CacheModel::DocumentViewer);
     }
 
     for surface in Surface::all() {

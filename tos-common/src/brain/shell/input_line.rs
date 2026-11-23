@@ -6,13 +6,15 @@
 //! the user types, the Brain publishes the fragment of the word
 //! being typed, and chip systems narrow the current listing to
 //! matches. The model is deliberately conservative — it tracks
-//! plain typing, backspace, Ctrl+U and Ctrl+W exactly; anything
-//! it cannot model faithfully (escape sequences from arrow keys,
-//! Tab completion, Ctrl+R search, history recall, cursor moves)
-//! marks the line desynced, the filter clears, and the full
-//! listing shows until the next submit / Ctrl+C / Ctrl+U resyncs
-//! the model to a known-empty line. Keystrokes meant for a
-//! full-screen program (vim, less) mostly desync the same way,
+//! plain typing, backspace, Ctrl+U and Ctrl+W exactly, and the
+//! literal text of a bracketed paste (which the Brain's own text
+//! encoding produces whenever the shell has the mode on);
+//! anything it cannot model faithfully (escape sequences from
+//! arrow keys, Tab completion, Ctrl+R search, history recall,
+//! cursor moves) marks the line desynced, the filter clears, and
+//! the full listing shows until the next submit / Ctrl+C / Ctrl+U
+//! resyncs the model to a known-empty line. Keystrokes meant for
+//! a full-screen program (vim, less) mostly desync the same way,
 //! which is the safe failure: no filter beats a wrong filter.
 
 /// A shell input line being modelled from raw terminal input.
@@ -21,6 +23,13 @@ pub struct InputLine {
     line: String,
     synced: bool,
     utf8_pending: Vec<u8>,
+    /// Inside a bracketed paste: bytes are literal text until the
+    /// paste-end marker, control characters included.
+    in_paste: bool,
+    /// A partially collected escape sequence, held only long
+    /// enough to recognise the bracketed-paste markers; any other
+    /// completed sequence desyncs, as before.
+    seq: Vec<u8>,
 }
 
 impl Default for InputLine {
@@ -35,6 +44,8 @@ impl InputLine {
             line: String::new(),
             synced: true,
             utf8_pending: Vec::new(),
+            in_paste: false,
+            seq: Vec::new(),
         }
     }
 
@@ -43,9 +54,68 @@ impl InputLine {
         for &b in bytes {
             self.feed_byte(b);
         }
+        // A chunk ending on a lone ESC was a standalone Escape
+        // key, not the start of a sequence: resolve it now (it
+        // desyncs, like every unmodelled escape) instead of
+        // holding the byte hostage for the next chunk.
+        if self.seq == [0x1B] {
+            self.seq.clear();
+            self.synced = false;
+        }
     }
 
     fn feed_byte(&mut self, b: u8) {
+        // Escape-sequence collection. Only the bracketed-paste
+        // markers are modelled; any other completed sequence
+        // desyncs exactly as an escape always has.
+        if !self.seq.is_empty() {
+            self.seq.push(b);
+            if self.seq.len() == 2 {
+                if b == b'[' {
+                    return; // a CSI sequence is starting; keep collecting
+                }
+                // ESC + one byte (Alt+key): unmodelled.
+                self.seq.clear();
+                self.synced = false;
+                return;
+            }
+            if (0x40..=0x7E).contains(&b) || self.seq.len() > 8 {
+                // A final byte (or garbage): the sequence is over.
+                if self.seq == b"\x1b[200~" {
+                    self.in_paste = true;
+                } else if self.seq == b"\x1b[201~" {
+                    self.in_paste = false;
+                } else {
+                    self.synced = false;
+                }
+                self.seq.clear();
+            }
+            return;
+        }
+        if b == 0x1B {
+            self.utf8_pending.clear();
+            self.seq.push(b);
+            return;
+        }
+
+        // Inside a bracketed paste, control bytes are literal
+        // text the editor inserts, not commands to the line: they
+        // neither submit, kill, nor desync. A pasted newline ends
+        // the modelled line (the next pasted line begins), and a
+        // pasted tab separates words like a space.
+        if self.in_paste {
+            match b {
+                0x09 => {
+                    if self.synced {
+                        self.line.push(' ');
+                    }
+                    return;
+                }
+                0x00..=0x1F | 0x7F if b != b'\r' && b != b'\n' => return,
+                _ => {}
+            }
+        }
+
         // Complete a multi-byte UTF-8 sequence first: continuation
         // bytes are 0x80..=0xBF.
         if !self.utf8_pending.is_empty() {
@@ -258,6 +328,31 @@ mod tests {
         m.feed(b"\r");
         m.feed(b"pw");
         assert_eq!(m.fragment().as_deref(), Some("pw"));
+    }
+
+    #[test]
+    fn bracketed_paste_text_is_modelled() {
+        // If bracketed-paste sequences arrive on the PTY input stream,
+        // the pasted text must land in the model rather than desyncing it.
+        let mut m = InputLine::new();
+        m.feed(b"\x1b[200~notes\x1b[201~");
+        assert_eq!(m.fragment().as_deref(), Some("notes"));
+        // Typing continues from the pasted text.
+        m.feed(b".tx");
+        assert_eq!(m.fragment().as_deref(), Some("notes.tx"));
+
+        // A pasted newline starts the next pasted line; control
+        // bytes inside a paste are literal and do not desync.
+        let mut m = InputLine::new();
+        m.feed(b"\x1b[200~cd /tmp\x03\npwd\x1b[201~");
+        assert_eq!(m.fragment().as_deref(), Some("pwd"));
+
+        // An unknown sequence still desyncs, markers or not.
+        let mut m = fed(b"ls");
+        m.feed(b"\x1b[200~ok\x1b[201~");
+        assert_eq!(m.fragment().as_deref(), Some("lsok"));
+        m.feed(b"\x1b[A");
+        assert_eq!(m.fragment(), None);
     }
 
     #[test]

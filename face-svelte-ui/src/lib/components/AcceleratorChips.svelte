@@ -26,8 +26,10 @@
 		getConnectionScope,
 		sendCommand,
 		sendTerminalCommand,
+		sendTerminalKey,
 		sendTerminalText,
-		shellQuote
+		shellQuote,
+		type TerminalKeyEvent
 	} from '$lib/stores/ipc.svelte';
 
 	const tosState = $derived(getTosState());
@@ -95,13 +97,16 @@
 		window.dispatchEvent(new CustomEvent('tos:face-command', { detail: cmd }));
 	}
 
-	const touchKeys: { id: string; label: string; title: string; bytes: string }[] = [
-		{ id: 'tab', label: 'Tab', title: 'Send Tab completion', bytes: '\t' },
-		{ id: 'esc', label: 'Esc', title: 'Send Escape', bytes: '\x1b' },
-		{ id: 'up', label: '↑', title: 'Previous command', bytes: '\x1b[A' },
-		{ id: 'down', label: '↓', title: 'Next command', bytes: '\x1b[B' },
-		{ id: 'ctrlc', label: '^C', title: 'Interrupt (Ctrl+C)', bytes: '\x03' },
-		{ id: 'enter', label: '↵', title: 'Send Enter', bytes: '\n' }
+	// Touch keys send raw key events; the Brain encodes them
+	// against the terminal's mode (an arrow key does not have a
+	// fixed byte sequence — it depends on cursor-key mode).
+	const touchKeys: { id: string; label: string; title: string; ev: TerminalKeyEvent }[] = [
+		{ id: 'tab', label: 'Tab', title: 'Send Tab completion', ev: { key: 'Tab', code: 'Tab' } },
+		{ id: 'esc', label: 'Esc', title: 'Send Escape', ev: { key: 'Escape', code: 'Escape' } },
+		{ id: 'up', label: '↑', title: 'Previous command', ev: { key: 'ArrowUp', code: 'ArrowUp' } },
+		{ id: 'down', label: '↓', title: 'Next command', ev: { key: 'ArrowDown', code: 'ArrowDown' } },
+		{ id: 'ctrlc', label: '^C', title: 'Interrupt (Ctrl+C)', ev: { key: 'c', code: 'KeyC', ctrl: true } },
+		{ id: 'enter', label: '↵', title: 'Send Enter', ev: { key: 'Enter', code: 'Enter' } }
 	];
 </script>
 
@@ -176,7 +181,7 @@
 						class="accel-chip key"
 						data-testid={`accel-key-${key.id}`}
 						title={key.title}
-						onclick={() => sendTerminalText(key.bytes)}>{key.label}</button
+						onclick={() => sendTerminalKey(key.ev)}>{key.label}</button
 					>
 				{/each}
 			</div>

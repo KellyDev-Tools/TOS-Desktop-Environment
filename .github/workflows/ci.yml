@@ -112,4 +112,4 @@ jobs:
         run: cargo build -p tos-brain
       - run: npm ci
       - run: npx playwright install --with-deps chromium
-      - run: npx playwright test tests/slice.spec.ts tests/chips-lifecycle.spec.ts tests/remote.spec.ts tests/reconnect.spec.ts tests/narrowing.spec.ts --workers=1
+      - run: npx playwright test tests/grid.spec.ts tests/slice.spec.ts tests/chips-lifecycle.spec.ts tests/remote.spec.ts tests/reconnect.spec.ts tests/narrowing.spec.ts --workers=1

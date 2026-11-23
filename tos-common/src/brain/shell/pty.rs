@@ -200,7 +200,9 @@ pub struct PtyShell {
     master: Box<dyn MasterPty + Send>,
     _child: Box<dyn Child + Send + Sync>,
     ipc: Arc<Mutex<Option<std::sync::Weak<crate::brain::ipc_handler::IpcHandler>>>>,
-    scrollback: Arc<Mutex<ScrollbackBuffer>>,
+    /// The session's screen grid: the one emulation of this
+    /// terminal, fed by the read loop from the PTY stream.
+    grid: Arc<Mutex<super::grid::ScreenGrid>>,
     activity: Arc<PtyActivity>,
     alive: Arc<std::sync::atomic::AtomicBool>,
     /// Phase 1.7 (dynamic chips): model of the shell's input
@@ -294,6 +296,12 @@ impl PtyShell {
         let mut cmd = CommandBuilder::new(verified_shell);
         cmd.args(args);
         cmd.cwd(cwd);
+        // The Brain is the terminal emulator (alacritty_terminal): always
+        // advertise its capabilities to the child shell, even when started
+        // headless under systemd --user where TERM is unset (otherwise
+        // shells like fish fall back to dumb-terminal line-by-line redraws).
+        cmd.env("TERM", "xterm-256color");
+        cmd.env("COLORTERM", "truecolor");
         let child = pair.slave.spawn_command(cmd)?;
         let child_pid = child.process_id();
 
@@ -302,8 +310,9 @@ impl PtyShell {
 
         let ipc = Arc::new(Mutex::new(None));
         let ipc_clone = ipc.clone();
-        let scrollback = Arc::new(Mutex::new(ScrollbackBuffer::new(SCROLLBACK_CAP_BYTES)));
-        let scrollback_clone = scrollback.clone();
+        let grid = Arc::new(Mutex::new(super::grid::ScreenGrid::new(80, 24)));
+        let grid_clone = grid.clone();
+        let session_id = format!("{}:{}", sector_id, hub_id);
         let activity = Arc::new(PtyActivity {
             last_input_ms: std::sync::atomic::AtomicU64::new(0),
             last_output_ms: std::sync::atomic::AtomicU64::new(0),
@@ -327,7 +336,8 @@ impl PtyShell {
                 sid_clone,
                 hid_clone,
                 ipc_clone,
-                scrollback_clone,
+                grid_clone,
+                session_id,
                 activity_clone,
             );
         });
@@ -358,7 +368,7 @@ impl PtyShell {
             master: pair.master,
             _child: child,
             ipc,
-            scrollback,
+            grid,
             activity,
             alive,
             input_line: super::input_line::InputLine::new(),
@@ -366,11 +376,53 @@ impl PtyShell {
         })
     }
 
-    /// The retained raw output history, oldest first (Phase 1.5).
-    /// Replayed to a face when it (re)connects so its terminal can
-    /// repaint the ongoing session.
-    pub fn scrollback_snapshot(&self) -> Vec<u8> {
-        self.scrollback.lock().unwrap().snapshot()
+    /// This session's identity. Grids, input routing, and display
+    /// subscriptions are addressed by it, so a Brain holding more
+    /// than one session is an addition, not a redesign.
+    pub fn session_id(&self) -> String {
+        format!("{}:{}", self._sector_id, self._hub_id)
+    }
+
+    /// The current display state of this session's grid.
+    pub fn display_snapshot(&self) -> super::grid::GridSnapshot {
+        self.grid.lock().unwrap().snapshot()
+    }
+
+    /// The grid's current sequence number (cheap; no snapshot).
+    pub fn display_seq(&self) -> u64 {
+        self.grid.lock().unwrap().seq()
+    }
+
+    /// Encode one raw key event against the grid's emulation
+    /// state and write the resulting bytes through the one input
+    /// funnel. An event that carries no terminal input (a bare
+    /// modifier press) writes nothing.
+    pub fn write_key_event(&mut self, ev: &super::keymap::KeyEvent) -> anyhow::Result<()> {
+        let bytes = {
+            let grid = self.grid.lock().unwrap();
+            super::keymap::encode_key(ev, grid.mode())
+        };
+        match bytes {
+            Some(bytes) => self.write(&bytes),
+            None => Ok(()),
+        }
+    }
+
+    /// Deliver literal text (committed input, a chip tap's
+    /// typing), encoded by the Brain's text encoding — as
+    /// typed input, byte for byte.
+    pub fn write_text(&mut self, text: &str) -> anyhow::Result<()> {
+        let bytes = {
+            let grid = self.grid.lock().unwrap();
+            super::keymap::encode_text(text, grid.mode())
+        };
+        self.write(&bytes)
+    }
+
+    /// Move this session's display window into its scrollback
+    /// history (positive delta = older lines).
+    pub fn grid_scroll(&self, delta_lines: i32) {
+        self.grid.lock().unwrap().scroll(delta_lines);
     }
 
     pub fn set_ipc(&self, ipc: &Arc<crate::brain::ipc_handler::IpcHandler>) {
@@ -392,6 +444,13 @@ impl PtyShell {
         }
         self.writer.write_all(data)?;
         self.writer.flush()?;
+        if self.grid.lock().unwrap().scroll_to_bottom() {
+            if let Some(ipc_weak) = &*self.ipc.lock().unwrap() {
+                if let Some(ipc) = ipc_weak.upgrade() {
+                    ipc.publish_display(&self.session_id());
+                }
+            }
+        }
         // Phase 1.7 (dynamic chips): model the shell's input line
         // from the same bytes, so the chip set can filter against
         // the word being typed. Only the derived filter is
@@ -418,6 +477,10 @@ impl PtyShell {
             pixel_width: 0,
             pixel_height: 0,
         })?;
+        self.grid
+            .lock()
+            .unwrap()
+            .resize(cols as usize, rows as usize);
         Ok(())
     }
 
@@ -522,7 +585,8 @@ fn read_loop(
     sector_id: uuid::Uuid,
     hub_id: uuid::Uuid,
     ipc_weak_container: Arc<Mutex<Option<std::sync::Weak<crate::brain::ipc_handler::IpcHandler>>>>,
-    scrollback: Arc<Mutex<ScrollbackBuffer>>,
+    grid: Arc<Mutex<super::grid::ScreenGrid>>,
+    session_id: String,
     activity: Arc<PtyActivity>,
 ) {
     let mut osc_parser = OscParser::new();
@@ -536,20 +600,18 @@ fn read_loop(
                 let data = &buffer[..n];
                 trace_pty_bytes("out", &PTY_TRACE_OUT, data);
 
-                // Retain before broadcasting (Phase 1.5): anything in
-                // the buffer is by construction never lost to a face
-                // that connects later.
-                scrollback.lock().unwrap().append(data);
                 activity
                     .last_output_ms
                     .store(activity_now_ms(), std::sync::atomic::Ordering::SeqCst);
 
-                // Hex encode raw PTY output bytes and broadcast them
-                let hex_data = hex::encode(data);
-                let broadcast_msg = format!("pty_output:{}", hex_data);
+                // Parse the chunk into the session's grid — the one
+                // emulation of this terminal — and let the IPC layer
+                // publish the new display state to faces. The raw
+                // stream itself goes no further than this loop.
+                grid.lock().unwrap().feed(data);
                 if let Some(ipc_weak) = &*ipc_weak_container.lock().unwrap() {
                     if let Some(ipc) = ipc_weak.upgrade() {
-                        ipc.broadcast(&broadcast_msg);
+                        ipc.publish_display(&session_id);
                     }
                 }
 

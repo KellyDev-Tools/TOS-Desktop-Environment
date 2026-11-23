@@ -33,7 +33,7 @@
 	import DetailInspector from '$lib/components/views/DetailInspector.svelte';
 	import LogView from '$lib/components/views/LogView.svelte';
 
-	import XtermTerminal from '$lib/components/XtermTerminal.svelte';
+	import GridTerminal from '$lib/components/GridTerminal.svelte';
 	import WarningChip from '$lib/components/WarningChip.svelte';
 	import AcceleratorChips from '$lib/components/AcceleratorChips.svelte';
 	import PromptInputBar from '$lib/components/PromptInputBar.svelte';
@@ -345,7 +345,7 @@
 
 {#if surface === 'background'}
 	<div class="surface-root surface-background">
-		<XtermTerminal />
+		<GridTerminal />
 	</div>
 {:else if surface === 'chips'}
 	<div class="surface-root surface-chips">

@@ -1,5 +1,7 @@
+pub mod grid;
 #[cfg(not(target_os = "android"))]
 pub mod input_line;
+pub mod keymap;
 pub mod pty;
 
 #[cfg(not(target_os = "android"))]
@@ -33,9 +35,31 @@ impl ShellApi {
             _hub_id: hub_id,
         })
     }
-    pub fn scrollback_snapshot(&self) -> Vec<u8> {
-        Vec::new()
+    pub fn session_id(&self) -> String {
+        format!("{}:{}", self._sector_id, self._hub_id)
     }
+    pub fn display_snapshot(&self) -> super::grid::GridSnapshot {
+        super::grid::GridSnapshot {
+            cols: 0,
+            rows: 0,
+            seq: 0,
+            display_offset: 0,
+            cursor_col: 0,
+            cursor_row: 0,
+            cursor_visible: false,
+            lines: Vec::new(),
+        }
+    }
+    pub fn display_seq(&self) -> u64 {
+        0
+    }
+    pub fn write_key_event(&mut self, _ev: &super::keymap::KeyEvent) -> anyhow::Result<()> {
+        Ok(())
+    }
+    pub fn write_text(&mut self, _text: &str) -> anyhow::Result<()> {
+        Ok(())
+    }
+    pub fn grid_scroll(&self, _delta_lines: i32) {}
     pub fn write(&mut self, _data: &[u8]) -> anyhow::Result<()> {
         Ok(())
     }

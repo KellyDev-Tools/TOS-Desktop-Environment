@@ -332,9 +332,8 @@ mod tests {
 
     #[test]
     fn bracketed_paste_text_is_modelled() {
-        // The Brain's own text encoding wraps text in the paste
-        // markers when the shell has the mode on; the pasted text
-        // must land in the model, not desync it.
+        // If bracketed-paste sequences arrive on the PTY input stream,
+        // the pasted text must land in the model rather than desyncing it.
         let mut m = InputLine::new();
         m.feed(b"\x1b[200~notes\x1b[201~");
         assert_eq!(m.fragment().as_deref(), Some("notes"));

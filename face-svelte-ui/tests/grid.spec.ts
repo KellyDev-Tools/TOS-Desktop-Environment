@@ -263,7 +263,7 @@ test.describe('Brain-owned grid — the display protocol, headless', () => {
 
     test('scrollback is a window the Brain serves from the grid', async () => {
         const res = await client.send(
-            `terminal_text:${JSON.stringify({ text: 'for i in $(seq 1 40); do echo gridline$i; done' })}`
+            `terminal_text:${JSON.stringify({ text: 'seq -f gridline%.0f 1 40' })}`
         );
         expect(res).toBe('OK');
         await client.key('Enter');

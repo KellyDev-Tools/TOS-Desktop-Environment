@@ -438,6 +438,13 @@ impl PtyShell {
         }
         self.writer.write_all(data)?;
         self.writer.flush()?;
+        if self.grid.lock().unwrap().scroll_to_bottom() {
+            if let Some(ipc_weak) = &*self.ipc.lock().unwrap() {
+                if let Some(ipc) = ipc_weak.upgrade() {
+                    ipc.publish_display(&self.session_id());
+                }
+            }
+        }
         // Phase 1.7 (dynamic chips): model the shell's input line
         // from the same bytes, so the chip set can filter against
         // the word being typed. Only the derived filter is

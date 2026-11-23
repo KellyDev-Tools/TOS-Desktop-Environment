@@ -78,7 +78,8 @@ impl GridSpan {
 pub struct GridSnapshot {
     pub cols: usize,
     pub rows: usize,
-    /// Bumps on every published change; a gap means resubscribe.
+    /// Monotonic counter bumped on every grid change; faces ignore
+    /// stale out-of-order updates.
     pub seq: u64,
     /// Lines scrolled back into history (0 = live bottom).
     pub display_offset: usize,
@@ -142,10 +143,16 @@ impl ScreenGrid {
         self.seq += 1;
     }
 
-    pub fn scroll_to_bottom(&mut self) {
+    /// Snap back to the live bottom of the grid. Returns true if the
+    /// viewport was actually scrolled up into history.
+    pub fn scroll_to_bottom(&mut self) -> bool {
         use alacritty_terminal::grid::Scroll;
+        if self.term.grid().display_offset() == 0 {
+            return false;
+        }
         self.term.scroll_display(Scroll::Bottom);
         self.seq += 1;
+        true
     }
 
     pub fn seq(&self) -> u64 {
@@ -352,5 +359,21 @@ mod tests {
         assert_eq!(row[0].fg, "#cc0000");
         assert_eq!(row[0].text, "ERR");
         assert_eq!(row[1].text, " plain");
+    }
+
+    #[test]
+    fn scroll_to_bottom_only_bumps_when_scrolled() {
+        let mut grid = ScreenGrid::new(20, 3);
+        for i in 0..10 {
+            grid.feed(format!("line {}\r\n", i).as_bytes());
+        }
+        let seq_before = grid.seq();
+        assert!(!grid.scroll_to_bottom());
+        assert_eq!(grid.seq(), seq_before);
+
+        grid.scroll(3);
+        assert!(grid.snapshot().display_offset > 0);
+        assert!(grid.scroll_to_bottom());
+        assert_eq!(grid.snapshot().display_offset, 0);
     }
 }

@@ -360,4 +360,16 @@ test.describe('Phase 1 slice — ambient face against a real Brain', () => {
         await dismissBtn.click();
         expect(await dismissCmd).toBe('hide-prompt');
     });
+
+    test('non-text keys (Backspace) fire once when the terminal input is focused', async ({ page }) => {
+        await page.goto(`${FACE_URL}/?surface=background`);
+        await expect(page.locator('.surface-background [data-testid="grid-terminal"]')).toBeVisible();
+        await page.locator('[data-testid="grid-terminal"]').click();
+        await page.keyboard.type('echo TOS_BS_12X');
+        await page.keyboard.press('Backspace');
+        await page.keyboard.press('Enter');
+        await expect
+            .poll(() => terminalText(page), { timeout: 15_000 })
+            .toMatch(/^TOS_BS_12$/m);
+    });
 });

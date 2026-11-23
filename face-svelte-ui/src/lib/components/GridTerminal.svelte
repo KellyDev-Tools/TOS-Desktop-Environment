@@ -50,8 +50,9 @@
     let cellH = 17;
     let colors = { fg: '#e0f7fa', bg: '#0b1622', cursor: '#00e5ff' };
 
-    let snapshot: GridSnapshot | null = null;
+    let snapshot = $state<GridSnapshot | null>(null);
     let sessionId: string | null = null;
+    let isComposing = false;
 
     function acceptPrediction() {
         if (predictionText) {
@@ -91,55 +92,67 @@
         const ctx = canvasEl.getContext('2d');
         if (!ctx) return;
         const snap = snapshot;
+        const cw = canvasEl.clientWidth;
+        const ch = canvasEl.clientHeight;
+        // Fit the Brain's grid cleanly into the drawable canvas: use
+        // 1:1 measured cells when they fit, or scale down uniformly if
+        // another face sized the session wider/taller than this viewport.
+        const scaleX = snap.cols > 0 ? Math.min(1, cw / (snap.cols * cellW)) : 1;
+        const scaleY = snap.rows > 0 ? Math.min(1, ch / (snap.rows * cellH)) : 1;
+        const scale = Math.min(scaleX, scaleY);
+        const drawCellW = cellW * scale;
+        const drawCellH = cellH * scale;
+        const drawFontSize = Math.max(8, FONT_SIZE * scale);
+
         ctx.fillStyle = colors.bg;
-        ctx.fillRect(0, 0, canvasEl.clientWidth, canvasEl.clientHeight);
+        ctx.fillRect(0, 0, cw, ch);
         ctx.textBaseline = 'top';
         for (let row = 0; row < snap.lines.length; row++) {
-            const y = row * cellH;
+            const y = row * drawCellH;
             let col = 0;
             for (const span of snap.lines[row]) {
-                const widthCells = [...span.text].reduce((n, ch) => n + charCells(ch), 0);
+                const widthCells = [...span.text].reduce((n, c) => n + charCells(c), 0);
                 if (span.bg !== 'bg') {
                     ctx.fillStyle = resolveColor(span.bg);
-                    ctx.fillRect(col * cellW, y, widthCells * cellW, cellH);
+                    ctx.fillRect(col * drawCellW, y, widthCells * drawCellW, drawCellH);
                 }
-                ctx.font = `${span.italic ? 'italic ' : ''}${span.bold ? 'bold ' : ''}${FONT_SIZE}px ${FONT_FAMILY}`;
+                ctx.font = `${span.italic ? 'italic ' : ''}${span.bold ? 'bold ' : ''}${drawFontSize}px ${FONT_FAMILY}`;
                 ctx.fillStyle = resolveColor(span.fg);
                 if (span.dim) ctx.globalAlpha = 0.6;
-                let x = col * cellW;
-                for (const ch of span.text) {
-                    ctx.fillText(ch, x, y + 2);
-                    x += charCells(ch) * cellW;
+                let x = col * drawCellW;
+                for (const c of span.text) {
+                    ctx.fillText(c, x, y + 2 * scale);
+                    x += charCells(c) * drawCellW;
                 }
                 ctx.globalAlpha = 1;
                 if (span.underline) {
-                    ctx.fillRect(col * cellW, y + cellH - 2, widthCells * cellW, 1);
+                    ctx.fillRect(col * drawCellW, y + drawCellH - 2, widthCells * drawCellW, 1);
                 }
                 if (span.strike) {
-                    ctx.fillRect(col * cellW, y + cellH / 2, widthCells * cellW, 1);
+                    ctx.fillRect(col * drawCellW, y + drawCellH / 2, widthCells * drawCellW, 1);
                 }
                 col += widthCells;
             }
         }
         if (snap.cursor_visible && snap.display_offset === 0) {
-            const cx = snap.cursor_col * cellW;
-            const cy = snap.cursor_row * cellH;
+            const cx = snap.cursor_col * drawCellW;
+            const cy = snap.cursor_row * drawCellH;
             ctx.fillStyle = colors.cursor;
             ctx.globalAlpha = 0.85;
-            ctx.fillRect(cx, cy, cellW, cellH);
+            ctx.fillRect(cx, cy, drawCellW, drawCellH);
             ctx.globalAlpha = 1;
             // Redraw the cell's character in the background colour.
             const row = snap.lines[snap.cursor_row];
             if (row) {
                 let col = 0;
                 for (const span of row) {
-                    for (const ch of span.text) {
+                    for (const c of span.text) {
                         if (col === snap.cursor_col) {
-                            ctx.font = `${span.italic ? 'italic ' : ''}${span.bold ? 'bold ' : ''}${FONT_SIZE}px ${FONT_FAMILY}`;
+                            ctx.font = `${span.italic ? 'italic ' : ''}${span.bold ? 'bold ' : ''}${drawFontSize}px ${FONT_FAMILY}`;
                             ctx.fillStyle = colors.bg;
-                            ctx.fillText(ch, cx, cy + 2);
+                            ctx.fillText(c, cx, cy + 2 * scale);
                         }
-                        col += charCells(ch);
+                        col += charCells(c);
                     }
                 }
             }
@@ -186,7 +199,7 @@
     }
 
     function handleKey(e: KeyboardEvent) {
-        if (e.metaKey) return; // leave OS/browser shortcuts alone
+        if (e.metaKey || isComposing || e.isComposing) return; // leave OS/browser shortcuts & IME alone
         const fromInput = e.target === inputEl;
         const isTextKey = e.key.length === 1 && !e.ctrlKey && !e.altKey;
         if (fromInput && isTextKey) return; // arrives via the input event as text
@@ -206,8 +219,9 @@
         sendTerminalKey(ev);
     }
 
-    function handleTextInput() {
+    function handleTextInput(e?: Event) {
         if (!inputEl) return;
+        if (isComposing || (e && 'isComposing' in e && (e as InputEvent).isComposing)) return;
         const v = inputEl.value;
         if (v) {
             sendTerminalText(v);
@@ -225,20 +239,53 @@
 
     let wheelAcc = 0;
     let wheelTimer: ReturnType<typeof setTimeout> | null = null;
-    function handleWheel(e: WheelEvent) {
-        e.preventDefault();
-        wheelAcc += e.deltaY;
+    function queueScroll(deltaPx: number) {
+        wheelAcc += deltaPx;
         if (wheelTimer) return;
         wheelTimer = setTimeout(async () => {
             wheelTimer = null;
-            // Wheel up (negative deltaY) looks at older lines.
-            const lines = -Math.trunc(wheelAcc / cellH);
+            // Positive deltaPx (wheel up / finger drag down) looks at older lines.
+            const lines = Math.trunc(wheelAcc / cellH);
             wheelAcc = 0;
             if (lines !== 0) {
                 const res = await sendCommand(`display_scroll:;${lines}`);
                 if (res) applyDisplayMessage(res);
             }
         }, 40);
+    }
+
+    function handleWheel(e: WheelEvent) {
+        e.preventDefault();
+        queueScroll(-e.deltaY);
+    }
+
+    let touchLastY: number | null = null;
+    function handleTouchStart(e: TouchEvent) {
+        if (e.touches.length === 1) {
+            touchLastY = e.touches[0].clientY;
+        }
+    }
+    function handleTouchMove(e: TouchEvent) {
+        if (e.touches.length !== 1 || touchLastY === null) return;
+        const y = e.touches[0].clientY;
+        const dy = y - touchLastY;
+        touchLastY = y;
+        if (Math.abs(dy) >= 2) {
+            e.preventDefault();
+            // Dragging finger down pulls older lines into view.
+            queueScroll(dy);
+        }
+    }
+    function handleTouchEnd() {
+        touchLastY = null;
+    }
+
+    async function jumpToLive() {
+        const offset = snapshot?.display_offset ?? 0;
+        if (offset > 0) {
+            const res = await sendCommand(`display_scroll:;${-offset}`);
+            if (res) applyDisplayMessage(res);
+        }
     }
 
     $effect(() => {
@@ -299,11 +346,11 @@
             clearTimeout(resizeTimeout);
             resizeTimeout = setTimeout(() => {
                 if (!wrapElement || !canvasEl) return;
-                const w = wrapElement.clientWidth - 16;
-                const h = wrapElement.clientHeight - 16;
+                const w = canvasEl.clientWidth;
+                const h = canvasEl.clientHeight;
                 const dpr = window.devicePixelRatio || 1;
-                canvasEl.width = Math.max(1, Math.floor(wrapElement.clientWidth * dpr));
-                canvasEl.height = Math.max(1, Math.floor(wrapElement.clientHeight * dpr));
+                canvasEl.width = Math.max(1, Math.floor(w * dpr));
+                canvasEl.height = Math.max(1, Math.floor(h * dpr));
                 const ctx = canvasEl.getContext('2d');
                 ctx?.setTransform(dpr, 0, 0, dpr, 0, 0);
                 const cols = Math.max(2, Math.floor(w / cellW));
@@ -341,11 +388,16 @@
     onkeydown={handleKey}
     onpaste={handlePaste}
     onwheel={handleWheel}
+    ontouchstart={handleTouchStart}
+    ontouchmove={handleTouchMove}
+    ontouchend={handleTouchEnd}
     onclick={() => inputEl?.focus({ preventScroll: true })}
 >
     <canvas bind:this={canvasEl} class="grid-terminal-canvas"></canvas>
     <!-- Soft-keyboard / IME path: committed text is forwarded as
-         text events; the field itself never holds state. -->
+         text events; the field itself never holds state. Keydown
+         bubbles once to .grid-terminal-wrapper so non-text keys
+         are never dispatched twice. -->
     <input
         bind:this={inputEl}
         class="grid-terminal-input"
@@ -355,9 +407,21 @@
         spellcheck="false"
         aria-hidden="true"
         tabindex="-1"
+        oncompositionstart={() => { isComposing = true; }}
+        oncompositionend={() => { isComposing = false; handleTextInput(); }}
         oninput={handleTextInput}
-        onkeydown={handleKey}
     />
+    {#if (snapshot?.display_offset ?? 0) > 0}
+        <button
+            type="button"
+            class="scrollback-pill"
+            data-testid="grid-scrollback-pill"
+            aria-label="Jump to live terminal"
+            onclick={(e) => { e.stopPropagation(); jumpToLive(); }}
+        >
+            ↑ {snapshot?.display_offset} · LIVE ↵
+        </button>
+    {/if}
     {#if predictionText}
         <!-- svelte-ignore a11y_click_events_have_key_events -->
         <div class="autocomplete-chip" onclick={acceptPrediction} role="button" tabindex="0">
@@ -373,19 +437,39 @@
         width: 100%;
         height: 100%;
         min-height: 200px;
+        padding: 8px;
+        box-sizing: border-box;
         background: var(--color-bg);
         border: 1px solid var(--color-border);
         border-radius: 4px;
         overflow: hidden;
         outline: none;
+        touch-action: none;
     }
 
     .grid-terminal-canvas {
         width: 100%;
         height: 100%;
         display: block;
-        padding: 8px;
-        box-sizing: border-box;
+    }
+
+    .scrollback-pill {
+        position: absolute;
+        bottom: 12px;
+        right: 12px;
+        min-height: 44px;
+        min-width: 44px;
+        padding: 8px 14px;
+        border-radius: 999px;
+        border: 1px solid var(--color-primary, #00e5ff);
+        background: rgba(11, 22, 34, 0.9);
+        color: var(--color-primary, #00e5ff);
+        font-family: var(--font-mono, monospace);
+        font-size: 12px;
+        font-weight: 600;
+        cursor: pointer;
+        z-index: 12;
+        touch-action: manipulation;
     }
 
     .grid-terminal-input {

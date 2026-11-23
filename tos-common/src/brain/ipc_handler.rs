@@ -2,7 +2,7 @@ use crate::{CommandHubMode, HierarchyLevel, TosState};
 use crate::state::QueuedAiRequest;
 use crate::services::MarketplaceService;
 // use crate::*;
-use std::sync::{Arc, Mutex};
+use std::sync::{Arc, Condvar, Mutex, Weak};
 use std::time::Instant;
 use uuid::Uuid;
 use tokio::sync::mpsc::UnboundedSender;
@@ -11,14 +11,26 @@ use tokio::sync::mpsc::UnboundedSender;
 /// publishes each terminal session's grid to subscribed faces —
 /// a snapshot on subscribe, then coalesced `display_update`
 /// pushes. A pump thread guarantees the latest state lands even
-/// when a burst ends inside the coalescing window.
+/// when a burst ends inside the coalescing window, and sleeps
+/// with zero wakeups while idle.
 struct DisplayHub {
     sessions: std::collections::HashMap<String, Arc<Mutex<crate::brain::shell::ShellApi>>>,
     published: Mutex<std::collections::HashMap<String, (u64, std::time::Instant)>>,
     broadcasters: Arc<Mutex<Vec<UnboundedSender<String>>>>,
+    pending: (Mutex<bool>, Condvar),
 }
 
 impl DisplayHub {
+    fn mark_pending(&self) {
+        let (lock, cvar) = &self.pending;
+        if let Ok(mut pending) = lock.lock() {
+            if !*pending {
+                *pending = true;
+                cvar.notify_one();
+            }
+        }
+    }
+
     fn publish_now(&self, session: &str, ignore_window: bool) {
         let Some(shell) = self.sessions.get(session) else {
             return;
@@ -33,6 +45,8 @@ impl DisplayHub {
                         return;
                     }
                     if !ignore_window && at.elapsed() < std::time::Duration::from_millis(16) {
+                        drop(published);
+                        self.mark_pending();
                         return; // the pump will carry it within 50 ms
                     }
                 }
@@ -66,6 +80,17 @@ pub struct IpcHandler {
     display: Arc<DisplayHub>,
 }
 
+impl Drop for IpcHandler {
+    fn drop(&mut self) {
+        // Wake the display pump so it observes the dropped Weak and exits.
+        let (lock, cvar) = &self.display.pending;
+        if let Ok(mut pending) = lock.lock() {
+            *pending = true;
+            cvar.notify_all();
+        }
+    }
+}
+
 impl IpcHandler {
     pub fn new(
         state: Arc<Mutex<TosState>>,
@@ -81,16 +106,41 @@ impl IpcHandler {
             sessions: sessions.clone(),
             published: Mutex::new(std::collections::HashMap::new()),
             broadcasters: broadcasters.clone(),
+            pending: (Mutex::new(false), Condvar::new()),
         });
-        // The display pump: every 50 ms, carry any session whose
-        // grid moved since its last publication.
+        // The display pump: sleeps while idle, and after any throttled
+        // burst flushes remaining sessions within 50 ms. Holds a Weak
+        // reference so it exits cleanly when IpcHandler is dropped.
         {
-            let display = display.clone();
+            let weak: Weak<DisplayHub> = Arc::downgrade(&display);
             std::thread::spawn(move || loop {
+                let Some(hub) = weak.upgrade() else {
+                    break;
+                };
+                {
+                    let (lock, cvar) = &hub.pending;
+                    let Ok(mut pending) = lock.lock() else {
+                        break;
+                    };
+                    while !*pending {
+                        let Ok(guard) = cvar.wait(pending) else {
+                            return;
+                        };
+                        pending = guard;
+                        if weak.strong_count() == 0 {
+                            return;
+                        }
+                    }
+                    *pending = false;
+                }
+                drop(hub);
                 std::thread::sleep(std::time::Duration::from_millis(50));
-                let ids: Vec<String> = display.sessions.keys().cloned().collect();
+                let Some(hub) = weak.upgrade() else {
+                    break;
+                };
+                let ids: Vec<String> = hub.sessions.keys().cloned().collect();
                 for id in ids {
-                    display.publish_now(&id, true);
+                    hub.publish_now(&id, true);
                 }
             });
         }

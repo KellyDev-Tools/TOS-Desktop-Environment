@@ -415,6 +415,68 @@ mod tests {
     }
 
     #[test]
+    fn desktop_entry_parsing_details() {
+        // Keys outside [Desktop Entry] do not count.
+        let grouped = "[Desktop Entry]\nType=Application\nName=A\nExec=a\n\
+                       [Desktop Action new]\nName=B\nExec=b\n";
+        let e = parse_desktop_entry("a", grouped).unwrap();
+        assert_eq!(e.name, "A");
+        assert_eq!(e.exec, "a");
+        // A localized Name is not the Name; the plain one wins
+        // wherever it appears.
+        let localized = "[Desktop Entry]\nType=Application\nName[fr]=Renard\nName=Firefox\nExec=firefox\n";
+        assert_eq!(parse_desktop_entry("f", localized).unwrap().name, "Firefox");
+        // Missing Type or Exec: not launchable.
+        let no_type = "[Desktop Entry]\nName=X\nExec=x\n";
+        assert!(parse_desktop_entry("x", no_type).is_none());
+        let no_exec = "[Desktop Entry]\nType=Application\nName=X\n";
+        assert!(parse_desktop_entry("x", no_exec).is_none());
+        // Comment lines and blank lines are inert.
+        let commented = "# a comment\n\n[Desktop Entry]\nType=Application\nName=X\nExec=x\n";
+        assert!(parse_desktop_entry("x", commented).is_some());
+    }
+
+    #[test]
+    fn override_and_matching_edges() {
+        // No space after the colon still overrides.
+        assert_eq!(
+            parse_override("here:firefox"),
+            (Some(Placement::Host), "firefox")
+        );
+        // A word merely starting with the letters is not an override.
+        assert_eq!(parse_override("hereford: x"), (None, "hereford: x"));
+        // Matching is by id or by display name, case-insensitively.
+        let server = vec![entry("my-app", "My App", "my-app")];
+        assert!(resolve_launch("MY-APP", &server, &[]).is_some());
+        assert!(resolve_launch("my app", &server, &[]).is_none(),
+            "a name with a space cannot be a first token");
+        // Extra whitespace between the token and its args collapses.
+        let m = resolve_launch("my-app   --flag", &server, &[]).unwrap();
+        assert_eq!(m.server_exec.as_deref(), Some("my-app --flag"));
+        // An empty submission is not a launch.
+        assert!(resolve_launch("   ", &server, &[]).is_none());
+    }
+
+    #[test]
+    fn placement_vocabulary() {
+        assert_eq!(Placement::parse("here"), Some(Placement::Host));
+        assert_eq!(Placement::parse("SERVER"), Some(Placement::ServerDisplay));
+        assert_eq!(Placement::parse("nowhere"), None);
+        assert_eq!(Placement::Host.opposite(), Some(Placement::ServerDisplay));
+        assert_eq!(Placement::ServerDisplay.opposite(), Some(Placement::Host));
+        assert_eq!(Placement::Session.opposite(), None);
+        let m = LaunchMatch {
+            app_id: "a".into(),
+            app_name: "A".into(),
+            host_exec: Some("ha".into()),
+            server_exec: None,
+        };
+        assert_eq!(m.exec_for(Placement::Host), Some("ha"));
+        assert_eq!(m.exec_for(Placement::ServerDisplay), None);
+        assert_eq!(m.exec_for(Placement::Session), None);
+    }
+
+    #[test]
     fn prominence_defaults_to_glyph() {
         assert_eq!(Prominence::parse_setting(None), Prominence::Glyph);
         assert_eq!(

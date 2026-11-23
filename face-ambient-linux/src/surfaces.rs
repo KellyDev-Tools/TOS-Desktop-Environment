@@ -435,6 +435,49 @@ mod tests {
     }
 
     #[test]
+    fn field_code_and_launch_edges() {
+        // A trailing lone % survives; quoted args pass through.
+        assert_eq!(strip_field_codes("app 100%"), "app 100%");
+        assert_eq!(
+            strip_field_codes("app --name \"My App\" %U"),
+            "app --name \"My App\""
+        );
+        // Launch parsing tolerates surrounding whitespace only
+        // before the prefix, and rejects other bridge traffic.
+        assert!(parse_launch_message("  launch:{\"id\":\"1\",\"app\":\"A\",\"exec\":\"a\",\"placement\":\"server\"}").is_some());
+        assert!(parse_launch_message("launch:").is_none());
+        assert!(parse_launch_message("toggle-prompt").is_none());
+    }
+
+    #[test]
+    fn host_app_scan_shadowing_and_bad_files() {
+        let base = std::env::temp_dir().join(format!(
+            "tos-face-apps2-{}",
+            std::process::id()
+        ));
+        let user = base.join("user/applications");
+        let sys = base.join("sys/applications");
+        std::fs::create_dir_all(&user).unwrap();
+        std::fs::create_dir_all(&sys).unwrap();
+        std::fs::write(
+            user.join("a.desktop"),
+            "[Desktop Entry]\nType=Application\nName=A-user\nExec=a-user\n",
+        )
+        .unwrap();
+        std::fs::write(
+            sys.join("a.desktop"),
+            "[Desktop Entry]\nType=Application\nName=A-sys\nExec=a-sys\n",
+        )
+        .unwrap();
+        std::fs::write(sys.join("broken.desktop"), "not a desktop file").unwrap();
+        std::fs::write(sys.join("notes.txt"), "ignored").unwrap();
+        let apps = scan_host_apps_in(&[user, sys]);
+        std::fs::remove_dir_all(&base).ok();
+        assert_eq!(apps.len(), 1, "user entry shadows; broken files skipped");
+        assert_eq!(apps[0].exec, "a-user");
+    }
+
+    #[test]
     fn waypipe_argv_targets_the_brain_machine() {
         let argv = waypipe_argv("tim@tkserver -p 53243", "firefox");
         assert_eq!(

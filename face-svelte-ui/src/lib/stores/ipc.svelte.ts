@@ -322,6 +322,11 @@ function proceedConnect(targetUrl: string): void {
             }
         });
 
+        // Describe this face's host to the Brain for placement
+        // routing (Architecture §26.4). Re-sent on every
+        // (re)connect; the Brain's copy is its to replace.
+        void syncHostApps();
+
         // Setup global passive listener for pushed state_delta
         ws!.onmessage = (event) => {
             if (typeof event.data === 'string') {
@@ -591,6 +596,31 @@ export async function confirmationAccept(id: string): Promise<void> {
 
 export async function confirmationReject(id: string): Promise<void> {
     await sendCommand(`confirmation_reject:${id}`);
+}
+
+// --- Placement Helpers (Architecture §26.4) ---
+
+/** A face describes its own host's GUI app catalogue to the
+ * Brain, which routes placement from it. The catalogue is
+ * injected by the face's shell as `window.__tosHostApps`; a
+ * face without a shell (browser dev) syncs nothing and host
+ * placement simply has no data to decide from. */
+export async function syncHostApps(): Promise<void> {
+    const w = window as unknown as {
+        __tosHostApps?: { id: string; name: string; exec: string }[];
+    };
+    const apps = w.__tosHostApps;
+    if (Array.isArray(apps) && apps.length > 0) {
+        await sendCommand(`placement_sync_apps:${JSON.stringify(apps)}`);
+    }
+}
+
+export async function placementChoose(id: string, side: 'host' | 'server'): Promise<void> {
+    await sendCommand(`placement_choose:${id};${side}`);
+}
+
+export async function placementRelaunch(id: string): Promise<void> {
+    await sendCommand(`placement_relaunch:${id}`);
 }
 
 // --- Directory Helpers ---

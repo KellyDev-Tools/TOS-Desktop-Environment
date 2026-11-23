@@ -106,8 +106,9 @@ pub fn spec(surface: Surface) -> SurfaceSpec {
             transparent: true,
             start_visible: true,
             default_width: 0,
-            // Two 44px touch rows (entries + controls) plus gaps/padding.
-            default_height: 112,
+            // Three 44px touch rows (entries, launches when any
+            // exist, controls) plus gaps/padding.
+            default_height: 156,
         },
         Surface::Prompt => SurfaceSpec {
             surface,
@@ -196,6 +197,160 @@ impl FaceCommand {
     }
 }
 
+/// One GUI app from this host's desktop-entry catalogue — the
+/// shape the face syncs to the Brain for placement decisions
+/// (Architecture §26.4). The parser here is deliberately a
+/// second, minimal implementation of the same catalogue rule
+/// the Brain applies to its own machine: this crate does not
+/// take the Brain's library as a dependency.
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+pub struct HostApp {
+    pub id: String,
+    pub name: String,
+    pub exec: String,
+}
+
+/// A launch directive from the Brain, forwarded by the web UI
+/// over the bridge as `launch:<json>`. The shell executes it on
+/// this machine; the Brain never spawns GUI apps itself.
+#[derive(Debug, Clone, PartialEq, serde::Deserialize)]
+pub struct LaunchDirective {
+    pub id: String,
+    pub app: String,
+    pub exec: String,
+    /// `host` (spawn locally) or `server` (spawn via waypipe).
+    pub placement: String,
+}
+
+pub fn parse_launch_message(text: &str) -> Option<LaunchDirective> {
+    let json = text.trim().strip_prefix("launch:")?;
+    serde_json::from_str(json).ok()
+}
+
+/// Strip desktop-entry field codes (`%u`, `%f`, …) from an Exec
+/// line; `%%` collapses to a literal `%`. TOS launches take no
+/// files or URLs in this slice, so field codes expand to
+/// nothing.
+pub fn strip_field_codes(exec: &str) -> String {
+    let mut out = String::with_capacity(exec.len());
+    let mut chars = exec.chars();
+    while let Some(c) = chars.next() {
+        if c != '%' {
+            out.push(c);
+            continue;
+        }
+        match chars.next() {
+            Some('%') => out.push('%'),
+            Some(_) => {}
+            None => out.push('%'),
+        }
+    }
+    out.trim().to_string()
+}
+
+/// Scan this host's desktop-entry catalogue: `Type=Application`
+/// entries with an `Exec`, skipping `NoDisplay` / `Hidden`,
+/// user directories shadowing system ones — the same rule the
+/// Brain scans its own machine by.
+pub fn scan_host_apps() -> Vec<HostApp> {
+    let mut dirs: Vec<std::path::PathBuf> = Vec::new();
+    if let Ok(home) = std::env::var("XDG_DATA_HOME") {
+        if !home.is_empty() {
+            dirs.push(std::path::PathBuf::from(home));
+        }
+    } else if let Ok(home) = std::env::var("HOME") {
+        dirs.push(std::path::PathBuf::from(home).join(".local/share"));
+    }
+    let data_dirs = std::env::var("XDG_DATA_DIRS")
+        .unwrap_or_else(|_| "/usr/local/share:/usr/share".to_string());
+    for d in data_dirs.split(':') {
+        if !d.is_empty() {
+            dirs.push(std::path::PathBuf::from(d));
+        }
+    }
+    let app_dirs: Vec<_> = dirs.iter().map(|d| d.join("applications")).collect();
+    scan_host_apps_in(&app_dirs)
+}
+
+pub fn scan_host_apps_in(dirs: &[std::path::PathBuf]) -> Vec<HostApp> {
+    let mut out: Vec<HostApp> = Vec::new();
+    for dir in dirs {
+        let Ok(read) = std::fs::read_dir(dir) else {
+            continue;
+        };
+        let mut paths: Vec<_> = read.flatten().map(|e| e.path()).collect();
+        paths.sort();
+        for path in paths {
+            if path.extension().and_then(|e| e.to_str()) != Some("desktop") {
+                continue;
+            }
+            let Some(stem) = path.file_stem().and_then(|s| s.to_str()) else {
+                continue;
+            };
+            if out.iter().any(|e| e.id == stem) {
+                continue;
+            }
+            let Ok(contents) = std::fs::read_to_string(&path) else {
+                continue;
+            };
+            if let Some(app) = parse_host_app(stem, &contents) {
+                out.push(app);
+            }
+        }
+    }
+    out
+}
+
+fn parse_host_app(id: &str, contents: &str) -> Option<HostApp> {
+    let mut in_entry = false;
+    let mut name: Option<String> = None;
+    let mut exec: Option<String> = None;
+    let mut is_application = false;
+    let mut hidden = false;
+    for line in contents.lines() {
+        let line = line.trim();
+        if line.starts_with('[') {
+            in_entry = line == "[Desktop Entry]";
+            continue;
+        }
+        if !in_entry {
+            continue;
+        }
+        let Some((key, value)) = line.split_once('=') else {
+            continue;
+        };
+        match key.trim() {
+            "Type" => is_application = value.trim() == "Application",
+            "Name" if name.is_none() => name = Some(value.trim().to_string()),
+            "Exec" if exec.is_none() => exec = Some(value.trim().to_string()),
+            "NoDisplay" | "Hidden" => {
+                hidden = value.trim().eq_ignore_ascii_case("true")
+            }
+            _ => {}
+        }
+    }
+    if !is_application || hidden {
+        return None;
+    }
+    Some(HostApp {
+        id: id.to_string(),
+        name: name?,
+        exec: exec?,
+    })
+}
+
+/// The waypipe invocation for a server-display launch:
+/// `waypipe ssh <target words…> <command>`. The target is the
+/// face host's own configuration (the `TOS_WAYPIPE_TARGET`
+/// environment variable) — an ssh destination, with any ssh
+/// options its owner needs, as separate words.
+pub fn waypipe_argv(target: &str, exec: &str) -> Vec<String> {
+    let mut argv: Vec<String> = vec!["waypipe".into(), "ssh".into()];
+    argv.extend(target.split_whitespace().map(str::to_string));
+    argv.push(exec.to_string());
+    argv
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -235,9 +390,57 @@ mod tests {
         assert_eq!(c.exclusive_zone, 0);
         // Top of the screen, spanning the width: the width is
         // anchor-sized (0), never a fixed default, and the height
-        // fits the two 44px touch rows plus gaps/padding.
+        // fits the three 44px touch rows plus gaps/padding.
         assert_eq!(c.default_width, 0);
-        assert_eq!(c.default_height, 112);
+        assert_eq!(c.default_height, 156);
+    }
+
+    #[test]
+    fn launch_messages_parse_and_field_codes_strip() {
+        let d = parse_launch_message(
+            "launch:{\"id\":\"1\",\"app\":\"Firefox\",\"exec\":\"firefox %u\",\"placement\":\"host\"}",
+        )
+        .expect("directive parses");
+        assert_eq!(d.app, "Firefox");
+        assert_eq!(d.placement, "host");
+        assert!(parse_launch_message("hide-prompt").is_none());
+        assert!(parse_launch_message("launch:{nope").is_none());
+        assert_eq!(strip_field_codes("firefox %u"), "firefox");
+        assert_eq!(strip_field_codes("app --x=%f 100%%"), "app --x= 100%");
+        assert_eq!(strip_field_codes("plain"), "plain");
+    }
+
+    #[test]
+    fn host_app_scan_applies_the_catalogue_rule() {
+        let base = std::env::temp_dir().join(format!(
+            "tos-face-apps-{}",
+            std::process::id()
+        ));
+        let dir = base.join("applications");
+        std::fs::create_dir_all(&dir).unwrap();
+        std::fs::write(
+            dir.join("firefox.desktop"),
+            "[Desktop Entry]\nType=Application\nName=Firefox\nExec=firefox %u\n",
+        )
+        .unwrap();
+        std::fs::write(
+            dir.join("hidden.desktop"),
+            "[Desktop Entry]\nType=Application\nName=Hidden\nExec=x\nNoDisplay=true\n",
+        )
+        .unwrap();
+        let apps = scan_host_apps_in(&[dir]);
+        std::fs::remove_dir_all(&base).ok();
+        assert_eq!(apps.len(), 1);
+        assert_eq!(apps[0].id, "firefox");
+    }
+
+    #[test]
+    fn waypipe_argv_targets_the_brain_machine() {
+        let argv = waypipe_argv("tim@tkserver -p 53243", "firefox");
+        assert_eq!(
+            argv,
+            ["waypipe", "ssh", "tim@tkserver", "-p", "53243", "firefox"]
+        );
     }
 
     #[test]

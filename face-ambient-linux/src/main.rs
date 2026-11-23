@@ -134,6 +134,73 @@ fn dispatch_command(cmd: FaceCommand) {
     });
 }
 
+/// Launch directives the shell has already executed, by id.
+/// Every surface's web UI forwards the same directive; the
+/// shell acts on each id exactly once.
+static ACTED_LAUNCHES: std::sync::OnceLock<
+    std::sync::Mutex<std::collections::HashSet<String>>,
+> = std::sync::OnceLock::new();
+
+/// Execute a launch directive on this machine (Architecture
+/// §26.4): the Brain decided, this shell spawns — a host launch
+/// directly in the user's session, a server launch through
+/// waypipe to the Brain's machine. Every acted launch is
+/// logged to the face's journal; a launch that cannot start
+/// fails there loudly, never silently.
+fn handle_launch(directive: surfaces::LaunchDirective) {
+    let acted = ACTED_LAUNCHES
+        .get_or_init(|| std::sync::Mutex::new(std::collections::HashSet::new()));
+    {
+        let mut acted = acted.lock().unwrap();
+        if !acted.insert(directive.id.clone()) {
+            return;
+        }
+    }
+    let exec = surfaces::strip_field_codes(&directive.exec);
+    let argv: Vec<String> = match directive.placement.as_str() {
+        "host" => vec!["sh".to_string(), "-c".to_string(), exec],
+        "server" => match std::env::var("TOS_WAYPIPE_TARGET") {
+            Ok(target) if !target.trim().is_empty() => {
+                surfaces::waypipe_argv(&target, &exec)
+            }
+            _ => {
+                eprintln!(
+                    "[tos-face] launch {} ({}) NOT started: server placement needs \
+                     TOS_WAYPIPE_TARGET set to the Brain machine's ssh destination",
+                    directive.id, directive.app
+                );
+                return;
+            }
+        },
+        other => {
+            eprintln!(
+                "[tos-face] launch {} ({}) NOT started: unknown placement '{}'",
+                directive.id, directive.app, other
+            );
+            return;
+        }
+    };
+    eprintln!(
+        "[tos-face] launch {} ({}) on {}: {}",
+        directive.id,
+        directive.app,
+        directive.placement,
+        argv.join(" ")
+    );
+    match std::process::Command::new("setsid")
+        .args(&argv)
+        .stdin(std::process::Stdio::null())
+        .stdout(std::process::Stdio::null())
+        .spawn()
+    {
+        Ok(_) => {}
+        Err(e) => eprintln!(
+            "[tos-face] launch {} ({}) failed to start: {}",
+            directive.id, directive.app, e
+        ),
+    }
+}
+
 fn build_ui(app: &Application, ui_base: &str, brain_url: Option<&str>) {
     spawn_command_listener();
 
@@ -255,10 +322,25 @@ fn make_surface_window(
     ucm.register_script_message_handler(SCRIPT_HANDLER_NAME, None);
     ucm.connect_script_message_received(Some(SCRIPT_HANDLER_NAME), |_ucm, val| {
         let text = val.to_str();
-        if let Some(cmd) = FaceCommand::parse(text.as_str()) {
+        if let Some(directive) = surfaces::parse_launch_message(text.as_str()) {
+            handle_launch(directive);
+        } else if let Some(cmd) = FaceCommand::parse(text.as_str()) {
             dispatch_command(cmd);
         }
     });
+
+    // Describe this host's GUI apps to the web UI before it
+    // starts, so the face can sync the catalogue to the Brain
+    // for placement decisions (Architecture §26.4).
+    let apps_json = serde_json::to_string(&surfaces::scan_host_apps())
+        .unwrap_or_else(|_| "[]".to_string());
+    ucm.add_script(&webkit6::UserScript::new(
+        &format!("window.__tosHostApps = {apps_json};"),
+        webkit6::UserContentInjectedFrames::TopFrame,
+        webkit6::UserScriptInjectionTime::Start,
+        &[],
+        &[],
+    ));
 
     let view = webkit6::WebView::builder()
         .user_content_manager(&ucm)

@@ -263,6 +263,7 @@ impl IpcHandler {
             "semantic_search" => self.handle_semantic_search(payload),
             "prompt_submit" => self.handle_prompt_submit(payload, false),
             "force_prompt_submit" => self.handle_prompt_submit(payload, true),
+            "prompt_launch" => self.handle_prompt_launch(payload),
             "placement_sync_apps" => self.handle_placement_sync_apps(payload),
             "placement_choose" => self.handle_placement_choose(payload),
             "placement_relaunch" => self.handle_placement_relaunch(payload),
@@ -958,6 +959,19 @@ impl IpcHandler {
             });
         state.version += 1;
         format!("LAUNCHED:{}", placement.as_str())
+    }
+
+    /// §26.4: route a typed prompt submission through
+    /// placement. `SESSION` means the router declined — the
+    /// caller treats the submission as a terminal submission,
+    /// exactly as it did before placement existed.
+    fn handle_prompt_launch(&self, payload: &str) -> String {
+        let cmd = payload.trim();
+        if cmd.is_empty() {
+            return "ERROR: Empty command".to_string();
+        }
+        self.try_placement_submit(cmd)
+            .unwrap_or_else(|| "SESSION".to_string())
     }
 
     fn handle_placement_sync_apps(&self, payload: &str) -> String {

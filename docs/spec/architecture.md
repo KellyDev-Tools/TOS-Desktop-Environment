@@ -91,10 +91,12 @@ caller that arrives over the network (WebSocket or TCP):
 - **Chip-state stream** — `get_state`, `get_state_delta` in;
   `state_delta` out.
 - **Prompt stream** — `prompt_submit`, `force_prompt_submit`, and
-  the placement commands of §26.4: `placement_sync_apps` (a face
-  describes its own host's app catalogue), `placement_choose` (the
-  face answers a pending placement), `placement_relaunch` (run a
-  registered launch again, in the other location).
+  the placement commands of §26.4: `prompt_launch` (route a
+  prompt submission through placement), `placement_sync_apps` (a
+  face describes its own host's app catalogue),
+  `placement_choose` (the face answers a pending placement),
+  `placement_relaunch` (run a registered launch again, in the
+  other location).
 - **Session plumbing for those streams** — `tos_ports` (the discovery
   probe) and `face_register` (a face announces itself, then streams).
 
@@ -2325,7 +2327,7 @@ The Brain owns terminal emulation. Each terminal session's PTY stream is parsed 
 Where an app *runs* (the face's host machine, or the Brain's machine — the server) and where it *displays* (the host screen; XR is a later face, §Phase 5) are independent choices. The terminal already splits them: the session lives on the Brain's machine and renders anywhere. Placement extends that split to GUI apps launched from the prompt.
 
 - **The data is desktop entries.** Each machine's GUI app catalogue is its desktop entries (`Type=Application`, not `NoDisplay`): an app id (the entry's file stem), a display name, and its `Exec` line. The Brain reads its own machine's catalogue from the XDG data directories. A face syncs its host's catalogue to the Brain with `placement_sync_apps` (a JSON list of the same shape) — a face describes *its own* machine; it cannot describe another's.
-- **Resolution happens at prompt-submit, in the Brain.** A submission whose first token names a catalogue app — by id or by entry name, case-insensitively — is a GUI launch. Anything else is not: it takes the terminal path unchanged (typed into the session, on the Brain's machine, as always). A launch resolves to one of:
+- **Resolution happens at prompt-submit, in the Brain.** A submission whose first token names a catalogue app — by id or by entry name, case-insensitively — is a GUI launch. Anything else is not: it takes the terminal path unchanged (typed into the session, on the Brain's machine, as always). Both prompt paths route through the same resolution: `prompt_submit` (the hub's submission) resolves inline, and a face whose prompt bar types into the terminal asks first with `prompt_launch` — a `SESSION` answer means "not a launch," and the bar types the submission into the terminal exactly as it did before placement existed; any other answer means the Brain has taken the launch. `prompt_launch` serves the user's own typed submissions and carries the same authority as typing in their terminal — it is not a path for automation. A launch resolves to one of:
   - **host** — the app exists on the face's host (or on both machines; both-present defaults to host, where the display and GPU are);
   - **server-display** — the app exists only on the Brain's machine; it runs there and displays on the host screen via waypipe;
   - **session** — no catalogue match, as above.

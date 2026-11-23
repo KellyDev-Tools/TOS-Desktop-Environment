@@ -615,6 +615,16 @@ export async function syncHostApps(): Promise<void> {
     }
 }
 
+/** Route a typed prompt submission through placement
+ * (Architecture §26.4). Resolves to the Brain's answer:
+ * 'SESSION' when the submission is not a GUI launch — the
+ * caller then treats it as a terminal submission, as it did
+ * before placement existed — or a LAUNCHED:/PLACEMENT_PENDING:
+ * answer when the Brain has taken the launch. */
+export async function promptLaunch(cmd: string): Promise<string | null> {
+    return sendCommand(`prompt_launch:${cmd}`);
+}
+
 export async function placementChoose(id: string, side: 'host' | 'server'): Promise<void> {
     await sendCommand(`placement_choose:${id};${side}`);
 }

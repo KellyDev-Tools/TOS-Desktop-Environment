@@ -1,4 +1,5 @@
 pub mod cortex_registry;
+pub mod placement;
 pub mod hierarchy;
 pub mod ipc_handler;
 pub mod module_manager;

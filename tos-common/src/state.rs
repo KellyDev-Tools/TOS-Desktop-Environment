@@ -819,6 +819,23 @@ pub struct TosState {
     pub timeline_cursor: Option<usize>,
     pub timeline_history_len: usize,
     pub pending_confirmation: Option<ConfirmationRequest>,
+    /// The face host's GUI app catalogue, synced by the face
+    /// (Architecture §26.4). The Brain's own catalogue is read
+    /// from disk, not held in state.
+    #[serde(default)]
+    pub placement_host_apps: Vec<crate::brain::placement::AppEntry>,
+    /// A GUI launch waiting for its placement to be chosen
+    /// (prominence `explicit`).
+    #[serde(default)]
+    pub placement_pending: Option<crate::brain::placement::PendingPlacement>,
+    /// Recent launches, newest last; faces render placement
+    /// glyphs from this and relaunches act on it.
+    #[serde(default)]
+    pub placement_launches: Vec<crate::brain::placement::LaunchRecord>,
+    /// The latest launch directive for a face to act on; a face
+    /// honours each directive once, by id.
+    #[serde(default)]
+    pub placement_directive: Option<crate::brain::placement::LaunchDirective>,
     pub system_log: Vec<TerminalLine>,
     pub sys_prefix: String,
     pub sys_title: String,
@@ -905,6 +922,10 @@ impl Default for TosState {
             timeline_cursor: None,
             timeline_history_len: 0,
             pending_confirmation: None,
+            placement_host_apps: vec![],
+            placement_pending: None,
+            placement_launches: vec![],
+            placement_directive: None,
             system_log: vec![],
             sys_prefix: "TOS // SYSTEM-BRAIN".to_string(),
             sys_title: "TOS CORE BRAIN".to_string(),
